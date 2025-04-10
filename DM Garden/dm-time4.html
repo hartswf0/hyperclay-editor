@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refactored DM MS Thesis/Project Timeline (2023-2024)</title>
+    <style>
+        :root {
+            /* -- Base Theme -- */
+            --bg-color: #2D3748; /* Dark Blue-Gray */
+            --text-color: #E2E8F0; /* Light Gray */
+            --accent-color: #63B3ED; /* Brighter Blue */
+            --secondary-accent-color: #4299E1; /* Medium Blue */
+            --divider-color: rgba(99, 179, 237, 0.2);
+            --label-bg: rgba(45, 55, 72, 0.85);
+            --label-text-color: var(--text-color);
+            --today-marker-color: #F56565; /* Red */
+            --focus-outline-color: var(--accent-color);
+
+            /* -- Color Coding (Consistent) -- */
+            --color-fall: #9AE6B4; --color-fall-accent: #68D391; /* Green */
+            --color-spring: #FEB2B2; --color-spring-accent: #F56565; /* Red */
+            --color-idea: #FAF089; --color-idea-accent: #F6E05E; /* Yellow */
+            --color-milestone: #E9D8FD; --color-milestone-accent: #D6BCFA; /* Purple */
+
+            /* -- Idea Opacity -- */
+            --idea-opacity: 0.7;
+        }
+
+        /* --- High Contrast Mode --- */
+        body.high-contrast {
+            --bg-color: #000000;
+            --text-color: #FFFFFF;
+            --accent-color: #FFFF00; /* Yellow */
+            --secondary-accent-color: #00FFFF; /* Cyan */
+            --divider-color: rgba(255, 255, 0, 0.5);
+            --label-bg: #000000;
+            --label-text-color: #FFFFFF;
+            --today-marker-color: #FF00FF; /* Magenta */
+            --focus-outline-color: #FFFFFF;
+
+            --color-fall: #00FF00; --color-fall-accent: #00FF00;
+            --color-spring: #FF69B4; --color-spring-accent: #FF69B4; /* Hot Pink */
+            --color-idea: #FFFF00; --color-idea-accent: #FFFF00;
+            --color-milestone: #87CEFA; --color-milestone-accent: #87CEFA; /* Light Sky Blue */
+        }
+        /* --- End High Contrast --- */
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            font-size: 16px;
+        }
+
+        .content-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 30px;
+        }
+
+        h1, h2, h3 {
+            color: var(--accent-color);
+            margin-bottom: 12px;
+            font-weight: 600;
+            padding-bottom: 6px;
+        }
+        h1 { font-size: 2em; text-align: center; margin-bottom: 30px; border-bottom: 1px solid var(--divider-color); }
+        h2 { font-size: 1.6em; margin-top: 40px; border-bottom: 1px solid var(--divider-color); }
+        h3 { font-size: 1.3em; margin-top: 25px; color: var(--secondary-accent-color); }
+
+        p, ul { margin-bottom: 18px; font-size: 1em; }
+        ul { padding-left: 30px; }
+        li { margin-bottom: 8px; }
+        strong { color: var(--accent-color); font-weight: 600; }
+        a { color: var(--accent-color); text-decoration: none; }
+        a:hover, a:focus { text-decoration: underline; }
+
+        button {
+            cursor: pointer; padding: 8px 15px; font-size: 0.9em;
+            border: 1px solid var(--accent-color); border-radius: 20px; /* Pill shape */
+            background-color: transparent; color: var(--accent-color);
+            transition: background-color 0.2s, color 0.2s;
+        }
+        button:hover, button:focus { background-color: var(--accent-color); color: var(--bg-color); }
+        button:focus-visible { outline: 2px solid var(--focus-outline-color); outline-offset: 2px; }
+
+        #contrast-toggle { position: fixed; top: 15px; right: 20px; z-index: 101; }
+
+        #month-nav {
+            position: sticky; top: 0; background: var(--bg-color); z-index: 100;
+            display: flex; gap: 10px; justify-content: center;
+            padding: 12px 0; border-bottom: 1px solid var(--divider-color);
+            margin-bottom: 20px; /* Space below nav */
+        }
+        #month-nav button { font-size: 0.85em; padding: 6px 12px; }
+
+
+        .legend {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 10px 20px; margin: 30px 0; padding: 15px;
+            background-color: rgba(0,0,0,0.15); border-radius: 8px; font-size: 0.9em;
+        }
+        .legend-item { display: inline-flex; align-items: center; gap: 8px; }
+        .legend-icon { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+        .legend-item.idea { opacity: var(--idea-opacity); font-style: italic; }
+
+        /* --- Visual Timeline --- */
+        #timeline-visual {
+            position: relative; width: 100%; margin: 40px 0;
+            padding: 10px 0; overflow-x: auto;
+            border: 1px solid var(--accent-color); border-radius: 8px;
+            background-color: var(--bg-color);
+            /* Subtle ruler background */
+            background-image: repeating-linear-gradient(to right, transparent, transparent calc(100% / 9 - 1px), var(--divider-color) calc(100% / 9 - 1px), var(--divider-color) calc(100% / 9));
+            background-size: 100% 100%; /* Static background size for ruler effect */
+        }
+
+        .timeline-content {
+            position: relative; min-width: 2000px; /* Ensure horizontal scroll */
+            padding: 0 1%; height: 100%; /* Height for today marker */
+        }
+
+        .time-axis {
+            position: sticky; bottom: 0; left: 0; width: 100%;
+            height: 35px; background-color: var(--bg-color);
+            z-index: 20; border-top: 1px solid var(--divider-color);
+            display: flex; align-items: flex-end;
+            padding: 0 1%;
+        }
+
+        .month-marker {
+            position: absolute; bottom: 5px; transform: translateX(-50%);
+            font-size: 0.85em; color: var(--accent-color);
+            white-space: nowrap; padding: 0 4px; cursor: default;
+        }
+        .month-marker::before { /* Tick */
+            content: ''; position: absolute; bottom: 100%; left: 50%;
+            transform: translateX(-50%); width: 1px; height: 6px;
+            background-color: var(--accent-color); opacity: 0.7;
+        }
+
+        #today-marker {
+            position: absolute; top: 0; bottom: 35px; /* Avoid axis */
+            width: 2px; background-color: var(--today-marker-color);
+            z-index: 19; pointer-events: none;
+            opacity: 0.8;
+        }
+         #today-marker::after { /* Small indicator */
+            content: 'TODAY'; position: absolute; top: -20px; left: 50%;
+            transform: translateX(-50%); background: var(--today-marker-color);
+            color: var(--bg-color); padding: 1px 4px; font-size: 0.6em;
+            border-radius: 3px; font-weight: bold;
+         }
+
+
+        .timeline-lanes {
+            position: relative; padding-bottom: 35px; /* Space for axis */
+        }
+
+        .timeline-lane {
+            position: relative; min-height: 90px; /* Space for labels */
+            border-bottom: 1px dashed var(--divider-color); padding: 15px 0;
+        }
+        .timeline-lane:last-child { border-bottom: none; }
+
+        .lane-label {
+            position: sticky; left: 10px; top: 15px;
+            font-weight: 600; font-size: 0.95em; opacity: 0.95;
+            background: var(--label-bg); padding: 4px 10px; border-radius: 15px; /* Pill */
+            z-index: 15; display: inline-flex; align-items: center; gap: 8px;
+            color: var(--label-text-color); border: 1px solid transparent; /* For contrast mode */
+        }
+        body.high-contrast .lane-label { border-color: var(--text-color); }
+
+        /* --- Event Markers & Labels --- */
+        .event-wrapper { /* Only contains the dot */
+            position: absolute; bottom: 15px; transform: translateX(-50%);
+            width: 14px; height: 14px; z-index: 10; cursor: default;
+        }
+        .event { /* The dot itself */
+            width: 100%; height: 100%; border-radius: 50%;
+            border: 2px solid var(--bg-color); box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+        }
+
+        .event-label { /* Positioned independently */
+            position: absolute; bottom: 35px; /* Above dot */
+            transform: translateX(-50%); /* Center label */
+            font-size: 0.8em; color: var(--label-text-color);
+            background-color: var(--label-bg); padding: 3px 8px; border-radius: 10px; /* Pill */
+            white-space: nowrap; text-align: center; max-width: 180px;
+            overflow: hidden; text-overflow: ellipsis; z-index: 11; cursor: default;
+            display: inline-flex; align-items: center; gap: 5px;
+            border: 1px solid transparent; /* For contrast */
+        }
+         body.high-contrast .event-label { border-color: var(--text-color); }
+
+        .event-label .icon { font-size: 0.9em; /* Adjust icon size */ }
+        .event-label .date-part { font-weight: 600; opacity: 0.8; }
+        .event-label .title-part { font-weight: 500; }
+
+        /* --- Type-Specific Styling --- */
+        /* Fall Deliverable */
+        .deliverable-fall-event .event { background-color: var(--color-fall); }
+        .deliverable-fall-event .event-label { color: var(--color-fall); }
+        /* Spring Deliverable */
+        .deliverable-spring-event .event { background-color: var(--color-spring); }
+        .deliverable-spring-event .event-label { color: var(--color-spring); }
+        /* Idea */
+        .idea-event .event { background-color: var(--color-idea); opacity: var(--idea-opacity); }
+        .idea-event .event-label { color: var(--color-idea); opacity: var(--idea-opacity); }
+        /* Milestone */
+        .milestone-event .event { background-color: var(--color-milestone); }
+        .milestone-event .event-label { color: var(--color-milestone); }
+
+        /* --- List View --- */
+        #timeline-list { /* Styles largely kept */
+            width: 100%; margin: 40px 0;
+            background-color: rgba(0,0,0,0.1); padding: 20px 30px;
+            border-radius: 8px; border: 1px solid var(--divider-color); box-sizing: border-box;
+         }
+         #timeline-list ul { list-style: none; padding: 0; margin: 0; }
+         #timeline-list li {
+            padding: 15px 0; border-bottom: 1px solid var(--divider-color);
+            display: grid; grid-template-columns: 100px 1fr; gap: 20px; align-items: start;
+         }
+         #timeline-list li:last-child { border-bottom: none; }
+         .list-date { font-weight: 600; color: var(--accent-color); font-size: 0.95em; padding-top: 3px; }
+         .list-content {}
+         .list-title { font-weight: 600; font-size: 1.1em; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+         .list-desc { font-size: 0.95em; opacity: 0.9; margin-bottom: 8px; }
+         .list-meta { font-size: 0.85em; opacity: 0.7; font-style: italic; }
+         .list-points { margin-left: 5px; font-weight: bold; }
+         .list-idea .list-title::before { content: '💡'; margin-right: 5px; }
+
+         .list-deliverable-fall .list-title { color: var(--color-fall); }
+         .list-deliverable-fall .list-points { color: var(--color-fall-accent); }
+         .list-deliverable-spring .list-title { color: var(--color-spring); }
+         .list-idea .list-title { color: var(--color-idea); opacity: var(--idea-opacity); }
+         .list-milestone .list-title { color: var(--color-milestone); }
+
+    </style>
+</head>
+<body>
+<div class="content-wrapper">
+
+    <button id="contrast-toggle" title="Toggle High Contrast Mode">Contrast</button>
+
+    <h1>LMC 6800 & 7000: DM MS Thesis & Project Timeline (Fall 2023 – Spring 2024)</h1>
+
+    <section aria-labelledby="context-heading">
+        <h2 id="context-heading">Course Context & Philosophy</h2>
+        <p>This timeline outlines key milestones and deliverables for students enrolled in LMC 6800 (Project) or LMC 7000 (Thesis) during the Fall 2023 - Spring 2024 academic year. It serves as a guide, complementing regular meetings and individual project needs.</p>
+        <p><strong>Instructors:</strong> Richmond Wong, Anne Sullivan, Noura Howell, Michael Nitsche. Your official MS advisor continues their primary role.</p>
+        <p><strong>Meetings:</strong> Occur on alternating weeks: Tuesdays (5-6:30pm) and Thursdays (2-3:30pm). Check meeting invites for specifics. Agendas and notes will be shared.</p>
+    </section>
+
+    <section aria-labelledby="notes-heading">
+        <h3 id="notes-heading">Running Notes Document: Your Project Hub</h3>
+        <p>Maintaining a <strong>Running Notes Document</strong> (per student, collaborative with faculty, e.g., on OneDrive) is essential for tracking progress, feedback, goals, and decisions throughout your project lifecycle. Consolidate notes from meetings, emails, and other communications here.</p>
+        <p>(Link: <a href="#" aria-label="Link to Running Notes OneDrive Folder - Placeholder">Running Notes OneDrive Folder - TBD</a>)</p>
+    </section>
+
+     <section aria-labelledby="grading-heading">
+        <h3 id="grading-heading">Grading Approach</h3>
+        <p>LMC 6800/7000 typically follows this structure:</p>
+        <ul>
+            <li><strong>Fall Term:</strong> Pass/Fail (P/F), guided by timely completion of deliverables (see points below).</li>
+            <li><strong>Spring Term:</strong> Letter Grade, reflecting final defense, committee evaluation, and overall project execution.</li>
+        </ul>
+        <p><strong>Late Policy (Fall):</strong> Deliverable grades may be reduced by 2 points per day late.</p>
+    </section>
+
+     <section aria-labelledby="ideas-heading">
+        <h3 id="ideas-heading">Future Directions & Ideas</h3>
+        <p>We're actively exploring ways to enhance the DM MS experience, including ideas like an alumni buddy system, team projects, hackathons, improved community platforms (Slack?), and clarifying supervision expectations.</p>
+    </section>
+
+
+    <div class="legend" aria-label="Timeline Legend">
+        <span class="legend-item"><span class="legend-icon" style="background-color: var(--color-fall);"></span>🌱 Fall Deliverable</span>
+        <span class="legend-item"><span class="legend-icon" style="background-color: var(--color-spring);"></span>🍓 Spring Deliverable</span>
+        <span class="legend-item idea"><span class="legend-icon" style="background-color: var(--color-idea);"></span>💡 Idea/Discussion</span>
+        <span class="legend-item"><span class="legend-icon" style="background-color: var(--color-milestone);"></span>⏱️ Milestone/Deadline</span>
+    </div>
+
+    <nav id="month-nav" aria-label="Jump to Month Navigation">
+      <!-- Buttons added by JS -->
+    </nav>
+
+    <!-- Visual Timeline Section -->
+    <section aria-labelledby="timeline-heading">
+        <h2 id="timeline-heading">Visual Timeline</h2>
+        <div id="timeline-visual" role="region" aria-label="Interactive Project Timeline">
+             <div class="timeline-content">
+                 <div id="today-marker" aria-hidden="true"></div>
+                 <div class="timeline-lanes">
+                     <div class="timeline-lane deliverables-lane" id="deliverables-lane">
+                          <span class="lane-label" aria-hidden="true">🌱🍓 Deliverables</span>
+                     </div>
+                     <div class="timeline-lane ideas-lane" id="ideas-lane">
+                          <span class="lane-label" aria-hidden="true">💡 Ideas / Community</span>
+                     </div>
+                      <div class="timeline-lane milestones-lane" id="milestones-lane">
+                         <span class="lane-label" aria-hidden="true">⏱️ Milestones</span>
+                     </div>
+                     <!-- Events added by JS -->
+                 </div>
+                  <div class="time-axis" id="time-axis" aria-hidden="true">
+                      <!-- Month markers added by JS -->
+                  </div>
+              </div>
+        </div>
+    </section>
+
+    <!-- Collated List Section -->
+     <section aria-labelledby="list-heading">
+        <h2 id="list-heading">Collated List of Events & Deliverables</h2>
+        <div id="timeline-list">
+            <ul id="event-list-ul" aria-live="polite">
+                <!-- List items added by JS -->
+            </ul>
+        </div>
+    </section>
+
+</div><!-- /.content-wrapper -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Configuration & Data ---
+            const config = {
+                timelineStart: '2023-08-20',
+                timelineEnd: '2024-05-15',
+                // Define lane IDs used in data and HTML
+                lanes: {
+                    DELIVERABLES: 'deliverables-lane',
+                    IDEAS: 'ideas-lane',
+                    MILESTONES: 'milestones-lane'
+                },
+                // Define event types used in data
+                types: {
+                    FALL_DELIVERABLE: 'deliverable-fall',
+                    SPRING_DELIVERABLE: 'deliverable-spring',
+                    IDEA: 'idea',
+                    MILESTONE: 'milestone'
+                }
+            };
+
+            // Data separated for clarity (could be external JSON)
+            const timelineData = [
+                 // Fall 2023 Deliverables
+                { date: '2023-09-21', type: config.types.FALL_DELIVERABLE, lane: config.lanes.DELIVERABLES, title: 'RQ Set (Part 1)', icon: '🌱', points: 15, audience: 'Student Deliverable', description: 'Present Initial RQs, Lit Review Themes, Related Projects (5min/5slides). Draft project schedule. *Graduating students present progress (10min/10slides). (Presented Sep 21 & 26)' },
+                { date: '2023-10-12', type: config.types.FALL_DELIVERABLE, lane: config.lanes.DELIVERABLES, title: 'Lit Review v2', icon: '🌱', points: 15, audience: 'Student Deliverable', description: 'Written literature review (structured essay, key takeaways, tech review). (Approx. Mid-Oct)' },
+                { date: '2023-11-01', type: config.types.FALL_DELIVERABLE, lane: config.lanes.DELIVERABLES, title: 'Web Page & Plan', icon: '🌱', points: 30, audience: 'Student Deliverable', description: 'Project web page live. Revised RQs & Research Plan. Design criteria brainstorm. Methodology. IRB submitted if needed.' },
+                { date: '2023-11-29', type: config.types.FALL_DELIVERABLE, lane: config.lanes.DELIVERABLES, title: 'Outline/Proto Criteria', icon: '🌱', points: 30, audience: 'Student Deliverable', description: 'Proposal presentation. Tech feasibility demo. Lit review summary, RQs, design criteria, research plan. Documented sketches/brainstorming.' },
+                { date: '2023-12-10', type: config.types.FALL_DELIVERABLE, lane: config.lanes.DELIVERABLES, title: 'Fall Participation', icon: '🌱', points: 10, audience: 'Student Assessment', description: 'Assessed participation & peer feedback throughout Fall semester. (End of Semester)' },
+
+                // Spring 2024 Deliverables (Example Pacing)
+                { date: '2024-03-01', type: config.types.SPRING_DELIVERABLE, lane: config.lanes.DELIVERABLES, title: 'Draft/Proto Done', icon: '🍓', audience: 'Student Deliverable', description: 'First complete draft (thesis) or functional prototype (project). (Approx. date)' },
+                { date: '2024-03-15', type: config.types.SPRING_DELIVERABLE, lane: config.lanes.DELIVERABLES, title: 'Revised/Testing', icon: '🍓', audience: 'Student Deliverable', description: 'Iterated prototype/draft. User testing results/findings OR written reflection/heuristic eval. (Approx. date)' },
+                { date: '2024-04-01', type: config.types.SPRING_DELIVERABLE, lane: config.lanes.DELIVERABLES, title: 'Deliverable Done', icon: '🍓', audience: 'Student Deliverable', description: 'Final iterated prototype/draft + Rough final materials (docs, slides). Test presentation prep. (Approx. date)' },
+                { date: '2024-04-07', type: config.types.SPRING_DELIVERABLE, lane: config.lanes.DELIVERABLES, title: 'Video Done', icon: '🍓', audience: 'Student Deliverable', description: 'Project video completed. (Approx. date)' },
+
+                 // Milestones
+                { date: '2023-12-15', type: config.types.MILESTONE, lane: config.lanes.MILESTONES, title: 'Fall Grades Due', icon: '⏱️', audience: 'Faculty Milestone', description: 'Approximate deadline for Fall P/F grades.' },
+                { date: '2024-04-15', type: config.types.MILESTONE, lane: config.lanes.MILESTONES, title: 'Final Presentations', icon: '⏱️', audience: 'All DM Community', description: 'Department-wide final project/thesis presentations (Approx. date).' },
+                { date: '2024-05-01', type: config.types.MILESTONE, lane: config.lanes.MILESTONES, title: 'Final Submission', icon: '⏱️', audience: 'Student Deadline', description: 'Final project materials submitted (website, video, docs, thesis). (Approx. date).' },
+                { date: '2024-05-08', type: config.types.MILESTONE, lane: config.lanes.MILESTONES, title: 'Spring Grades Due', icon: '⏱️', audience: 'Faculty Milestone', description: 'Approximate deadline for Spring letter grades.' },
+
+                 // Ideas / Community Discussions
+                 { date: '2023-09-15', type: config.types.IDEA, lane: config.lanes.IDEAS, title: 'Discuss Teams/Slack', icon: '💡', isIdea: true, audience: 'Faculty/Student Reps', description: 'Discuss potential move from Teams to Slack.' },
+                 { date: '2023-10-10', type: config.types.IDEA, lane: config.lanes.IDEAS, title: 'Recruitment Talk Prep', icon: '💡', isIdea: true, audience: 'Faculty/2nd Years', description: 'Plan 1st year recruitment talks for projects.' },
+                 { date: '2023-11-05', type: config.types.IDEA, lane: config.lanes.IDEAS, title: 'Buddy System Setup', icon: '💡', isIdea: true, audience: 'Faculty', description: 'Explore Alumni Buddy System setup.' },
+                 { date: '2024-01-20', type: config.types.IDEA, lane: config.lanes.IDEAS, title: 'Hackathon Planning', icon: '💡', isIdea: true, audience: 'Faculty/Student Reps', description: 'Initial discussion for a potential DM Hackathon.' },
+                 { date: '2024-02-15', type: config.types.IDEA, lane: config.lanes.IDEAS, title: 'Teamwork Emphasis', icon: '💡', isIdea: true, audience: 'Faculty/Students', description: 'Discuss strategies for more team-based work.' },
+            ];
+
+            // --- DOM References ---
+            const timelineVisual = document.getElementById('timeline-visual');
+            const timelineContent = timelineVisual.querySelector('.timeline-content');
+            const timeAxisEl = document.getElementById('time-axis');
+            const todayMarkerEl = document.getElementById('today-marker');
+            const eventListUl = document.getElementById('event-list-ul');
+            const monthNavEl = document.getElementById('month-nav');
+            const contrastToggleBtn = document.getElementById('contrast-toggle');
+            const laneElements = { // Get actual lane elements
+                [config.lanes.DELIVERABLES]: document.getElementById(config.lanes.DELIVERABLES),
+                [config.lanes.IDEAS]: document.getElementById(config.lanes.IDEAS),
+                [config.lanes.MILESTONES]: document.getElementById(config.lanes.MILESTONES)
+            };
+
+            // --- State ---
+            const timelineStart = new Date(config.timelineStart);
+            const timelineEnd = new Date(config.timelineEnd);
+            const totalDuration = timelineEnd.getTime() - timelineStart.getTime();
+
+            // --- Helper Functions ---
+            const calculatePosition = (date) => {
+                const eventDate = new Date(date);
+                if (eventDate < timelineStart || eventDate > timelineEnd || totalDuration <= 0) return -1;
+                return ((eventDate.getTime() - timelineStart.getTime()) / totalDuration) * 100;
+            };
+
+            const formatDateLabel = (dateString) => {
+                const date = new Date(dateString);
+                const offset = date.getTimezoneOffset();
+                const adjustedDate = new Date(date.getTime() + (offset * 60 * 1000));
+                const month = (adjustedDate.getUTCMonth() + 1); //.toString().padStart(2, '0'); // No padding for brevity
+                const day = adjustedDate.getUTCDate(); //.toString().padStart(2, '0');
+                return `${month}/${day}`;
+            };
+
+            // --- Initialization ---
+            function initializeTimeline() {
+                renderMonthMarkers();
+                renderEvents();
+                renderTodayMarker();
+                renderListView();
+                setupEventListeners();
+                renderMonthNav(); // Render nav after calculating bounds
+            }
+
+            // --- Rendering Functions ---
+            function renderMonthNav() {
+                const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
+                const yearMap = { Sep: 2023, Oct: 2023, Nov: 2023, Dec: 2023, Jan: 2024, Feb: 2024, Mar: 2024, Apr: 2024, May: 2024};
+                 const monthIndexMap = { Sep: 8, Oct: 9, Nov: 10, Dec: 11, Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4 };
+
+                months.forEach(month => {
+                     const year = yearMap[month];
+                     const monthNum = monthIndexMap[month];
+                    const button = document.createElement('button');
+                    button.textContent = `${month} '${String(year).slice(2)}`;
+                    button.dataset.month = month;
+                    button.dataset.year = year;
+                     button.setAttribute('aria-label', `Jump to ${month} ${year}`);
+                    monthNavEl.appendChild(button);
+                });
+            }
+
+             function renderMonthMarkers() {
+                 timeAxisEl.innerHTML = ''; // Clear existing markers
+                 const uniqueMonths = new Set();
+                 const tempDate = new Date(timelineStart);
+                 while (tempDate <= timelineEnd) {
+                     uniqueMonths.add(tempDate.getFullYear() + '-' + String(tempDate.getMonth() + 1).padStart(2, '0'));
+                     tempDate.setMonth(tempDate.getMonth() + 1);
+                     tempDate.setDate(1);
+                 }
+
+                 uniqueMonths.forEach(monthStr => {
+                     const [year, month] = monthStr.split('-');
+                     const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+                     const monthPos = calculatePosition(monthDate);
+                     const monthName = monthDate.toLocaleString('default', { month: 'short' });
+
+                     if (monthPos >= 0 && monthPos <= 100) {
+                         const marker = document.createElement('div');
+                         marker.classList.add('month-marker');
+                         marker.textContent = `${monthName} '${String(year).slice(2)}`;
+                         marker.style.left = `${monthPos}%`;
+                         timeAxisEl.appendChild(marker);
+                     }
+                 });
+             }
+
+            function renderEvents() {
+                 // Clear existing events from lanes
+                 Object.values(laneElements).forEach(lane => {
+                     if (lane) {
+                         lane.querySelectorAll('.event-wrapper, .event-label').forEach(el => el.remove());
+                     }
+                 });
+
+                 timelineData.forEach(item => {
+                     const eventPos = calculatePosition(item.date);
+                     if (eventPos < 0) return;
+
+                     const targetLane = laneElements[item.lane];
+                     if (!targetLane) {
+                         console.warn(`Lane element not found for ID: ${item.lane}`);
+                         return;
+                     }
+
+                     const wrapperClass = `${item.type}-event`; // e.g., deliverable-fall-event
+
+                     // Event Dot Wrapper
+                     const eventWrapper = document.createElement('div');
+                     eventWrapper.classList.add('event-wrapper', wrapperClass);
+                     if (item.isIdea) eventWrapper.style.opacity = 'var(--idea-opacity)';
+                     eventWrapper.style.left = `${eventPos}%`;
+                     eventWrapper.setAttribute('role', 'img'); // Treat dot as image
+                     eventWrapper.setAttribute('aria-label', `${item.title} on ${item.date}`);
+
+
+                     const eventEl = document.createElement('div');
+                     eventEl.classList.add('event');
+                     eventWrapper.appendChild(eventEl);
+
+                     // Event Label
+                     const labelEl = document.createElement('div');
+                     labelEl.classList.add('event-label', wrapperClass);
+                      if (item.isIdea) labelEl.style.opacity = 'var(--idea-opacity)';
+                     labelEl.style.left = `${eventPos}%`;
+                     labelEl.setAttribute('aria-hidden', 'true'); // Hide visual label from SR, use wrapper's aria-label
+
+                     labelEl.innerHTML = `<span class="icon" aria-hidden="true">${item.icon || ''}</span><span class="date-part">${formatDateLabel(item.date)}</span><span class="title-part">${item.title}</span>`;
+                     labelEl.setAttribute('title', item.description); // Browser tooltip for full desc
+
+                     targetLane.appendChild(eventWrapper);
+                     targetLane.appendChild(labelEl);
+                 });
+            }
+
+             function renderTodayMarker() {
+                 const todayPos = calculatePosition(new Date());
+                 if (todayPos >= 0 && todayPos <= 100) {
+                     todayMarkerEl.style.left = `${todayPos}%`;
+                     todayMarkerEl.style.display = 'block';
+                 } else {
+                     todayMarkerEl.style.display = 'none';
+                 }
+             }
+
+            function renderListView() {
+                eventListUl.innerHTML = ''; // Clear existing list
+                timelineData
+                    .sort((a, b) => new Date(a.date) - new Date(b.date))
+                    .forEach(item => {
+                        const li = document.createElement('li');
+                         const typeClass = `list-${item.type}`;
+                        li.classList.add(typeClass);
+                        if (item.isIdea) li.classList.add('list-idea');
+
+                        let pointsHTML = item.points ? `<span class="list-points">(${item.points} pts)</span>` : '';
+                        let audienceHTML = item.audience ? `<div class="list-meta">Audience: ${item.audience}</div>` : '';
+
+                        li.innerHTML = `
+                            <div class="list-date">${item.date}</div>
+                            <div class="list-content">
+                                <div class="list-title">${item.icon || ''} ${item.title} ${pointsHTML}</div>
+                                <div class="list-desc">${item.description || item.fullDesc}</div>
+                                ${audienceHTML}
+                            </div>
+                        `;
+                        eventListUl.appendChild(li);
+                    });
+            }
+
+
+            // --- Event Listeners ---
+            function setupEventListeners() {
+                // Contrast Toggle
+                contrastToggleBtn.addEventListener('click', () => {
+                    document.body.classList.toggle('high-contrast');
+                });
+
+                // Month Navigation
+                monthNavEl.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON' && e.target.dataset.month) {
+                        const month = e.target.dataset.month;
+                        const year = e.target.dataset.year;
+                        const monthIndexMap = { Sep: 8, Oct: 9, Nov: 10, Dec: 11, Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4 };
+                        const targetDate = new Date(parseInt(year), monthIndexMap[month], 1);
+                        scrollToDate(targetDate);
+                    }
+                });
+
+                 // Keyboard Navigation
+                 window.addEventListener('keydown', (e) => {
+                     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; // Don't interfere with inputs
+
+                     const scrollAmount = 150; // Pixels to scroll
+                     if (e.key === 'ArrowLeft') {
+                         e.preventDefault();
+                         timelineVisual.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                     } else if (e.key === 'ArrowRight') {
+                         e.preventDefault();
+                         timelineVisual.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                     }
+                 });
+            }
+
+             // --- Utility Functions ---
+             function scrollToDate(date) {
+                 const posPercent = calculatePosition(date);
+                 if (posPercent >= 0) {
+                     const scrollWidth = timelineContent.scrollWidth;
+                     const containerWidth = timelineVisual.clientWidth;
+                      // Calculate target scroll position, try to center the date approx
+                     let targetScrollLeft = (scrollWidth * (posPercent / 100)) - (containerWidth / 3);
+                      // Clamp scroll position
+                     targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, scrollWidth - containerWidth));
+
+                     timelineVisual.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
+                 }
+             }
+
+            // --- Run Initialization ---
+            initializeTimeline();
+
+        });
+    </script>
+
+</body>
+</html>

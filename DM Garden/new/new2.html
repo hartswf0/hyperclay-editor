@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fully Integrated Digital Media MS Program Arc</title>
+    <style>
+        /* Basic Reset & Body Style */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa; /* Lighter background */
+            color: #343a40; /* Darker text */
+        }
+
+        h1, h2, h3, h4 {
+            color: #0056b3; /* Primary color */
+            margin-bottom: 0.6em;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.2em;
+            color: #003d80; /* Darker primary */
+        }
+        h2 {
+             border-bottom: 2px solid #0056b3;
+             padding-bottom: 5px;
+             margin-top: 1.5em;
+        }
+        h3 {
+            color: #007bff; /* Slightly lighter blue */
+            margin-top: 1em;
+        }
+         h4 {
+             font-style: italic;
+             color: #5a6268; /* Grey for sub-headings */
+             margin-bottom: 0.4em;
+         }
+
+        code, .code-block {
+            background-color: #e9ecef;
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        }
+        .code-block {
+            display: block;
+            padding: 10px;
+            margin: 10px 0;
+            white-space: pre-wrap; /* Wrap long code lines */
+            word-break: break-all;
+        }
+
+        strong.milestone-marker-text { /* Style for the checkmark */
+             color: #28a745; /* Green checkmark */
+             font-weight: bold;
+             font-size: 1.1em;
+        }
+
+        .highlight {
+            background-color: #fff3cd; /* Light yellow highlight */
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        /* Timeline Container */
+        .timeline-container {
+            position: relative;
+            width: 95%;
+            max-width: 1100px;
+            margin: 50px auto;
+            padding: 30px 0;
+        }
+
+        /* Timeline Axis */
+        .timeline-axis {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background-color: #007bff;
+            top: 0;
+            z-index: -1; /* Behind markers */
+        }
+
+        /* Timeline Milestone (Container for marker, label, content) */
+        .timeline-milestone {
+            position: relative;
+            margin-bottom: 60px; /* Increased spacing */
+            width: 50%;
+            padding: 10px 40px;
+            box-sizing: border-box;
+        }
+
+        /* Position milestones alternating sides */
+        .timeline-milestone:nth-child(odd) {
+            left: 0;
+            padding-right: 70px;
+            text-align: right;
+        }
+
+        .timeline-milestone:nth-child(even) {
+            left: 50%;
+            padding-left: 70px;
+            text-align: left;
+        }
+
+         /* Remove bottom margin from last item */
+        .timeline-milestone:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Milestone Marker (Circle on the axis) */
+        .milestone-marker {
+            position: absolute;
+            top: 18px; /* Adjust vertical alignment */
+            width: 20px; /* Larger marker */
+            height: 20px;
+            background-color: #fff;
+            border: 4px solid #007bff;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .timeline-milestone:nth-child(odd) .milestone-marker {
+            right: -10px; /* Position marker on axis */
+            transform: translateX(50%);
+        }
+
+        .timeline-milestone:nth-child(even) .milestone-marker {
+            left: -10px; /* Position marker on axis */
+            transform: translateX(-50%);
+        }
+
+        /* Milestone Label (Clickable Term/Month) */
+        .milestone-label {
+            display: inline-block;
+            padding: 8px 15px; /* Larger label */
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 20px; /* Pill shape */
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: bold;
+            font-size: 1.1em;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .milestone-label:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        .milestone-label.active-marker {
+            background-color: #0056b3;
+        }
+
+
+        /* Milestone Content (Details) */
+        .milestone-content {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px; /* Smoother corners */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* More prominent shadow */
+            margin-top: 15px;
+            max-height: 0; /* Initially hidden */
+            overflow: hidden;
+            transition: max-height 0.6s ease-out, padding 0.6s ease-out, opacity 0.6s ease-out;
+            opacity: 0;
+            text-align: left; /* Ensure content aligns left */
+            border-left: 5px solid #007bff; /* Accent border */
+        }
+
+        /* When content is active/expanded */
+        .milestone-content.active {
+            max-height: 2000px; /* Allow ample space */
+            padding: 25px;
+            opacity: 1;
+            transition: max-height 0.8s ease-in, padding 0.8s ease-in, opacity 0.8s ease-in;
+        }
+
+
+        .milestone-content h3 {
+            margin-top: 0;
+            color: #0056b3;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 5px;
+        }
+
+         .milestone-content ul {
+            list-style: none;
+            padding-left: 5px; /* Reduced padding */
+            margin-top: 15px;
+        }
+
+        .milestone-content li {
+            margin-bottom: 10px;
+            position: relative;
+            padding-left: 25px; /* Space for icon/bullet */
+        }
+
+        .milestone-content li::before {
+            content: '▹'; /* Arrow-like bullet */
+            position: absolute;
+            left: 5px;
+            color: #007bff;
+            font-weight: bold;
+            font-size: 1.2em;
+            top: -2px;
+        }
+
+        /* Supporting Concepts Section */
+        .supporting-concepts {
+            width: 95%;
+            max-width: 1100px;
+            margin: 60px auto;
+            padding: 30px;
+            background-color: #e7f5ff; /* Light blue background */
+            border: 1px solid #bce0fd;
+            border-left: 6px solid #0056b3;
+            border-radius: 8px;
+        }
+         .supporting-concepts h2 {
+             margin-top: 0;
+             border-bottom: 2px solid #0056b3;
+             padding-bottom: 10px;
+             font-size: 1.8em;
+         }
+        .supporting-concepts ul {
+             list-style: none; /* Use custom bullets */
+             padding-left: 0;
+             margin-top: 15px;
+        }
+         .supporting-concepts li {
+             margin-bottom: 12px;
+             padding-left: 25px;
+             position: relative;
+         }
+         .supporting-concepts li::before {
+             content: '★'; /* Star bullet */
+             position: absolute;
+             left: 0;
+             color: #0056b3;
+             font-size: 1em;
+             top: 2px;
+         }
+         .supporting-concepts h3 {
+             margin-top: 1.5em;
+             margin-bottom: 0.5em;
+             color: #0056b3;
+             font-size: 1.3em;
+         }
+
+
+        /* Responsive Adjustments */
+        @media screen and (max-width: 900px) { /* Wider breakpoint */
+            .timeline-axis {
+                left: 25px; /* Move axis slightly more left */
+                transform: none;
+            }
+
+            .timeline-milestone {
+                width: 100%;
+                padding-left: 60px; /* Adjust padding */
+                padding-right: 15px;
+                left: 0 !important; /* Force all to left side */
+                text-align: left !important; /* Force all text left */
+                 margin-bottom: 40px; /* Reduce spacing slightly */
+            }
+
+            .timeline-milestone:nth-child(odd),
+            .timeline-milestone:nth-child(even) {
+                 padding-left: 60px;
+                 padding-right: 15px;
+                 text-align: left !important;
+            }
+
+            .milestone-marker {
+                left: 15px !important; /* Position marker on the moved axis */
+                 transform: none !important;
+                 width: 16px;
+                 height: 16px;
+                 border-width: 3px;
+                 top: 20px; /* Adjust alignment */
+            }
+             .milestone-label {
+                font-size: 1em;
+                padding: 6px 12px;
+            }
+        }
+         @media screen and (max-width: 600px) {
+            h1 { font-size: 1.8em; }
+            .timeline-axis { left: 20px; }
+             .timeline-milestone { padding-left: 50px; }
+             .milestone-marker { left: 12px !important; }
+             .milestone-content { padding: 20px; }
+             .supporting-concepts { padding: 20px; }
+              .supporting-concepts h2 { font-size: 1.5em; }
+              .supporting-concepts h3 { font-size: 1.2em; }
+         }
+
+    </style>
+</head>
+<body>
+
+    <h1>Digital Media MS Program Arc - Fully Integrated View</h1>
+
+    <div class="timeline-container">
+        <div class="timeline-axis"></div>
+
+        <!-- TERM 1 -->
+        <div class="timeline-milestone">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="term1-content">TERM 1: Orientation & Alignment (Months 1–4)</span>
+            <div class="milestone-content" id="term1-content">
+                <h3>Term 1: Orientation & Alignment (Approx. Aug–Dec)</h3>
+                <h4>Core Goal: Define Initial Direction</h4>
+                <ul>
+                    <li><strong>Month 1 (Aug):</strong> <code>[Enter]</code> the "chaos of Atlanta" context. <code>[Begin]</code> formulating initial project ideas (<code><Sprout Intent></code>). Initiate alignment with potential advisors (e.g., <code><faculty Farmer></code>).</li>
+                    <li><strong>Months 2-3 (Sep-Oct):</strong> <code>[Attend]</code> <code><DM Talks></code>. <code>[Meet]</code> multiple faculty members. <code>[Observe]</code> their work and approaches. <code>[Assess Fit]</code> between <code><Sprout Intent></code> and faculty expertise/interest. Strengthen alignment with chosen advisor. <span class="highlight">Conflict Zone: Faculty misfit is a "problem for you and faculty."</span></li>
+                    <li><strong>Month 3 (Nov):</strong> <code>[Define]</code> a clearer <code><field of inquiry></code> (e.g., "AI + literacy," "virtual puppetry"). <code>[Outline]</code> the initial <code><direction of travel></code>. <code>[Refine]</code> this definition with advisor feedback. Prepare field documentation.</li>
+                    <li><strong>Month 4 (Dec):</strong> <code>[Submit]</code> <code><1-paragraph summary></code> of project scope and direction to the Program/DM. <strong class="milestone-marker-text">✅ MANDATORY MILESTONE</strong>.</li>
+                 </ul>
+                 <h4>Foundation:</h4>
+                 <ul>
+                    <li>This term establishes the <code><Sprout Intent></code>, the foundation for the student's individualized arc.</li>
+                 </ul>
+            </div>
+        </div>
+
+        <!-- TERM 2 -->
+        <div class="timeline-milestone">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="term2-content">TERM 2: Discovery & Proposal (Months 5–8)</span>
+            <div class="milestone-content" id="term2-content">
+                 <h3>Term 2: Discovery & Proposal Phase (Approx. Jan–Apr)</h3>
+                 <h4>Core Goal: Formalize Research Plan & Seek IRB Approval</h4>
+                 <ul>
+                    <li><strong>Month 5 (Jan):</strong> <code>[Begin/Draft]</code> intensive <code><literature review></code> (e.g., mapping "existing puppetry interfaces," "interfaces for zoo animals"). <code>[Initiate]</code> defining the <code><problem space></code>. <code>[Develop]</code> initial <code><problem statement></code>, <code><research question(s)></code>, and <code><approach></code>.</li>
+                    <li><strong>Month 6 (Feb):</strong> <code>[Refine]</code> <code><literature review></code> and <code><problem space></code> definition. <code>[Clarify & Align]</code> the research <code><approach></code> with advisor (<code><faculty Farmer></code>) and institutional <code><IRB expectations></code>.</li>
+                    <li><strong>Month 7 (Mar):</strong> <code>[Draft]</code> the main <code><Proposal v1></code> document (target 5–6 pages), including methodology and a preliminary <code><schedule></code>. <code>[Prototype/Draft]</code> the <code><IRB Discovery Proposal></code> document. Prototype conceptual coherence between research and potential fieldwork.</li>
+                    <li><strong>Month 8 (Apr):</strong> <code>[Submit]</code> <code><IRB Discovery Proposal></code>. <strong class="milestone-marker-text">✅ MANDATORY MILESTONE</strong> (Enables summer data collection). <code>[Finalize]</code> and submit <code><Proposal v1></code>.</li>
+                 </ul>
+                 <h4>Versioning & Logic:</h4>
+                 <ul>
+                     <li>Proposal V1 begins. IRB Discovery is the first key bureaucratic gate for research involving humans.</li>
+                 </ul>
+            </div>
+        </div>
+
+        <!-- SUMMER TERM -->
+        <div class="timeline-milestone">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="summer-content">SUMMER: Data Collection / Internship (Months 9–12)</span>
+            <div class="milestone-content" id="summer-content">
+                 <h3>Summer Term: Optional Data Collection & Reflection (Approx. May–Aug)</h3>
+                 <h4>Core Goal: Gather Empirical Insights / Gain Experience</h4>
+                 <ul>
+                    <li><strong>Months 9-12 (May-Aug):</strong>
+                        <ul>
+                            <li><code>[Collect]</code> <code><extra data></code> based on approved IRB Discovery protocol. Methods might include interviews (e.g., zookeeper insights), workshops, design probes, archival analysis, technical explorations.</li>
+                            <li><em>Alternatively/Additionally:</em> <code>[Engage]</code> in an optional <code><internship></code> aligned with project goals (e.g., working at a zoo for interface design).</li>
+                            <li><code>[Reflect & Reorient]</code>: Analyze initial findings. The project <code><direction></code> may pivot based on new insights. This is a key moment for potential divergence.</li>
+                        </ul>
+                    </li>
+                 </ul>
+                 <h4>Program Logic:</h4>
+                 <ul>
+                     <li>Summer fieldwork/data collection is contingent on T2 IRB Discovery approval.</li>
+                     <li>Acts as a bridge between Year 1 (discovery) and Year 2 (making/evaluation).</li>
+                 </ul>
+            </div>
+        </div>
+
+        <!-- TERM 3 -->
+        <div class="timeline-milestone">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="term3-content">TERM 3: Design Criteria & Prototyping (Months 13–16)</span>
+            <div class="milestone-content" id="term3-content">
+                <h3>Term 3: Design, Development & Evaluation Prep (Approx. Sep–Dec)</h3>
+                <h4>Core Goal: Define Success Metrics & Build V1</h4>
+                <ul>
+                    <li><strong>Month 13 (Sep):</strong> <code>[Analyze]</code> <code><summer data></code> (if collected) alongside the expanded <code><literature review></code>. <code>[Synthesize]</code> findings to generate specific, measurable <code><design criteria></code>. These criteria define "what good looks like" for the project (e.g., "must be multiplayer," "must be unpredictable," "must be weighted"). <code>[Anchor/Define]</code> the initial structure of the <code><assessment rubric></code> for the final defense (T4) based on these criteria.</li>
+                    <li><strong>Month 14 (Oct):</strong> <code>[Initiate]</code> the core <code><design phase></code>: concept sketching, ideation, user flows, technical planning. Studio-led iteration and divergence often accelerate here. Develop <code><technical prototype v1></code>: focus is feasibility ("Can we do Arduino?"), building a rough but functional core (e.g., "headsets for monkeys" demo).</li>
+                    <li><strong>Month 15 (Nov):</strong> <code>[Submit]</code> <code><IRB Evaluation Proposal></code> <strong class="milestone-marker-text">✅ MANDATORY MILESTONE</strong> (Required for T4 testing/evaluation involving human subjects and potential publication). <span class="highlight">Conflict Zone: IRB rejections/delays here impact T4 schedule.</span> <code>[Submit]</code> <code><Website v1></code> <strong class="milestone-marker-text">✅ MANDATORY MILESTONE</strong> (Formal public project record begins).</li>
+                    <li><strong>Month 16 (Dec):</strong> <code>[Implement]</code> and refine <code><prototype v1></code> based on initial feedback and feasibility checks. Continue design phase work, which often bleeds into T4.</li>
+                 </ul>
+                 <h4>Key Relationships & Logic:</h4>
+                 <ul>
+                     <li>Lit Review (T2) + Summer Data (TSummer) → Design Criteria (T3).</li>
+                     <li>Design Criteria (T3) → Defense Rubric (T4).</li>
+                     <li>Prototype V1 starts. IRB Evaluation is the second key gate. Website establishes public presence.</li>
+                 </ul>
+            </div>
+        </div>
+
+        <!-- TERM 4 -->
+        <div class="timeline-milestone">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="term4-content">TERM 4: Implementation, Eval & Defense (Months 17–20)</span>
+            <div class="milestone-content" id="term4-content">
+                 <h3>Term 4: Final Implementation, Evaluation, Documentation & Defense (Approx. Jan–Apr)</h3>
+                 <h4>Core Goal: Refine, Test, Document, Defend</h4>
+                 <ul>
+                    <li><strong>Month 17 (Jan):</strong> <code>[Implement/Continue]</code> development of <code><prototype v2></code>. This is the more refined, final implementation incorporating feedback and addressing the design criteria more fully (e.g., adding the "weighted" feature).</li>
+                    <li><strong>Month 18 (Feb):</strong> <code>[Conduct]</code> formal <code><evaluation></code> of <code><prototype v2></code> against the established <code><design criteria></code>. This testing often involves users/participants and *requires prior IRB Evaluation approval* from T3. Address evaluation feedback (e.g., "Why isn't it heavy?").</li>
+                    <li><strong>Month 19 (Mar):</strong> <code>[Document]</code> the final artifact, process, and evaluation results. <code>[Compile]</code> the <code><Final Documentation></code> (thesis equivalent: includes refined Lit Review, Problem Statement, Research Question, Approach, Methods, Design Criteria, Implementation Details, Evaluation Results, Discussion, Reflection). <code>[Submit]</code> <code><Final Video></code> <strong class="milestone-marker-text">✅ MANDATORY MILESTONE</strong> (often submitted pre-defense).</li>
+                    <li><strong>Month 20 (Apr):</strong> <code>[Defend]</code> the project. Present work to the faculty committee. Assessment is based on the student-defined <code><design criteria></code> via the faculty-managed <code><rubric></code>. <code>[Submit]</code> <code><Final Documentation></code> <strong class="milestone-marker-text">✅ MANDATORY MILESTONE</strong> after incorporating defense feedback. <code>[Publish/Convert]</code> project to publication (optional, typically requires completed IRB Evaluation path).</li>
+                 </ul>
+                 <h4>Key Relationships & Logic:</h4>
+                  <ul>
+                      <li>Prototype v1 (T3) → Prototype v2 (T4).</li>
+                      <li>IRB Evaluation Approval (T3) → Enables Evaluation (T4).</li>
+                      <li>Design Criteria/Rubric (T3) → Drives Defense Assessment (T4).</li>
+                      <li>Final Project = Professional <code><calling card></code>, emphasizing depth.</li>
+                  </ul>
+            </div>
+        </div>
+
+    </div> <!-- End Timeline Container -->
+
+    <!-- Supporting Concepts Section -->
+    <div class="supporting-concepts">
+        <h2>Guiding Principles & Supporting Structures</h2>
+
+        <h3>Studio Reality: Embracing Flexibility & Iteration</h3>
+        <ul>
+            <li><strong>No Single Pathway:</strong> The program explicitly affirms "There is no single pathway to the defense." The timeline is a scaffold, not a rigid track.</li>
+            <li><strong>Deviation Supported:</strong> Individual project logic is expected to deviate ("deviation-amplifying") based on <code><Project Studio></code> inspiration, research findings, design pivots, faculty mentorship adjustments, and personal interest drift.</li>
+            <li><strong>Versioning is Key:</strong> Expect V1 → V2 (or more) iterations across <code><Proposal></code>, <code><Prototype></code>, and <code><IRB Documents></code>.</li>
+            <li><strong>Capture the Journey:</strong> All iterations and artifacts should be captured (e.g., in a <code><shared folder></code> with advisor) and combined into the <code><Final Treasure></code> – valuing the process and depth (DM ethos over pure HCI output).</li>
+        </ul>
+
+        <h3>Program & Cohort Logic</h3>
+        <ul>
+            <li><strong>Institutional Milestones (✅):</strong> "Green Boxes" mark non-negotiable submission points.</li>
+            <li><strong>IRB Dependency Chain:</strong> T2 Discovery → TSummer Data → T3 Evaluation → T4 Testing/Publication. Delays cascade.</li>
+            <li><strong>Criteria as Anchor:</strong> Design Criteria (T3) link Lit Review/Data to the final Defense assessment (T4), providing continuity through pivots ("boundary object").</li>
+            <li><strong>Sprouts & Fruits:</strong> <code><Sprouts></code> (1-Year/Accelerated Track) and <code><Fruits></code> (2-Year/Standard Track) are blended in the shared <code><Project Studio></code> seminar.</li>
+            <li><strong>Peer Mentorship:</strong> Fruits mentor Sprouts, sharing experience (e.g., navigating IRBs, showing project examples), harmonizing institutional flow with creative divergence. Fruits may take on legacy roles (critique mentors, peer reviewers).</li>
+        </ul>
+
+         <h3>Feedback, Continuity & Support Systems</h3>
+         <ul>
+            <li><strong>Feedback System Needed:</strong> Acknowledged need to institutionalize feedback loops, moving beyond reflections vanishing. Collect feedback at bureaucratic touchpoints (IRBs, reviews).</li>
+            <li><strong>Distinguishing Feedback:</strong> Need to train faculty/staff to parse emotional context vs. reflective critique ("Emotional noise" from stress, jobs, etc.).</li>
+            <li><strong>Alumni Knowledge:</strong> Addressing knowledge loss requires structured archiving of past student experiences (IRB templates, project pathways, videos) and reusing feedback across cohorts.</li>
+            <li><strong>Portfolio Focus:</strong> Desire for career-readiness support: embedded portfolio reviews, alumni showcases, design critique sessions (HCI rigor + DM creativity), help with narrativizing work ("artifact-to-story translation").</li>
+            <li><strong>Temporal GPS Request:</strong> Need for tools (calendars, progress bars) to combat "Temporal uncertainty" and help students track their progress against milestones.</li>
+            <li><strong>Program Continuity:</strong> Layering cohorts, archiving pathways, and institutionalizing knowledge are key for evolving the program arc based on structured feedback.</li>
+         </ul>
+
+         <h3>Potential Conflict Zones & Challenges</h3>
+         <ul>
+            <li><strong>Faculty Fit:</strong> Initial advisor mismatch (T1) can cause significant problems.</li>
+            <li><strong>Sprout/Fruit Dynamics:</strong> Blending cohorts offers mentorship but can create timeline friction in Project Studio.</li>
+            <li><strong>Term 3 -> Term 4 Handoff:</strong> Can feel abrupt ("The Beast"); Design Criteria aim to smooth this transition.</li>
+            <li><strong>Bureaucratic Drag:</strong> IRB rejections or delays (especially T3 Eval IRB) consume critical time for T4 prototyping and evaluation.</li>
+            <li><strong>Emotional Noise:</strong> Student feedback is often entangled with external stressors.</li>
+         </ul>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const labels = document.querySelectorAll('.milestone-label');
+
+            labels.forEach(label => {
+                label.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const content = document.getElementById(targetId);
+                    const isActive = content.classList.contains('active');
+
+                     // Close all others first if one is open and we're clicking a new one
+                     labels.forEach(otherLabel => {
+                         if (otherLabel !== this) {
+                             const otherTargetId = otherLabel.getAttribute('data-target');
+                             const otherContent = document.getElementById(otherTargetId);
+                             if (otherContent && otherContent.classList.contains('active')) {
+                                 otherContent.classList.remove('active');
+                                 otherLabel.classList.remove('active-marker');
+                             }
+                         }
+                     });
+
+                    // Now toggle the clicked one
+                    if (content) {
+                        if (isActive) {
+                           content.classList.remove('active');
+                           this.classList.remove('active-marker');
+                        } else {
+                           content.classList.add('active');
+                           this.classList.add('active-marker');
+                           // Optional: Scroll to the opened item slightly
+                           setTimeout(() => {
+                              // content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                           }, 600); // Delay slightly after animation starts
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

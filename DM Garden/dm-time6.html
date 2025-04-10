@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM MS Student Lifecycle Timeline & Network (2023-2024)</title>
+    <!-- Import Vis.js CSS -->
+    <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        :root {
+            /* -- Base Theme -- */
+            --bg-color: #f8f9fa;
+            --text-color: #343a40;
+            --accent-color: #007bff; /* Primary Blue */
+            --secondary-accent-color: #17a2b8; /* Info Cyan */
+            --divider-color: #dee2e6;
+            --label-bg: rgba(255, 255, 255, 0.9);
+            --label-text-color: var(--text-color);
+            --today-marker-color: #dc3545; /* Danger Red */
+            --focus-outline-color: var(--accent-color);
+            --highlight-color: #ffc107; /* Warning Yellow */
+            --highlight-border: #e0a800;
+
+            /* -- DM MS Color Coding -- */
+            --color-sprout: #28a745; --color-sprout-accent: #218838; /* Success Green */
+            --color-fruit: #fd7e14; --color-fruit-accent: #e85a00; /* Orange */
+            --color-all: #6f42c1; --color-all-accent: #5a2b9b; /* Indigo */
+            --color-milestone: #6c757d; --color-milestone-accent: #5a6268; /* Secondary Gray */
+            --color-skill: #17a2b8; --color-skill-accent: #117a8b; /* Info Cyan */
+            --color-support: #ffc107; --color-support-accent: #e0a800; /* Warning Yellow */
+            --color-idea: #e83e8c; --color-idea-accent: #c2185b; /* Pink */
+        }
+
+        /* --- High Contrast Mode --- */
+        body.high-contrast {
+            --bg-color: #000000;
+            --text-color: #FFFFFF;
+            --accent-color: #FFFF00;
+            --secondary-accent-color: #00FFFF;
+            --divider-color: rgba(255, 255, 0, 0.5);
+            --label-bg: #000000;
+            --label-text-color: #FFFFFF;
+            --today-marker-color: #FF00FF;
+            --focus-outline-color: #FFFFFF;
+            --highlight-color: #FF69B4;
+            --highlight-border: #FF1493;
+
+            --color-sprout: #00FF00; --color-sprout-accent: #00FF00;
+            --color-fruit: #FFA500; --color-fruit-accent: #FFA500; /* Orange */
+            --color-all: #EE82EE; --color-all-accent: #EE82EE; /* Violet */
+            --color-milestone: #C0C0C0; --color-milestone-accent: #C0C0C0; /* Silver */
+            --color-skill: #00FFFF; --color-skill-accent: #00FFFF;
+            --color-support: #FFFF00; --color-support-accent: #FFFF00;
+            --color-idea: #FF00FF; --color-idea-accent: #FF00FF;
+        }
+        /* --- End High Contrast --- */
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0; padding: 0; color: var(--text-color);
+            background-color: var(--bg-color); overflow: hidden; /* Prevent body scroll */
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        .header-bar {
+             padding: 10px 20px; background-color: #e9ecef;
+             border-bottom: 1px solid var(--divider-color);
+             display: flex; justify-content: space-between; align-items: center;
+        }
+        h1 {
+            margin: 0; font-size: 1.4rem; color: #333; flex-grow: 1; text-align: center;
+        }
+        #contrast-toggle { font-size: 0.8rem; padding: 5px 10px; }
+
+        .controls {
+            padding: 8px; display: flex; justify-content: center; gap: 8px;
+            background-color: #f1f3f5; border-bottom: 1px solid var(--divider-color);
+        }
+        .controls button, .controls select {
+            padding: 5px 10px; border: 1px solid #ced4da; border-radius: 4px;
+            background-color: white; font-size: 0.85rem;
+        }
+         #month-nav { display: contents; } /* Integrate month nav */
+
+        /* Main Layout Panes */
+        .main-container {
+            display: flex; flex: 1; /* Take remaining height */
+            overflow: hidden; /* Prevent overflow */
+            position: relative; /* For absolute positioned children */
+        }
+
+        .timeline-panel { /* Renamed from left-panel */
+            flex: 3; /* Takes more space initially */
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+            border-right: 1px solid var(--divider-color); /* Add border between timeline and details */
+        }
+
+        .details-panel { /* Renamed from right-panel */
+            flex: 1; /* Takes less space initially */
+            min-width: 250px; max-width: 40%; /* Constraints */
+            /* border-left removed, handled by timeline-panel border-right */
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+        }
+
+        /* Timeline Container */
+        #timeline-container {
+             flex: 1; /* Take all available space in timeline-panel */
+            /* height, min-height, max-height removed - let flexbox handle it */
+            /* border-bottom removed */
+            position: relative; overflow: hidden;
+        }
+
+        #timeline { width: 100%; height: 100%; }
+
+        /* Details Panel Container */
+         #details-container {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .section-header {
+            padding: 8px 12px; background-color: #e9ecef;
+            border-bottom: 1px solid var(--divider-color); font-weight: 600;
+            font-size: 0.9rem; color: #495057;
+        }
+        #details-content {
+            padding: 15px; overflow-y: auto; flex: 1;
+            font-size: 0.9rem; line-height: 1.5;
+        }
+         #details-content h4 { margin: 15px 0 5px 0; font-size: 1rem; color: var(--accent-color); border-bottom: 1px solid var(--divider-color); padding-bottom: 3px;}
+         #details-content p { margin-bottom: 10px; }
+         #details-content strong { font-weight: 600; color: var(--secondary-accent-color); }
+         #details-content ul { padding-left: 20px; margin-top: 5px; }
+         #details-content li { margin-bottom: 4px; }
+         .details-meta { font-size: 0.8rem; color: #6c757d; margin-top: 10px; }
+         .details-meta span { margin-right: 15px; }
+
+        /* Vis.js Customizations */
+        .vis-timeline { border: none; }
+        .vis-item { font-size: 0.75rem; padding: 4px 6px; border-radius: 4px; }
+
+        /* Timeline Group Styles */
+        .vis-left .vis-group.sprout { border-left: 3px solid var(--color-sprout); }
+        .vis-left .vis-group.fruit { border-left: 3px solid var(--color-fruit); }
+        .vis-left .vis-group.all { border-left: 3px solid var(--color-all); }
+        .vis-left .vis-group.milestone { border-left: 3px solid var(--color-milestone); }
+
+        /* Timeline Item Styles (using classNames) */
+        .vis-item.deliverable-fall { background-color: var(--color-sprout); border-color: var(--color-sprout-accent); color: white; }
+        .vis-item.deliverable-spring { background-color: var(--color-fruit); border-color: var(--color-fruit-accent); color: white; }
+        .vis-item.meeting-workshop { background-color: var(--color-all); border-color: var(--color-all-accent); color: white; }
+        .vis-item.milestone { background-color: var(--color-milestone); border-color: var(--color-milestone-accent); color: white; }
+        .vis-item.idea { background-color: var(--color-idea); border-color: var(--color-idea-accent); color: white; opacity: 0.8; }
+
+        /* Highlight Styles */
+        .highlighted-node { /* Applied via JS to node's options, simpler this way */ }
+        .highlighted-edge { /* Applied via JS */ }
+        .vis-item.highlighted-item {
+            background-color: var(--highlight-color) !important;
+            border-color: var(--highlight-border) !important;
+            box-shadow: 0 0 8px var(--highlight-color);
+            color: #333 !important; /* Ensure text is readable */
+            z-index: 10 !important;
+        }
+
+        /* Today Marker */
+         #today-marker-timeline {
+             position: absolute; top: 0; bottom: 0;
+             width: 2px; background-color: var(--today-marker-color);
+             z-index: 5; pointer-events: none; opacity: 0.7;
+         }
+          #today-marker-timeline::after { /* Label */
+            content: 'TODAY'; position: absolute; top: 5px; left: 4px;
+            background: var(--today-marker-color); color: white; padding: 1px 4px;
+            font-size: 0.6em; border-radius: 3px; font-weight: bold;
+         }
+
+        /* Tooltip styling - Using Vis.js built-in but styled */
+        div.vis-tooltip {
+            font-family: system-ui, -apple-system, sans-serif !important;
+            padding: 8px 10px !important;
+            background-color: var(--label-bg) !important;
+            border: 1px solid var(--divider-color) !important;
+            color: var(--label-text-color) !important;
+            border-radius: 4px !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+            font-size: 0.8rem !important;
+            max-width: 350px !important;
+            white-space: normal !important; /* Allow wrapping */
+            z-index: 10000 !important;
+        }
+         body.high-contrast div.vis-tooltip {
+              border-color: var(--accent-color) !important;
+         }
+
+        .details-panel {
+            width: 35%; /* Slightly wider for outline + details */
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .outline-view-container {
+            height: 200px; /* Adjust as needed */
+            overflow-y: auto;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid var(--divider-color);
+            border-radius: 4px;
+            background-color: var(--label-bg);
+        }
+
+        .outline-item {
+            padding: 4px 8px;
+            margin-bottom: 2px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 0.85em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .outline-item:hover {
+            background-color: var(--highlight-color);
+        }
+
+        .outline-item.selected {
+            background-color: var(--highlight-color);
+            font-weight: bold;
+            color: var(--text-color);
+
+        }
+
+        hr.divider {
+            border: none;
+            border-top: 1px solid var(--divider-color);
+            margin: 10px 0;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <h1>DM MS Student Lifecycle (Fall 2023 – Spring 2024)</h1>
+        <button id="contrast-toggle" title="Toggle High Contrast Mode">Contrast</button>
+    </div>
+
+    <div class="controls">
+        <button id="zoomInTimeline" title="Zoom Timeline In">➕</button>
+        <button id="zoomOutTimeline" title="Zoom Timeline Out">➖</button>
+        <select id="filterSelect" title="Filter by Category">
+            <option value="all">All Categories</option>
+            <option value="sprout">🌱 Sprouts (1st Yr)</option>
+            <option value="fruit">🍓 Fruits (2nd Yr)</option>
+            <option value="allStudents">👥 All Students</option>
+            <option value="milestone">⏱️ Milestones</option>
+            <option value="deliverable">📝 Deliverables</option>
+             <option value="support">🤝 Support</option>
+        </select>
+        <div id="month-nav" aria-label="Jump to Month Navigation">
+           <!-- Buttons added by JS -->
+        </div>
+        <button id="hide-details" title="Toggle Details Panel">Hide Details ▶</button>
+    </div>
+
+    <div class="main-container">
+        <div class="timeline-panel"> <!-- Was left-panel -->
+            <div id="timeline-container">
+                <div id="timeline"></div>
+                <div id="today-marker-timeline" title="Today"></div>
+                 <!-- Horizontal resizer removed -->
+            </div>
+            <!-- Network container removed -->
+        </div>
+        <!-- Vertical resizer removed -->
+        <div class="details-panel" id="details-panel"> <!-- Was right-panel -->
+            <div id="details-container">
+                <div class="section-header">
+                    Outline
+                </div>
+                <div id="outline-content" class="outline-view-container">
+                    <!-- Outline will be populated here -->
+                </div>
+                <hr class="divider">
+                 <div class="section-header">
+                     Details
+                     <button id="hide-details" style="float: right; font-size: 0.7rem; padding: 2px 5px;" title="Hide Details Panel">✕</button>
+                </div>
+                <div id="details-content">
+                    <p>Select an item to see details.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Vis.js Libraries -->
+    <script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Configuration ---
+            const config = {
+                timelineStart: '2023-08-15',
+                timelineEnd: '2024-05-15',
+                groups: {
+                    SPROUT: 'sprout',
+                    FRUIT: 'fruit',
+                    ALL: 'all',
+                    MILESTONE: 'milestone',
+                    DELIVERABLE_FALL: 'deliverableFall',
+                    DELIVERABLE_SPRING: 'deliverableSpring',
+                    MEETING: 'meetingWorkshop',
+                    IDEA: 'idea',
+                    SKILL: 'skill',
+                    SUPPORT: 'support',
+                    SEMESTER: 'semester',
+                    STUDENT_TYPE: 'studentType'
+                },
+                timelineItemClasses: {
+                    DELIVERABLE_FALL: 'deliverable-fall',
+                    DELIVERABLE_SPRING: 'deliverable-spring',
+                    MEETING: 'meeting-workshop',
+                    MILESTONE: 'milestone',
+                    IDEA: 'idea',
+                }
+            };
+
+            // --- DATA ---
+             const timelineItems = new vis.DataSet([
+                 // Fall 2023
+                { id: 'tl-f23-rq', content: '🌱 RQ Set', start: '2023-09-21', group: config.groups.SPROUT, className: config.timelineItemClasses.DELIVERABLE_FALL, details: '<h4>🌱 Research Question Set (Fall)</h4><p><strong>Due:</strong> Sep 21/26, 2023<br><strong>Points:</strong> 15</p><p>Initial project review (related work), literature themes, 5-min presentation, draft schedule. Graduating students give longer progress report.</p><strong>Requires:</strong> Initial Ideas, Advisor Input' },
+                { id: 'tl-f23-lit', content: '🌱 Lit Review v2', start: '2023-10-12', group: config.groups.SPROUT, className: config.timelineItemClasses.DELIVERABLE_FALL, details: '<h4>🌱 Literature Review v2 (Fall)</h4><p><strong>Due:</strong> ~Oct 12, 2023<br><strong>Points:</strong> 15</p><p>Detailed written literature review (structured essay, key takeaways, tech review).</p><strong>Requires:</strong> RQ Set, Research Skills' },
+                { id: 'tl-f23-web', content: '🌱 Web Page & Plan', start: '2023-11-01', group: config.groups.SPROUT, className: config.timelineItemClasses.DELIVERABLE_FALL, details: '<h4>🌱 Web Page & Revised Plan (Fall)</h4><p><strong>Due:</strong> Nov 1, 2023<br><strong>Points:</strong> 30</p><p>Project web page live. Revised RQs/Research Plan. Design criteria brainstorm. Methodology consideration. IRB submission if needed.</p><strong>Requires:</strong> Lit Review v2, Web Dev Skills' },
+                { id: 'tl-f23-outline', content: '🌱 Outline/Proto', start: '2023-11-29', group: config.groups.SPROUT, className: config.timelineItemClasses.DELIVERABLE_FALL, details: '<h4>🌱 Outline / Prototype Design Criteria (Fall)</h4><p><strong>Due:</strong> Nov 29, 2023<br><strong>Points:</strong> 30</p><p>Proposal presentation. Tech feasibility demo. Lit review summary, RQs, design criteria, research plan. Documented sketches/brainstorming.</p><strong>Requires:</strong> Web Page & Plan, Prototyping Ideas' },
+                { id: 'tl-f23-part', content: '🌱 Fall Participation', start: '2023-12-10', group: config.groups.SPROUT, className: config.timelineItemClasses.DELIVERABLE_FALL, details: '<h4>🌱 Overall Participation (Fall)</h4><p><strong>Due:</strong> ~Dec 10, 2023<br><strong>Points:</strong> 10</p><p>Assessed participation & constructive peer feedback throughout Fall semester.</p>' },
+                { id: 'tl-m-fall-grades', content: '⏱️ Fall Grades', start: '2023-12-15', group: config.groups.MILESTONE, className: config.timelineItemClasses.MILESTONE, details: '<h4>⏱️ Fall Grades Due</h4><p><strong>Date:</strong> ~Dec 15, 2023</p><p>Approximate deadline for Fall P/F grades.</p>' },
+
+                 // Spring 2024
+                { id: 'tl-s24-draft', content: '🍓 Draft/Proto', start: '2024-03-01', group: config.groups.FRUIT, className: config.timelineItemClasses.DELIVERABLE_SPRING, details: '<h4>🍓 First Draft / Prototype (Spring)</h4><p><strong>Due:</strong> ~Mar 1, 2024</p><p>First complete draft (thesis) or functional prototype (project).</p><strong>Requires:</strong> Outline/Criteria, Prototyping Skills' },
+                { id: 'tl-s24-revised', content: '🍓 Revised/Testing', start: '2024-03-15', group: config.groups.FRUIT, className: config.timelineItemClasses.DELIVERABLE_SPRING, details: '<h4>🍓 Revised Draft / Testing Results (Spring)</h4><p><strong>Due:</strong> ~Mar 15, 2024</p><p>Iterated prototype/draft. User testing results/findings OR written reflection/heuristic eval.</p><strong>Requires:</strong> Draft/Proto, User Testing Skills / Reflection' },
+                { id: 'tl-s24-final-del', content: '🍓 Final Deliverable', start: '2024-04-01', group: config.groups.FRUIT, className: config.timelineItemClasses.DELIVERABLE_SPRING, details: '<h4>🍓 Deliverable Done (Spring)</h4><p><strong>Due:</strong> ~Apr 1, 2024</p><p>Final iterated prototype/draft. Rough but submittable final materials (design docs, slides, thesis draft). Test presentation practice.</p><strong>Requires:</strong> Revised/Testing, Documentation Skills' },
+                { id: 'tl-s24-video', content: '🍓 Video Done', start: '2024-04-07', group: config.groups.FRUIT, className: config.timelineItemClasses.DELIVERABLE_SPRING, details: '<h4>🍓 Video Done (Spring)</h4><p><strong>Due:</strong> ~Apr 7, 2024</p><p>Project video completed.</p><strong>Requires:</strong> Final Deliverable, Video Editing Skills' },
+                { id: 'tl-m-pres', content: '⏱️ Final Pres.', start: '2024-04-15', group: config.groups.MILESTONE, className: config.timelineItemClasses.MILESTONE, details: '<h4>⏱️ Final Presentations</h4><p><strong>Date:</strong> ~Apr 15, 2024</p><p>Department-wide final project/thesis presentations.</p>' },
+                { id: 'tl-m-submit', content: '⏱️ Final Submit', start: '2024-05-01', group: config.groups.MILESTONE, className: config.timelineItemClasses.MILESTONE, details: '<h4>⏱️ Final Submission</h4><p><strong>Date:</strong> ~May 1, 2024</p><p>Final project materials submitted (website, video, docs, thesis).</p>' },
+                { id: 'tl-m-spring-grades', content: '⏱️ Spring Grades', start: '2024-05-08', group: config.groups.MILESTONE, className: config.timelineItemClasses.MILESTONE, details: '<h4>⏱️ Spring Grades Due</h4><p><strong>Date:</strong> ~May 8, 2024</p><p>Approximate deadline for Spring letter grades.</p>' },
+
+                 // Meetings (Recurring - simplified as a single point for now, could be background)
+                 { id: 'tl-meetings', content: '👥 Meetings', start: '2023-09-05', group: config.groups.ALL, className: config.timelineItemClasses.MEETING, details: '<h4>👥 Course Meetings</h4><p>Alternating weeks: Tuesdays (5-6:30pm) & Thursdays (2-3:30pm). Check invites. Includes presentations, workshops, discussions.</p>' },
+
+                 // Ideas (placed roughly)
+                 { id: 'tl-idea-slack', content: '💡 Discuss Slack?', start: '2023-09-15', group: config.groups.ALL, className: config.timelineItemClasses.IDEA, details: '<h4>💡 Idea: Move to Slack?</h4><p>Discuss potential move from Teams to Slack for better community building. Involves DM Club/Reps.</p>' },
+                 { id: 'tl-idea-hackathon', content: '💡 Hackathon?', start: '2024-01-20', group: config.groups.ALL, className: config.timelineItemClasses.IDEA, details: '<h4>💡 Idea: DM Hackathon</h4><p>Explore organizing a Digital Media focused hackathon.</p>' },
+                 { id: 'tl-idea-buddy', content: '💡 Alumni Buddy?', start: '2023-11-05', group: config.groups.ALL, className: config.timelineItemClasses.IDEA, details: '<h4>💡 Idea: Alumni Buddy System</h4><p>Potential system for one-off professional contact sessions with alumni.</p>' },
+            ]);
+
+            const timelineGroups = new vis.DataSet([
+                { id: config.groups.SPROUT, content: '🌱 Sprouts (1st Yr)'},
+                { id: config.groups.FRUIT, content: '🍓 Fruits (2nd Yr)'},
+                { id: config.groups.ALL, content: '👥 All / Course Activity'},
+                { id: config.groups.MILESTONE, content: '⏱️ Milestones / Deadlines'},
+            ]);
+
+            // --- DOM References ---
+            const timelineContainer = document.getElementById('timeline');
+            const detailsContentEl = document.getElementById('details-content');
+            const filterSelect = document.getElementById('filterSelect');
+            const hideDetailsBtn = document.getElementById('hide-details');
+            const detailsPanel = document.getElementById('details-panel');
+            const timelineVisContainer = document.getElementById('timeline-container'); // The visual container
+            const todayMarkerTimelineEl = document.getElementById('today-marker-timeline');
+            const contrastToggleBtn = document.getElementById('contrast-toggle');
+             const monthNavContainer = document.getElementById('month-nav');
+
+            // --- Vis.js Instances ---
+            let timeline = null;
+
+            // --- State ---
+            let lastSelectedItemId = null;
+
+            // --- Initialization ---
+            function initializeVisualizations() {
+                initializeTimeline();
+                renderTodayMarker();
+                setupEventListeners();
+                 renderMonthNav();
+                populateDetailsPanel('<p>Select an item to begin.</p>'); // Initial message
+            }
+
+            function initializeTimeline() {
+                const timelineOptions = {
+                    stack: false, // Avoid stacking to see overlaps clearly
+                    verticalScroll: false, // Keep it simple
+                    zoomKey: 'ctrlKey',
+                    zoomMin: 1000 * 60 * 60 * 24 * 7, // 1 week min zoom
+                    zoomMax: 1000 * 60 * 60 * 24 * 365 * 2, // 2 years max zoom
+                    height: '100%',
+                    showCurrentTime: false, // Using custom marker
+                    margin: { item: { vertical: 5 }, axis: 10 },
+                    orientation: { axis: "bottom" },
+                    groupOrder: (a, b) => { // Custom sort order
+                        const order = [config.groups.MILESTONE, config.groups.ALL, config.groups.SPROUT, config.groups.FRUIT];
+                        return order.indexOf(a.id) - order.indexOf(b.id);
+                    },
+                    tooltip: {
+                        followMouse: true,
+                        overflowMethod: 'flip'
+                    },
+                    editable: false // Prevent dragging items
+                };
+                try {
+                     timeline = new vis.Timeline(timelineContainer, timelineItems, timelineGroups, timelineOptions);
+                     timeline.setWindow(config.timelineStart, config.timelineEnd);
+                     timeline.on('select', handleTimelineSelect);
+                     timeline.on('click', (props) => { // Handle clicks on empty space
+                         if (!props.item && !props.group) {
+                             clearHighlights();
+                             populateDetailsPanel('<p>Select an item.</p>');
+                         }
+                     });
+                     console.log("Timeline Initialized");
+                } catch(e) { console.error("Timeline Init Error:", e); timelineContainer.innerHTML = "Error loading timeline."; }
+            }
+
+            function renderTodayMarker() {
+                 const start = new Date(config.timelineStart);
+                 const end = new Date(config.timelineEnd);
+                 const today = new Date();
+
+                 if (today >= start && today <= end && timeline) {
+                     const percentage = (today.getTime() - start.getTime()) / (end.getTime() - start.getTime()) * 100;
+                     if (percentage >= 0 && percentage <= 100) {
+                         todayMarkerTimelineEl.style.left = `${percentage}%`;
+                         todayMarkerTimelineEl.style.display = 'block';
+                     } else {
+                          todayMarkerTimelineEl.style.display = 'none';
+                     }
+                 } else {
+                      todayMarkerTimelineEl.style.display = 'none';
+                 }
+            }
+
+            // --- Event Handlers ---
+            function handleTimelineSelect(properties) {
+                const ids = properties.items;
+                if (ids.length > 0) {
+                    const selectedId = ids[0];
+                    const item = timelineItems.get(selectedId);
+                    clearHighlights(); // Clear previous before applying new
+                    if (item) {
+                        populateDetailsPanel(item.details || '<p>No details available.</p>');
+                        highlightTimelineItem(selectedId);
+                        lastSelectedItemId = selectedId;
+                    }
+                }
+                 // Don't clear on deselect from timeline click, wait for empty space click
+            }
+
+            function setupEventListeners() {
+                // Controls
+                filterSelect.onchange = handleFilterChange;
+                contrastToggleBtn.onclick = () => document.body.classList.toggle('high-contrast');
+                 hideDetailsBtn.onclick = toggleDetailsPanel;
+
+                 monthNavContainer.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON' && e.target.dataset.month) {
+                        const month = e.target.dataset.month;
+                        const year = e.target.dataset.year;
+                        const monthIndexMap = { Sep: 8, Oct: 9, Nov: 10, Dec: 11, Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4 };
+                        const targetDate = new Date(parseInt(year), monthIndexMap[month], 15); // Go to mid-month
+                        timeline?.moveTo(targetDate, { animation: true });
+                    }
+                });
+
+                 // Keyboard Navigation (Timeline focus)
+                 timelineContainer.setAttribute('tabindex', '0'); // Make it focusable
+                 timelineContainer.addEventListener('keydown', (e) => {
+                     if (document.activeElement !== timelineContainer) return; // Only when focused
+
+                     const scrollFactor = 0.1; // Percentage of window to scroll
+                     const currentWindow = timeline.getWindow();
+                     const interval = currentWindow.end.getTime() - currentWindow.start.getTime();
+                     const step = interval * scrollFactor;
+
+                     if (e.key === 'ArrowLeft') {
+                         e.preventDefault();
+                         timeline.setWindow(currentWindow.start.getTime() - step, currentWindow.end.getTime() - step, { animation: true });
+                     } else if (e.key === 'ArrowRight') {
+                         e.preventDefault();
+                          timeline.setWindow(currentWindow.start.getTime() + step, currentWindow.end.getTime() + step, { animation: true });
+                     }
+                 });
+            }
+
+            function toggleDetailsPanel() {
+                 const isHidden = detailsPanel.style.display === 'none';
+                 detailsPanel.style.display = isHidden ? 'flex' : 'none';
+                 hideDetailsBtn.textContent = isHidden ? 'Hide Details ▶' : '◀ Show Details';
+                 // Adjust left panel flex dynamically? Or rely on CSS flex properties
+                  // Refit timeline after panel toggle
+                  setTimeout(() => timeline?.redraw(), 100);
+            }
+
+            // --- Filtering Logic ---
+             function handleFilterChange(event) {
+                 const value = event.target.value;
+                 filterVisualizations(value);
+             }
+
+            function filterVisualizations(filterValue) {
+                 const itemUpdates = [];
+                 const allItems = timelineItems.get({ returnType: 'Array' });
+
+                 allItems.forEach(item => {
+                    const isVisible = checkVisibility(item, filterValue);
+                    itemUpdates.push({ id: item.id, visible: isVisible }); // Use timeline's built-in visibility
+                 });
+
+                 timelineItems.update(itemUpdates); // Use update for timeline visibility
+             }
+
+            function checkVisibility(element, filterValue) {
+                if (filterValue === 'all') return true;
+
+                const group = element.group;
+
+                switch (filterValue) {
+                     case 'sprout':
+                         return group === config.groups.SPROUT || group === config.groups.DELIVERABLE_FALL || group === config.groups.ALL || group === config.groups.MILESTONE;
+                    case 'fruit':
+                         return group === config.groups.FRUIT || group === config.groups.DELIVERABLE_SPRING || group === config.groups.ALL || group === config.groups.MILESTONE;
+                     case 'allStudents':
+                         return group === config.groups.ALL || group === config.groups.MILESTONE;
+                     case 'milestone':
+                        return group === config.groups.MILESTONE;
+                    case 'deliverable':
+                        return group === config.groups.DELIVERABLE_FALL || group === config.groups.DELIVERABLE_SPRING;
+                     case 'support':
+                        return group === config.groups.SUPPORT || group === config.groups.MEETING;
+                    default:
+                        return true; // Should not happen
+                }
+            }
+
+            // --- Highlighting Logic ---
+             function clearHighlights() {
+                 // Clear timeline selection and styles
+                 if (timeline) {
+                     timeline.setSelection([]); // Clear selection
+                    // Remove highlight class from previously highlighted item
+                    if (lastSelectedItemId) {
+                        const itemElement = timelineContainer.querySelector(`.vis-item[data-id="${lastSelectedItemId}"]`);
+                        itemElement?.classList.remove('highlighted-item');
+                    }
+                 }
+                 lastSelectedItemId = null;
+             }
+
+            function highlightTimelineItem(itemId) {
+                 if (!timeline || !itemId) return;
+                 timeline.setSelection([itemId]); // Select highlights the item by default
+                // Add extra class for more prominent highlight
+                 const itemElement = timelineContainer.querySelector(`.vis-item[data-id="${itemId}"]`);
+                 itemElement?.classList.add('highlighted-item');
+                 lastSelectedItemId = itemId; // Track last highlighted
+            }
+
+            // --- Details Panel Logic ---
+             function populateDetailsPanel(content) {
+                 detailsContentEl.innerHTML = content;
+             }
+
+            // --- Start Everything ---
+            initializeVisualizations();
+
+        }); // End DOMContentLoaded
+    </script>
+
+</body>
+</html>

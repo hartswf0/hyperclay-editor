@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM MS Thesis/Project Timeline (LMC 6800/7000) - Glanceable</title>
+    <style>
+        :root {
+            /* Color Coding */
+            --sprout-color: #90EE90; --sprout-accent: #3CB371; /* deliverables can use these */
+            --fruit-color: #FFA07A; --fruit-accent: #E9967A; /* or these, let's use sprout for Fall, fruit for Spring */
+            --all-students-color: #ADD8E6; --all-students-accent: #87CEEB; /* Ideas, General meetings */
+            --holiday-color: #D3D3D3; --holiday-accent: #A9A9A9; /* Holidays, Deadlines */
+            /* Layout & Theme */
+            --timeline-bg: #2D3748; /* Dark Blue-Gray */
+            --text-color: #E2E8F0; /* Light Gray */
+            --axis-color: #63B3ED; /* Brighter Blue */
+            --lane-divider: rgba(99, 179, 237, 0.2);
+            --label-bg: rgba(45, 55, 72, 0.8); /* Slightly less transparent */
+            --idea-opacity: 0.6; /* Opacity for idea markers/labels */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--timeline-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px 30px; /* More horizontal padding */
+            line-height: 1.6;
+        }
+
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3 {
+            color: var(--axis-color);
+            margin-bottom: 10px;
+            font-weight: 500;
+            border-bottom: 1px solid var(--lane-divider);
+            padding-bottom: 5px;
+        }
+         h1 { font-size: 1.8em; text-align: center; margin-bottom: 25px;}
+         h2 { font-size: 1.4em; margin-top: 35px; }
+         h3 { font-size: 1.2em; margin-top: 20px; border-bottom: none; color: var(--all-students-color); }
+
+        p, ul {
+            margin-bottom: 15px;
+        }
+        ul { padding-left: 25px; }
+        strong { color: var(--axis-color); font-weight: 600;}
+
+        .legend {
+            display: flex; justify-content: center; gap: 15px 25px; /* Row and column gap */
+            margin: 25px 0; flex-wrap: wrap; font-size: 0.9em;
+            padding: 10px; background-color: rgba(0,0,0,0.1); border-radius: 5px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+        .legend-item.idea { opacity: var(--idea-opacity); font-style: italic;}
+
+        /* --- Visual Timeline --- */
+        #timeline-visual {
+            position: relative;
+            width: 100%; /* Take full width of parent */
+            margin: 30px 0;
+            padding: 10px 0;
+            overflow-x: auto;
+            border: 1px solid var(--axis-color);
+            border-radius: 8px;
+            background: var(--timeline-bg);
+        }
+
+        .timeline-content { /* Inner container */
+             position: relative;
+             min-width: 1800px; /* Wider to accommodate labels */
+             padding: 0 1%; /* Reduced padding */
+        }
+
+        .time-axis {
+            position: sticky; bottom: 0; left: 0; width: 100%;
+            height: 35px; background-color: var(--timeline-bg);
+            z-index: 20; border-top: 1px solid var(--lane-divider);
+            display: flex; align-items: flex-end;
+            padding: 0 1%; box-sizing: border-box;
+        }
+
+        .month-marker {
+            position: absolute; bottom: 5px; transform: translateX(-50%);
+            font-size: 0.8em; color: var(--axis-color);
+            white-space: nowrap; padding: 0 3px; cursor: default;
+        }
+        .month-marker::before { /* Tick */
+            content: ''; position: absolute; bottom: 100%; left: 50%;
+            transform: translateX(-50%); width: 1px; height: 6px;
+            background-color: var(--axis-color); opacity: 0.7;
+        }
+
+        .timeline-lanes {
+            position: relative;
+            padding-bottom: 35px; /* Space for axis */
+        }
+
+        .timeline-lane {
+            position: relative; min-height: 75px; /* Adjust height */
+            border-bottom: 1px dashed var(--lane-divider);
+            padding: 10px 0;
+        }
+        .timeline-lane:last-child { border-bottom: none; }
+
+        .lane-label {
+            position: sticky; left: 10px; top: 10px; /* Relative to lane padding */
+            font-weight: 600; font-size: 0.9em; opacity: 0.9;
+            background: var(--label-bg); padding: 3px 8px; border-radius: 4px;
+            z-index: 15; display: inline-flex; align-items: center; gap: 6px;
+            color: var(--text-color); /* Default color */
+        }
+         /* Specific lane label colors - override default */
+        .deliverables-lane .lane-label { color: var(--sprout-color); }
+        .ideas-lane .lane-label { color: var(--all-students-color); }
+        .timeline-markers-lane .lane-label { color: var(--holiday-color); }
+
+
+        /* Event positioning: Wrapper for dot, label positioned separately */
+        .event-wrapper {
+            position: absolute;
+            bottom: 15px; /* Position dot marker */
+            transform: translateX(-50%);
+            width: 12px; /* Wrapper just holds dot */
+            height: 12px;
+            z-index: 10;
+            cursor: default;
+        }
+
+        .event { /* The colored dot */
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--timeline-bg);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        /* Color applied via wrapper class */
+        .deliverable-fall-event .event { background-color: var(--sprout-color); }
+        .deliverable-spring-event .event { background-color: var(--fruit-color); }
+        .idea-event .event { background-color: var(--all-students-color); }
+        .timeline-event .event { background-color: var(--holiday-color); }
+
+
+        .event-label {
+            position: absolute;
+            bottom: 32px; /* Position label above the dot */
+            transform: translateX(-50%); /* Center label */
+            font-size: 0.75em; /* Smaller label */
+            color: var(--text-color);
+            background-color: var(--label-bg);
+            padding: 2px 5px;
+            border-radius: 3px;
+            white-space: nowrap;
+            text-align: center;
+            max-width: 150px; /* Allow slightly wider labels */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            z-index: 11; /* Above dot */
+             cursor: default;
+        }
+
+         /* Specific label colors */
+        .deliverable-fall-event .event-label { color: var(--sprout-color); }
+        .deliverable-spring-event .event-label { color: var(--fruit-color); }
+        .idea-event .event-label { color: var(--all-students-color); opacity: var(--idea-opacity); }
+        .timeline-event .event-label { color: var(--holiday-color); }
+
+        .event-label .date-part {
+             font-weight: 600;
+             margin-right: 4px;
+        }
+        .event-label .title-part {}
+
+
+        /* --- List View --- */
+        #timeline-list { /* Styles kept */
+            width: 100%; margin: 30px 0;
+            background-color: rgba(45, 55, 72, 0.5); padding: 15px 25px;
+            border-radius: 8px; border: 1px solid var(--lane-divider); box-sizing: border-box;
+         }
+         #timeline-list ul { list-style: none; padding: 0; margin: 0; }
+         #timeline-list li {
+            padding: 12px 0; border-bottom: 1px solid var(--lane-divider);
+            display: flex; gap: 15px; align-items: flex-start;
+         }
+         #timeline-list li:last-child { border-bottom: none; }
+         .list-date { flex: 0 0 90px; font-weight: bold; color: var(--axis-color); opacity: 0.9; font-size: 0.95em; padding-top: 2px;}
+         .list-content { flex: 1; }
+         .list-title { font-weight: 600; font-size: 1.05em; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+         .list-desc { font-size: 0.9em; opacity: 0.9; margin-bottom: 5px; }
+         .list-meta { font-size: 0.8em; opacity: 0.7; font-style: italic; }
+         .list-points { margin-left: 10px; font-weight: bold; color: var(--sprout-accent); }
+         .list-grade-note { margin-left: 10px; color: var(--fruit-accent); }
+         .list-idea .list-title::before { content: '[IDEA] '; color: var(--all-students-accent); font-weight: normal; }
+
+         .list-deliverable-fall .list-title { color: var(--sprout-color); }
+         .list-deliverable-spring .list-title { color: var(--fruit-color); }
+         .list-idea .list-title { color: var(--all-students-color); }
+         .list-timeline .list-title { color: var(--holiday-color); }
+
+    </style>
+</head>
+<body>
+<div class="content-wrapper">
+
+    <h1>LMC 6800 & 7000: DM MS Thesis & Project Timeline (Fall 2023 – Spring 2024)</h1>
+
+    <h2>Course Context & Philosophy</h2>
+    <p>This timeline outlines key milestones and deliverables for students enrolled in LMC 6800 (Project) or LMC 7000 (Thesis) during the Fall 2023 - Spring 2024 academic year. While LMC 7000 is an option, most students complete LMC 6800.</p>
+    <p>The course aims to provide structure, feedback, and community support for your major MS project. Regular meetings (weekly or biweekly minimum, TBD schedule) with faculty advisors (Richmond Wong, Anne Sullivan, Noura Howell, Michael Nitsche) supplement this structure. Your official MS advisor continues their primary role.</p>
+
+    <h3>Running Notes Document</h3>
+    <p>A crucial component of managing your project is the <strong>Running Notes Document</strong>. Each student will maintain this document (e.g., on OneDrive) in collaboration with professors. It serves as a central hub to track:</p>
+    <ul>
+        <li>Meeting agendas and discussion notes (faculty, peers)</li>
+        <li>Action items and "To Be Dones"</li>
+        <li>Feedback received and given</li>
+        <li>Progress updates and roadblocks</li>
+        <li>Personal goals and questions</li>
+        <li>Links/references to communication on other channels (email, Teams/Slack)</li>
+    </ul>
+    <p>This document helps maintain project coherence over time. (Link: <a href="#" style="color: var(--axis-color);">Running Notes OneDrive Folder - TBD</a>)</p>
+
+    <h3>Grading Approach (LMC 6800/7000)</h3>
+    <p>These courses often span two terms with different grading schemes. Typically:</p>
+    <ul>
+        <li><strong>Fall Term:</strong> Graded Pass/Fail (P/F) based on timely completion of deliverables (see points below for guidance).</li>
+        <li><strong>Spring Term:</strong> Receives a letter grade, often necessary for the final term.</li>
+    </ul>
+    <p>The final letter grade (Spring) might reflect a combination of the final defense (~40%) and advisor/committee evaluation (~60%), potentially aligning the LMC 6800 Spring grade with this overall evaluation. Specific point values are assigned to Fall deliverables to guide P/F assessment; Spring focuses on iterative progress towards the final submission.</p>
+    <p><strong>Late Policy:</strong> For Fall deliverables with points, the grade may be reduced by 2 points per day late.</p>
+
+    <h3>Potential New Directions & Ideas</h3>
+    <p>We are exploring ways to enhance the program and community, including:</p>
+    <ul>
+        <li>Faculty defining expectations for productive supervision.</li>
+        <li>An alumni "buddy system" for one-off professional contact sessions.</li>
+        <li>Increased team-based work.</li>
+        <li>A DM Hackathon.</li>
+        <li>Recruitment talks by/for 1st/2nd years.</li>
+        <li>Leveraging external resources (UX groups, etc.).</li>
+        <li>Potential move from Teams to Slack for community building (pending discussion with DM club/reps).</li>
+        <li>Industry sponsorships.</li>
+    </ul>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--sprout-color);"></div>🌱 Fall Deliverable</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--fruit-color);"></div>🍓 Spring Deliverable</div>
+        <div class="legend-item idea"><div class="legend-color" style="background-color: var(--all-students-color);"></div>💡 Idea / Discussion Point</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--holiday-color);"></div>⏱️ Deadline / Milestone</div>
+    </div>
+
+    <!-- Visual Timeline Section -->
+    <h2>Visual Timeline</h2>
+    <div id="timeline-visual">
+         <div class="timeline-content">
+             <div class="timeline-lanes">
+                 <div class="timeline-lane deliverables-lane" id="deliverables-lane">
+                      <span class="lane-label">🌱🍓 Deliverables</span>
+                 </div>
+                 <div class="timeline-lane ideas-lane" id="ideas-lane">
+                      <span class="lane-label">💡 Ideas / Community</span>
+                 </div>
+                  <div class="timeline-lane timeline-markers-lane" id="timeline-markers-lane">
+                     <span class="lane-label">⏱️ Milestones</span>
+                 </div>
+                 <!-- Events added by JS -->
+             </div>
+              <div class="time-axis" id="time-axis">
+                  <!-- Month markers added by JS -->
+              </div>
+          </div>
+    </div>
+
+    <!-- Collated List Section -->
+    <h2>Collated List of Events & Deliverables</h2>
+    <div id="timeline-list">
+        <ul id="event-list-ul">
+            <!-- List items added by JS -->
+        </ul>
+    </div>
+</div><!-- /.content-wrapper -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- DATA --- (Updated for 2023-2024, including points/notes)
+            const timelineData = [
+                // Fall 2023
+                { date: '2023-09-06', title: 'RQ Set', fullDesc: '🌱 Initial Research Question formulation. Includes review of 3 related projects, initial lit review themes, mini-presentation concept, and draft project schedule.', type: 'deliverable-fall', lane: 'deliverables-lane', points: 15, audience: 'Student Deliverable (Fall)' },
+                { date: '2023-09-27', title: 'Lit Review v2', fullDesc: '🌱 Written literature review (multiple pages, structured essay, key takeaways, personal reading). Includes technology review.', type: 'deliverable-fall', lane: 'deliverables-lane', points: 15, audience: 'Student Deliverable (Fall)' },
+                { date: '2023-11-01', title: 'Web Page & Plan', fullDesc: '🌱 Project web page live on GT servers. Revised RQs & Research Plan based on lit review/background work. Design criteria brainstormed. Methodology considered. IRB submitted if needed.', type: 'deliverable-fall', lane: 'deliverables-lane', points: 30, audience: 'Student Deliverable (Fall)' },
+                { date: '2023-11-29', title: 'Outline/Proto Criteria', fullDesc: '🌱 Project proposal presentation. Technical feasibility demo (if applicable). Summary of lit review, RQs, design criteria, research plan. Documented sketches/brainstorming.', type: 'deliverable-fall', lane: 'deliverables-lane', points: 30, audience: 'Student Deliverable (Fall)' },
+                { date: '2023-12-10', title: 'Fall Participation', fullDesc: '🌱 Assessed participation & peer feedback throughout Fall. (Approx. end date)', type: 'deliverable-fall', lane: 'deliverables-lane', points: 10, audience: 'Student Assessment (Fall)' },
+                 { date: '2023-12-15', title: 'Fall Grades Due (Approx)', fullDesc: '⏱️ Approximate deadline for Fall P/F grades.', type: 'timeline', lane: 'timeline-markers-lane', audience: 'Faculty Milestone' },
+
+                // Spring 2024 (Dates are approximate based on notes)
+                { date: '2024-03-01', title: 'Draft / Proto Done', fullDesc: '🍓 First complete draft (thesis) or functional prototype (project).', type: 'deliverable-spring', lane: 'deliverables-lane', audience: 'Student Deliverable (Spring)' },
+                { date: '2024-03-15', title: 'Revised Draft / Testing', fullDesc: '🍓 Iterated prototype/draft. User testing results/findings OR written reflection/heuristic eval if no testing.', type: 'deliverable-spring', lane: 'deliverables-lane', audience: 'Student Deliverable (Spring)' },
+                { date: '2024-04-01', title: 'Deliverable Done', fullDesc: '🍓 Final iterated prototype/draft. Rough but submittable final materials (design docs, slides, thesis draft). Test presentation practice.', type: 'deliverable-spring', lane: 'deliverables-lane', audience: 'Student Deliverable (Spring)' },
+                { date: '2024-04-07', title: 'Video Done', fullDesc: '🍓 Project video completed.', type: 'deliverable-spring', lane: 'deliverables-lane', audience: 'Student Deliverable (Spring)' },
+                { date: '2024-04-15', title: 'Final Presentations', fullDesc: '⏱️ Department-wide final project/thesis presentations (approx date).', type: 'timeline', lane: 'timeline-markers-lane', audience: 'All DM Community' },
+                { date: '2024-05-01', title: 'Final Submission', fullDesc: '⏱️ Final project materials submitted (website updated with video, docs/code uploaded, final thesis). Approx deadline.', type: 'timeline', lane: 'timeline-markers-lane', audience: 'Student Deadline' },
+                 { date: '2024-05-08', title: 'Spring Grades Due (Approx)', fullDesc: '⏱️ Approximate deadline for Spring letter grades.', type: 'timeline', lane: 'timeline-markers-lane', audience: 'Faculty Milestone' },
+
+                 // Ideas / Potential Activities (Placed roughly where they might occur or be discussed)
+                 { date: '2023-09-15', title: 'Discuss Teams/Slack', fullDesc: '💡 Discuss potential move from Teams to Slack with DM Club/Reps.', type: 'idea', lane: 'ideas-lane', isIdea: true, audience: 'Faculty/Student Reps' },
+                 { date: '2023-10-10', title: 'Recruitment Talk Prep', fullDesc: '💡 Plan/prepare 1st year recruitment talks for running projects.', type: 'idea', lane: 'ideas-lane', isIdea: true, audience: 'Faculty/2nd Years' },
+                 { date: '2023-11-05', title: 'Buddy System Setup', fullDesc: '💡 Explore feasibility/setup of Alumni Buddy System for one-off contact.', type: 'idea', lane: 'ideas-lane', isIdea: true, audience: 'Faculty' },
+                 { date: '2024-01-20', title: 'Hackathon Planning', fullDesc: '💡 Initial planning/discussion for a potential DM Hackathon.', type: 'idea', lane: 'ideas-lane', isIdea: true, audience: 'Faculty/Student Reps' },
+                 { date: '2024-02-15', title: 'Teamwork Emphasis', fullDesc: '💡 Discuss/implement strategies for more team-based project work.', type: 'idea', lane: 'ideas-lane', isIdea: true, audience: 'Faculty/Students' },
+            ];
+
+            // --- SHARED SETUP ---
+            const timelineStart = new Date('2023-08-20'); // Adjusted start
+            const timelineEnd = new Date('2024-05-15');   // Adjusted end
+            const totalDuration = timelineEnd.getTime() - timelineStart.getTime();
+
+            const timeAxisEl = document.getElementById('time-axis');
+            const lanes = { // Map lane ID to the DOM element
+                'deliverables-lane': document.getElementById('deliverables-lane'),
+                'ideas-lane': document.getElementById('ideas-lane'),
+                'timeline-markers-lane': document.getElementById('timeline-markers-lane')
+            };
+            const eventListUl = document.getElementById('event-list-ul');
+
+            // --- 1. VISUAL TIMELINE GENERATION ---
+            const calculatePosition = (date) => {
+                const eventDate = new Date(date);
+                if (eventDate < timelineStart || eventDate > timelineEnd) return -1;
+                return ((eventDate.getTime() - timelineStart.getTime()) / totalDuration) * 100;
+            };
+
+            // Format date for labels (MM/DD)
+             const formatDateLabel = (dateString) => {
+                 const date = new Date(dateString);
+                 // Add time zone offset to prevent date shift issues
+                 const offset = date.getTimezoneOffset();
+                 const adjustedDate = new Date(date.getTime() + (offset * 60 * 1000));
+                 const month = (adjustedDate.getUTCMonth() + 1).toString().padStart(2, '0');
+                 const day = adjustedDate.getUTCDate().toString().padStart(2, '0');
+                 return `${month}/${day}`;
+             };
+
+
+            // Create Month Markers
+             // Use a Set to ensure unique month positions
+             const uniqueMonths = new Set();
+             const tempDate = new Date(timelineStart);
+             while (tempDate <= timelineEnd) {
+                 uniqueMonths.add(tempDate.getFullYear() + '-' + String(tempDate.getMonth() + 1).padStart(2, '0'));
+                 tempDate.setMonth(tempDate.getMonth() + 1);
+                 tempDate.setDate(1); // Ensure we are at the start of the next month
+             }
+
+             uniqueMonths.forEach(monthStr => {
+                 const [year, month] = monthStr.split('-');
+                 const monthDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+                 const monthPos = calculatePosition(monthDate);
+                 const monthName = monthDate.toLocaleString('default', { month: 'short' });
+
+                 if (monthPos >= 0 && monthPos <= 100) {
+                     const marker = document.createElement('div');
+                     marker.classList.add('month-marker');
+                     marker.textContent = `${monthName} '${String(year).slice(2)}`;
+                     marker.style.left = `${monthPos}%`;
+                     timeAxisEl.appendChild(marker);
+                 }
+             });
+
+
+            // Create Event Markers and Labels
+            timelineData.forEach(item => {
+                const eventPos = calculatePosition(item.date);
+                if (eventPos < 0) return;
+
+                const wrapperClass = `${item.type}-event`; // e.g., deliverable-fall-event
+                const labelClass = wrapperClass; // Label uses same class for color
+
+                // Create wrapper for the dot
+                const eventWrapper = document.createElement('div');
+                eventWrapper.classList.add('event-wrapper', wrapperClass);
+                if (item.isIdea) eventWrapper.style.opacity = var(--idea-opacity);
+                eventWrapper.style.left = `${eventPos}%`;
+
+                const eventEl = document.createElement('div');
+                eventEl.classList.add('event'); // Dot gets base class + color via wrapper
+                eventWrapper.appendChild(eventEl);
+
+                // Create the label separately
+                const labelEl = document.createElement('div');
+                labelEl.classList.add('event-label', labelClass);
+                if (item.isIdea) labelEl.style.opacity = var(--idea-opacity); // Make idea labels also faded
+                labelEl.style.left = `${eventPos}%`; // Position label horizontally
+
+                // Add Date + Title to label
+                labelEl.innerHTML = `<span class="date-part">${formatDateLabel(item.date)}</span><span class="title-part">${item.title}</span>`;
+                labelEl.setAttribute('title', item.fullDesc); // Browser tooltip
+
+                // Append wrapper (dot) and label to the correct lane div
+                const targetLane = lanes[item.lane];
+                if (targetLane) {
+                    targetLane.appendChild(eventWrapper);
+                    targetLane.appendChild(labelEl); // Add label as sibling to wrapper
+                } else {
+                    console.warn(`Lane ${item.lane} not found for event: ${item.title}`);
+                }
+            });
+
+
+            // --- 2. COLLATED LIST GENERATION ---
+            timelineData
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .forEach(item => {
+                    const li = document.createElement('li');
+                    // Add base type class (e.g., list-deliverable-fall)
+                    li.classList.add(`list-${item.type}`);
+                     if (item.isIdea) {
+                         li.classList.add('list-idea'); // Specific class for ideas
+                     }
+
+                    let pointsHTML = item.points ? `<span class="list-points">(${item.points} pts)</span>` : '';
+                    let gradeNoteHTML = item.gradeNote ? `<span class="list-grade-note">${item.gradeNote}</span>` : '';
+                    let audienceHTML = item.audience ? `<div class="list-meta">Audience: ${item.audience}</div>` : '';
+
+                    li.innerHTML = `
+                        <div class="list-date">${item.date}</div>
+                        <div class="list-content">
+                            <div class="list-title">${item.title} ${pointsHTML} ${gradeNoteHTML}</div>
+                            <div class="list-desc">${item.fullDesc}</div>
+                            ${audienceHTML}
+                        </div>
+                    `;
+                    eventListUl.appendChild(li);
+                });
+
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM MS Lifecycle Timeline Artifact</title>
+    <style>
+        :root {
+            /* Color Coding */
+            --sprout-color: #90EE90; /* Light Green */
+            --sprout-accent: #3CB371; /* Medium Sea Green */
+            --fruit-color: #FFA07A; /* Light Salmon */
+            --fruit-accent: #E9967A; /* Dark Salmon */
+            --all-students-color: #ADD8E6; /* Light Blue */
+            --all-students-accent: #87CEEB; /* Sky Blue */
+            --holiday-color: #D3D3D3; /* Light Gray */
+            --holiday-accent: #A9A9A9; /* Dark Gray */
+            --timeline-bg: #282c34;
+            --text-color: #f1f1f1;
+            --axis-color: #61dafb;
+            --lane-divider: rgba(97, 218, 251, 0.2); /* Faint axis color */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--timeline-bg);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--axis-color);
+            margin-bottom: 15px;
+        }
+        h2 {
+            margin-top: 40px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-color { width: 15px; height: 15px; border-radius: 3px; }
+
+        /* --- Visual Timeline --- */
+        #timeline-visual {
+            position: relative;
+            width: 95%;
+            margin: 40px auto;
+            padding: 50px 0 20px 0; /* More padding top/bottom */
+            min-height: 450px;
+            overflow-x: auto;
+            border: 1px solid var(--axis-color);
+            border-radius: 8px;
+            background: linear-gradient(to bottom, rgba(40, 44, 52, 0.8), rgba(40, 44, 52, 0.95));
+        }
+
+        .time-axis {
+            position: absolute; /* Position axis relative to container */
+            top: 50%; /* Center vertically */
+            left: 2%; /* Indent from edge */
+            width: 96%; /* Span across */
+            height: 3px;
+            background-color: var(--axis-color);
+            transform: translateY(-50%);
+            z-index: 1; /* Behind events but visible */
+        }
+
+        .month-marker {
+            position: absolute;
+            bottom: 5px; /* Above the axis line */
+            transform: translateX(-50%);
+            font-size: 0.8em;
+            color: var(--axis-color);
+            white-space: nowrap;
+            background-color: var(--timeline-bg); /* Cover axis */
+            padding: 0 3px;
+             z-index: 2; /* Above axis line */
+        }
+        .month-marker::after { /* Tick mark */
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 8px;
+            background-color: var(--axis-color);
+             z-index: -1; /* Behind text */
+        }
+
+        .timeline-lanes {
+            position: relative;
+            width: 100%; /* Full width */
+            padding: 0 2%; /* Align content with axis */
+            box-sizing: border-box;
+        }
+
+        .timeline-lane {
+            position: relative;
+            height: 100px; /* Vertical space for each group */
+            border-bottom: 1px dashed var(--lane-divider); /* Subtle lane separation */
+            display: flex;
+            align-items: center; /* Center events vertically in their band */
+        }
+        .timeline-lane:last-child { border-bottom: none; }
+
+        /* Position lanes vertically */
+        .all-students-lane { /* Top lane */ }
+        .sprouts-lane { }
+        .fruits-lane { }
+        .holidays-lane { /* Bottom lane */ }
+
+        .lane-label {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            font-weight: bold;
+            font-size: 0.9em;
+            opacity: 0.7;
+             z-index: 2;
+             background: rgba(40, 44, 52, 0.7);
+             padding: 2px 5px;
+             border-radius: 3px;
+        }
+         .sprouts-lane .lane-label { color: var(--sprout-color); }
+         .fruits-lane .lane-label { color: var(--fruit-color); }
+         .all-students-lane .lane-label { color: var(--all-students-color); }
+         .holidays-lane .lane-label { color: var(--holiday-color); }
+
+
+        .event {
+            position: absolute;
+             /* Centered vertically within the lane's height */
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px; /* Slightly larger */
+            height: 14px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10; /* Above axis and lanes */
+            border: 2px solid var(--timeline-bg);
+            box-shadow: 0 0 5px rgba(0,0,0,0.5); /* Add depth */
+        }
+
+        .event::before { /* Optional stem connecting to middle visually */
+            content: '';
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 15px; /* Adjust height as needed */
+            /* background-color: currentColor; /* Use event's accent color */
+            /* opacity: 0.6; */
+            /* z-index: -1; */
+            /* This stem is tricky with multiple lanes; keeping it simple */
+        }
+
+        /* Align events within their lane's vertical space */
+        /* .all-students-lane .event { top: 50px; } */ /* Example if fixed positioning used */
+        /* .sprouts-lane .event { top: 150px; } */
+        /* .fruits-lane .event { top: 250px; } */
+        /* .holidays-lane .event { top: 350px; } */
+        /* Using relative positioning within flex lanes is easier */
+
+        .event:hover {
+            transform: translateY(-50%) scale(1.6);
+            box-shadow: 0 0 12px currentColor;
+        }
+
+        /* Event type specific colors */
+        .sprout-event { background-color: var(--sprout-color); color: var(--sprout-accent); }
+        .fruit-event { background-color: var(--fruit-color); color: var(--fruit-accent); }
+        .all-event { background-color: var(--all-students-color); color: var(--all-students-accent); }
+        .holiday-event { background-color: var(--holiday-color); color: var(--holiday-accent); }
+
+        #tooltip {
+            position: absolute; display: none;
+            background-color: rgba(20, 22, 26, 0.95); color: var(--text-color);
+            border: 1px solid var(--axis-color); border-radius: 5px;
+            padding: 10px 12px; font-size: 0.9em; z-index: 1000;
+            max-width: 280px; pointer-events: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            line-height: 1.4;
+        }
+        #tooltip h4 { margin: 0 0 8px 0; font-size: 1.05em; border-bottom: 1px solid var(--lane-divider); padding-bottom: 4px;}
+        #tooltip p { margin: 5px 0 0 0; }
+        #tooltip strong { color: var(--axis-color); opacity: 0.8; }
+        #tooltip.sprout-event h4 { color: var(--sprout-color); }
+        #tooltip.fruit-event h4 { color: var(--fruit-color); }
+        #tooltip.all-event h4 { color: var(--all-students-color); }
+        #tooltip.holiday-event h4 { color: var(--holiday-color); }
+
+
+        /* --- List View --- */
+        #timeline-list {
+            width: 85%;
+            max-width: 900px;
+            margin: 30px auto;
+            background-color: rgba(40, 44, 52, 0.5);
+            padding: 20px 30px;
+            border-radius: 8px;
+            border: 1px solid var(--lane-divider);
+        }
+        #timeline-list ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #timeline-list li {
+            padding: 15px 0;
+            border-bottom: 1px solid var(--lane-divider);
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        #timeline-list li:last-child { border-bottom: none; }
+
+        .list-date {
+            flex: 0 0 100px; /* Fixed width for date */
+            font-weight: bold;
+            color: var(--axis-color);
+            opacity: 0.9;
+            padding-top: 2px;
+        }
+        .list-content {
+            flex: 1;
+        }
+        .list-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .list-desc {
+            font-size: 0.95em;
+            opacity: 0.9;
+        }
+        .list-audience {
+             font-size: 0.85em;
+             font-style: italic;
+             opacity: 0.7;
+             margin-top: 8px;
+        }
+
+        /* Color coding list items */
+        .list-sprout .list-title { color: var(--sprout-color); }
+        .list-fruit .list-title { color: var(--fruit-color); }
+        .list-all .list-title { color: var(--all-students-color); }
+        .list-holiday .list-title { color: var(--holiday-color); }
+
+
+    </style>
+</head>
+<body>
+
+    <h1>DM MS Student Lifecycle (Fall 2024 - Spring 2025)</h1>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: var(--sprout-color);"></div>
+            <span>🌱 1st Year (Sprouts)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: var(--fruit-color);"></div>
+            <span>🍓 2nd Year (Fruits)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: var(--all-students-color);"></div>
+            <span>👥 All Students / Course</span>
+        </div>
+         <div class="legend-item">
+            <div class="legend-color" style="background-color: var(--holiday-color);"></div>
+            <span>⏱️ Timeline / Holidays</span>
+        </div>
+    </div>
+
+    <!-- Visual Timeline Section -->
+    <h2>Visual Timeline Artifact</h2>
+    <div id="timeline-visual">
+         <div class="time-axis" id="time-axis">
+             <!-- Month markers added by JS -->
+         </div>
+        <div class="timeline-lanes">
+            <!-- Lanes are visually separated by CSS, events positioned within them -->
+            <div class="timeline-lane all-students-lane" id="all-students-lane">
+                 <span class="lane-label">👥 Course / All</span>
+            </div>
+             <div class="timeline-lane sprouts-lane" id="sprouts-lane">
+                 <span class="lane-label">🌱 Sprouts (1st Yr)</span>
+            </div>
+            <div class="timeline-lane fruits-lane" id="fruits-lane">
+                <span class="lane-label">🍓 Fruits (2nd Yr)</span>
+            </div>
+            <div class="timeline-lane holidays-lane" id="holidays-lane">
+                <span class="lane-label">⏱️ Timeline</span>
+            </div>
+             <!-- Events added by JS into the correct lane divs -->
+        </div>
+    </div>
+    <div id="tooltip"></div>
+
+
+    <!-- Collated List Section -->
+    <h2>Collated Event List</h2>
+    <div id="timeline-list">
+        <ul id="event-list-ul">
+            <!-- List items added by JS -->
+        </ul>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- DATA --- (Emojis added to descriptions/titles)
+            const timelineData = [
+                // Fall 2024
+                { date: '2024-08-26', title: 'Semester Kick-off', description: '👥 Welcome, intros, course overview.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2024-09-02', title: 'Holiday', description: '⏱️ No Class - Labor Day.', type: 'holiday', lane: 'holidays-lane', audience: 'Timeline' },
+                { date: '2024-09-09', title: 'Project Foundations', description: '🌱 Understanding timeline, brainstorming.', type: 'sprout', lane: 'sprouts-lane', audience: '1st Year (Sprouts)' },
+                { date: '2024-09-09', title: 'Fall Goal Check-in', description: '🍓 Re-introduce projects, outline goals.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+                { date: '2024-09-16', title: 'Feedback Exercise', description: '👥 Positive Enforcement Feedback (Noura).', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2024-09-30', title: 'Developing Ideas', description: '🌱 Refining project ideas, methods.', type: 'sprout', lane: 'sprouts-lane', audience: '1st Year (Sprouts)' },
+                { date: '2024-09-30', title: 'Project Progress', description: '🍓 Deeper dive presentations, troubleshooting.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+                { date: '2024-10-07', title: 'Prof. Dev Intro', description: '👥 CVs, Websites discussion.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2024-10-14', title: 'Mid-Sem Checkpoint', description: '🌱 Presenting developed concepts.', type: 'sprout', lane: 'sprouts-lane', audience: '1st Year (Sprouts)' },
+                { date: '2024-10-14', title: 'Mid-Sem Presentations', description: '🍓 Showing tangible progress, feedback.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+                { date: '2024-10-21', title: 'Holiday', description: '⏱️ No Class - Fall Break.', type: 'holiday', lane: 'holidays-lane', audience: 'Timeline' },
+                { date: '2024-10-28', title: 'Alumni Talk #1 (Potential)', description: '👥 Insights from a DM Alum.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2024-11-04', title: 'Solidifying Direction', description: '🌱 Key literature, proposal structure.', type: 'sprout', lane: 'sprouts-lane', audience: '1st Year (Sprouts)' },
+                { date: '2024-11-11', title: 'Significant Progress', description: '🍓 Presenting findings, thesis planning.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+                { date: '2024-11-18', title: 'Prof. Dev: Portfolios', description: '👥 Intro to portfolios, poster planning.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2024-12-02', title: 'End-of-Sem Presentation', description: '🌱 Presenting project direction.', type: 'sprout', lane: 'sprouts-lane', audience: '1st Year (Sprouts)' },
+                { date: '2024-12-02', title: 'End-of-Sem Status', description: '🍓 Major project status, planning ahead.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+                { date: '2024-12-09', title: 'Semester Wrap-up', description: '👥 Final Fall meeting & reflection.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2024-12-23', title: 'Winter Break Start', description: '⏱️ Approximate start of break.', type: 'holiday', lane: 'holidays-lane', audience: 'Timeline' },
+
+                // Spring 2025
+                { date: '2025-01-13', title: 'Spring Relaunch', description: '👥 Re-orientation, goal setting.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2025-01-20', title: 'Formalizing Proposals', description: '🌱 Focus on proposal structure, committees.', type: 'sprout', lane: 'sprouts-lane', audience: '1st Year (Sprouts)' },
+                { date: '2025-01-20', title: 'Final Push Planning', description: '🍓 Thesis structure, draft deadlines.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+                { date: '2025-02-03', title: 'Proposal Workshop', description: '🌱 Feedback on draft proposals.', type: 'sprout', lane: 'sprouts-lane', audience: '1st Year (Sprouts)' },
+                { date: '2025-02-10', title: 'Chapter Presentations', description: '🍓 Detailed writing/analysis progress.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+                { date: '2025-02-17', title: 'Prof. Dev: Job Search', description: '👥 Strategies, Interviewing Skills.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2025-03-03', title: 'Near-Final Proposal', description: '🌱 Presenting detailed proposals.', type: 'sprout', lane: 'sprouts-lane', audience: '1st Year (Sprouts)' },
+                { date: '2025-03-10', title: 'Near-Final Presentations', description: '🍓 Practice for defense/showcase.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+                { date: '2025-03-24', title: 'Poster Session / Grad Conf.', description: '👥 Presenting work in poster format.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2025-03-31', title: 'Alumni Talk #2 (Potential)', description: '👥 More insights from alumni.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2025-04-07', title: 'Finalizing Proposals', description: '🌱 Planning for Summer/next year.', type: 'sprout', lane: 'sprouts-lane', audience: '1st Year (Sprouts)' },
+                { date: '2025-04-14', title: 'Defense Dry Runs', description: '🍓 Class feedback for final presentations.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+                { date: '2025-04-21', title: 'Prof. Dev: Portfolio Review', description: '👥 Final polish workshop.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2025-04-28', title: 'End-of-Year Wrap-up', description: '👥 Final reflections & celebration.', type: 'all', lane: 'all-students-lane', audience: 'All Students' },
+                { date: '2025-05-05', title: 'Thesis Submission (Approx)', description: '🍓 Target for final MS project submission.', type: 'fruit', lane: 'fruits-lane', audience: '2nd Year (Fruits)' },
+            ];
+
+            // --- SHARED SETUP ---
+            const timelineStart = new Date('2024-08-15');
+            const timelineEnd = new Date('2025-05-31');
+            const totalDuration = timelineEnd.getTime() - timelineStart.getTime();
+
+            const timeAxisEl = document.getElementById('time-axis');
+            const lanes = { // For visual timeline event placement
+                'sprouts-lane': document.getElementById('sprouts-lane'),
+                'fruits-lane': document.getElementById('fruits-lane'),
+                'all-students-lane': document.getElementById('all-students-lane'),
+                'holidays-lane': document.getElementById('holidays-lane')
+            };
+            const tooltip = document.getElementById('tooltip');
+            const eventListUl = document.getElementById('event-list-ul'); // For list view
+
+            // --- 1. VISUAL TIMELINE GENERATION ---
+
+            // Function to calculate position
+            const calculatePosition = (date) => {
+                const eventDate = new Date(date);
+                if (eventDate < timelineStart || eventDate > timelineEnd) return -1; // Out of bounds
+                return ((eventDate.getTime() - timelineStart.getTime()) / totalDuration) * 100;
+            };
+
+            // Create Month Markers
+            const months = ['Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
+            const yearStarts = { 'Aug': 2024, 'Jan': 2025 };
+            let currentYear = 2024;
+            const monthIndexMap = { Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11, Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4 };
+
+            months.forEach(month => {
+                if (yearStarts[month]) currentYear = yearStarts[month];
+                const monthDate = new Date(currentYear, monthIndexMap[month], 1);
+                const monthPos = calculatePosition(monthDate);
+
+                if (monthPos >= 0) {
+                    const marker = document.createElement('div');
+                    marker.classList.add('month-marker');
+                    marker.textContent = `${month} '${String(currentYear).slice(2)}`;
+                    marker.style.left = `${monthPos}%`;
+                    // Append marker relative to the axis container, not the axis line itself
+                    timeAxisEl.parentElement.appendChild(marker); // Append to #timeline-visual
+                }
+            });
+
+            // Create Events for Visual Timeline
+             timelineData.forEach(item => {
+                 const eventPos = calculatePosition(item.date);
+                 if (eventPos < 0) return; // Skip if out of range
+
+                 const eventEl = document.createElement('div');
+                 eventEl.classList.add('event', `${item.type}-event`);
+                 eventEl.style.left = `${eventPos}%`; // Position horizontally based on time
+
+                 // Store data for tooltip
+                 eventEl.dataset.title = item.title;
+                 eventEl.dataset.description = item.description;
+                 eventEl.dataset.date = item.date;
+                 eventEl.dataset.type = item.type;
+
+                 // Append to the correct lane div
+                 const targetLane = lanes[item.lane];
+                 if (targetLane) {
+                     targetLane.appendChild(eventEl); // Event is now child of its lane
+                 } else {
+                     console.warn(`Lane ${item.lane} not found for event: ${item.title}`);
+                 }
+
+                 // Tooltip Interaction
+                 eventEl.addEventListener('mouseover', (e) => {
+                     tooltip.innerHTML = `
+                         <h4 class="${e.target.dataset.type}-event">${e.target.dataset.title}</h4>
+                         <p><strong>Date:</strong> ${e.target.dataset.date}</p>
+                         <p>${e.target.dataset.description}</p>
+                     `;
+                     tooltip.className = `${e.target.dataset.type}-event`; // Add type class for styling
+                     tooltip.style.display = 'block';
+                 });
+                 eventEl.addEventListener('mousemove', (e) => {
+                      // Basic positioning - adjust for edge detection if needed
+                     let x = e.pageX + 15;
+                     let y = e.pageY + 15;
+                      // Simple boundary check
+                     if (x + tooltip.offsetWidth > window.innerWidth) {
+                         x = e.pageX - tooltip.offsetWidth - 15;
+                     }
+                      if (y + tooltip.offsetHeight > window.innerHeight + window.scrollY) {
+                          y = e.pageY - tooltip.offsetHeight - 15;
+                      }
+                     tooltip.style.left = `${x}px`;
+                     tooltip.style.top = `${y}px`;
+                 });
+                 eventEl.addEventListener('mouseout', () => {
+                     tooltip.style.display = 'none';
+                     tooltip.className = '';
+                 });
+             });
+
+
+            // --- 2. COLLATED LIST GENERATION ---
+            timelineData
+                .sort((a, b) => new Date(a.date) - new Date(b.date)) // Ensure chronological order
+                .forEach(item => {
+                    const li = document.createElement('li');
+                    li.classList.add(`list-${item.type}`); // Add class for potential styling
+
+                    li.innerHTML = `
+                        <div class="list-date">${item.date}</div>
+                        <div class="list-content">
+                            <div class="list-title">${item.title}</div>
+                            <div class="list-desc">${item.description}</div>
+                            <div class="list-audience">Audience: ${item.audience}</div>
+                        </div>
+                    `;
+                    eventListUl.appendChild(li);
+                });
+
+        });
+    </script>
+
+</body>
+</html>

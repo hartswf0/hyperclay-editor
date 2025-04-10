@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM MS Cultivation Almanac (2023-2024)</title>
+    <!-- Import Vis.js CSS -->
+    <link href="https://unpkg.com/vis-network@latest/styles/vis-network.min.css" rel="stylesheet" type="text/css" />
+    <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        :root {
+            /* -- Almanac Theme -- */
+            --bg-color: #fdfaf6; /* Parchment / Light Beige */
+            --text-color: #4d4033; /* Soil Brown */
+            --accent-color: #5a8a4d; /* Leaf Green */
+            --secondary-accent-color: #a56a44; /* Branch Brown */
+            --divider-color: #dcd3c9; /* Light Stone Gray */
+            --label-bg: rgba(253, 250, 246, 0.9); /* Slightly transparent parchment */
+            --label-text-color: var(--text-color);
+            --today-marker-color: #c85a44; /* Terracotta Red */
+            --focus-outline-color: var(--accent-color);
+            --highlight-color: #f0d9a0; /* Sunlight Yellow highlight */
+            --highlight-border: #d4b97a;
+
+            /* -- DM MS Almanac Color Coding -- */
+            --color-germination: #8fbc8f; --color-germination-accent: #5a8a4d; /* Dark Sea Green / Leaf Green */
+            --color-fruiting: #ffcc80; --color-fruiting-accent: #ffa726; /* Light Orange / Orange */
+            --color-community: #b39ddb; --color-community-accent: #7e57c2; /* Light Purple / Deep Purple */
+            --color-calendar: #a1887f; --color-calendar-accent: #795548; /* Brown Grey / Brown */
+            --color-nutrient: #81d4fa; --color-nutrient-accent: #29b6f6; /* Light Blue / Blue (Water) */
+            --color-companion: #fff59d; --color-companion-accent: #ffee58; /* Pale Yellow / Yellow (Sunlight/Support) */
+            --color-garden-bed: #e6e0d8; --color-garden-bed-accent: #bdb0a1; /* Stone */
+            --color-observation: #ffab91; --color-observation-accent: #ff7043; /* Light Coral / Coral (Ideas/Alerts) */
+        }
+
+        /* --- High Contrast Mode (Optional - Keep simpler for now) --- */
+        /* body.high-contrast { ... } */
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Georgia', serif; /* More Almanac feel */
+            margin: 0; padding: 0; color: var(--text-color);
+            background-color: var(--bg-color); overflow: hidden;
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        .header-bar {
+             padding: 10px 20px; background-color: #e6e0d8; /* Stone */
+             border-bottom: 1px solid var(--divider-color);
+             display: flex; justify-content: space-between; align-items: center;
+        }
+        h1 {
+            margin: 0; font-size: 1.6rem; font-variant: small-caps; letter-spacing: 1px;
+            color: var(--secondary-accent-color); flex-grow: 1; text-align: center;
+        }
+        #contrast-toggle { font-size: 0.8rem; padding: 5px 10px; border-color: var(--secondary-accent-color); color: var(--secondary-accent-color);}
+         #contrast-toggle:hover { background-color: var(--secondary-accent-color); color: var(--bg-color);}
+
+        .controls {
+            padding: 8px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+            background-color: #ece7e0; border-bottom: 1px solid var(--divider-color);
+        }
+        .controls button, .controls select {
+            padding: 5px 10px; border: 1px solid var(--secondary-accent-color); border-radius: 4px;
+            background-color: var(--bg-color); font-size: 0.85rem; cursor: pointer; color: var(--secondary-accent-color);
+            font-family: 'Georgia', serif;
+        }
+         .controls button:hover, .controls select:hover { background-color: #f5f0ea; }
+         #month-nav { display: contents; }
+
+        /* Main Layout Panes */
+        .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }
+        .left-panel { flex: 3; display: flex; flex-direction: column; overflow: hidden; position: relative; border-right: 1px solid var(--divider-color); }
+        .right-panel { flex: 1; min-width: 280px; max-width: 40%; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+        /* Resize Handles */
+        .resize-handle-vertical { width: 10px; cursor: ew-resize; background-color: #dcd3c9; border-left: 1px solid #b0a18e; border-right: 1px solid #b0a18e; position: absolute; top: 0; bottom: 0; left: -5px; z-index: 10; display: flex; align-items: center; justify-content: center; }
+        .resize-handle-vertical::after { content: "⋮"; color: #7a6e61; font-size: 16px; }
+        .resize-handle-horizontal { height: 10px; background-color: #dcd3c9; cursor: ns-resize; border-top: 1px solid #b0a18e; border-bottom: 1px solid #b0a18e; position: absolute; bottom: -5px; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: center; }
+        .resize-handle-horizontal::after { content: "…"; color: #7a6e61; font-size: 16px; letter-spacing: 2px; }
+
+        /* Timeline Container */
+        #timeline-container { height: 250px; min-height: 100px; max-height: 60%; border-bottom: 1px solid var(--divider-color); position: relative; overflow: hidden; }
+        #timeline { width: 100%; height: 100%; background-color: #fff; }
+
+        /* Network Container */
+        #network-container { flex: 1; position: relative; overflow: hidden; }
+        #network { width: 100%; height: 100%; background-color: white; border: 1px solid transparent; }
+
+         /* Details Panel (Almanac Annotations) */
+        #details-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; background-color: var(--bg-color); }
+        .section-header { padding: 8px 12px; background-color: #e6e0d8; border-bottom: 1px solid var(--divider-color); font-weight: 600; font-size: 0.95rem; color: var(--secondary-accent-color); font-variant: small-caps; letter-spacing: 0.5px;}
+        #details-content { padding: 15px; overflow-y: auto; flex: 1; font-size: 0.95rem; line-height: 1.6; }
+         #details-content h4 { margin: 18px 0 8px 0; font-size: 1.1rem; color: var(--accent-color); border-bottom: 1px solid var(--divider-color); padding-bottom: 4px; font-weight: normal; font-style: italic; }
+         #details-content p { margin-bottom: 12px; }
+         #details-content strong { font-weight: 600; color: var(--secondary-accent-color); } /* Use for keywords */
+         #details-content ul { padding-left: 20px; margin-top: 8px; list-style: '– '; /* Dash bullet */ }
+         #details-content li { margin-bottom: 6px; }
+         .almanac-annotation { margin-top: 15px; padding: 10px; border: 1px dashed var(--divider-color); border-radius: 4px; background-color: #f9f6f2; font-size: 0.85rem; }
+         .almanac-annotation strong { color: var(--accent-color); display: block; margin-bottom: 5px; font-style: italic; }
+
+        /* Vis.js Customizations */
+        .vis-timeline { border: none; font-size: 11px; background-color: #fff; }
+        .vis-item { font-size: 11px; padding: 4px 6px; border-radius: 10px; /* Pill shape */ color: var(--text-color); border-width: 1px; }
+         .vis-item.vis-selected { border-width: 2px; }
+
+        /* Timeline Group Styles */
+        .vis-left .vis-group { padding-left: 10px !important; font-weight: 600; font-size: 12px; letter-spacing: 0.5px;}
+        .vis-left .vis-group.germination { border-left: 4px solid var(--color-germination); }
+        .vis-left .vis-group.fruiting { border-left: 4px solid var(--color-fruiting); }
+        .vis-left .vis-group.community { border-left: 4px solid var(--color-community); }
+        .vis-left .vis-group.calendar { border-left: 4px solid var(--color-calendar); }
+
+        /* Timeline Item Styles (using classNames) */
+        .vis-item.soil-check { background-color: var(--color-germination); border-color: var(--color-germination-accent); color: #fff;}
+        .vis-item.harvest-marker { background-color: var(--color-fruiting); border-color: var(--color-fruiting-accent); }
+        .vis-item.pollination-event { background-color: var(--color-community); border-color: var(--color-community-accent); color: #fff;}
+        .vis-item.calendar-event { background-color: var(--color-calendar); border-color: var(--color-calendar-accent); color: #fff;}
+        .vis-item.observation { background-color: var(--color-observation); border-color: var(--color-observation-accent); opacity: 0.9; }
+
+        /* Highlight Styles */
+        .vis-item.highlighted-item {
+            background-color: var(--highlight-color) !important;
+            border-color: var(--highlight-border) !important;
+            box-shadow: 0 0 8px var(--highlight-color);
+            color: #333 !important;
+            z-index: 10 !important;
+            border-width: 2px !important;
+        }
+
+        /* Today Marker */
+         #today-marker-timeline { position: absolute; top: 0; bottom: 0; width: 2px; background-color: var(--today-marker-color); z-index: 5; pointer-events: none; opacity: 0.7; display: none; }
+          #today-marker-timeline::after { content: 'TODAY'; position: absolute; top: 5px; left: 4px; background: var(--today-marker-color); color: white; padding: 1px 4px; font-size: 9px; border-radius: 3px; font-weight: bold; }
+
+        /* Tooltip styling */
+        div.vis-tooltip { /* Kept similar, good base */
+            font-family: 'Georgia', serif !important; padding: 8px 10px !important;
+            background-color: var(--label-bg) !important; border: 1px solid var(--divider-color) !important;
+            color: var(--label-text-color) !important; border-radius: 4px !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important; font-size: 12px !important;
+            max-width: 350px !important; white-space: normal !important;
+            z-index: 10000 !important; pointer-events: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <h1>Digital Media Master's Cultivation Almanac <span style="font-size:0.8em; font-style:italic;">(2023-2024 Planting Season)</span></h1>
+        <button id="contrast-toggle" title="Toggle High Contrast Mode">🌓 Contrast</button>
+    </div>
+
+    <div class="controls">
+        <button id="zoomIn" title="Zoom In">➕ Zoom</button>
+        <button id="zoomOut" title="Zoom Out">➖ Zoom</button>
+        <button id="resetView" title="Reset View">🌍 Reset</button>
+        <select id="filterSelect" title="Filter by Stage/Activity">
+            <option value="all">All Stages</option>
+            <option value="germination">🌱 Germination (1st Yr)</option>
+            <option value="fruiting">🍓 Fruiting (2nd Yr)</option>
+            <option value="community">🐝 Community/Pollination</option>
+            <option value="calendar">📅 Crop Calendar</option>
+            <option value="soil_check">📝 Field Tasks</option>
+            <option value="companion">☀️ Companion/Support</option>
+        </select>
+        <div id="month-nav" aria-label="Jump to Month Navigation">
+           <!-- Buttons added by JS -->
+        </div>
+        <button id="hide-details" title="Toggle Almanac Notes">Hide Notes ▶</button>
+    </div>
+
+    <div class="main-container">
+        <!-- Left Panel (Timeline + Network) -->
+        <div class="left-panel">
+            <div id="timeline-container" role="region" aria-labelledby="timeline-heading">
+                 <div id="today-marker-timeline" aria-hidden="true"></div>
+                 <div id="timeline"></div>
+                 <div class="resize-handle-horizontal" id="timeline-resize-handle"></div>
+            </div>
+            <div id="network-container" role="region" aria-labelledby="network-heading">
+                 <div id="network"></div>
+            </div>
+        </div>
+
+        <!-- Vertical Resizer -->
+        <div class="resize-handle-vertical" id="panel-resize-handle"></div>
+
+        <!-- Right Panel (Almanac Annotations) -->
+        <div class="right-panel" id="details-panel">
+            <div id="details-container">
+                <div class="section-header" id="details-heading">Almanac Notes & Forecast</div>
+                <div id="details-content" role="region" aria-live="polite">
+                    <p>Select a marker on the timeline or a node in the garden map for guidance.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Vis.js Libraries -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network@latest/standalone/umd/vis-network.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Configuration ---
+            const config = {
+                timelineStart: '2023-08-15',
+                timelineEnd: '2024-05-15',
+                groups: { // Renamed groups based on Almanac metaphor
+                    GERMINATION: 'germination',       // Formerly SPROUT node group & timeline group
+                    FRUITING: 'fruiting',           // Formerly FRUIT node group & timeline group
+                    COMMUNITY: 'community',         // Formerly ALL timeline group, MEETING node group
+                    CALENDAR: 'calendar',           // Formerly MILESTONE timeline group & node group
+                    SOIL_CHECK: 'soilCheck',       // Formerly DELIVERABLE_FALL / _SPRING node group
+                    OBSERVATION: 'observation',     // Formerly IDEA node group & timeline items
+                    NUTRIENT: 'nutrient',           // Formerly SKILL node group
+                    COMPANION: 'companion',         // Formerly SUPPORT node group
+                    GARDEN_BED: 'gardenBed',       // Formerly SEMESTER node group
+                    CULTIVAR: 'cultivar',           // Formerly STUDENT_TYPE node group
+                },
+                timelineItemClasses: { // CSS classes for timeline items
+                    soilCheckFall: 'soil-check',       // Fall Deliverable
+                    soilCheckSpring: 'harvest-marker', // Spring Deliverable
+                    pollinationEvent: 'pollination-event', // Meeting/Workshop
+                    calendarEvent: 'calendar-event',   // Milestone
+                    observation: 'observation',         // Idea
+                }
+            };
+
+            // --- DATA --- (Re-labeled and re-grouped)
+            const nodes = new vis.DataSet([
+                // Cultivars (Student Types)
+                { id: 'germination-stage', label: '🌱\nGermination\n(Seedling Yr)', group: config.groups.CULTIVAR, details: '<h4>🌱 Germination & Seedling Stage</h4><p>Focus: Establishing <strong>roots</strong>. Plant project seeds, cultivate research questions, absorb foundational nutrients (skills).</p><div class="almanac-annotation"><strong>🌱 Planting Tip:</strong> Nurture ideas with regular advisor sunlight and peer cross-pollination. Keep a compost heap (Running Notes) of progress!</div>', mass: 3 },
+                { id: 'fruiting-stage', label: '🍓\nFruiting\n(Harvest Yr)', group: config.groups.CULTIVAR, details: '<h4>🍓 Fruiting & Harvest Stage</h4><p>Focus: Bearing <strong>fruit</strong>. Refine prototypes, conduct evaluations (pest control!), prepare for the Harvest Festival (presentation), and gather final yield (submission).</p><div class="almanac-annotation"><strong>☀️ Weather Forecast:</strong> Expect intense growth periods mid-Spring. Ensure adequate resources (time, feedback) to prevent wilting.</div>', mass: 3 },
+
+                // Garden Beds (Semesters)
+                { id: 'fall-planting', label: 'Fall Planting\n(Aug-Dec \'23)', group: config.groups.GARDEN_BED, details: '<h4>🍂 Fall Planting Season</h4><p>Ideal time for germination activities. Focus on soil preparation (research) and root development (core concepts).</p>' },
+                { id: 'spring-growth', label: 'Spring Growth\n(Jan-May \'24)', group: config.groups.GARDEN_BED, details: '<h4>🌸 Spring Growth Season</h4><p>Seedlings emerge, requiring sunlight (refinement). Fruiting occurs, leading to harvest preparations.</p>' },
+
+                // Soil Checks / Harvest Markers (Deliverables) - Linked to timeline items
+                { id: 'task-rq', label: 'Seeding\n(RQs)', group: config.groups.SOIL_CHECK, timelineId: 'tl-task-rq', title: 'Field Task: Seeding Research Questions', details: '<h4>📝 Seeding Questions (Fall Task)</h4><p><strong>Target:</strong> Sep 21/26, \'23<br><strong>Yield Estimate:</strong> 15% Prep</p><p>Review the field (related projects), analyze soil composition (lit review themes), present initial growth plan (5-min). Mature plants show full progress (10-min).</p><strong>Nutrients Needed:</strong> Research Roots, Presentation Pollen' },
+                { id: 'task-lit', label: 'Soil Analysis\n(Lit Review)', group: config.groups.SOIL_CHECK, timelineId: 'tl-task-lit', title: 'Field Task: Soil Analysis (Lit Review v2)', details: '<h4>📝 Soil Analysis Report (Fall Task)</h4><p><strong>Target:</strong> ~Oct 12, \'23<br><strong>Yield Estimate:</strong> 15% Prep</p><p>Detailed report on soil nutrients (literature) & conditions (technology). Structure findings clearly.</p><strong>Nutrients Needed:</strong> Research Roots, Writing Fertilizer' },
+                { id: 'task-web', label: 'Plot Marker\n(Web Page)', group: config.groups.SOIL_CHECK, timelineId: 'tl-task-web', title: 'Field Task: Plot Marker & Growth Plan', details: '<h4>📝 Plot Marker & Growth Plan (Fall Task)</h4><p><strong>Target:</strong> Nov 1, \'23<br><strong>Yield Estimate:</strong> 30% Prep</p><p>Place project marker (web page). Refine growth plan (RQs, methodology). Check for necessary permits (IRB). Test soil for amendments needed (background work).</p><strong>Nutrients Needed:</strong> Web Trellis, Writing Fertilizer' },
+                { id: 'task-outline', label: 'Trellis Plan\n(Outline)', group: config.groups.SOIL_CHECK, timelineId: 'tl-task-outline', title: 'Field Task: Trellis Plan & Feasibility', details: '<h4>📝 Trellis Plan & Feasibility Check (Fall Task)</h4><p><strong>Target:</strong> Nov 29, \'23<br><strong>Yield Estimate:</strong> 30% Prep</p><p>Present growth structure (proposal). Show tools work (tech feasibility). Summarize soil report (lit review), sketch trellis (design criteria), document early sprouts (brainstorming).</p><strong>Nutrients Needed:</strong> Prototyping Sunlight, Presentation Pollen' },
+                { id: 'task-fall-observe', label: 'Fall Observation', group: config.groups.SOIL_CHECK, timelineId: 'tl-task-fall-observe', title: 'Assessment: Fall Field Observation', details: '<h4>📝 Fall Field Observation Report</h4><p><strong>Target:</strong> ~Dec 10, \'23<br><strong>Yield Estimate:</strong> 10% Prep</p><p>Record of active participation & supportive cross-pollination (peer feedback) during the planting season.</p>' },
+
+                { id: 'task-sprout', label: 'First Sprouts\n(Draft/Proto)', group: config.groups.SOIL_CHECK, timelineId: 'tl-task-sprout', title: 'Harvest Marker: First Sprouts', details: '<h4>🍓 First Sprouts Emerge (Spring Marker)</h4><p><strong>Target:</strong> ~Mar 1, \'24</p><p>First visible growth: complete draft or working prototype.</p><strong>Nutrients Needed:</strong> Prototyping Sunlight, Writing Fertilizer' },
+                { id: 'task-bloom', label: 'First Bloom\n(Revised)', group: config.groups.SOIL_CHECK, timelineId: 'tl-task-bloom', title: 'Harvest Marker: First Bloom & Pest Check', details: '<h4>🍓 First Bloom & Pest Check (Spring Marker)</h4><p><strong>Target:</strong> ~Mar 15, \'24</p><p>Refined prototype/draft. Check for issues (user testing/evaluation) or conduct self-assessment (reflection).</p><strong>Nutrients Needed:</strong> Evaluation Water, Reflection Time' },
+                { id: 'task-fruit-set', label: 'Fruit Set\n(Final Iter.)', group: config.groups.SOIL_CHECK, timelineId: 'tl-task-fruit-set', title: 'Harvest Marker: Fruit Set', details: '<h4>🍓 Fruit Set (Spring Marker)</h4><p><strong>Target:</strong> ~Apr 1, \'24</p><p>Near-final prototype/draft. Prepare harvest tools (final docs, slides). Practice for Harvest Festival.</p><strong>Nutrients Needed:</strong> Documentation Skills, Presentation Pollen' },
+                { id: 'task-video', label: 'Growth Reel\n(Video)', group: config.groups.SOIL_CHECK, timelineId: 'tl-task-video', title: 'Harvest Marker: Growth Reel', details: '<h4>🍓 Growth Reel Ready (Spring Marker)</h4><p><strong>Target:</strong> ~Apr 7, \'24</p><p>Visual summary (video) of the plant\'s journey.</p><strong>Nutrients Needed:</strong> Video Editing Tools' },
+
+                // Crop Calendar Events (Milestones) - Linked
+                { id: 'cal-fall-report', label: 'Fall Report Due', group: config.groups.CALENDAR, timelineId: 'tl-cal-fall-report', title: 'Crop Calendar: Fall Report Due', details: '<h4>📅 Fall Season Report Due</h4><p><strong>Date:</strong> ~Dec 15, \'23</p><p>Submit records for Pass/Fail assessment of the planting season.</p>' },
+                { id: 'cal-festival', label: 'Harvest Festival', group: config.groups.CALENDAR, timelineId: 'tl-cal-festival', title: 'Crop Calendar: Harvest Festival', details: '<h4>📅 Harvest Festival (Presentations)</h4><p><strong>Date:</strong> ~Apr 15, \'24</p><p>Community gathering to showcase the season\'s yield (final presentations).</p><strong>Requires:</strong> Fruit Set, Presentation Pollen' },
+                { id: 'cal-harvest', label: 'Final Harvest', group: config.groups.CALENDAR, timelineId: 'tl-cal-harvest', title: 'Crop Calendar: Final Harvest Deadline', details: '<h4>📅 Final Harvest Deadline</h4><p><strong>Date:</strong> ~May 1, \'24</p><p>Deliver the full yield: updated plot marker (website), growth reel (video), harvest records (docs/code/thesis).</p><strong>Requires:</strong> Fruit Set, Growth Reel' },
+                { id: 'cal-spring-report', label: 'Spring Report Due', group: config.groups.CALENDAR, timelineId: 'tl-cal-spring-report', title: 'Crop Calendar: Spring Report Due', details: '<h4>📅 Spring Season Report Due</h4><p><strong>Date:</strong> ~May 8, \'24</p><p>Submit final records for Spring season assessment (letter grade).</p>' },
+
+                // Companion Planting / Weather (Support Structures)
+                { id: 'comp-advisors', label: '☀️\nSunlight\n(Advisors)', group: config.groups.COMPANION, title: 'Companion: Advisor Sunlight', details: '<h4>☀️ Advisor Sunlight</h4><p>Faculty provide essential energy for growth through guidance, feedback, and evaluation. Regular exposure recommended.</p>' },
+                { id: 'comp-peers', label: '🐝\nPollinators\n(Peers)', group: config.groups.COMPANION, title: 'Companion: Peer Pollinators', details: '<h4>🐝 Peer Pollinators</h4><p>Cross-pollination of ideas through feedback is crucial for healthy development. Active participation enriches the whole garden.</p>' },
+                { id: 'comp-notes', label: '💩\nCompost Heap\n(Notes)', group: config.groups.COMPANION, title: 'Tool: Compost Heap (Running Notes)', details: '<h4>💩 Compost Heap (Running Notes Doc)</h4><p>Turn discussions, feedback, and progress into rich soil for future growth. Maintain collaboratively on OneDrive.</p><div class="almanac-annotation"><strong>🛠️ Tool Tip:</strong> Regularly turn over your compost (review notes) to prevent ideas from stagnating.</div>' },
+                { id: 'comp-gatherings', label: '🗓️\nCommunity\nGatherings', group: config.groups.COMMUNITY, timelineId: 'tl-gatherings', title: 'Community: Gatherings', details: '<h4>🐝 Community Gatherings (Meetings)</h4><p>Alternating Weeks (Tue 5-6:30 / Thu 2-3:30). Opportunities for pollination, sharing growth, and receiving sunlight.</p>' },
+
+                 // Nutrients (Skills - Examples)
+                { id: 'nutr-research', label: 'Roots\n(Research)', group: config.groups.NUTRIENT, title: 'Nutrient: Research Roots', details: '<h4>🌿 Nutrient: Research Roots</h4><p>Absorbing knowledge from literature, related work, user insights. Essential for strong foundations.</p>' },
+                { id: 'nutr-writing', label: 'Fertilizer\n(Writing)', group: config.groups.NUTRIENT, title: 'Nutrient: Writing Fertilizer', details: '<h4>🌿 Nutrient: Writing Fertilizer</h4><p>Enriches communication through structured reviews, proposals, and documentation.</p>' },
+                { id: 'nutr-web', label: 'Trellis\n(Web Dev)', group: config.groups.NUTRIENT, title: 'Nutrient: Web Trellis', details: '<h4>🌿 Nutrient: Web Trellis Construction</h4><p>Building the support structure (website) to showcase the plant.</p>' },
+                { id: 'nutr-proto', label: 'Sunlight\n(Prototyping)', group: config.groups.NUTRIENT, title: 'Nutrient: Prototyping Sunlight', details: '<h4>🌿 Nutrient: Prototyping Sunlight</h4><p>Energy for bringing ideas to life through sketching, feasibility checks, and building.</p>' },
+                { id: 'nutr-eval', label: 'Water\n(Evaluation)', group: config.groups.NUTRIENT, title: 'Nutrient: Evaluation Water', details: '<h4>🌿 Nutrient: Evaluation Water</h4><p>Testing and reflection to ensure healthy growth and identify issues (pests/diseases).</p>' },
+                { id: 'nutr-pres', label: 'Pollen\n(Presentation)', group: config.groups.NUTRIENT, title: 'Nutrient: Presentation Pollen', details: '<h4>🌿 Nutrient: Presentation Pollen</h4><p>Spreading ideas effectively to the community.</p>' },
+                { id: 'nutr-video', label: 'Visual Nectar\n(Video)', group: config.groups.NUTRIENT, title: 'Nutrient: Visual Nectar (Video Prod.)', details: '<h4>🌿 Nutrient: Visual Nectar (Video Prod.)</h4><p>Distilling the essence of the project into a compelling visual form.</p>' },
+
+                 // Observations (Ideas - Examples)
+                 { id: 'obs-slack', label: 'New Hive?\n(Slack)', group: config.groups.OBSERVATION, timelineId: 'tl-obs-slack', title: 'Observation: Explore New Hive (Slack)?', details: '<h4>🐞 Observation: Alternate Hive Location?</h4><p>Could migrating the community from Teams to Slack encourage more active buzzing and cross-pollination?</p><div class="almanac-annotation"><strong>🤔 Gardener\'s Query:</strong> Consult the head beekeepers (DM Reps) before relocating the hive.</div>' },
+                 { id: 'obs-hackathon', label: 'Barn Raising?\n(Hackathon)', group: config.groups.OBSERVATION, timelineId: 'tl-obs-hackathon', title: 'Observation: Host a Barn Raising (Hackathon)?', details: '<h4>🐞 Observation: Community Barn Raising?</h4><p>Could a focused build event (Hackathon) accelerate growth or foster new collaborations within the garden?</p>' },
+                 { id: 'obs-buddy', label: 'Elder Pairing?\n(Alumni)', group: config.groups.OBSERVATION, timelineId: 'tl-obs-buddy', title: 'Observation: Pair with Elder Plants (Alumni)?', details: '<h4>🐞 Observation: Wisdom from Elder Plants?</h4><p>Could pairing fruiting plants with established alumni (Elder Plants) provide valuable guidance for navigating the final harvest?</p>' },
+            ]);
+
+            const edges = new vis.DataSet([
+                 // Progression & Garden Bed Links
+                 { from: 'germination-stage', to: 'fruiting-stage', label: 'matures to →', arrows: 'to', length: 250 },
+                 { from: 'germination-stage', to: 'fall-planting', label: 'dominant in', arrows: 'to' },
+                 { from: 'germination-stage', to: 'spring-growth', label: 'extends into', arrows: 'to', dashes: true },
+                 { from: 'fruiting-stage', to: 'spring-growth', label: 'dominant in', arrows: 'to' },
+                 { from: 'fall-planting', to: 'spring-growth', label: 'transitions →', arrows: 'to', length: 180 },
+
+                 // Tasks within Garden Beds
+                 { from: 'fall-planting', to: 'task-rq', label: 'task', arrows: 'to', length: 100 },
+                 { from: 'fall-planting', to: 'task-lit', label: 'task', arrows: 'to', length: 100 },
+                 { from: 'fall-planting', to: 'task-web', label: 'task', arrows: 'to', length: 100 },
+                 { from: 'fall-planting', to: 'task-outline', label: 'task', arrows: 'to', length: 100 },
+                 { from: 'fall-planting', to: 'task-fall-observe', label: 'task', arrows: 'to', length: 100 },
+                 { from: 'fall-planting', to: 'cal-fall-report', label: 'ends w/', arrows: 'to', length: 100 },
+
+                 { from: 'spring-growth', to: 'task-sprout', label: 'task', arrows: 'to', length: 100 },
+                 { from: 'spring-growth', to: 'task-bloom', label: 'task', arrows: 'to', length: 100 },
+                 { from: 'spring-growth', to: 'task-fruit-set', label: 'task', arrows: 'to', length: 100 },
+                 { from: 'spring-growth', to: 'task-video', label: 'task', arrows: 'to', length: 100 },
+                 { from: 'spring-growth', to: 'cal-festival', label: 'culminates in', arrows: 'to', length: 100 },
+                 { from: 'spring-growth', to: 'cal-harvest', label: 'culminates in', arrows: 'to', length: 100 },
+                 { from: 'spring-growth', to: 'cal-spring-report', label: 'ends w/', arrows: 'to', length: 100 },
+
+                 // Task Dependencies
+                 { from: 'task-rq', to: 'task-lit', label: 'feeds →', arrows: 'to', dashes: true, length: 150 },
+                 { from: 'task-lit', to: 'task-web', label: 'feeds →', arrows: 'to', dashes: true, length: 150 },
+                 { from: 'task-web', to: 'task-outline', label: 'feeds →', arrows: 'to', dashes: true, length: 150 },
+                 { from: 'task-outline', to: 'task-sprout', label: 'grows →', arrows: 'to', dashes: true, length: 200 }, // Season transition implied
+                 { from: 'task-sprout', to: 'task-bloom', label: 'matures →', arrows: 'to', dashes: true, length: 150 },
+                 { from: 'task-bloom', to: 'task-fruit-set', label: 'develops →', arrows: 'to', dashes: true, length: 150 },
+                 { from: 'task-fruit-set', to: 'task-video', label: 'enables →', arrows: 'to', dashes: true, length: 150 },
+                 { from: 'task-fruit-set', to: 'cal-festival', label: 'prep for →', arrows: 'to', dashes: true },
+                 { from: 'task-video', to: 'cal-harvest', label: 'needed for →', arrows: 'to', dashes: true },
+                 { from: 'task-fruit-set', to: 'cal-harvest', label: 'needed for →', arrows: 'to', dashes: true },
+
+                 // Nutrient Links (Task requires Nutrient)
+                 { from: 'task-rq', to: 'nutr-research', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-rq', to: 'nutr-pres', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-lit', to: 'nutr-research', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-lit', to: 'nutr-writing', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-web', to: 'nutr-web', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-web', to: 'nutr-writing', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-outline', to: 'nutr-proto', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-outline', to: 'nutr-pres', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-sprout', to: 'nutr-proto', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-bloom', to: 'nutr-eval', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-fruit-set', to: 'nutr-writing', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'task-video', to: 'nutr-video', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+                 { from: 'cal-festival', to: 'nutr-pres', label: 'needs', arrows: 'from', color: { opacity: 0.5 }, length: 120 },
+
+
+                 // Companion Links (Cultivar receives support)
+                 { from: 'germination-stage', to: 'comp-advisors', label: 'needs', arrows: 'from', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'fruiting-stage', to: 'comp-advisors', label: 'needs', arrows: 'from', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'germination-stage', to: 'comp-peers', label: 'needs', arrows: 'from', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'fruiting-stage', to: 'comp-peers', label: 'needs', arrows: 'from', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'germination-stage', to: 'comp-notes', label: 'feeds', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'fruiting-stage', to: 'comp-notes', label: 'feeds', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'germination-stage', to: 'comp-gatherings', label: 'benefits from', arrows: 'from', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'fruiting-stage', to: 'comp-gatherings', label: 'benefits from', arrows: 'from', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'comp-advisors', to: 'comp-notes', label: 'reviews', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'comp-gatherings', to: 'comp-peers', label: 'enables', arrows: 'to', dashes: true, color: { opacity: 0.6 } },
+
+                 // Observation Links
+                 { from: 'obs-slack', to: 'comp-gatherings', label: 'suggests alt.', arrows: 'to', dashes: true, color: { opacity: 0.4 } },
+                 { from: 'obs-hackathon', to: 'germination-stage', label: 'activity for', arrows: 'to', dashes: true, color: { opacity: 0.4 } },
+                 { from: 'obs-buddy', to: 'fruiting-stage', label: 'support for', arrows: 'to', dashes: true, color: { opacity: 0.4 } },
+            ]);
+
+            // --- Timeline Items Data (Re-labeled, using new groups/classes) ---
+            const timelineItems = new vis.DataSet([
+                 // Fall Planting Season
+                { id: 'tl-task-rq', content: '🌱 Seeding RQs', start: '2023-09-21', group: config.groups.GERMINATION, className: config.timelineItemClasses.soilCheckFall, nodeId: 'task-rq', title: nodes.get('task-rq').title, details: nodes.get('task-rq').details },
+                { id: 'tl-task-lit', content: '🌱 Soil Analysis', start: '2023-10-12', group: config.groups.GERMINATION, className: config.timelineItemClasses.soilCheckFall, nodeId: 'task-lit', title: nodes.get('task-lit').title, details: nodes.get('task-lit').details },
+                { id: 'tl-task-web', content: '🌱 Plot Marker', start: '2023-11-01', group: config.groups.GERMINATION, className: config.timelineItemClasses.soilCheckFall, nodeId: 'task-web', title: nodes.get('task-web').title, details: nodes.get('task-web').details },
+                { id: 'tl-task-outline', content: '🌱 Trellis Plan', start: '2023-11-29', group: config.groups.GERMINATION, className: config.timelineItemClasses.soilCheckFall, nodeId: 'task-outline', title: nodes.get('task-outline').title, details: nodes.get('task-outline').details },
+                { id: 'tl-task-fall-observe', content: '📝 Fall Observation', start: '2023-12-10', group: config.groups.GERMINATION, className: config.timelineItemClasses.soilCheckFall, nodeId: 'task-fall-observe', title: nodes.get('task-fall-observe').title, details: nodes.get('task-fall-observe').details },
+                { id: 'tl-cal-fall-report', content: '📅 Fall Report', start: '2023-12-15', group: config.groups.CALENDAR, className: config.timelineItemClasses.calendarEvent, nodeId: 'cal-fall-report', title: nodes.get('cal-fall-report').title, details: nodes.get('cal-fall-report').details },
+
+                 // Spring Growth Season
+                { id: 'tl-task-sprout', content: '🍓 First Sprouts', start: '2024-03-01', group: config.groups.FRUITING, className: config.timelineItemClasses.soilCheckSpring, nodeId: 'task-sprout', title: nodes.get('task-sprout').title, details: nodes.get('task-sprout').details },
+                { id: 'tl-task-bloom', content: '🍓 First Bloom', start: '2024-03-15', group: config.groups.FRUITING, className: config.timelineItemClasses.soilCheckSpring, nodeId: 'task-bloom', title: nodes.get('task-bloom').title, details: nodes.get('task-bloom').details },
+                { id: 'tl-task-fruit-set', content: '🍓 Fruit Set', start: '2024-04-01', group: config.groups.FRUITING, className: config.timelineItemClasses.soilCheckSpring, nodeId: 'task-fruit-set', title: nodes.get('task-fruit-set').title, details: nodes.get('task-fruit-set').details },
+                { id: 'tl-task-video', content: '🍓 Growth Reel', start: '2024-04-07', group: config.groups.FRUITING, className: config.timelineItemClasses.soilCheckSpring, nodeId: 'task-video', title: nodes.get('task-video').title, details: nodes.get('task-video').details },
+                { id: 'tl-cal-festival', content: '📅 Harvest Festival', start: '2024-04-15', group: config.groups.CALENDAR, className: config.timelineItemClasses.calendarEvent, nodeId: 'cal-festival', title: nodes.get('cal-festival').title, details: nodes.get('cal-festival').details },
+                { id: 'tl-cal-harvest', content: '📅 Final Harvest', start: '2024-05-01', group: config.groups.CALENDAR, className: config.timelineItemClasses.calendarEvent, nodeId: 'cal-harvest', title: nodes.get('cal-harvest').title, details: nodes.get('cal-harvest').details },
+                { id: 'tl-cal-spring-report', content: '📅 Spring Report', start: '2024-05-08', group: config.groups.CALENDAR, className: config.timelineItemClasses.calendarEvent, nodeId: 'cal-spring-report', title: nodes.get('cal-spring-report').title, details: nodes.get('cal-spring-report').details },
+
+                 // Community/Observations
+                 { id: 'tl-gatherings', content: '🐝 Community Gatherings', start: '2023-09-05', end: '2024-05-01', type: 'background', group: config.groups.COMMUNITY, className: 'vis-background-community', nodeId: 'comp-gatherings', title: nodes.get('comp-gatherings').title, details: nodes.get('comp-gatherings').details },
+                 { id: 'tl-obs-slack', content: '🐞 Alt Hive?', start: '2023-09-15', group: config.groups.COMMUNITY, className: config.timelineItemClasses.observation, nodeId: 'obs-slack', title: nodes.get('obs-slack').title, details: nodes.get('obs-slack').details },
+                 { id: 'tl-obs-hackathon', content: '🐞 Barn Raising?', start: '2024-01-20', group: config.groups.COMMUNITY, className: config.timelineItemClasses.observation, nodeId: 'obs-hackathon', title: nodes.get('obs-hackathon').title, details: nodes.get('obs-hackathon').details },
+                 { id: 'tl-obs-buddy', content: '🐞 Elder Pairing?', start: '2023-11-05', group: config.groups.COMMUNITY, className: config.timelineItemClasses.observation, nodeId: 'obs-buddy', title: nodes.get('obs-buddy').title, details: nodes.get('obs-buddy').details }
+            ]);
+
+            const timelineGroups = new vis.DataSet([
+                { id: config.groups.GERMINATION, content: '🌱 Germination Stage'},
+                { id: config.groups.FRUITING, content: '🍓 Fruiting Stage'},
+                { id: config.groups.COMMUNITY, content: '🐝 Community & Pollination'},
+                { id: config.groups.CALENDAR, content: '📅 Crop Calendar'},
+            ]);
+
+            // --- DOM References & Vis Instances (as before) ---
+            const timelineContainer = document.getElementById('timeline');
+            const networkContainer = document.getElementById('network');
+            const detailsContentEl = document.getElementById('details-content');
+            const filterSelect = document.getElementById('filterSelect');
+            const zoomInBtn = document.getElementById('zoomIn');
+            const zoomOutBtn = document.getElementById('zoomOut');
+            const resetViewBtn = document.getElementById('resetView');
+            const hideDetailsBtn = document.getElementById('hide-details');
+            const detailsPanel = document.getElementById('details-panel');
+            const leftPanel = document.querySelector('.left-panel');
+            const panelResizeHandle = document.getElementById('panel-resize-handle');
+            const timelineResizeHandle = document.getElementById('timeline-resize-handle');
+            const timelineVisContainer = document.getElementById('timeline-container');
+            const networkVisContainer = document.getElementById('network-container');
+            const todayMarkerTimelineEl = document.getElementById('today-marker-timeline');
+            const contrastToggleBtn = document.getElementById('contrast-toggle');
+            const monthNavContainer = document.getElementById('month-nav');
+
+            let timeline = null;
+            let network = null;
+            let lastSelectedNodeId = null;
+            let lastSelectedItemId = null;
+
+            // --- Initialization ---
+            function initializeVisualizations() {
+                initializeTimeline();
+                initializeNetwork();
+                renderTodayMarker();
+                setupEventListeners();
+                renderMonthNav();
+                initializeResizers();
+                populateDetailsPanel('<p>Select a marker on the Growing Season Timeline or a node in the Garden Ecosystem map for guidance.</p>');
+            }
+
+            // --- Initialize Timeline ---
+             function initializeTimeline() {
+                 const timelineOptions = {
+                     // ... (Timeline options mostly as before, using new group keys)
+                     stack: true,
+                     verticalScroll: true,
+                     zoomKey: 'ctrlKey',
+                     zoomMin: 1000 * 60 * 60 * 24 * 7,
+                     zoomMax: 1000 * 60 * 60 * 24 * 365 * 2,
+                     height: '100%',
+                     showCurrentTime: false,
+                     margin: { item: { vertical: 5 }, axis: 10 },
+                     orientation: { axis: "bottom" },
+                     groupOrder: (a, b) => {
+                         const order = [config.groups.CALENDAR, config.groups.COMMUNITY, config.groups.GERMINATION, config.groups.FRUITING]; // Updated Order
+                         return order.indexOf(a.id) - order.indexOf(b.id);
+                     },
+                     tooltip: { followMouse: true, overflowMethod: 'flip' },
+                     editable: false,
+                 };
+                 try {
+                     timeline = new vis.Timeline(timelineContainer, timelineItems, timelineGroups, timelineOptions);
+                     timeline.setWindow(config.timelineStart, config.timelineEnd);
+                     timeline.on('select', handleTimelineSelect);
+                      timeline.on('click', (props) => {
+                          if (!props.item && !props.group) { clearHighlights(); populateDetailsPanel('<p>Select a marker or node.</p>'); }
+                      });
+                     console.log("Almanac Timeline Initialized");
+                 } catch(e) { console.error("Timeline Init Error:", e); timelineContainer.innerHTML = "<p style='color:red;padding:10px;'>Error loading timeline. Check console.</p>"; }
+            }
+
+            // --- Initialize Network ---
+            function initializeNetwork() {
+                 const networkOptions = {
+                     nodes: {
+                         shape: 'dot', size: 18,
+                         font: { size: 10, color: '#555', face: 'Georgia, serif', multi: 'html', align: 'center' }, // Font Change
+                         borderWidth: 2,
+                         shadow: { enabled: true, size: 5, x: 2, y: 2, color: 'rgba(0,0,0,0.1)'}
+                     },
+                     edges: { /* ... edge options mostly same ... */
+                        width: 1.5,
+                        font: { size: 9, align: 'middle', color: '#666', strokeWidth: 2, strokeColor: 'rgba(255,255,255,0.7)' },
+                        arrows: { to: { enabled: true, scaleFactor: 0.7 } },
+                        color: { inherit: false, color: var(--divider-color), opacity: 0.8 }, // Softer default
+                        smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.4 }
+                     },
+                     physics: { /* ... physics options same ... */
+                        enabled: true,
+                        solver: 'forceAtlas2Based',
+                        forceAtlas2Based: { gravitationalConstant: -50, centralGravity: 0.008, springLength: 130, springConstant: 0.06, damping: 0.6, avoidOverlap: 0.85 },
+                        stabilization: { iterations: 1500, fit: true }
+                     },
+                     interaction: { /* ... interaction options same ... */
+                        hover: true, tooltipDelay: 250, dragNodes: true, dragView: true, zoomView: true,
+                        navigationButtons: false, hoverConnectedEdges: true, selectConnectedEdges: false,
+                        keyboard: { enabled: true, speed: {x: 10, y: 10, zoom: 0.03}, bindToWindow: false }
+                     },
+                     groups: { // Updated group styles for Almanac theme
+                         [config.groups.CULTIVAR]: { color: { background: '#f5f5f5', border: var(--secondary-accent-color) }, shape: 'ellipse', font: { size: 14, color: var(--secondary-accent-color), face: 'Georgia, serif', bold: true }, mass: 3 },
+                         [config.groups.GARDEN_BED]: { color: { background: var(--color-garden-bed), border: var(--color-garden-bed-accent) }, shape: 'box', mass: 1.5, font: { color: '#5d4037'} }, // Earthy text
+                         [config.groups.SOIL_CHECK]: { color: { background: var(--color-germination), border: var(--color-germination-accent) }, font: { color: 'white' }, mass: 1.2, shape: 'database' }, // Represent data/check
+                         [config.groups.CALENDAR]: { color: { background: var(--color-calendar), border: var(--color-calendar-accent) }, font: { color: 'white' }, shape: 'diamond', mass: 1.1 },
+                         [config.groups.COMMUNITY]: { color: { background: var(--color-community), border: var(--color-community-accent) }, font: { color: 'white' }, shape: 'dot', size: 20 }, // Community hubs
+                         [config.groups.OBSERVATION]: { color: { background: var(--color-observation), border: var(--color-observation-accent) }, font: { color: 'white' }, shape: 'star', mass: 0.9, opacity: 0.85 },
+                         [config.groups.NUTRIENT]: { color: { background: var(--color-nutrient), border: var(--color-nutrient-accent) }, font: { color: '#0056b3' }, shape: 'hexagon', mass: 0.8 }, // Watery blue text
+                         [config.groups.COMPANION]: { color: { background: var(--color-companion), border: var(--color-companion-accent) }, font: { color: '#856404'}, shape: 'triangle', mass: 1 } // Yellow/brown text
+                     }
+                 };
+                 try {
+                     network = new vis.Network(networkContainer, { nodes, edges }, networkOptions);
+                     network.on('selectNode', handleNetworkSelect);
+                      network.on('click', (props) => {
+                          if (props.nodes.length === 0 && props.edges.length === 0) { clearHighlights(); populateDetailsPanel('<p>Select a marker or node.</p>'); }
+                      });
+                     console.log("Almanac Network Initialized");
+                 } catch(e) { console.error("Network Init Error:", e); networkContainer.innerHTML = "<p style='color:red;padding:10px;'>Error loading network. Check console.</p>"; }
+            }
+
+            // --- renderMonthNav, renderTodayMarker --- (Functions are identical, no changes needed)
+             function renderMonthNav() {
+                 monthNavContainer.innerHTML = ''; // Clear existing
+                 const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
+                 const yearMap = { Sep: 2023, Oct: 2023, Nov: 2023, Dec: 2023, Jan: 2024, Feb: 2024, Mar: 2024, Apr: 2024, May: 2024};
+                 months.forEach(month => {
+                     const button = document.createElement('button');
+                     button.textContent = `${month} '${String(yearMap[month]).slice(2)}`;
+                     button.dataset.month = month;
+                     button.dataset.year = yearMap[month];
+                     button.setAttribute('aria-label', `Jump to ${month} ${yearMap[month]}`);
+                     monthNavContainer.appendChild(button);
+                 });
+             }
+
+            function renderTodayMarker() {
+                 const start = new Date(config.timelineStart);
+                 const end = new Date(config.timelineEnd);
+                 const today = new Date();
+
+                 if (today >= start && today <= end && timeline) {
+                     const percentage = calculatePosition(today);
+                     if (percentage >= 0 && percentage <= 100) {
+                         todayMarkerTimelineEl.style.left = `${percentage}%`;
+                         todayMarkerTimelineEl.style.display = 'block';
+                     } else { todayMarkerTimelineEl.style.display = 'none'; }
+                 } else { todayMarkerTimelineEl.style.display = 'none'; }
+            }
+
+
+            // --- Event Handlers --- (Logic remains same, relies on data properties)
+            function handleTimelineSelect(properties) {
+                 const ids = properties.items;
+                 if (ids.length > 0) {
+                     const selectedId = ids[0];
+                     const item = timelineItems.get(selectedId);
+                     clearHighlights();
+                     if (item) {
+                         populateDetailsPanel(item.details || '<p>No details available.</p>');
+                         highlightTimelineItem(selectedId);
+                         if (item.nodeId && nodes.get(item.nodeId)) {
+                              highlightNetworkNode(item.nodeId, true);
+                         }
+                         lastSelectedItemId = selectedId;
+                         lastSelectedNodeId = item.nodeId || null;
+                     }
+                 }
+            }
+
+            function handleNetworkSelect(params) {
+                 const ids = params.nodes;
+                  if (ids.length > 0) {
+                     const selectedId = ids[0];
+                     const node = nodes.get(selectedId);
+                     clearHighlights();
+                     if (node) {
+                          populateDetailsPanel(node.details || '<p>No details available.</p>');
+                          highlightNetworkNode(selectedId);
+                         if (node.timelineId && timelineItems.get(node.timelineId)) {
+                             highlightTimelineItem(node.timelineId, true);
+                         }
+                         lastSelectedNodeId = selectedId;
+                         lastSelectedItemId = node.timelineId || null;
+                     }
+                 }
+            }
+
+            // --- setupEventListeners (Logic mostly same, ensure IDs match) ---
+            function setupEventListeners() {
+                zoomInBtn.onclick = () => network?.zoomIn();
+                zoomOutBtn.onclick = () => network?.zoomOut();
+                resetViewBtn.onclick = () => network?.fit();
+                filterSelect.onchange = handleFilterChange; // Filter logic needs update
+                contrastToggleBtn.onclick = () => document.body.classList.toggle('high-contrast');
+                hideDetailsBtn.onclick = toggleDetailsPanel;
+
+                 monthNavContainer.addEventListener('click', (e) => { // Jump to Month
+                    if (e.target.tagName === 'BUTTON' && e.target.dataset.month) {
+                        // ... (logic same as before)
+                         const month = e.target.dataset.month;
+                         const year = e.target.dataset.year;
+                         const monthIndexMap = { Sep: 8, Oct: 9, Nov: 10, Dec: 11, Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4 };
+                         const targetDate = new Date(parseInt(year), monthIndexMap[month], 15); // Go to mid-month
+                         timeline?.moveTo(targetDate, { animation: {duration: 500, easingFunction: 'easeInOutQuad'} });
+                    }
+                 });
+
+                 timelineContainer.setAttribute('tabindex', '0');
+                 timelineContainer.addEventListener('keydown', (e) => { // Keyboard scroll timeline
+                     // ... (logic same as before)
+                       if (document.activeElement !== timelineContainer && document.activeElement !== networkContainer) return;
+                       const currentWindow = timeline.getWindow();
+                       const interval = currentWindow.end.getTime() - currentWindow.start.getTime();
+                       const step = interval * 0.1;
+                       if (e.key === 'ArrowLeft') { e.preventDefault(); timeline.setWindow(currentWindow.start.getTime() - step, currentWindow.end.getTime() - step, { animation: true }); }
+                       else if (e.key === 'ArrowRight') { e.preventDefault(); timeline.setWindow(currentWindow.start.getTime() + step, currentWindow.end.getTime() + step, { animation: true }); }
+                 });
+                 networkContainer.setAttribute('tabindex', '0'); // Enable keyboard focus for network pan/zoom via Vis.js
+            }
+
+             // --- toggleDetailsPanel (Logic same) ---
+             function toggleDetailsPanel() {
+                  const isHidden = detailsPanel.style.display === 'none';
+                  detailsPanel.style.display = isHidden ? 'flex' : 'none';
+                  panelResizeHandle.style.display = isHidden ? 'flex' : 'none';
+                  hideDetailsBtn.textContent = isHidden ? 'Hide Notes ▶' : '◀ Show Notes';
+                  setTimeout(() => { network?.fit(); timeline?.redraw(); } , 150);
+             }
+
+             // --- handleFilterChange (Logic same, relies on checkVisibility) ---
+             function handleFilterChange(event) {
+                 const value = event.target.value;
+                 filterVisualizations(value);
+             }
+
+            // --- Filtering Logic (UPDATE checkVisibility) ---
+             function filterVisualizations(filterValue) {
+                 const nodeUpdates = [];
+                 const itemUpdates = [];
+                 const allNodes = nodes.get({ returnType: 'Array' });
+                 const allItems = timelineItems.get({ returnType: 'Array' });
+                 const visibleNodeIds = new Set();
+
+                 allNodes.forEach(node => {
+                     if (checkVisibility(node, filterValue)) {
+                         visibleNodeIds.add(node.id);
+                         nodeUpdates.push({ id: node.id, hidden: false });
+                     } else { nodeUpdates.push({ id: node.id, hidden: true }); }
+                 });
+
+                 allItems.forEach(item => {
+                     const linkedNode = item.nodeId ? nodes.get(item.nodeId) : null;
+                     const nodeIsVisible = linkedNode ? visibleNodeIds.has(linkedNode.id) : true;
+                     const itemIsVisible = checkVisibility(item, filterValue, linkedNode);
+                     itemUpdates.push({ id: item.id, visible: itemIsVisible || nodeIsVisible });
+                 });
+
+                 if(network) network.body.data.nodes.update(nodeUpdates);
+                 if(timeline) timelineItems.update(itemUpdates);
+             }
+
+             function checkVisibility(element, filterValue, associatedNode = null) {
+                 // Element can be a timeline item OR a network node
+                 if (filterValue === 'all') return true;
+
+                 const group = element.group; // Group of the item/node itself
+                 const elementId = element.id; // ID of item/node
+                 const nodeId = associatedNode ? associatedNode.id : (element.nodeId || elementId); // Get the node ID, whether it's the element or associated
+                 const nodeGroup = associatedNode ? associatedNode.group : group;
+
+                 // Map filter value to main CULTIVAR/Stage ID if applicable
+                 const stageIdMap = { germination: 'germination-stage', fruiting: 'fruiting-stage' };
+                 const targetStageId = stageIdMap[filterValue];
+
+                 // Filtering logic based on Almanac terms
+                 switch (filterValue) {
+                     case 'germination':
+                         // Show Germination stage node, Fall tasks, and related support/community/calendar/nutrients
+                         return nodeId === 'germination-stage' ||
+                                group === config.groups.SOIL_CHECK && element.start && new Date(element.start).getFullYear() === 2023 || // Rough check for Fall tasks
+                                [config.groups.COMMUNITY, config.groups.CALENDAR, config.groups.COMPANION, config.groups.NUTRIENT, config.groups.OBSERVATION].includes(group);
+                     case 'fruiting':
+                         // Show Fruiting stage node, Spring tasks, and related support/community/calendar/nutrients
+                         return nodeId === 'fruiting-stage' ||
+                                group === config.groups.SOIL_CHECK && element.start && new Date(element.start).getFullYear() === 2024 || // Rough check for Spring tasks
+                                [config.groups.COMMUNITY, config.groups.CALENDAR, config.groups.COMPANION, config.groups.NUTRIENT, config.groups.OBSERVATION].includes(group);
+                     case 'community': // Pollination Events, Community Gatherings, Peer Support
+                         return group === config.groups.COMMUNITY || nodeId === 'comp-peers' || nodeId === 'comp-gatherings';
+                     case 'calendar': // Crop Calendar Events
+                         return group === config.groups.CALENDAR;
+                     case 'soil_check': // Field Tasks (Deliverables)
+                         return group === config.groups.SOIL_CHECK;
+                     case 'companion': // Support structures
+                         return group === config.groups.COMPANION || group === config.groups.COMMUNITY; // Include community gatherings as support
+                     default:
+                         return true;
+                 }
+             }
+
+
+            // --- Highlighting Logic (Functions remain same) ---
+            function clearHighlights() { /* ... same ... */
+                if (network) { network.unselectAll(); }
+                if (timeline) {
+                    timeline.setSelection([]);
+                    document.querySelectorAll('#timeline .vis-item.highlighted-item').forEach(el => {
+                         el.classList.remove('highlighted-item');
+                     });
+                 }
+                 lastSelectedNodeId = null;
+                 lastSelectedItemId = null;
+             }
+            function highlightTimelineItem(itemId, focus = false) { /* ... same ... */
+                if (!timeline || !itemId) return;
+                 document.querySelectorAll('#timeline .vis-item.highlighted-item').forEach(el => { el.classList.remove('highlighted-item'); }); // Clear previous *visual* highlight first
+                timeline.setSelection([itemId]);
+                 const itemElement = timelineContainer.querySelector(`.vis-item[data-id="${itemId}"]`);
+                 if (itemElement) {
+                     itemElement.classList.add('highlighted-item');
+                     if (focus) { timeline.focus(itemId, { animation: {duration: 500, easingFunction: 'easeInOutQuad'} }); }
+                 }
+                 lastSelectedItemId = itemId;
+            }
+            function highlightNetworkNode(nodeId, focus = false) { /* ... same ... */
+                 if (!network || !nodeId) return;
+                 network.unselectAll();
+                 network.selectNodes([nodeId]);
+                 if (focus) { network.focus(nodeId, { scale: network.getScale() * 1.1, animation: true }); }
+                 lastSelectedNodeId = nodeId;
+            }
+
+            // --- Details Panel Logic (Function same) ---
+             function populateDetailsPanel(content) { /* ... same ... */
+                 detailsContentEl.innerHTML = content;
+             }
+
+            // --- Resizer Logic (Functions same) ---
+             function initializeResizers() { /* ... same ... */
+                 // Vertical Panel Resizer
+                let isResizingVertical = false;
+                panelResizeHandle.addEventListener('mousedown', (e) => {
+                    isResizingVertical = true; document.body.style.cursor = 'ew-resize'; document.body.style.userSelect = 'none';
+                });
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizingVertical) return;
+                    const containerRect = document.querySelector('.main-container').getBoundingClientRect();
+                    const leftPanelMinWidth = 300; const rightPanelMinWidth = 200; const totalWidth = containerRect.width;
+                    let leftPanelWidth = e.clientX - containerRect.left - (panelResizeHandle.offsetWidth / 2);
+                    leftPanelWidth = Math.max(leftPanelMinWidth, Math.min(leftPanelWidth, totalWidth - rightPanelMinWidth));
+                    const rightPanelWidth = totalWidth - leftPanelWidth;
+                    leftPanel.style.flex = `0 0 ${leftPanelWidth}px`; rightPanel.style.flex = `1 1 ${rightPanelWidth}px`;
+                    network?.redraw(); timeline?.redraw(); // Use redraw for simple resize
+                });
+                document.addEventListener('mouseup', () => {
+                    if (isResizingVertical) {
+                        isResizingVertical = false; document.body.style.cursor = 'default'; document.body.style.userSelect = 'auto';
+                        setTimeout(() => { network?.fit(); timeline?.redraw(); }, 50); // Fit after mouse up
+                    }
+                });
+                 // Horizontal Timeline Resizer
+                 let isResizingHorizontal = false;
+                 timelineResizeHandle.addEventListener('mousedown', (e) => {
+                     isResizingHorizontal = true; document.body.style.cursor = 'ns-resize'; document.body.style.userSelect = 'none';
+                     const startY = e.clientY; const startHeight = timelineVisContainer.offsetHeight;
+                     function handleMouseMoveHorizontal(me) {
+                         if (!isResizingHorizontal) return;
+                          const newHeight = startHeight + (me.clientY - startY);
+                          const minHeight = 100; const maxHeight = leftPanel.clientHeight - 100;
+                          const clampedHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+                          timelineVisContainer.style.height = `${clampedHeight}px`;
+                          timeline?.redraw(); network?.redraw(); // Redraw both
+                     }
+                     function handleMouseUpHorizontal() {
+                         if (isResizingHorizontal) {
+                             isResizingHorizontal = false; document.body.style.cursor = 'default'; document.body.style.userSelect = 'auto';
+                             document.removeEventListener('mousemove', handleMouseMoveHorizontal); document.removeEventListener('mouseup', handleMouseUpHorizontal);
+                             setTimeout(() => network?.fit(), 50); // Fit network after resize
+                         }
+                     }
+                     document.addEventListener('mousemove', handleMouseMoveHorizontal);
+                     document.addEventListener('mouseup', handleMouseUpHorizontal);
+                 });
+            }
+
+            // --- Start Everything ---
+            initializeVisualizations();
+
+        }); // End DOMContentLoaded
+    </script>
+
+</body>
+</html>

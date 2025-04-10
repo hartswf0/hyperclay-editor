@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM MS Student Lifecycle Timeline & Network (2023-2024)</title>
+    <!-- Import Vis.js CSS -->
+    <link href="https://unpkg.com/vis-network@latest/styles/vis-network.min.css" rel="stylesheet" type="text/css" />
+    <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        :root {
+            /* -- Base Theme -- */
+            --bg-color: #f8f9fa;
+            --text-color: #343a40;
+            --accent-color: #007bff; /* Primary Blue */
+            --secondary-accent-color: #17a2b8; /* Info Cyan */
+            --divider-color: #dee2e6;
+            --label-bg: rgba(255, 255, 255, 0.9);
+            --label-text-color: var(--text-color);
+            --today-marker-color: #dc3545; /* Danger Red */
+            --focus-outline-color: var(--accent-color);
+            --highlight-color: #ffc107; /* Warning Yellow */
+            --highlight-border: #e0a800;
+
+            /* -- DM MS Color Coding -- */
+            --color-sprout: #28a745; --color-sprout-accent: #218838; /* Success Green */
+            --color-fruit: #fd7e14; --color-fruit-accent: #e85a00; /* Orange */
+            --color-all: #6f42c1; --color-all-accent: #5a2b9b; /* Indigo */
+            --color-milestone: #6c757d; --color-milestone-accent: #5a6268; /* Secondary Gray */
+            --color-skill: #17a2b8; --color-skill-accent: #117a8b; /* Info Cyan */
+            --color-support: #ffc107; --color-support-accent: #e0a800; /* Warning Yellow */
+            --color-idea: #e83e8c; --color-idea-accent: #c2185b; /* Pink */
+        }
+
+        /* --- High Contrast Mode --- */
+        body.high-contrast {
+            --bg-color: #000000;
+            --text-color: #FFFFFF;
+            --accent-color: #FFFF00;
+            --secondary-accent-color: #00FFFF;
+            --divider-color: rgba(255, 255, 0, 0.5);
+            --label-bg: #000000;
+            --label-text-color: #FFFFFF;
+            --today-marker-color: #FF00FF;
+            --focus-outline-color: #FFFFFF;
+            --highlight-color: #FF69B4;
+            --highlight-border: #FF1493;
+
+            --color-sprout: #00FF00; --color-sprout-accent: #00FF00;
+            --color-fruit: #FFA500; --color-fruit-accent: #FFA500; /* Orange */
+            --color-all: #EE82EE; --color-all-accent: #EE82EE; /* Violet */
+            --color-milestone: #C0C0C0; --color-milestone-accent: #C0C0C0; /* Silver */
+            --color-skill: #00FFFF; --color-skill-accent: #00FFFF;
+            --color-support: #FFFF00; --color-support-accent: #FFFF00;
+            --color-idea: #FF00FF; --color-idea-accent: #FF00FF;
+        }
+        /* --- End High Contrast --- */
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0; padding: 0; color: var(--text-color);
+            background-color: var(--bg-color); overflow: hidden; /* Prevent body scroll */
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        .header-bar {
+             padding: 10px 20px; background-color: #e9ecef;
+             border-bottom: 1px solid var(--divider-color);
+             display: flex; justify-content: space-between; align-items: center;
+        }
+        h1 {
+            margin: 0; font-size: 1.4rem; color: #333; flex-grow: 1; text-align: center;
+        }
+        #contrast-toggle { font-size: 0.8rem; padding: 5px 10px; }
+
+        .controls {
+            padding: 8px; display: flex; flex-wrap: wrap; /* Allow wrapping */ justify-content: center; gap: 8px;
+            background-color: #f1f3f5; border-bottom: 1px solid var(--divider-color);
+        }
+        .controls button, .controls select {
+            padding: 5px 10px; border: 1px solid #ced4da; border-radius: 4px;
+            background-color: white; font-size: 0.85rem; cursor: pointer;
+        }
+         #month-nav { display: contents; } /* Integrate month nav */
+         .controls button:focus-visible, .controls select:focus-visible {
+             outline: 2px solid var(--focus-outline-color); outline-offset: 1px;
+         }
+
+        /* Main Layout Panes */
+        .main-container {
+            display: flex; flex: 1; /* Take remaining height */
+            overflow: hidden; /* Prevent overflow */
+            position: relative; /* For absolute positioned children like resizer */
+        }
+
+        .left-panel {
+            flex: 3; /* Takes more space initially */
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+            border-right: 1px solid var(--divider-color); /* Add border between panels */
+        }
+
+        .right-panel { /* Details Panel */
+            flex: 1; /* Takes less space initially */
+            min-width: 250px; max-width: 40%; /* Constraints */
+            /* border-left: 1px solid var(--divider-color); Removed, handled by left panel */
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+        }
+
+        /* Vertical Resize Handle */
+        .resize-handle-vertical {
+            width: 10px; cursor: ew-resize; background-color: #e9ecef;
+            border-left: 1px solid #adb5bd; border-right: 1px solid #adb5bd; /* Darker border for handle */
+            position: absolute; top: 0; bottom: 0; left: -5px; /* Center handle on border */
+            z-index: 10; display: flex; align-items: center; justify-content: center;
+        }
+        .resize-handle-vertical::after { content: "⋮"; color: #6c757d; font-size: 16px; }
+
+        /* Timeline Container */
+        #timeline-container {
+            height: 250px; /* Initial height */
+            min-height: 100px; max-height: 60%; /* Constraints */
+            border-bottom: 1px solid var(--divider-color);
+            position: relative; overflow: hidden;
+        }
+         /* Horizontal Resize Handle */
+        .resize-handle-horizontal {
+            height: 10px; background-color: #e9ecef; cursor: ns-resize;
+            border-top: 1px solid #adb5bd; border-bottom: 1px solid #adb5bd; /* Darker */
+            position: absolute; bottom: -5px; left: 0; right: 0; z-index: 10;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .resize-handle-horizontal::after { content: "…"; color: #6c757d; font-size: 16px; letter-spacing: 2px; }
+
+
+        #timeline { width: 100%; height: 100%; background-color: #fff; } /* Ensure bg */
+
+        /* Network Container */
+        #network-container {
+            flex: 1; /* Takes remaining space in left panel */
+            position: relative; overflow: hidden;
+            border-bottom: none; /* No bottom border if it's the last element */
+        }
+        #network {
+            width: 100%; height: 100%;
+            background-color: white; border: 1px solid transparent; /* Border handled by container */
+        }
+
+         /* Details Panel Container */
+        #details-container {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .section-header {
+            padding: 8px 12px; background-color: #e9ecef;
+            border-bottom: 1px solid var(--divider-color); font-weight: 600;
+            font-size: 0.9rem; color: #495057;
+        }
+        #details-content {
+            padding: 15px; overflow-y: auto; flex: 1;
+            font-size: 0.9rem; line-height: 1.5;
+        }
+         #details-content h4 { margin: 15px 0 5px 0; font-size: 1rem; color: var(--accent-color); border-bottom: 1px solid var(--divider-color); padding-bottom: 3px;}
+         #details-content p { margin-bottom: 10px; }
+         #details-content strong { font-weight: 600; color: var(--secondary-accent-color); }
+         #details-content ul { padding-left: 20px; margin-top: 5px; list-style: disc; }
+         #details-content li { margin-bottom: 4px; }
+         .details-meta { font-size: 0.8rem; color: #6c757d; margin-top: 10px; }
+         .details-meta span { margin-right: 15px; display: inline-block; margin-bottom: 5px; }
+
+
+        /* Vis.js Customizations */
+        .vis-timeline { border: none; font-size: 11px; }
+        .vis-item { font-size: 11px; padding: 4px 6px; border-radius: 4px; color: #fff; }
+         .vis-item.vis-selected { border-width: 2px; } /* Default selection */
+
+        /* Timeline Group Styles */
+        .vis-left .vis-group { padding-left: 10px !important; font-weight: 500; }
+        .vis-left .vis-group.sprout { border-left: 4px solid var(--color-sprout); }
+        .vis-left .vis-group.fruit { border-left: 4px solid var(--color-fruit); }
+        .vis-left .vis-group.all { border-left: 4px solid var(--color-all); }
+        .vis-left .vis-group.milestone { border-left: 4px solid var(--color-milestone); }
+
+        /* Timeline Item Styles (using classNames) */
+        .vis-item.deliverable-fall { background-color: var(--color-sprout); border-color: var(--color-sprout-accent); }
+        .vis-item.deliverable-spring { background-color: var(--color-fruit); border-color: var(--color-fruit-accent); }
+        .vis-item.meeting-workshop { background-color: var(--color-all); border-color: var(--color-all-accent); }
+        .vis-item.milestone { background-color: var(--color-milestone); border-color: var(--color-milestone-accent); }
+        .vis-item.idea { background-color: var(--color-idea); border-color: var(--color-idea-accent); opacity: 0.85; }
+        /* High contrast overrides */
+        body.high-contrast .vis-item.deliverable-fall,
+        body.high-contrast .vis-item.deliverable-spring,
+        body.high-contrast .vis-item.meeting-workshop,
+        body.high-contrast .vis-item.milestone,
+        body.high-contrast .vis-item.idea { color: #000 !important; } /* Ensure text contrast */
+
+        /* Highlight Styles */
+        .vis-item.highlighted-item {
+            background-color: var(--highlight-color) !important;
+            border-color: var(--highlight-border) !important;
+            box-shadow: 0 0 8px var(--highlight-color);
+            color: #333 !important; /* Ensure text is readable */
+            z-index: 10 !important;
+            border-width: 2px !important;
+        }
+
+        /* Today Marker */
+         #today-marker-timeline {
+             position: absolute; top: 0; bottom: 0;
+             width: 2px; background-color: var(--today-marker-color);
+             z-index: 5; pointer-events: none; opacity: 0.7;
+             display: none; /* Hidden initially */
+         }
+          #today-marker-timeline::after { /* Label */
+            content: 'TODAY'; position: absolute; top: 5px; left: 4px;
+            background: var(--today-marker-color); color: white; padding: 1px 4px;
+            font-size: 9px; border-radius: 3px; font-weight: bold;
+         }
+
+        /* Tooltip styling - Using Vis.js built-in but styled */
+        div.vis-tooltip {
+            font-family: system-ui, -apple-system, sans-serif !important;
+            padding: 8px 10px !important;
+            background-color: var(--label-bg) !important;
+            border: 1px solid var(--divider-color) !important;
+            color: var(--label-text-color) !important;
+            border-radius: 4px !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15) !important;
+            font-size: 12px !important; /* Slightly smaller */
+            max-width: 350px !important;
+            white-space: normal !important; /* Allow wrapping */
+            z-index: 10000 !important;
+            pointer-events: none !important; /* Prevent tooltip blocking clicks */
+        }
+         body.high-contrast div.vis-tooltip {
+              border-color: var(--accent-color) !important;
+         }
+
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <h1>DM MS Student Lifecycle (Fall 2023 – Spring 2024)</h1>
+        <button id="contrast-toggle" title="Toggle High Contrast Mode">🌗 Contrast</button>
+    </div>
+
+    <div class="controls">
+        <button id="zoomIn" title="Zoom Network In">➕ Zoom</button>
+        <button id="zoomOut" title="Zoom Network Out">➖ Zoom</button>
+        <button id="resetView" title="Reset Network View">🌍 Reset</button>
+        <select id="filterSelect" title="Filter by Category">
+            <option value="all">All Categories</option>
+            <option value="sprout">🌱 Sprouts (1st Yr)</option>
+            <option value="fruit">🍓 Fruits (2nd Yr)</option>
+            <option value="allStudents">👥 All Students</option>
+            <option value="milestone">⏱️ Milestones</option>
+            <option value="deliverable">📝 Deliverables</option>
+             <option value="support">🤝 Support</option>
+        </select>
+        <div id="month-nav" aria-label="Jump to Month Navigation">
+           <!-- Buttons added by JS -->
+        </div>
+        <button id="hide-details" title="Toggle Details Panel">Hide Details ▶</button>
+    </div>
+
+    <div class="main-container">
+        <!-- Left Panel (Timeline + Network) -->
+        <div class="left-panel">
+            <div id="timeline-container" role="region" aria-labelledby="timeline-heading">
+                 <div id="today-marker-timeline" aria-hidden="true"></div>
+                 <div id="timeline"></div>
+                 <div class="resize-handle-horizontal" id="timeline-resize-handle"></div>
+            </div>
+            <div id="network-container" role="region" aria-labelledby="network-heading">
+                 <div id="network"></div>
+            </div>
+        </div>
+
+        <!-- Vertical Resizer -->
+        <div class="resize-handle-vertical" id="panel-resize-handle"></div>
+
+        <!-- Right Panel (Details) -->
+        <div class="right-panel" id="details-panel">
+            <div id="details-container">
+                <div class="section-header" id="details-heading">Details</div>
+                <div id="details-content" role="region" aria-live="polite">
+                    <p>Select an item or node to begin.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Vis.js Libraries -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network@latest/standalone/umd/vis-network.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Configuration ---
+            const config = {
+                timelineStart: '2023-08-15',
+                timelineEnd: '2024-05-15',
+                groups: { // Consistent keys used across data structures
+                    SPROUT: 'sprout',
+                    FRUIT: 'fruit',
+                    ALL: 'all',
+                    MILESTONE: 'milestone',
+                    DELIVERABLE_FALL: 'deliverableFall',
+                    DELIVERABLE_SPRING: 'deliverableSpring',
+                    MEETING: 'meetingWorkshop',
+                    IDEA: 'idea',
+                    SKILL: 'skill',
+                    SUPPORT: 'support',
+                    SEMESTER: 'semester',
+                    STUDENT_TYPE: 'studentType'
+                },
+                timelineItemClasses: { // Maps group key to CSS class for timeline items
+                    deliverableFall: 'deliverable-fall',
+                    deliverableSpring: 'deliverable-spring',
+                    meetingWorkshop: 'meeting-workshop',
+                    milestone: 'milestone',
+                    idea: 'idea',
+                    // Add more if needed for other timeline item types
+                }
+            };
+
+            // --- DATA ---
+             const nodes = new vis.DataSet([
+                // Student Types
+                { id: 'sprout', label: '🌱\nSprout\n(1st Yr)', group: config.groups.STUDENT_TYPE, details: '<h4>🌱 Sprout (1st Year)</h4><p>Focuses on foundational work, defining research questions, literature review, and initial prototyping concepts.</p>', mass: 3 },
+                { id: 'fruit', label: '🍓\nFruit\n(2nd Yr)', group: config.groups.STUDENT_TYPE, details: '<h4>🍓 Fruit (2nd Year)</h4><p>Focuses on project execution, prototyping, testing/evaluation, final documentation, and presentation.</p>', mass: 3 },
+
+                // Semesters
+                { id: 'fall-y1', label: 'Fall Y1\n(Aug-Dec \'23)', group: config.groups.SEMESTER, details: '<h4>Fall Semester - Year 1</h4><p>Primary focus for Sprouts. Establish project direction.</p>' },
+                { id: 'spring-y1', label: 'Spring Y1\n(Jan-May \'24)', group: config.groups.SEMESTER, details: '<h4>Spring Semester - Year 1</h4><p>Continuation for Sprouts, main focus for Fruits.</p>' },
+
+                // Fall Deliverables (Linked to timeline items)
+                { id: 'f23-rq', label: 'RQ Set', group: config.groups.DELIVERABLE_FALL, timelineId: 'tl-f23-rq', title: 'Deliverable: Research Questions (Fall)', details: '<h4>🌱 Research Question Set (Fall)</h4><p><strong>Due:</strong> Sep 21/26, 2023<br><strong>Points:</strong> 15</p><p>Initial project review (related work), literature themes, 5-min presentation, draft schedule. Graduating students give longer progress report.</p><strong>Requires:</strong> Initial Ideas, Advisor Input' },
+                { id: 'f23-lit', label: 'Lit Review v2', group: config.groups.DELIVERABLE_FALL, timelineId: 'tl-f23-lit', title: 'Deliverable: Literature Review v2 (Fall)', details: '<h4>🌱 Literature Review v2 (Fall)</h4><p><strong>Due:</strong> ~Oct 12, 2023<br><strong>Points:</strong> 15</p><p>Detailed written literature review (structured essay, key takeaways, tech review).</p><strong>Requires:</strong> RQ Set, Research Skills' },
+                { id: 'f23-web', label: 'Web Page & Plan', group: config.groups.DELIVERABLE_FALL, timelineId: 'tl-f23-web', title: 'Deliverable: Web Page & Revised Plan (Fall)', details: '<h4>🌱 Web Page & Revised Plan (Fall)</h4><p><strong>Due:</strong> Nov 1, 2023<br><strong>Points:</strong> 30</p><p>Project web page live. Revised RQs/Research Plan. Design criteria brainstorm. Methodology consideration. IRB submission if needed.</p><strong>Requires:</strong> Lit Review v2, Web Dev Skills' },
+                { id: 'f23-outline', label: 'Outline/Proto Crit.', group: config.groups.DELIVERABLE_FALL, timelineId: 'tl-f23-outline', title: 'Deliverable: Outline / Prototype Design Criteria (Fall)', details: '<h4>🌱 Outline / Prototype Design Criteria (Fall)</h4><p><strong>Due:</strong> Nov 29, 2023<br><strong>Points:</strong> 30</p><p>Proposal presentation. Tech feasibility demo. Lit review summary, RQs, design criteria, research plan. Documented sketches/brainstorming.</p><strong>Requires:</strong> Web Page & Plan, Prototyping Ideas' },
+                { id: 'f23-part', label: 'Fall Participation', group: config.groups.DELIVERABLE_FALL, timelineId: 'tl-f23-part', title: 'Assessment: Fall Participation', details: '<h4>🌱 Overall Participation (Fall)</h4><p><strong>Due:</strong> ~Dec 10, 2023<br><strong>Points:</strong> 10</p><p>Assessed participation & constructive peer feedback throughout Fall semester.</p>' },
+
+                 // Spring Deliverables (Linked to timeline items)
+                { id: 's24-draft', label: 'Draft / Proto', group: config.groups.DELIVERABLE_SPRING, timelineId: 'tl-s24-draft', title: 'Deliverable: First Draft / Prototype (Spring)', details: '<h4>🍓 First Draft / Prototype (Spring)</h4><p><strong>Due:</strong> ~Mar 1, 2024</p><p>First complete draft (thesis) or functional prototype (project).</p><strong>Requires:</strong> Outline/Criteria, Prototyping Skills' },
+                { id: 's24-revised', label: 'Revised / Testing', group: config.groups.DELIVERABLE_SPRING, timelineId: 'tl-s24-revised', title: 'Deliverable: Revised Draft / Testing Results (Spring)', details: '<h4>🍓 Revised Draft / Testing Results (Spring)</h4><p><strong>Due:</strong> ~Mar 15, 2024</p><p>Iterated prototype/draft. User testing results/findings OR written reflection/heuristic eval.</p><strong>Requires:</strong> Draft/Proto, User Testing Skills / Reflection' },
+                { id: 's24-final-del', label: 'Final Deliverable', group: config.groups.DELIVERABLE_SPRING, timelineId: 'tl-s24-final-del', title: 'Deliverable: Final Iteration (Spring)', details: '<h4>🍓 Deliverable Done (Spring)</h4><p><strong>Due:</strong> ~Apr 1, 2024</p><p>Final iterated prototype/draft. Rough but submittable final materials (design docs, slides, thesis draft). Test presentation practice.</p><strong>Requires:</strong> Revised/Testing, Documentation Skills' },
+                { id: 's24-video', label: 'Video', group: config.groups.DELIVERABLE_SPRING, timelineId: 'tl-s24-video', title: 'Deliverable: Project Video (Spring)', details: '<h4>🍓 Video Done (Spring)</h4><p><strong>Due:</strong> ~Apr 7, 2024</p><p>Project video completed.</p><strong>Requires:</strong> Final Deliverable, Video Editing Skills' },
+
+                // Milestones (Linked)
+                { id: 'm-fall-grades', label: 'Fall Grades Due', group: config.groups.MILESTONE, timelineId: 'tl-m-fall-grades', title: 'Milestone: Fall Grades Due', details: '<h4>⏱️ Fall Grades Due</h4><p><strong>Date:</strong> ~Dec 15, 2023</p><p>Approximate deadline for Fall P/F grades.</p>' },
+                { id: 'm-pres', label: 'Final Presentations', group: config.groups.MILESTONE, timelineId: 'tl-m-pres', title: 'Milestone: Final Presentations', details: '<h4>⏱️ Final Presentations</h4><p><strong>Date:</strong> ~Apr 15, 2024</p><p>Department-wide final project/thesis presentations.</p><strong>Requires:</strong> Final Deliverable, Presentation Skills' },
+                { id: 'm-submit', label: 'Final Submission', group: config.groups.MILESTONE, timelineId: 'tl-m-submit', title: 'Milestone: Final Submission Deadline', details: '<h4>⏱️ Final Submission</h4><p><strong>Date:</strong> ~May 1, 2024</p><p>Final project materials submitted (website, video, docs, thesis).</p><strong>Requires:</strong> Final Deliverable, Video' },
+                { id: 'm-spring-grades', label: 'Spring Grades Due', group: config.groups.MILESTONE, timelineId: 'tl-m-spring-grades', title: 'Milestone: Spring Grades Due', details: '<h4>⏱️ Spring Grades Due</h4><p><strong>Date:</strong> ~May 8, 2024</p><p>Approximate deadline for Spring letter grades.</p>' },
+
+                // Support Structures
+                { id: 'advisors', label: 'Faculty\nAdvisors', group: config.groups.SUPPORT, title: 'Support: Faculty Advisors', details: '<h4>🤝 Faculty Advisors</h4><p>Richmond Wong, Anne Sullivan, Noura Howell, Michael Nitsche. Provide guidance, feedback, and evaluation. Regular meetings supplement the course structure.</p>' },
+                { id: 'peer-feedback', label: 'Peer\nFeedback', group: config.groups.SUPPORT, title: 'Support: Peer Feedback', details: '<h4>🤝 Peer Feedback</h4><p>Essential part of the course. Give and receive constructive feedback during presentations and meetings. Contributes to participation grade.</p>' },
+                { id: 'running-notes', label: 'Running\nNotes Doc', group: config.groups.SUPPORT, title: 'Support: Running Notes Document', details: '<h4>🤝 Running Notes Document</h4><p>Per-student document on OneDrive for tracking meetings, feedback, progress, goals, etc. Maintained collaboratively.</p>' },
+                { id: 'meetings', label: 'Course\nMeetings', group: config.groups.MEETING, timelineId: 'tl-meetings', title: 'Activity: Course Meetings', details: '<h4>👥 Course Meetings</h4><p>Alternating weeks: Tuesdays (5-6:30pm) & Thursdays (2-3:30pm). Check invites. Includes presentations, workshops, discussions.</p>' },
+
+                 // Skills (Examples)
+                { id: 'skill-research', label: 'Research\nMethods', group: config.groups.SKILL, title: 'Skill: Research Methods', details: '<h4>🛠️ Research Methods</h4><p>Literature review, defining research questions, understanding related work, potential user studies.</p>' },
+                { id: 'skill-writing', label: 'Academic\nWriting', group: config.groups.SKILL, title: 'Skill: Academic Writing', details: '<h4>🛠️ Academic Writing</h4><p>Structuring reviews, proposals, final documentation/thesis.</p>' },
+                { id: 'skill-web', label: 'Web Dev', group: config.groups.SKILL, title: 'Skill: Web Development', details: '<h4>🛠️ Web Development</h4><p>Creating project websites on GT servers.</p>' },
+                { id: 'skill-proto', label: 'Prototyping', group: config.groups.SKILL, title: 'Skill: Prototyping', details: '<h4>🛠️ Prototyping</h4><p>Sketching, brainstorming, demonstrating technical feasibility, building interactive prototypes.</p>' },
+                { id: 'skill-eval', label: 'Evaluation\n/ Testing', group: config.groups.SKILL, title: 'Skill: Evaluation / Testing', details: '<h4>🛠️ Evaluation / Testing</h4><p>User testing, heuristic evaluation, reflection on design.</p>' },
+                { id: 'skill-pres', label: 'Presentation', group: config.groups.SKILL, title: 'Skill: Presentation', details: '<h4>🛠️ Presentation Skills</h4><p>Presenting work clearly and concisely to peers and faculty.</p>' },
+                { id: 'skill-video', label: 'Video Prod.', group: config.groups.SKILL, title: 'Skill: Video Production', details: '<h4>🛠️ Video Production</h4><p>Creating a summary video of the project.</p>' },
+
+                  // Ideas (Examples, link to timeline)
+                 { id: 'idea-slack', label: 'Slack?', group: config.groups.IDEA, timelineId: 'tl-idea-slack', title: 'Idea: Move to Slack?', details: '<h4>💡 Idea: Move to Slack?</h4><p>Discuss potential move from Teams to Slack for better community building. Involves DM Club/Reps.</p>' },
+                 { id: 'idea-hackathon', label: 'Hackathon?', group: config.groups.IDEA, timelineId: 'tl-idea-hackathon', title: 'Idea: DM Hackathon', details: '<h4>💡 Idea: DM Hackathon</h4><p>Explore organizing a Digital Media focused hackathon.</p>' },
+                 { id: 'idea-buddy', label: 'Alumni Buddy?', group: config.groups.IDEA, timelineId: 'tl-idea-buddy', title: 'Idea: Alumni Buddy System', details: '<h4>💡 Idea: Alumni Buddy System</h4><p>Potential system for one-off professional contact sessions with alumni.</p>' },
+            ]);
+
+            const edges = new vis.DataSet([
+                // Progression & Semester Links
+                { from: 'sprout', to: 'fruit', label: 'becomes →', arrows: 'to', length: 250 },
+                { from: 'sprout', to: 'fall-y1', label: 'in', arrows: 'to' },
+                { from: 'sprout', to: 'spring-y1', label: 'in', arrows: 'to' },
+                { from: 'fruit', to: 'spring-y1', label: 'active in', arrows: 'to' },
+                { from: 'fall-y1', to: 'spring-y1', label: 'precedes →', arrows: 'to', length: 180},
+
+                // Semester contains Deliverables/Milestones
+                { from: 'fall-y1', to: 'f23-rq', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'fall-y1', to: 'f23-lit', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'fall-y1', to: 'f23-web', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'fall-y1', to: 'f23-outline', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'fall-y1', to: 'f23-part', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'fall-y1', to: 'm-fall-grades', label: 'ends w/', arrows: 'to', length: 100 },
+
+                { from: 'spring-y1', to: 's24-draft', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'spring-y1', to: 's24-revised', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'spring-y1', to: 's24-final-del', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'spring-y1', to: 's24-video', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'spring-y1', to: 'm-pres', label: 'contains', arrows: 'to', length: 100 },
+                { from: 'spring-y1', to: 'm-submit', label: 'ends w/', arrows: 'to', length: 100 },
+                { from: 'spring-y1', to: 'm-spring-grades', label: 'ends w/', arrows: 'to', length: 100 },
+
+                // Deliverable Dependencies (Simplified flow)
+                { from: 'f23-rq', to: 'f23-lit', label: 'informs →', arrows: 'to', dashes: true, length: 150 },
+                { from: 'f23-lit', to: 'f23-web', label: 'informs →', arrows: 'to', dashes: true, length: 150 },
+                { from: 'f23-web', to: 'f23-outline', label: 'informs →', arrows: 'to', dashes: true, length: 150 },
+                { from: 'f23-outline', to: 's24-draft', label: 'leads to →', arrows: 'to', dashes: true, length: 200 }, // Semester transition
+                { from: 's24-draft', to: 's24-revised', label: 'iterates to →', arrows: 'to', dashes: true, length: 150 },
+                { from: 's24-revised', to: 's24-final-del', label: 'iterates to →', arrows: 'to', dashes: true, length: 150 },
+                { from: 's24-final-del', to: 's24-video', label: 'results in →', arrows: 'to', dashes: true, length: 150 },
+                { from: 's24-final-del', to: 'm-pres', label: 'presented at →', arrows: 'to', dashes: true },
+                { from: 's24-video', to: 'm-submit', label: 'part of →', arrows: 'to', dashes: true },
+                { from: 's24-final-del', to: 'm-submit', label: 'part of →', arrows: 'to', dashes: true },
+
+
+                // Skill Links (Simplified: Deliverable -> Skill)
+                { from: 'f23-rq', to: 'skill-research', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 'f23-rq', to: 'skill-pres', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 'f23-lit', to: 'skill-research', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 'f23-lit', to: 'skill-writing', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 'f23-web', to: 'skill-web', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 'f23-web', to: 'skill-writing', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 'f23-outline', to: 'skill-proto', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 'f23-outline', to: 'skill-pres', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 's24-draft', to: 'skill-proto', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 's24-revised', to: 'skill-eval', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 's24-final-del', to: 'skill-writing', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 's24-video', to: 'skill-video', label: 'uses', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+                { from: 'm-pres', to: 'skill-pres', label: 'demonstrates', arrows: 'to', color: { opacity: 0.5 }, length: 120 },
+
+
+                // Support Links
+                 { from: 'sprout', to: 'advisors', label: 'support', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'fruit', to: 'advisors', label: 'support', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'sprout', to: 'peer-feedback', label: 'support', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'fruit', to: 'peer-feedback', label: 'support', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'sprout', to: 'running-notes', label: 'uses', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'fruit', to: 'running-notes', label: 'uses', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'sprout', to: 'meetings', label: 'attends', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'fruit', to: 'meetings', label: 'attends', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'advisors', to: 'running-notes', label: 'uses', arrows: 'to', dashes: true, color: { opacity: 0.6 }, length: 130 },
+                 { from: 'meetings', to: 'peer-feedback', label: 'facilitates', arrows: 'to', dashes: true, color: { opacity: 0.6 } },
+
+                 // Ideas linked
+                 { from: 'idea-slack', to: 'meetings', label: 'relates to', arrows: 'to', dashes: true, color: { opacity: 0.4 } },
+                 { from: 'idea-hackathon', to: 'sprout', label: 'event for', arrows: 'to', dashes: true, color: { opacity: 0.4 } },
+                 { from: 'idea-buddy', to: 'fruit', label: 'support for', arrows: 'to', dashes: true, color: { opacity: 0.4 } },
+            ]);
+
+            // Corrected timelineItems definition (adding missing comma if it was missing before)
+            const timelineItems = new vis.DataSet([
+                // Fall 2023
+                { id: 'tl-f23-rq', content: '🌱 RQ Set', start: '2023-09-21', group: config.groups.SPROUT, className: config.timelineItemClasses.deliverableFall, nodeId: 'f23-rq', title: nodes.get('f23-rq').title, details: nodes.get('f23-rq').details },
+                { id: 'tl-f23-lit', content: '🌱 Lit Review v2', start: '2023-10-12', group: config.groups.SPROUT, className: config.timelineItemClasses.deliverableFall, nodeId: 'f23-lit', title: nodes.get('f23-lit').title, details: nodes.get('f23-lit').details },
+                { id: 'tl-f23-web', content: '🌱 Web Page & Plan', start: '2023-11-01', group: config.groups.SPROUT, className: config.timelineItemClasses.deliverableFall, nodeId: 'f23-web', title: nodes.get('f23-web').title, details: nodes.get('f23-web').details },
+                { id: 'tl-f23-outline', content: '🌱 Outline/Proto', start: '2023-11-29', group: config.groups.SPROUT, className: config.timelineItemClasses.deliverableFall, nodeId: 'f23-outline', title: nodes.get('f23-outline').title, details: nodes.get('f23-outline').details },
+                { id: 'tl-f23-part', content: '🌱 Fall Participation', start: '2023-12-10', group: config.groups.SPROUT, className: config.timelineItemClasses.deliverableFall, nodeId: 'f23-part', title: nodes.get('f23-part').title, details: nodes.get('f23-part').details },
+                { id: 'tl-m-fall-grades', content: '⏱️ Fall Grades', start: '2023-12-15', group: config.groups.MILESTONE, className: config.timelineItemClasses.milestone, nodeId: 'm-fall-grades', title: nodes.get('m-fall-grades').title, details: nodes.get('m-fall-grades').details },
+
+                // Spring 2024
+                { id: 'tl-s24-draft', content: '🍓 Draft/Proto', start: '2024-03-01', group: config.groups.FRUIT, className: config.timelineItemClasses.deliverableSpring, nodeId: 's24-draft', title: nodes.get('s24-draft').title, details: nodes.get('s24-draft').details },
+                { id: 'tl-s24-revised', content: '🍓 Revised/Testing', start: '2024-03-15', group: config.groups.FRUIT, className: config.timelineItemClasses.deliverableSpring, nodeId: 's24-revised', title: nodes.get('s24-revised').title, details: nodes.get('s24-revised').details },
+                { id: 'tl-s24-final-del', content: '🍓 Final Deliverable', start: '2024-04-01', group: config.groups.FRUIT, className: config.timelineItemClasses.deliverableSpring, nodeId: 's24-final-del', title: nodes.get('s24-final-del').title, details: nodes.get('s24-final-del').details },
+                { id: 'tl-s24-video', content: '🍓 Video Done', start: '2024-04-07', group: config.groups.FRUIT, className: config.timelineItemClasses.deliverableSpring, nodeId: 's24-video', title: nodes.get('s24-video').title, details: nodes.get('s24-video').details },
+                { id: 'tl-m-pres', content: '⏱️ Final Pres.', start: '2024-04-15', group: config.groups.MILESTONE, className: config.timelineItemClasses.milestone, nodeId: 'm-pres', title: nodes.get('m-pres').title, details: nodes.get('m-pres').details },
+                { id: 'tl-m-submit', content: '⏱️ Final Submit', start: '2024-05-01', group: config.groups.MILESTONE, className: config.timelineItemClasses.milestone, nodeId: 'm-submit', title: nodes.get('m-submit').title, details: nodes.get('m-submit').details },
+                { id: 'tl-m-spring-grades', content: '⏱️ Spring Grades', start: '2024-05-08', group: config.groups.MILESTONE, className: config.timelineItemClasses.milestone, nodeId: 'm-spring-grades', title: nodes.get('m-spring-grades').title, details: nodes.get('m-spring-grades').details },
+
+                // Meetings (Background item example)
+                { id: 'tl-meetings', content: '👥 Meetings (Alt. Weeks)', start: '2023-09-05', end: '2024-05-01', type: 'background', group: config.groups.ALL, className: 'vis-background-meetings', nodeId: 'meetings', title: nodes.get('meetings').title, details: nodes.get('meetings').details }, // Background example
+
+                // Ideas
+                { id: 'tl-idea-slack', content: '💡 Discuss Slack?', start: '2023-09-15', group: config.groups.ALL, className: config.timelineItemClasses.idea, nodeId: 'idea-slack', title: nodes.get('idea-slack').title, details: nodes.get('idea-slack').details },
+                { id: 'tl-idea-hackathon', content: '💡 Hackathon Plan?', start: '2024-01-20', group: config.groups.ALL, className: config.timelineItemClasses.idea, nodeId: 'idea-hackathon', title: nodes.get('idea-hackathon').title, details: nodes.get('idea-hackathon').details },
+                { id: 'tl-idea-buddy', content: '💡 Alumni Buddy?', start: '2023-11-05', group: config.groups.ALL, className: config.timelineItemClasses.idea, nodeId: 'idea-buddy', title: nodes.get('idea-buddy').title, details: nodes.get('idea-buddy').details }
+                // **** IMPORTANT: Ensure the final item above does NOT have a trailing comma ****
+            ]); // Ensure this closing bracket/parenthesis is correct
+
+            const timelineGroups = new vis.DataSet([
+                { id: config.groups.SPROUT, content: '🌱 Sprouts (1st Yr)'},
+                { id: config.groups.FRUIT, content: '🍓 Fruits (2nd Yr)'},
+                { id: config.groups.ALL, content: '👥 All / Course'},
+                { id: config.groups.MILESTONE, content: '⏱️ Milestones'},
+            ]);
+
+             // --- DOM References ---
+             const timelineContainer = document.getElementById('timeline');
+             const networkContainer = document.getElementById('network');
+             const detailsContentEl = document.getElementById('details-content');
+             const filterSelect = document.getElementById('filterSelect');
+             const zoomInBtn = document.getElementById('zoomIn');
+             const zoomOutBtn = document.getElementById('zoomOut');
+             const resetViewBtn = document.getElementById('resetView');
+             const hideDetailsBtn = document.getElementById('hide-details');
+             const detailsPanel = document.getElementById('details-panel');
+             const leftPanel = document.querySelector('.left-panel');
+             const panelResizeHandle = document.getElementById('panel-resize-handle');
+             const timelineResizeHandle = document.getElementById('timeline-resize-handle');
+             const timelineVisContainer = document.getElementById('timeline-container');
+             const networkVisContainer = document.getElementById('network-container');
+             const todayMarkerTimelineEl = document.getElementById('today-marker-timeline');
+             const contrastToggleBtn = document.getElementById('contrast-toggle');
+             const monthNavContainer = document.getElementById('month-nav');
+
+            // --- Vis.js Instances ---
+            let timeline = null;
+            let network = null;
+
+            // --- State ---
+            let lastSelectedNodeId = null;
+            let lastSelectedItemId = null;
+
+            // --- Initialization ---
+            function initializeVisualizations() {
+                initializeTimeline();
+                initializeNetwork();
+                renderTodayMarker();
+                setupEventListeners();
+                renderMonthNav();
+                initializeResizers();
+                populateDetailsPanel('<p>Select an item on the timeline or a node in the network graph to see more details.</p>');
+            }
+
+            function initializeTimeline() {
+                 const timelineOptions = {
+                     stack: true, // Stack items to avoid overlap within groups
+                     // stackSubgroups: true, // Optional: if items have subgroups
+                     verticalScroll: true, // Enable scroll if groups exceed height
+                     zoomKey: 'ctrlKey',
+                     zoomMin: 1000 * 60 * 60 * 24 * 7, // 1 week min zoom
+                     zoomMax: 1000 * 60 * 60 * 24 * 365 * 2, // 2 years max zoom
+                     height: '100%',
+                     showCurrentTime: false, // Using custom marker
+                     margin: { item: { vertical: 5 }, axis: 10 },
+                     orientation: { axis: "bottom" },
+                     groupOrder: (a, b) => {
+                         const order = [config.groups.MILESTONE, config.groups.ALL, config.groups.SPROUT, config.groups.FRUIT];
+                         return order.indexOf(a.id) - order.indexOf(b.id);
+                     },
+                      tooltip: { // Enable tooltips on hover
+                          followMouse: true,
+                          overflowMethod: 'flip'
+                      },
+                     editable: false, // Prevent modification
+                     // Template for adding icons or custom HTML to items
+                     // template: function (item, element, data) {
+                     //    return `<span>${item.icon || ''} ${item.content}</span>`;
+                     // }
+                 };
+                 try {
+                     timeline = new vis.Timeline(timelineContainer, timelineItems, timelineGroups, timelineOptions);
+                     timeline.setWindow(config.timelineStart, config.timelineEnd);
+                     timeline.on('select', handleTimelineSelect);
+                      timeline.on('click', (props) => {
+                          if (!props.item && !props.group) { // Click on empty space
+                              clearHighlights();
+                              populateDetailsPanel('<p>Select an item or node.</p>');
+                          }
+                      });
+                     console.log("Timeline Initialized");
+                 } catch(e) { console.error("Timeline Init Error:", e); timelineContainer.innerHTML = "<p style='color:red;padding:10px;'>Error loading timeline. Check console.</p>"; }
+            }
+
+            function initializeNetwork() {
+                const networkOptions = {
+                    nodes: {
+                        shape: 'dot', size: 18,
+                        font: { size: 10, color: '#555', face: 'system-ui, sans-serif', multi: 'html', align: 'center' },
+                        borderWidth: 2,
+                        shadow: { enabled: true, size: 5, x: 2, y: 2, color: 'rgba(0,0,0,0.1)'}
+                    },
+                    edges: {
+                        width: 1.5,
+                        font: { size: 9, align: 'middle', color: '#666', strokeWidth: 2, strokeColor: 'rgba(255,255,255,0.7)' },
+                        arrows: { to: { enabled: true, scaleFactor: 0.7 } },
+                        color: { inherit: false, color: '#adb5bd', opacity: 0.7 }, // Default edge color
+                        smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.4 }
+                    },
+                    physics: {
+                        enabled: true,
+                        solver: 'forceAtlas2Based',
+                        forceAtlas2Based: { gravitationalConstant: -50, centralGravity: 0.008, springLength: 130, springConstant: 0.06, damping: 0.6, avoidOverlap: 0.85 },
+                        stabilization: { iterations: 1500, fit: true }
+                    },
+                    interaction: {
+                        hover: true, tooltipDelay: 250, dragNodes: true, dragView: true, zoomView: true,
+                        navigationButtons: false, // Using custom buttons
+                        hoverConnectedEdges: true,
+                        selectConnectedEdges: false, // Don't auto-select edges
+                        keyboard: { enabled: true, speed: {x: 10, y: 10, zoom: 0.03}, bindToWindow: false }
+                    },
+                     groups: { // Define node styles per group
+                         [config.groups.STUDENT_TYPE]: { color: { background: '#e9ecef', border: '#adb5bd' }, shape: 'ellipse', font: { size: 14, color: '#333', face: 'system-ui, sans-serif', bold: true }, mass: 3 },
+                         [config.groups.SEMESTER]: { color: { background: '#cfe2ff', border: '#9ec5fe' }, shape: 'box', mass: 1.5, font: { color: '#003d99'} },
+                         [config.groups.DELIVERABLE_FALL]: { color: { background: var(--color-sprout), border: var(--color-sprout-accent) }, font: { color: 'white' }, mass: 1.2 },
+                         [config.groups.DELIVERABLE_SPRING]: { color: { background: var(--color-fruit), border: var(--color-fruit-accent) }, font: { color: 'white' }, mass: 1.2 },
+                         [config.groups.MILESTONE]: { color: { background: var(--color-milestone), border: var(--color-milestone-accent) }, font: { color: 'white' }, shape: 'diamond', mass: 1.1 },
+                         [config.groups.MEETING]: { color: { background: var(--color-all), border: var(--color-all-accent) }, font: { color: 'white' } },
+                         [config.groups.IDEA]: { color: { background: var(--color-idea), border: var(--color-idea-accent) }, font: { color: 'white' }, shape: 'star', mass: 0.9, opacity: 0.8 },
+                         [config.groups.SKILL]: { color: { background: var(--color-skill), border: var(--color-skill-accent) }, font: { color: 'white' }, shape: 'hexagon', mass: 0.8 },
+                         [config.groups.SUPPORT]: { color: { background: var(--color-support), border: var(--color-support-accent) }, font: { color: '#333'}, shape: 'triangle', mass: 1 }
+                     }
+                 };
+                 try {
+                     network = new vis.Network(networkContainer, { nodes, edges }, networkOptions);
+                     network.on('selectNode', handleNetworkSelect);
+                     network.on('deselectNode', handleNetworkDeselect); // Can clear details if needed
+                      network.on('click', (props) => {
+                          if (props.nodes.length === 0 && props.edges.length === 0) { // Click on empty space
+                              clearHighlights();
+                              populateDetailsPanel('<p>Select an item or node.</p>');
+                          }
+                      });
+                     console.log("Network Initialized");
+                 } catch(e) { console.error("Network Init Error:", e); networkContainer.innerHTML = "<p style='color:red;padding:10px;'>Error loading network. Check console.</p>"; }
+            }
+
+            // ... (renderMonthNav, renderTodayMarker, Event Handlers, Filtering, Highlighting, Details Panel, Resizers - functions remain largely the same as the previous correct version) ...
+             // --- Helper Functions ---
+             const calculatePosition = (date) => {
+                 const eventDate = new Date(date);
+                 const start = new Date(config.timelineStart);
+                 const end = new Date(config.timelineEnd);
+                 const totalDuration = end.getTime() - start.getTime();
+                 if (eventDate < start || eventDate > end || totalDuration <= 0) return -1;
+                 return ((eventDate.getTime() - start.getTime()) / totalDuration) * 100;
+             };
+
+             const formatDateLabel = (dateString) => {
+                 const date = new Date(dateString);
+                 const offset = date.getTimezoneOffset();
+                 const adjustedDate = new Date(date.getTime() + (offset * 60 * 1000));
+                 const month = (adjustedDate.getUTCMonth() + 1);
+                 const day = adjustedDate.getUTCDate();
+                 return `${month}/${day}`;
+             };
+
+             function renderMonthNav() {
+                 monthNavContainer.innerHTML = ''; // Clear existing
+                 const months = ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
+                 const yearMap = { Sep: 2023, Oct: 2023, Nov: 2023, Dec: 2023, Jan: 2024, Feb: 2024, Mar: 2024, Apr: 2024, May: 2024};
+                 months.forEach(month => {
+                     const button = document.createElement('button');
+                     button.textContent = `${month} '${String(yearMap[month]).slice(2)}`;
+                     button.dataset.month = month;
+                     button.dataset.year = yearMap[month];
+                     button.setAttribute('aria-label', `Jump to ${month} ${yearMap[month]}`);
+                     monthNavContainer.appendChild(button);
+                 });
+             }
+
+            function renderTodayMarker() {
+                 const start = new Date(config.timelineStart);
+                 const end = new Date(config.timelineEnd);
+                 const today = new Date();
+
+                 if (today >= start && today <= end && timeline) {
+                     const percentage = calculatePosition(today); // Use existing helper
+                     if (percentage >= 0 && percentage <= 100) {
+                         todayMarkerTimelineEl.style.left = `${percentage}%`;
+                         todayMarkerTimelineEl.style.display = 'block';
+                     } else {
+                          todayMarkerTimelineEl.style.display = 'none';
+                     }
+                 } else {
+                      todayMarkerTimelineEl.style.display = 'none';
+                 }
+            }
+
+            // --- Event Handlers ---
+            function handleTimelineSelect(properties) {
+                const ids = properties.items;
+                if (ids.length > 0) {
+                    const selectedId = ids[0];
+                    const item = timelineItems.get(selectedId);
+                    clearHighlights();
+                    if (item) {
+                        populateDetailsPanel(item.details || '<p>No details available.</p>');
+                        highlightTimelineItem(selectedId);
+                        if (item.nodeId && nodes.get(item.nodeId)) {
+                             highlightNetworkNode(item.nodeId, true); // Focus on the node
+                        }
+                        lastSelectedItemId = selectedId;
+                        lastSelectedNodeId = item.nodeId || null;
+                    }
+                }
+            }
+
+            function handleNetworkSelect(params) {
+                const ids = params.nodes;
+                 if (ids.length > 0) {
+                    const selectedId = ids[0];
+                    const node = nodes.get(selectedId);
+                    clearHighlights();
+                    if (node) {
+                         populateDetailsPanel(node.details || '<p>No details available.</p>');
+                         highlightNetworkNode(selectedId); // Highlight node and direct edges
+                        if (node.timelineId && timelineItems.get(node.timelineId)) {
+                            highlightTimelineItem(node.timelineId, true); // Focus timeline
+                        }
+                        lastSelectedNodeId = selectedId;
+                        lastSelectedItemId = node.timelineId || null;
+                    }
+                }
+            }
+
+             function handleNetworkDeselect(params){
+                  // If the deselection wasn't immediately followed by a new selection,
+                  // or triggered by empty space click, clear everything.
+                  // This logic can be refined depending on desired UX.
+                  // setTimeout(() => { // Use timeout to allow selection event to fire first
+                  //    if (!lastSelectedNodeId && !lastSelectedItemId) { // Check if something new got selected
+                  //       clearHighlights();
+                  //       populateDetailsPanel('<p>Select an item or node.</p>');
+                  //    }
+                  // }, 50);
+             }
+
+
+            function setupEventListeners() {
+                // Controls
+                zoomInBtn.onclick = () => network?.zoomIn();
+                zoomOutBtn.onclick = () => network?.zoomOut();
+                resetViewBtn.onclick = () => network?.fit();
+                filterSelect.onchange = handleFilterChange;
+                contrastToggleBtn.onclick = () => document.body.classList.toggle('high-contrast');
+                 hideDetailsBtn.onclick = toggleDetailsPanel;
+
+                 monthNavContainer.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON' && e.target.dataset.month) {
+                        const month = e.target.dataset.month;
+                        const year = e.target.dataset.year;
+                        const monthIndexMap = { Sep: 8, Oct: 9, Nov: 10, Dec: 11, Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4 };
+                        const targetDate = new Date(parseInt(year), monthIndexMap[month], 15); // Go to mid-month
+                        timeline?.moveTo(targetDate, { animation: {duration: 500, easingFunction: 'easeInOutQuad'} });
+                    }
+                });
+
+                 // Keyboard Navigation (Focus on Timeline for scrolling)
+                 timelineContainer.setAttribute('tabindex', '0'); // Make it focusable
+                 timelineContainer.addEventListener('keydown', (e) => {
+                     if (document.activeElement !== timelineContainer && document.activeElement !== networkContainer) return;
+
+                     const currentWindow = timeline.getWindow();
+                     const interval = currentWindow.end.getTime() - currentWindow.start.getTime();
+                     const step = interval * 0.1; // Scroll 10% of window
+
+                     if (e.key === 'ArrowLeft') {
+                         e.preventDefault();
+                         timeline.setWindow(currentWindow.start.getTime() - step, currentWindow.end.getTime() - step, { animation: true });
+                     } else if (e.key === 'ArrowRight') {
+                         e.preventDefault();
+                          timeline.setWindow(currentWindow.start.getTime() + step, currentWindow.end.getTime() + step, { animation: true });
+                     }
+                 });
+
+                 // Keyboard Navigation (Network focus) - Vis.js handles this if container is focused
+                  networkContainer.setAttribute('tabindex', '0');
+
+            }
+
+            function toggleDetailsPanel() {
+                 const isHidden = detailsPanel.style.display === 'none';
+                 detailsPanel.style.display = isHidden ? 'flex' : 'none';
+                 panelResizeHandle.style.display = isHidden ? 'flex' : 'none';
+                 hideDetailsBtn.textContent = isHidden ? 'Hide Details ▶' : '◀ Show Details';
+                 // Adjust left panel flex dynamically? Or let CSS handle it
+                  // leftPanel.style.flex = isHidden ? '3' : '1'; // Example adjustment
+                 // Refit network after panel toggle
+                  setTimeout(() => {
+                      network?.fit();
+                      timeline?.redraw();
+                  } , 150); // Delay slightly for transition
+            }
+
+             function handleFilterChange(event) {
+                 const value = event.target.value;
+                 filterVisualizations(value);
+             }
+
+            // --- Filtering Logic ---
+             function filterVisualizations(filterValue) {
+                 const nodeUpdates = [];
+                 const itemUpdates = [];
+                 const allNodes = nodes.get({ returnType: 'Array' });
+                 const allItems = timelineItems.get({ returnType: 'Array' });
+
+                 // Determine visible nodes first
+                 const visibleNodeIds = new Set();
+                 allNodes.forEach(node => {
+                    if (checkVisibility(node, filterValue)) {
+                        visibleNodeIds.add(node.id);
+                        nodeUpdates.push({ id: node.id, hidden: false });
+                    } else {
+                        nodeUpdates.push({ id: node.id, hidden: true });
+                    }
+                 });
+
+                 // Determine visible timeline items based on the item itself or its linked node
+                 allItems.forEach(item => {
+                    const linkedNode = item.nodeId ? nodes.get(item.nodeId) : null;
+                    const nodeIsVisible = linkedNode ? visibleNodeIds.has(linkedNode.id) : true; // Assume visible if no linked node to hide
+                    const itemIsVisible = checkVisibility(item, filterValue, linkedNode);
+
+                    // Show item if it matches filter OR its linked node matches filter (and isn't hidden)
+                     itemUpdates.push({ id: item.id, visible: itemIsVisible || nodeIsVisible });
+                 });
+
+                 // Apply updates
+                 if(network) network.body.data.nodes.update(nodeUpdates);
+                 if(timeline) timelineItems.update(itemUpdates); // Use update for timeline visibility
+             }
+
+             function checkVisibility(element, filterValue, associatedNode = null) {
+                 if (filterValue === 'all') return true;
+
+                 const group = element.group; // Group of the timeline item OR the node itself
+                 const nodeGroup = associatedNode ? associatedNode.group : group; // Use node group if available
+
+                 switch (filterValue) {
+                      case 'sprout':
+                          // Show Sprout node, Fall deliverables, All/Meeting/Milestone/Support nodes/items
+                         return nodeGroup === config.groups.STUDENT_TYPE && (associatedNode?.id === 'sprout' || element.id === 'sprout') ||
+                                group === config.groups.DELIVERABLE_FALL ||
+                                [config.groups.ALL, config.groups.MEETING, config.groups.MILESTONE, config.groups.SUPPORT, config.groups.IDEA, config.groups.SKILL].includes(group);
+                     case 'fruit':
+                          // Show Fruit node, Spring deliverables, All/Meeting/Milestone/Support nodes/items
+                         return nodeGroup === config.groups.STUDENT_TYPE && (associatedNode?.id === 'fruit' || element.id === 'fruit') ||
+                                group === config.groups.DELIVERABLE_SPRING ||
+                                [config.groups.ALL, config.groups.MEETING, config.groups.MILESTONE, config.groups.SUPPORT, config.groups.IDEA, config.groups.SKILL].includes(group);
+                     case 'allStudents':
+                         // Show things relevant to everyone directly
+                         return [config.groups.ALL, config.groups.MEETING, config.groups.MILESTONE, config.groups.SUPPORT, config.groups.IDEA].includes(group);
+                     case 'milestone':
+                         return group === config.groups.MILESTONE;
+                     case 'deliverable':
+                         return group === config.groups.DELIVERABLE_FALL || group === config.groups.DELIVERABLE_SPRING;
+                     case 'support':
+                         return group === config.groups.SUPPORT || group === config.groups.MEETING; // Include meetings as support activity
+                     default:
+                         return true;
+                 }
+             }
+
+
+            // --- Highlighting Logic ---
+             function clearHighlights() {
+                 // Clear network selection and direct styles if needed
+                 if (network) {
+                     network.unselectAll();
+                     // If direct styling was used (less preferred), reset it here
+                 }
+                 // Clear timeline selection and remove highlight class
+                 if (timeline) {
+                     timeline.setSelection([]);
+                     document.querySelectorAll('#timeline .vis-item.highlighted-item').forEach(el => {
+                         el.classList.remove('highlighted-item');
+                     });
+                 }
+                 lastSelectedNodeId = null;
+                 lastSelectedItemId = null;
+             }
+
+             function highlightTimelineItem(itemId, focus = false) {
+                 if (!timeline || !itemId) return;
+                 // Clear previous first
+                  document.querySelectorAll('#timeline .vis-item.highlighted-item').forEach(el => {
+                     el.classList.remove('highlighted-item');
+                  });
+                 timeline.setSelection([itemId]);
+                 const itemElement = timelineContainer.querySelector(`.vis-item[data-id="${itemId}"]`);
+                 if (itemElement) {
+                     itemElement.classList.add('highlighted-item');
+                     if (focus) {
+                        timeline.focus(itemId, { animation: {duration: 500, easingFunction: 'easeInOutQuad'} });
+                     }
+                 }
+                 lastSelectedItemId = itemId;
+            }
+
+             function highlightNetworkNode(nodeId, focus = false) {
+                 if (!network || !nodeId) return;
+                 network.unselectAll(); // Clear previous network selection
+                 network.selectNodes([nodeId]);
+                 if (focus) {
+                    network.focus(nodeId, { scale: network.getScale() * 1.1, animation: true }); // Zoom in slightly
+                 }
+                 // network.body.data.nodes.update({id: nodeId, borderWidth: 3 }); // Optional: thicker border
+                 lastSelectedNodeId = nodeId;
+             }
+
+            // --- Details Panel Logic ---
+             function populateDetailsPanel(content) {
+                 detailsContentEl.innerHTML = content;
+             }
+
+            // --- Resizer Logic --- (Adapted from previous version)
+            function initializeResizers() {
+                // Vertical Panel Resizer
+                let isResizingVertical = false;
+                panelResizeHandle.addEventListener('mousedown', (e) => {
+                    isResizingVertical = true;
+                    document.body.style.cursor = 'ew-resize';
+                    document.body.style.userSelect = 'none';
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isResizingVertical) return;
+                    const containerRect = document.querySelector('.main-container').getBoundingClientRect();
+                    const leftPanelMinWidth = 300;
+                    const rightPanelMinWidth = 200;
+
+                    const totalWidth = containerRect.width;
+                    let leftPanelWidth = e.clientX - containerRect.left - (panelResizeHandle.offsetWidth / 2); // Adjust for handle width
+
+                    leftPanelWidth = Math.max(leftPanelMinWidth, Math.min(leftPanelWidth, totalWidth - rightPanelMinWidth));
+                    const rightPanelWidth = totalWidth - leftPanelWidth;
+
+                    leftPanel.style.flex = `0 0 ${leftPanelWidth}px`;
+                    rightPanel.style.flex = `1 1 ${rightPanelWidth}px`; // Let right panel fill remaining space
+
+                     network?.setSize('100%', '100%'); // Trigger redraw
+                     timeline?.redraw();
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isResizingVertical) {
+                        isResizingVertical = false;
+                        document.body.style.cursor = 'default';
+                        document.body.style.userSelect = 'auto';
+                        setTimeout(() => network?.fit(), 50); // Ensure fit after resize
+                        setTimeout(() => timeline?.redraw(), 50);
+                    }
+                });
+
+                 // Horizontal Timeline Resizer
+                 let isResizingHorizontal = false;
+                 timelineResizeHandle.addEventListener('mousedown', (e) => {
+                    isResizingHorizontal = true;
+                    document.body.style.cursor = 'ns-resize';
+                    document.body.style.userSelect = 'none';
+                     const startY = e.clientY;
+                     const startHeight = timelineVisContainer.offsetHeight;
+
+                     function handleMouseMoveHorizontal(me) {
+                         if (!isResizingHorizontal) return;
+                          const newHeight = startHeight + (me.clientY - startY);
+                          const minHeight = 100;
+                          const maxHeight = leftPanel.clientHeight - 100; // Ensure network has min height
+
+                          const clampedHeight = Math.max(minHeight, Math.min(newHeight, maxHeight));
+                          timelineVisContainer.style.height = `${clampedHeight}px`;
+
+                          timeline?.redraw();
+                          network?.setSize('100%', '100%');
+                     }
+
+                     function handleMouseUpHorizontal() {
+                         if (isResizingHorizontal) {
+                             isResizingHorizontal = false;
+                             document.body.style.cursor = 'default';
+                             document.body.style.userSelect = 'auto';
+                             document.removeEventListener('mousemove', handleMouseMoveHorizontal);
+                             document.removeEventListener('mouseup', handleMouseUpHorizontal);
+                             setTimeout(() => network?.fit(), 50); // Fit network after resize
+                         }
+                     }
+
+                     document.addEventListener('mousemove', handleMouseMoveHorizontal);
+                     document.addEventListener('mouseup', handleMouseUpHorizontal);
+                 });
+            }
+
+            // --- Start Everything ---
+            initializeVisualizations();
+
+        }); // End DOMContentLoaded
+    </script>
+
+</body>
+</html>

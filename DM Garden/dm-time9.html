@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM MS Cultivation Almanac (Mobile)</title>
+    <style>
+        :root {
+            /* -- Almanac Theme -- */
+            --bg-color: #fdfaf6; /* Parchment */
+            --text-color: #4d4033; /* Soil Brown */
+            --accent-color: #5a8a4d; /* Leaf Green */
+            --secondary-accent-color: #a56a44; /* Branch Brown */
+            --divider-color: #dcd3c9; /* Light Stone Gray */
+            --label-bg: #f7f2ec; /* Slightly darker parchment */
+
+            /* -- Stage/Category Colors -- */
+            --color-germination: #8fbc8f; --color-germination-accent: #5a8a4d;
+            --color-fruiting: #ffcc80; --color-fruiting-accent: #ffa726;
+            --color-community: #b39ddb; --color-community-accent: #7e57c2;
+            --color-calendar: #a1887f; --color-calendar-accent: #795548;
+            --color-observation: #ffab91; --color-observation-accent: #ff7043;
+
+             /* -- High Contrast (Optional Basic) -- */
+             body.high-contrast {
+                --bg-color: #000;
+                --text-color: #fff;
+                --accent-color: #0f0;
+                --secondary-accent-color: #ff0;
+                --divider-color: #aaa;
+                --label-bg: #222;
+                --color-germination: #0f0; --color-germination-accent: #0f0;
+                --color-fruiting: #ffa500; --color-fruiting-accent: #ffa500;
+                /* ... adjust others as needed */
+             }
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Georgia', serif;
+            margin: 0; padding: 0; color: var(--text-color);
+            background-color: var(--bg-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px; /* Max width for larger mobile/tablet */
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        header {
+            padding: 15px 0;
+            text-align: center;
+            background-color: #e6e0d8;
+            border-bottom: 1px solid var(--divider-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        header h1 {
+            margin: 0; font-size: 1.5rem; font-variant: small-caps;
+            color: var(--secondary-accent-color); letter-spacing: 1px;
+        }
+        #contrast-toggle {
+            position: absolute; top: 10px; right: 15px;
+            font-size: 1.5rem; background: none; border: none; cursor: pointer; padding: 5px;
+        }
+
+        .filter-controls {
+            padding: 10px 0;
+            text-align: center;
+            border-bottom: 1px solid var(--divider-color);
+            background: #f1f3f5; /* Light gray bg for controls */
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            position: sticky;
+            top: 60px; /* Adjust based on header height */
+            z-index: 99;
+        }
+        .filter-button {
+            padding: 6px 12px; font-size: 0.85rem; font-family: 'Georgia', serif;
+            border: 1px solid var(--secondary-accent-color); border-radius: 15px; /* Pill shape */
+            background-color: var(--bg-color); color: var(--secondary-accent-color);
+            cursor: pointer; transition: background-color 0.2s, color 0.2s;
+        }
+        .filter-button.active {
+            background-color: var(--secondary-accent-color); color: var(--bg-color);
+            font-weight: bold;
+        }
+
+        main { padding: 20px 0; }
+
+        /* Vertical Timeline Structure */
+        .timeline {
+            position: relative;
+            padding-left: 40px; /* Space for icons/line */
+            margin-left: 10px;
+        }
+        .timeline::before { /* The vertical line */
+            content: '';
+            position: absolute;
+            left: 15px; /* Position line */
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: var(--divider-color);
+        }
+
+        .timeline-event {
+            margin-bottom: 25px;
+            position: relative;
+            cursor: pointer;
+             /* Filter visibility */
+             display: block; /* Default */
+        }
+         .timeline-event.hidden-by-filter {
+             display: none;
+         }
+
+        .timeline-event::before { /* Dot on the line */
+            content: '';
+            position: absolute;
+            left: -33px; /* Align with main line (adjust: -15px (line pos) - 8px (half width) = -23px... needs tweaking) */
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--bg-color); /* Match background */
+            border: 2px solid var(--divider-color);
+            z-index: 1;
+        }
+
+        /* Color coding the dot based on category */
+        .timeline-event[data-category="germination"]::before { border-color: var(--color-germination-accent); background-color: var(--color-germination); }
+        .timeline-event[data-category="fruiting"]::before { border-color: var(--color-fruiting-accent); background-color: var(--color-fruiting); }
+        .timeline-event[data-category="community"]::before { border-color: var(--color-community-accent); background-color: var(--color-community); }
+        .timeline-event[data-category="calendar"]::before { border-color: var(--color-calendar-accent); background-color: var(--color-calendar); }
+        .timeline-event[data-category="observation"]::before { border-color: var(--color-observation-accent); background-color: var(--color-observation); }
+
+        .event-summary {
+            padding: 10px 15px;
+            background-color: var(--label-bg);
+            border: 1px solid var(--divider-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .event-icon { font-size: 1.4rem; line-height: 1; }
+        .event-title { font-weight: bold; flex-grow: 1; }
+        .event-date { font-size: 0.85rem; color: #6c757d; white-space: nowrap; }
+        .event-toggle-icon { margin-left: auto; font-weight: bold; transition: transform 0.2s; }
+        .timeline-event.open .event-toggle-icon { transform: rotate(90deg); }
+
+        /* Details Section (Accordion Content) */
+        .event-details {
+            display: none; /* Hidden by default */
+            margin-top: 8px;
+            padding: 15px;
+            border: 1px dashed var(--divider-color);
+            border-radius: 6px;
+            background-color: #fff; /* White background for details */
+            font-size: 0.95rem;
+        }
+        .timeline-event.open .event-details { display: block; }
+
+         .event-details h4 { margin: 0 0 10px 0; font-size: 1.1rem; color: var(--accent-color); border-bottom: 1px solid var(--divider-color); padding-bottom: 4px; font-weight: normal; font-style: italic; }
+         .event-details p { margin-bottom: 10px; }
+         .event-details strong { font-weight: 600; color: var(--secondary-accent-color); }
+         .event-details ul { padding-left: 20px; margin-top: 8px; list-style: '– '; }
+         .event-details li { margin-bottom: 6px; }
+         .almanac-annotation { margin-top: 15px; padding: 10px; border: 1px dashed var(--divider-color); border-radius: 4px; background-color: #f9f6f2; font-size: 0.85rem; }
+         .almanac-annotation strong { color: var(--accent-color); display: block; margin-bottom: 5px; font-style: italic; }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>DM MS Cultivation Almanac</h1>
+        <button id="contrast-toggle" title="Toggle High Contrast Mode">🌓</button>
+    </header>
+
+    <nav class="filter-controls" id="filter-controls">
+        <!-- Filter buttons added by JS -->
+    </nav>
+
+    <main class="container">
+        <div class="timeline" id="timeline-list">
+            <!-- Timeline events added by JS -->
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Data (Simplified for Timeline/Details View) ---
+             // Combine relevant info into one structure per event
+             const almanacEntries = [
+                 // Fall Planting Season (Germination)
+                 { id: 'tl-task-rq', date: '2023-09-21', category: 'germination', icon: '🌱', title: 'Seeding RQs', details: '<h4>📝 Seeding Questions (Fall Task)</h4><p><strong>Target:</strong> Sep 21/26, \'23<br><strong>Yield Estimate:</strong> 15% Prep</p><p>Review the field (related projects), analyze soil composition (lit review themes), present initial growth plan (5-min). Mature plants show full progress (10-min).</p><strong>Nutrients Needed:</strong> Research Roots, Presentation Pollen<div class="almanac-annotation"><strong>🌱 Planting Tip:</strong> Sow questions widely, but select the strongest few for cultivation.</div>' },
+                 { id: 'tl-obs-slack', date: '2023-09-15', category: 'observation', icon: '🐞', title: 'Alt Hive? (Slack)', details: '<h4>🐞 Observation: Alternate Hive Location?</h4><p>Could migrating the community from Teams to Slack encourage more active buzzing and cross-pollination?</p><div class="almanac-annotation"><strong>🤔 Gardener\'s Query:</strong> Consult the head beekeepers (DM Reps) before relocating the hive.</div>' },
+                 { id: 'tl-task-lit', date: '2023-10-12', category: 'germination', icon: '🌱', title: 'Soil Analysis (Lit Review)', details: '<h4>📝 Soil Analysis Report (Fall Task)</h4><p><strong>Target:</strong> ~Oct 12, \'23<br><strong>Yield Estimate:</strong> 15% Prep</p><p>Detailed report on soil nutrients (literature) & conditions (technology). Structure findings clearly.</p><strong>Nutrients Needed:</strong> Research Roots, Writing Fertilizer' },
+                 { id: 'tl-obs-buddy', date: '2023-11-05', category: 'observation', icon: '🐞', title: 'Elder Pairing? (Alumni)', details: '<h4>🐞 Observation: Wisdom from Elder Plants?</h4><p>Could pairing fruiting plants with established alumni (Elder Plants) provide valuable guidance for navigating the final harvest?</p>' },
+                 { id: 'tl-task-web', date: '2023-11-01', category: 'germination', icon: '🌱', title: 'Plot Marker (Web Page)', details: '<h4>📝 Plot Marker & Growth Plan (Fall Task)</h4><p><strong>Target:</strong> Nov 1, \'23<br><strong>Yield Estimate:</strong> 30% Prep</p><p>Place project marker (web page). Refine growth plan (RQs, methodology). Check for necessary permits (IRB). Test soil for amendments needed (background work).</p><strong>Nutrients Needed:</strong> Web Trellis, Writing Fertilizer' },
+                 { id: 'tl-task-outline', date: '2023-11-29', category: 'germination', icon: '🌱', title: 'Trellis Plan (Outline)', details: '<h4>📝 Trellis Plan & Feasibility Check (Fall Task)</h4><p><strong>Target:</strong> Nov 29, \'23<br><strong>Yield Estimate:</strong> 30% Prep</p><p>Present growth structure (proposal). Show tools work (tech feasibility). Summarize soil report (lit review), sketch trellis (design criteria), document early sprouts (brainstorming).</p><strong>Nutrients Needed:</strong> Prototyping Sunlight, Presentation Pollen' },
+                 { id: 'tl-task-fall-observe', date: '2023-12-10', category: 'germination', icon: '📝', title: 'Fall Observation Report', details: '<h4>📝 Fall Field Observation Report</h4><p><strong>Target:</strong> ~Dec 10, \'23<br><strong>Yield Estimate:</strong> 10% Prep</p><p>Record of active participation & supportive cross-pollination (peer feedback) during the planting season.</p><div class="almanac-annotation"><strong>🧑‍🌾 Farmer\'s Note:</strong> Consistent observation prevents unexpected issues later in the season.</div>' },
+                 { id: 'tl-cal-fall-report', date: '2023-12-15', category: 'calendar', icon: '📅', title: 'Fall Season Report Due', details: '<h4>📅 Fall Season Report Due</h4><p><strong>Date:</strong> ~Dec 15, \'23</p><p>Submit records for Pass/Fail assessment of the planting season.</p>' },
+
+                 // Spring Growth Season (Fruiting)
+                  { id: 'tl-obs-hackathon', date: '2024-01-20', category: 'observation', icon: '🐞', title: 'Barn Raising? (Hackathon)', details: '<h4>🐞 Observation: Community Barn Raising?</h4><p>Could a focused build event (Hackathon) accelerate growth or foster new collaborations within the garden?</p>' },
+                 { id: 'tl-task-sprout', date: '2024-03-01', category: 'fruiting', icon: '🍓', title: 'First Sprouts Emerge', details: '<h4>🍓 First Sprouts Emerge (Spring Marker)</h4><p><strong>Target:</strong> ~Mar 1, \'24</p><p>First visible growth: complete draft or working prototype.</p><strong>Nutrients Needed:</strong> Prototyping Sunlight, Writing Fertilizer<div class="almanac-annotation"><strong>☀️ Weather Forecast:</strong> Early spring sun is vital. Ensure your sprouts get enough focused work time.</div>' },
+                 { id: 'tl-task-bloom', date: '2024-03-15', category: 'fruiting', icon: '🍓', title: 'First Bloom & Pest Check', details: '<h4>🍓 First Bloom & Pest Check (Spring Marker)</h4><p><strong>Target:</strong> ~Mar 15, \'24</p><p>Refined prototype/draft. Check for issues (user testing/evaluation) or conduct self-assessment (reflection).</p><strong>Nutrients Needed:</strong> Evaluation Water, Reflection Time<div class="almanac-annotation"><strong>🐞 Pest Alert:</strong> Watch for feedback bugs! Address them promptly through iteration.</div>' },
+                 { id: 'tl-task-fruit-set', date: '2024-04-01', category: 'fruiting', icon: '🍓', title: 'Fruit Set (Final Iter.)', details: '<h4>🍓 Fruit Set (Spring Marker)</h4><p><strong>Target:</strong> ~Apr 1, \'24</p><p>Near-final prototype/draft. Prepare harvest tools (final docs, slides). Practice for Harvest Festival.</p><strong>Nutrients Needed:</strong> Documentation Skills, Presentation Pollen' },
+                 { id: 'tl-task-video', date: '2024-04-07', category: 'fruiting', icon: '🍓', title: 'Growth Reel Ready', details: '<h4>🍓 Growth Reel Ready (Spring Marker)</h4><p><strong>Target:</strong> ~Apr 7, \'24</p><p>Visual summary (video) of the plant\'s journey.</p><strong>Nutrients Needed:</strong> Video Editing Tools' },
+                 { id: 'tl-cal-festival', date: '2024-04-15', category: 'calendar', icon: '📅', title: 'Harvest Festival (Pres.)', details: '<h4>📅 Harvest Festival (Presentations)</h4><p><strong>Date:</strong> ~Apr 15, \'24</p><p>Community gathering to showcase the season\'s yield (final presentations).</p><strong>Requires:</strong> Fruit Set, Presentation Pollen' },
+                 { id: 'tl-cal-harvest', date: '2024-05-01', category: 'calendar', icon: '📅', title: 'Final Harvest Deadline', details: '<h4>📅 Final Harvest Deadline</h4><p><strong>Date:</strong> ~May 1, \'24</p><p>Deliver the full yield: updated plot marker (website), growth reel (video), harvest records (docs/code/thesis).</p><strong>Requires:</strong> Fruit Set, Growth Reel<div class="almanac-annotation"><strong>🧑‍🌾 Farmer\'s Wisdom:</strong> A timely harvest ensures the best quality yield. Don't delay submission!</div>' },
+                 { id: 'tl-cal-spring-report', date: '2024-05-08', category: 'calendar', icon: '📅', title: 'Spring Season Report Due', details: '<h4>📅 Spring Season Report Due</h4><p><strong>Date:</strong> ~May 8, \'24</p><p>Submit final records for Spring season assessment (letter grade).</p>' },
+
+                 // Community Event (Example - could be repeated or use a range)
+                 { id: 'tl-gatherings', date: 'Ongoing', category: 'community', icon: '🐝', title: 'Community Gatherings', details: '<h4>🐝 Community Gatherings (Meetings)</h4><p><strong>Schedule:</strong> Alternating Weeks (Tue 5-6:30 / Thu 2-3:30).</p><p>Opportunities for pollination (peer feedback), sharing growth, and receiving sunlight (faculty feedback).</p><div class="almanac-annotation"><strong>🤝 Companion Planting:</strong> Attend regularly to benefit from diverse perspectives and support your fellow growers.</div>' },
+             ];
+
+            // --- DOM References ---
+            const timelineListEl = document.getElementById('timeline-list');
+            const filterControlsEl = document.getElementById('filter-controls');
+            const contrastToggleBtn = document.getElementById('contrast-toggle');
+
+            // --- Render Functions ---
+            function renderTimeline() {
+                timelineListEl.innerHTML = ''; // Clear existing
+                almanacEntries
+                    .sort((a, b) => {
+                        // Sort by date, handle 'Ongoing'
+                        if (a.date === 'Ongoing') return 1;
+                        if (b.date === 'Ongoing') return -1;
+                        return new Date(a.date) - new Date(b.date);
+                    })
+                    .forEach(entry => {
+                        const eventEl = document.createElement('div');
+                        eventEl.className = 'timeline-event';
+                        eventEl.dataset.id = entry.id;
+                        eventEl.dataset.category = entry.category; // For filtering and dot color
+
+                        eventEl.innerHTML = `
+                            <div class="event-summary" role="button" aria-expanded="false" aria-controls="details-${entry.id}">
+                                <span class="event-icon" aria-hidden="true">${entry.icon}</span>
+                                <span class="event-title">${entry.title}</span>
+                                <span class="event-date">${entry.date}</span>
+                                <span class="event-toggle-icon" aria-hidden="true">▶</span>
+                            </div>
+                            <div class="event-details" id="details-${entry.id}" role="region" aria-hidden="true">
+                                ${entry.details}
+                            </div>
+                        `;
+                        timelineListEl.appendChild(eventEl);
+                    });
+            }
+
+            function renderFilters() {
+                 const filters = [
+                    { id: 'all', label: 'All Stages' },
+                    { id: 'germination', label: '🌱 Germination' },
+                    { id: 'fruiting', label: '🍓 Fruiting' },
+                    { id: 'community', label: '🐝 Community' },
+                    { id: 'calendar', label: '📅 Calendar' },
+                     { id: 'observation', label: '🐞 Observations'} // Added filter for ideas/observations
+                 ];
+                 filterControlsEl.innerHTML = ''; // Clear
+                 filters.forEach(filter => {
+                     const button = document.createElement('button');
+                     button.className = 'filter-button';
+                     button.dataset.filter = filter.id;
+                     button.textContent = filter.label;
+                     if (filter.id === 'all') {
+                         button.classList.add('active'); // Default active
+                     }
+                     filterControlsEl.appendChild(button);
+                 });
+            }
+
+            // --- Event Handlers ---
+            function handleTimelineClick(event) {
+                const summaryEl = event.target.closest('.event-summary');
+                if (!summaryEl) return; // Click wasn't on a summary element
+
+                const eventEl = summaryEl.closest('.timeline-event');
+                const detailsEl = eventEl.querySelector('.event-details');
+                const isOpening = !eventEl.classList.contains('open');
+
+                 // Close other open items
+                 // document.querySelectorAll('.timeline-event.open').forEach(openEl => {
+                 //    if (openEl !== eventEl) {
+                 //       openEl.classList.remove('open');
+                 //       openEl.querySelector('.event-summary').setAttribute('aria-expanded', 'false');
+                 //       openEl.querySelector('.event-details').setAttribute('aria-hidden', 'true');
+                 //    }
+                 // });
+
+                // Toggle current item
+                eventEl.classList.toggle('open', isOpening);
+                summaryEl.setAttribute('aria-expanded', isOpening);
+                detailsEl.setAttribute('aria-hidden', !isOpening);
+            }
+
+            function handleFilterClick(event) {
+                if (!event.target.classList.contains('filter-button')) return;
+
+                const filterValue = event.target.dataset.filter;
+
+                // Update active button state
+                filterControlsEl.querySelectorAll('.filter-button').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filter === filterValue);
+                });
+
+                // Apply filter to timeline items
+                timelineListEl.querySelectorAll('.timeline-event').forEach(eventEl => {
+                    const category = eventEl.dataset.category;
+                    const show = filterValue === 'all' || category === filterValue;
+                    eventEl.classList.toggle('hidden-by-filter', !show);
+                });
+            }
+
+            function handleContrastToggle() {
+                document.body.classList.toggle('high-contrast');
+            }
+
+            // --- Initialization ---
+            renderTimeline();
+            renderFilters();
+
+            // Add Master Event Listener
+            timelineListEl.addEventListener('click', handleTimelineClick);
+            filterControlsEl.addEventListener('click', handleFilterClick);
+            contrastToggleBtn.addEventListener('click', handleContrastToggle);
+
+        }); // End DOMContentLoaded
+    </script>
+
+</body>
+</html>

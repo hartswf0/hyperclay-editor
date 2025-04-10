@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM MS Lifecycle - Text/Visual Toggle</title>
+    <!-- Import Vis.js CSS (needed for visual view) -->
+    <link href="https://unpkg.com/vis-network@latest/styles/vis-network.min.css" rel="stylesheet" type="text/css" />
+    <link href="https://unpkg.com/vis-timeline@latest/styles/vis-timeline-graph2d.min.css" rel="stylesheet" type="text/css" />
+
+    <style>
+        /* --- Base Styles (Copied from dm-time5, slightly adapted) --- */
+        :root {
+            /* -- Base Theme -- */
+            --bg-color: #f8f9fa;
+            --text-color: #343a40;
+            --accent-color: #007bff; /* Primary Blue */
+            --secondary-accent-color: #17a2b8; /* Info Cyan */
+            --divider-color: #dee2e6;
+            --label-bg: rgba(255, 255, 255, 0.9);
+            --label-text-color: var(--text-color);
+            --today-marker-color: #dc3545; /* Danger Red */
+            --focus-outline-color: var(--accent-color);
+            --highlight-color: #ffc107; /* Warning Yellow */
+            --highlight-border: #e0a800;
+
+            /* -- DM MS Color Coding -- */
+            --color-sprout: #28a745; --color-sprout-accent: #218838; /* Success Green */
+            --color-fruit: #fd7e14; --color-fruit-accent: #e85a00; /* Orange */
+            --color-all: #6f42c1; --color-all-accent: #5a2b9b; /* Indigo */
+            --color-milestone: #6c757d; --color-milestone-accent: #5a6268; /* Secondary Gray */
+            --color-skill: #17a2b8; --color-skill-accent: #117a8b; /* Info Cyan */
+            --color-support: #ffc107; --color-support-accent: #e0a800; /* Warning Yellow */
+            --color-idea: #e83e8c; --color-idea-accent: #c2185b; /* Pink */
+        }
+
+        /* --- High Contrast Mode (Copied) --- */
+        body.high-contrast {
+            --bg-color: #000000;
+            --text-color: #FFFFFF;
+            --accent-color: #FFFF00;
+            --secondary-accent-color: #00FFFF;
+            --divider-color: rgba(255, 255, 0, 0.5);
+            --label-bg: #000000;
+            --label-text-color: #FFFFFF;
+            --today-marker-color: #FF00FF;
+            --focus-outline-color: #FFFFFF;
+            --highlight-color: #FF69B4;
+            --highlight-border: #FF1493;
+
+            --color-sprout: #00FF00; --color-sprout-accent: #00FF00;
+            --color-fruit: #FFA500; --color-fruit-accent: #FFA500; /* Orange */
+            --color-all: #EE82EE; --color-all-accent: #EE82EE; /* Violet */
+            --color-milestone: #C0C0C0; --color-milestone-accent: #C0C0C0; /* Silver */
+            --color-skill: #00FFFF; --color-skill-accent: #00FFFF;
+            --color-support: #FFFF00; --color-support-accent: #FFFF00;
+            --color-idea: #FF00FF; --color-idea-accent: #FF00FF;
+        }
+        /* --- End High Contrast --- */
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0; padding: 0; color: var(--text-color);
+            background-color: var(--bg-color); overflow: hidden; /* Prevent body scroll */
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        .header-bar {
+             padding: 10px 20px; background-color: #e9ecef;
+             border-bottom: 1px solid var(--divider-color);
+             display: flex; justify-content: space-between; align-items: center;
+        }
+        h1 {
+            margin: 0; font-size: 1.4rem; color: #333; flex-grow: 1; text-align: center;
+        }
+        #contrast-toggle, #view-toggle { font-size: 0.8rem; padding: 5px 10px; margin-left: 10px; }
+
+        .controls {
+            padding: 8px; display: flex; justify-content: center; gap: 8px;
+            background-color: #f1f3f5; border-bottom: 1px solid var(--divider-color);
+            /* Controls initially hidden in text view, shown in visual */
+            display: none;
+        }
+        .controls button, .controls select {
+            padding: 5px 10px; border: 1px solid #ced4da; border-radius: 4px;
+            background-color: white; font-size: 0.85rem;
+        }
+         #month-nav { display: contents; } /* Integrate month nav */
+
+        /* --- View Containers --- */
+        .main-content-area {
+            flex: 1; /* Takes remaining height */
+            overflow: hidden; /* Prevent overflow */
+            position: relative;
+        }
+
+        /* Container for the visual elements (timeline, network, details) */
+        .visual-container {
+            display: flex; height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Container for the text-based view */
+        .text-view-container {
+            padding: 20px;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        /* Toggle Visibility */
+        body.show-visual-view .visual-container { display: flex; }
+        body.show-visual-view .text-view-container { display: none; }
+        body.show-visual-view .controls { display: flex; } /* Show controls in visual mode */
+
+        body.show-text-view .visual-container { display: none; }
+        body.show-text-view .text-view-container { display: block; }
+        body.show-text-view .controls { display: none; } /* Hide controls in text mode */
+
+        /* --- Styles for Visual Container elements (Copied from dm-time5) --- */
+        .left-panel {
+            flex: 3; display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+        }
+        .right-panel { /* Details Panel */
+            flex: 1; min-width: 250px; max-width: 40%;
+            border-left: 1px solid var(--divider-color);
+            display: flex; flex-direction: column;
+            overflow: hidden; position: relative;
+        }
+        /* Vertical Resize Handle */
+        .resize-handle-vertical {
+            width: 10px; cursor: ew-resize; background-color: #e9ecef;
+            border-left: 1px solid var(--divider-color); border-right: 1px solid var(--divider-color);
+            position: absolute; top: 0; bottom: 0; left: -5px; /* Center handle */
+            z-index: 10; display: flex; align-items: center; justify-content: center;
+        }
+        .resize-handle-vertical::after { content: "⋮"; color: #6c757d; font-size: 16px; }
+        /* Timeline Container */
+        #timeline-container {
+            height: 250px; min-height: 100px; max-height: 60%;
+            border-bottom: 1px solid var(--divider-color);
+            position: relative; overflow: hidden;
+        }
+         /* Horizontal Resize Handle */
+        .resize-handle-horizontal {
+            height: 10px; background-color: #e9ecef; cursor: ns-resize;
+            border-top: 1px solid var(--divider-color); border-bottom: 1px solid var(--divider-color);
+            position: absolute; bottom: -5px; left: 0; right: 0; z-index: 10;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .resize-handle-horizontal::after { content: "…"; color: #6c757d; font-size: 16px; letter-spacing: 2px; }
+        #timeline { width: 100%; height: 100%; }
+        /* Network Container */
+        #network-container {
+            flex: 1; position: relative; overflow: hidden;
+        }
+        #network {
+            width: 100%; height: 100%;
+            background-color: white; border: 1px solid transparent;
+        }
+         /* Details Panel Container */
+        #details-container {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .section-header {
+            padding: 8px 12px; background-color: #e9ecef;
+            border-bottom: 1px solid var(--divider-color); font-weight: 600;
+            font-size: 0.9rem; color: #495057;
+        }
+        #details-content {
+            padding: 15px; overflow-y: auto; flex: 1;
+            font-size: 0.9rem; line-height: 1.5;
+        }
+         #details-content h4 { margin: 15px 0 5px 0; font-size: 1rem; color: var(--accent-color); border-bottom: 1px solid var(--divider-color); padding-bottom: 3px;}
+         #details-content p { margin-bottom: 10px; }
+         #details-content strong { font-weight: 600; color: var(--secondary-accent-color); }
+         #details-content ul { padding-left: 20px; margin-top: 5px; }
+         #details-content li { margin-bottom: 4px; }
+         .details-meta { font-size: 0.8rem; color: #6c757d; margin-top: 10px; }
+         .details-meta span { margin-right: 15px; }
+
+        /* --- Vis.js Customizations (Copied) --- */
+        .vis-timeline { border: none; }
+        .vis-item { font-size: 0.75rem; padding: 4px 6px; border-radius: 4px; }
+        /* Timeline Group Styles */
+        .vis-left .vis-group.sprout { border-left: 3px solid var(--color-sprout); }
+        .vis-left .vis-group.fruit { border-left: 3px solid var(--color-fruit); }
+        .vis-left .vis-group.all { border-left: 3px solid var(--color-all); }
+        .vis-left .vis-group.milestone { border-left: 3px solid var(--color-milestone); }
+        /* Timeline Item Styles */
+        .vis-item.deliverable-fall { background-color: var(--color-sprout); border-color: var(--color-sprout-accent); color: white; }
+        .vis-item.deliverable-spring { background-color: var(--color-fruit); border-color: var(--color-fruit-accent); color: white; }
+        .vis-item.meeting-workshop { background-color: var(--color-all); border-color: var(--color-all-accent); color: white; }
+        .vis-item.milestone { background-color: var(--color-milestone); border-color: var(--color-milestone-accent); color: white; }
+        .vis-item.idea { background-color: var(--color-idea); border-color: var(--color-idea-accent); color: white; opacity: 0.8; }
+        /* Highlight Styles */
+        .vis-item.highlighted-item {
+            background-color: var(--highlight-color) !important;
+            border-color: var(--highlight-border) !important;
+            box-shadow: 0 0 8px var(--highlight-color);
+            color: #333 !important; z-index: 10 !important;
+        }
+        /* Today Marker */
+         #today-marker-timeline {
+             position: absolute; top: 0; bottom: 0;
+             width: 2px; background-color: var(--today-marker-color);
+             z-index: 1; pointer-events: none;
+             opacity: 0.7;
+         }
+        /* Tooltip */
+        div.vis-tooltip {
+            font-family: system-ui, -apple-system, sans-serif !important;
+            padding: 8px 10px !important;
+            background-color: var(--label-bg) !important;
+            border: 1px solid var(--divider-color) !important;
+            color: var(--label-text-color) !important;
+            border-radius: 4px !important; box-shadow: 2px 2px 10px rgba(0,0,0,0.15) !important;
+            white-space: normal !important; max-width: 300px !important;
+        }
+        /* Network Node Highlighting (Applied via JS) */
+
+        /* --- Styles for Text View --- */
+        .text-view-container h2 {
+            margin-top: 0;
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--divider-color);
+            padding-bottom: 5px;
+        }
+        .text-view-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        .text-view-table th, .text-view-table td {
+            border: 1px solid var(--divider-color);
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .text-view-table th {
+            background-color: #e9ecef;
+            font-weight: 600;
+        }
+        .text-view-table tr:nth-child(even) { background-color: #f8f9fa; }
+        .text-view-table td:first-child { width: 120px; } /* Date column */
+        .text-view-table td:nth-child(2) { width: 180px; } /* Item column */
+
+    </style>
+</head>
+<body class="show-text-view"> <!-- Start in text view -->
+
+    <div class="header-bar">
+        <h1>DM MS Student Lifecycle (2023-2024) - Toggle View</h1>
+        <div>
+            <button id="view-toggle" title="Switch View">Show Visual</button>
+            <button id="contrast-toggle" title="Toggle High Contrast Mode">Contrast</button>
+        </div>
+    </div>
+
+    <div class="controls"> <!-- Initially hidden -->
+        <button id="zoomIn" title="Zoom Network In">+</button>
+        <button id="zoomOut" title="Zoom Network Out">−</button>
+        <button id="resetView" title="Reset Network View">Reset View</button>
+        <select id="filterSelect" title="Filter by Category">
+            <option value="all">All Categories</option>
+            <option value="sprout">🌱 Sprouts (1st Yr)</option>
+            <option value="fruit">🍓 Fruits (2nd Yr)</option>
+            <option value="deliverables">Deliverables</option>
+            <option value="milestones">⏱️ Milestones</option>
+            <option value="support">🤝 Support & Skills</option>
+            <option value="ideas">💡 Ideas</option>
+        </select>
+        <div id="month-nav"></div> <!-- Month nav buttons will go here -->
+    </div>
+
+    <div class="main-content-area">
+        <!-- Text View Container -->
+        <div id="text-view-container" class="text-view-container">
+            <h2>Program Outline</h2>
+            <div id="text-content-area">
+                <!-- Text content will be populated here -->
+                <p>Loading text view...</p>
+            </div>
+        </div>
+
+        <!-- Visual View Container (Structure from dm-time5) -->
+        <div class="visual-container">
+            <div class="left-panel" id="left-panel">
+                <div id="timeline-container">
+                    <div id="timeline"></div>
+                    <div id="today-marker-timeline" title="Today"></div>
+                    <div class="resize-handle-horizontal" id="h-resizer"></div>
+                </div>
+                <div id="network-container">
+                    <div id="network"></div>
+                </div>
+            </div>
+            <div class="resize-handle-vertical" id="v-resizer"></div>
+            <div class="right-panel" id="right-panel">
+                <div id="details-container">
+                    <div class="section-header">Details</div>
+                    <div id="details-content">
+                        <p>Select an item to see details.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Vis.js Libraries -->
+    <script type="text/javascript" src="https://unpkg.com/vis-timeline@latest/standalone/umd/vis-timeline-graph2d.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/vis-network@latest/standalone/umd/vis-network.min.js"></script>
+
+    <script type="text/javascript">
+        // JAVASCRIPT WILL BE ADDED HERE IN THE NEXT STEP
+    </script>
+</body>
+</html>

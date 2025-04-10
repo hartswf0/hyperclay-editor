@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM MS Program Arc - Sprout & Fruit Timeline</title>
+    <style>
+        /* Basic Reset & Body Style */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.7; /* Slightly increased line height */
+            margin: 0;
+            padding: 25px;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+
+        h1, h2, h3, h4 {
+            color: #0056b3;
+            margin-bottom: 0.6em;
+            font-weight: 600; /* Slightly bolder headings */
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.1em;
+            color: #003d80;
+        }
+        h2 {
+             border-bottom: 2px solid #0056b3;
+             padding-bottom: 8px;
+             margin-top: 2em;
+             font-size: 1.7em;
+        }
+        h3 {
+            color: #0069d9; /* Brighter blue for sub-section */
+            margin-top: 1.2em;
+            font-size: 1.3em;
+        }
+         h4 {
+             font-style: normal; /* Removed italic */
+             font-weight: 600;
+             color: #495057; /* Darker grey */
+             margin-top: 1em;
+             margin-bottom: 0.5em;
+             font-size: 1.1em;
+         }
+
+        code, .code-block {
+            background-color: #e9ecef;
+            padding: 0.2em 0.5em;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            color: #495057;
+        }
+        .key-term { /* New style for bracketed terms */
+            font-weight: 600;
+            color: #0056b3; /* Match heading color */
+        }
+        .code-block {
+            display: block;
+            padding: 12px;
+            margin: 12px 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            border: 1px solid #dee2e6;
+        }
+
+        strong.milestone-marker-text { /* Style for the checkmark */
+             color: #28a745;
+             font-weight: 700; /* Bolder */
+             font-size: 1.15em; /* Slightly larger */
+             margin-left: 3px;
+        }
+
+        .highlight {
+            background-color: #ffeeba; /* Standard warning yellow */
+            padding: 2px 5px;
+            border-radius: 3px;
+            border: 1px solid #ffdb8f;
+        }
+
+        .year-icon {
+             font-size: 1.2em;
+             margin-right: 5px;
+             vertical-align: -2px;
+        }
+
+        .required-milestone-label {
+             font-weight: 700;
+             color: #28a745; /* Green color like the checkmark */
+             margin-right: 5px;
+        }
+
+        .milestone-label {
+            display: inline-block;
+            padding: 8px 15px;
+            background-color: #6c757d; /* Neutral base */
+            color: #fff;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            font-weight: 600;
+            font-size: 1.05em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.1);
+            position: relative; /* Needed for pseudo-element */
+            padding-right: 30px; /* Space for indicator */
+        }
+        .milestone-label::after { /* Add indicator */
+            content: '+';
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: transform 0.3s ease-out;
+        }
+        .milestone-label.active-marker::after { /* Change indicator when active */
+             content: '−'; /* Use minus sign */
+             transform: translateY(-50%);
+        }
+
+        /* Year specific label colors */
+        .year-1 .milestone-label { background-color: #17a2b8; } /* Teal */
+        .year-bridge .milestone-label { background-color: #ffc107; color: #343a40; } /* Yellow */
+        .year-2 .milestone-label { background-color: #fd7e14; } /* Orange */
+
+        .milestone-label:hover { transform: translateY(-2px); filter: brightness(110%); }
+        .milestone-label.active-marker { filter: brightness(90%); }
+
+
+        /* Milestone Content (Details) */
+        .milestone-content {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08); /* Softer shadow */
+            margin-top: 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.6s ease-out, padding 0.6s ease-out, opacity 0.6s ease-out;
+            opacity: 0;
+            text-align: left;
+            border-left: 6px solid #6c757d; /* Default border */
+        }
+         /* Year specific border colors */
+        .year-1 .milestone-content { border-left-color: #17a2b8; }
+        .year-bridge .milestone-content { border-left-color: #ffc107; }
+        .year-2 .milestone-content { border-left-color: #fd7e14; }
+
+
+        .milestone-content.active {
+            max-height: 2500px; /* Increased max height */
+            padding: 25px;
+            opacity: 1;
+            transition: max-height 0.8s ease-in, padding 0.8s ease-in, opacity 0.8s ease-in;
+        }
+
+        .milestone-content h3 {
+            margin-top: 0;
+            color: #0056b3;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+         .milestone-content ul {
+            list-style: none;
+            padding-left: 10px; /* Adjusted padding */
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+        .milestone-content li {
+            margin-bottom: 12px; /* Increased spacing */
+            position: relative;
+            padding-left: 25px;
+        }
+        .milestone-content li::before {
+            content: '▸'; /* Different bullet */
+            position: absolute;
+            left: 5px;
+            color: #007bff;
+            font-weight: bold;
+            font-size: 1.1em;
+            top: 0px;
+        }
+
+        /* Supporting Concepts Section */
+        .supporting-concepts {
+            width: 95%;
+            max-width: 1100px;
+            margin: 60px auto;
+            padding: 30px;
+            background-color: #f1f3f5; /* Light grey background */
+            border: 1px solid #dee2e6;
+            border-left: 6px solid #0056b3;
+            border-radius: 8px;
+        }
+         .supporting-concepts h2 {
+             margin-top: 0;
+             border-bottom: 2px solid #0056b3;
+             padding-bottom: 10px;
+             font-size: 1.8em;
+         }
+        .supporting-concepts ul {
+             list-style: none;
+             padding-left: 0;
+             margin-top: 15px;
+        }
+         .supporting-concepts li {
+             margin-bottom: 12px;
+             padding-left: 25px;
+             position: relative;
+         }
+         .supporting-concepts li::before {
+             content: '✵'; /* Different icon */
+             position: absolute;
+             left: 0;
+             color: #0056b3;
+             font-size: 1em;
+             top: 2px;
+         }
+         .supporting-concepts h3 {
+             margin-top: 1.5em;
+             margin-bottom: 0.5em;
+             color: #0056b3;
+             font-size: 1.4em; /* Larger heading */
+         }
+
+
+        /* Responsive Adjustments */
+        @media screen and (max-width: 900px) {
+            .timeline-axis { left: 25px; }
+            .timeline-milestone { width: 100%; padding-left: 60px; padding-right: 15px; left: 0 !important; text-align: left !important; margin-bottom: 40px; }
+            .timeline-milestone:nth-child(odd),
+            .timeline-milestone:nth-child(even) { padding-left: 60px; padding-right: 15px; text-align: left !important; }
+            .milestone-marker { left: 15px !important; transform: none !important; width: 16px; height: 16px; border-width: 3px; top: 20px; }
+            .milestone-label { font-size: 1em; padding: 7px 14px; }
+        }
+         @media screen and (max-width: 600px) {
+            body { padding: 15px; }
+            h1 { font-size: 1.8em; }
+            .timeline-axis { left: 20px; }
+            .timeline-milestone { padding-left: 50px; }
+            .milestone-marker { left: 12px !important; }
+            .milestone-content { padding: 20px; }
+            .supporting-concepts { padding: 20px; }
+            .supporting-concepts h2 { font-size: 1.5em; }
+            .supporting-concepts h3 { font-size: 1.2em; }
+         }
+
+    </style>
+</head>
+<body>
+
+    <h1>Digital Media MS Program Arc <br><span style="font-size: 0.7em; color: #495057;">(Sprout & Fruit Timeline)</span></h1>
+
+    <div class="timeline-container">
+        <div class="timeline-axis"></div>
+
+        <!-- TERM 1 -->
+        <div class="timeline-milestone year-1">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="term1-content">TERM 1: Orientation & Field Definition (Months 8–12)</span>
+            <div class="milestone-content" id="term1-content">
+                 <h3><span class="year-icon">🌱</span>Primary Focus: Year 1 / Sprouts</h3>
+                 <h4>Key Activities & Goals (Aug - Dec)</h4>
+                 <ul>
+                    <li>Enter Atlanta context / Begin forming initial project direction (<span class="key-term">Sprout Intent</span>).</li>
+                    <li>Attend <span class="key-term">DM Talks</span>, meet faculty, assess fit with your <span class="key-term">Sprout Intent</span>.</li>
+                    <li>Identify primary advisor (<span class="key-term">faculty Farmer</span>).</li>
+                    <li>Define field of inquiry + outline direction of travel.</li>
+                 </ul>
+                 <h4>Key Deliverable</h4>
+                 <ul>
+                     <li><span class="required-milestone-label">Required:</span> Submit <span class="key-term">1-paragraph summary</span> to Program <strong class="milestone-marker-text">✅</strong>.</li>
+                 </ul>
+            </div>
+        </div>
+
+        <!-- TERM 2 -->
+        <div class="timeline-milestone year-1">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="term2-content">TERM 2: Discovery & Proposal (Months 1–4)</span>
+            <div class="milestone-content" id="term2-content">
+                 <h3><span class="year-icon">🌱</span>Primary Focus: Year 1 / Sprouts</h3>
+                 <h4>Key Activities & Goals (Jan - Apr)</h4>
+                 <ul>
+                    <li>Conduct <span class="key-term">literature review</span>.</li>
+                    <li>Develop <span class="key-term">problem statement</span>, <span class="key-term">research question</span>, and <span class="key-term">approach</span>.</li>
+                    <li>Draft <span class="key-term">Proposal v1</span> (5–6 pages) including schedule.</li>
+                    <li>Prototype conceptual coherence between research and potential fieldwork.</li>
+                 </ul>
+                  <h4>Key Deliverable</h4>
+                 <ul>
+                    <li><span class="required-milestone-label">Required:</span> Submit <span class="key-term">IRB Discovery Proposal</span> <strong class="milestone-marker-text">✅</strong> (enables summer fieldwork).</li>
+                 </ul>
+            </div>
+        </div>
+
+        <!-- SUMMER -->
+        <div class="timeline-milestone year-bridge">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="summer-content">SUMMER: Data Collection & Reflection (Months 5–7)</span>
+            <div class="milestone-content" id="summer-content">
+                 <h3><span class="year-icon">☀️</span>Focus: Both Sprouts & Fruits</h3>
+                 <h4>Key Activities & Goals (May - Aug)</h4>
+                 <ul>
+                    <li>Collect <span class="key-term">extra data</span> (<span class="key-term">interviews</span>, <span class="key-term">probes</span>, <span class="key-term">workshops</span>, archives) - requires <span class="key-term">IRB Discovery</span> approval.</li>
+                    <li>Engage <span class="key-term">real-world contexts</span> (optional internship).</li>
+                    <li>Reorient <span class="key-term">project direction</span> based on new insights.</li>
+                 </ul>
+            </div>
+        </div>
+
+        <!-- TERM 3 -->
+        <div class="timeline-milestone year-2">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="term3-content">TERM 3: Design Criteria & Prototyping (Months 8–12)</span>
+            <div class="milestone-content" id="term3-content">
+                <h3><span class="year-icon">🍇</span>Primary Focus: Year 2 / Fruits</h3>
+                 <h4>Key Activities & Goals (Sep - Dec)</h4>
+                 <ul>
+                    <li>Analyze summer data + <span class="key-term">literature review</span>.</li>
+                    <li>Synthesize findings into <span class="key-term">design criteria</span> (e.g., “must be unpredictable”) - defines rubric for final defense.</li>
+                    <li>Develop <span class="key-term">technical prototype v1</span> (feasibility-focused).</li>
+                    <li>Initiate <span class="key-term">studio-led iteration</span> (divergence emerges here).</li>
+                 </ul>
+                <h4>Key Deliverables</h4>
+                 <ul>
+                     <li><span class="required-milestone-label">Required:</span> Submit <span class="key-term">IRB Evaluation Proposal</span> <strong class="milestone-marker-text">✅</strong> (for Term 4 testing/publishing).</li>
+                     <li><span class="required-milestone-label">Required:</span> Submit <span class="key-term">Website v1</span> <strong class="milestone-marker-text">✅</strong> (public artifact presence).</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- TERM 4 -->
+        <div class="timeline-milestone year-2">
+            <div class="milestone-marker"></div>
+            <span class="milestone-label" data-target="term4-content">TERM 4: Implementation, Eval & Defense (Months 1–5)</span>
+            <div class="milestone-content" id="term4-content">
+                 <h3><span class="year-icon">🍇</span>Primary Focus: Year 2 / Fruits</h3>
+                  <h4>Key Activities & Goals (Jan - Apr/May)</h4>
+                 <ul>
+                     <li>Implement refined <span class="key-term">prototype v2</span>.</li>
+                     <li>Conduct <span class="key-term">evaluation</span> of v2 (requires <span class="key-term">IRB Evaluation</span> approval from T3).</li>
+                     <li>Compile <span class="key-term">Final Documentation</span> (includes lit review, PS, RQ, approach, criteria, results).</li>
+                     <li><span class="key-term">Defend</span> project using rubric based on own <span class="key-term">design criteria</span>.</li>
+                     <li><span class="key-term">Publish</span> results if IRB path is complete.</li>
+                </ul>
+                 <h4>Key Deliverables</h4>
+                  <ul>
+                     <li><span class="required-milestone-label">Required:</span> Submit <span class="key-term">Final Video</span> <strong class="milestone-marker-text">✅</strong> (pre-defense).</li>
+                     <li><span class="required-milestone-label">Required:</span> Submit <span class="key-term">Final Documentation</span> <strong class="milestone-marker-text">✅</strong> (often combined into the <span class="key-term">Final Treasure</span>).</li>
+                 </ul>
+            </div>
+        </div>
+
+    </div> <!-- End Timeline Container -->
+
+    <!-- Supporting Concepts Section -->
+    <div class="supporting-concepts">
+        <h2>Guiding Principles & Supporting Structures</h2>
+
+        <h3>Studio Reality: Flexibility & Iteration</h3>
+        <ul>
+            <li><strong>No Single Pathway:</strong> Affirmed principle; timeline is a scaffold.</li>
+            <li><strong>Deviation Supported:</strong> Expect pivots based on studio work, research, mentorship, interest.</li>
+            <li><strong>Versioning is Key:</strong> V1 → V2+ expected for Proposals, Prototypes, IRBs.</li>
+            <li><strong>Capture the Journey:</strong> Document all iterations in shared folder; combine into <code class="key-term">Final Treasure</code> (DM process/depth focus).</li>
+        </ul>
+
+        <h3>Program & Cohort Logic (🌱 Sprouts & 🍇 Fruits)</h3>
+        <ul>
+            <li><strong>Institutional Milestones (✅):</strong> Mandatory submission points ("Green Boxes").</li>
+            <li><strong>IRB Dependency Chain:</strong> T2 Discovery → TSummer Data → T3 Evaluation → T4 Testing/Publication.</li>
+            <li><strong>Criteria as Anchor:</strong> T3 Design Criteria link T2/TSummer work to T4 Defense Rubric, providing continuity.</li>
+            <li><strong>Cohort Blending:</strong> Sprouts (Year 1 focus: T1-T2) and Fruits (Year 2 focus: T3-T4) blended in <code class="key-term">Project Studio</code>.</li>
+            <li><strong>Peer Mentorship:</strong> Fruits mentor Sprouts (IRB examples, project insights); Fruits may take legacy roles (reviewers, mentors).</li>
+        </ul>
+
+         <h3>Feedback, Continuity & Support Needs</h3>
+         <ul>
+            <li><strong>Feedback System:</strong> Need to institutionalize feedback loops (at touchpoints like IRB, reviews), store/reuse student/alumni reflections.</li>
+            <li><strong>Distinguishing Feedback:</strong> Train staff to parse critique vs. "Emotional noise" (stress, jobs).</li>
+            <li><strong>Alumni Knowledge Loss:</strong> Address via structured archiving (templates, pathways, videos).</li>
+            <li><strong>Portfolio Focus:</strong> Desire for embedded reviews, alumni showcases, critique sessions, help narrativizing work.</li>
+            <li><strong>Temporal GPS Request:</strong> Need tools (calendars, checklists) to combat "Temporal uncertainty."</li>
+            <li><strong>Program Continuity:</strong> Evolve arc via feedback, layering cohorts, archiving knowledge.</li>
+         </ul>
+
+         <h3>Potential Conflict Zones & Challenges</h3>
+         <ul>
+            <li><strong>Faculty Fit (T1):</strong> Early mismatch is problematic.</li>
+            <li><strong>Sprout/Fruit Dynamics:</strong> Mentorship vs. timeline friction in Studio.</li>
+            <li><strong>T3 → T4 Handoff:</strong> Can feel abrupt; Design Criteria aim to bridge this.</li>
+            <li><strong>Bureaucratic Drag:</strong> IRB delays impact T4 schedule significantly.</li>
+         </ul>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const labels = document.querySelectorAll('.milestone-label');
+
+            labels.forEach(label => {
+                label.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const content = document.getElementById(targetId);
+                    const isActive = content && content.classList.contains('active'); // Check if content exists
+
+                     // Close all others first
+                     labels.forEach(otherLabel => {
+                         if (otherLabel !== this) {
+                             const otherTargetId = otherLabel.getAttribute('data-target');
+                             const otherContent = document.getElementById(otherTargetId);
+                             if (otherContent && otherContent.classList.contains('active')) {
+                                 otherContent.classList.remove('active');
+                                 otherLabel.classList.remove('active-marker');
+                             }
+                         }
+                     });
+
+                    // Now toggle the clicked one if it exists
+                    if (content) {
+                        if (isActive) {
+                           // Already open, so close it
+                           content.classList.remove('active');
+                           this.classList.remove('active-marker');
+                        } else {
+                           // Closed, so open it
+                           content.classList.add('active');
+                           this.classList.add('active-marker');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

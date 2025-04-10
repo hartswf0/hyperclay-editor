@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM Program Gantt Chart</title>
+    <style>
+        body { font-family: sans-serif; padding: 2em; }
+        h1 { text-align: center; }
+        .mermaid { text-align: center; margin-top: 2em; }
+        .back-link { display: inline-block; margin-bottom: 2em; padding: 0.5em 1em; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; text-decoration: none; color: #333; }
+        .back-link:hover { background-color: #e0e0e0; }
+        code { background-color: #eee; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&laquo; Back to Resources</a>
+    <h1>DM Program Timeline - Gantt Chart (Approximate)</h1>
+    <p style="text-align:center; font-style: italic;">This chart visualizes the approximate timing and overlap of key activities and milestones across the program terms. Dates are illustrative.</p>
+
+    <pre class="mermaid">
+        gantt
+            dateFormat  YYYY-MM-DD
+            %% Removed axisFormat, using explicit tickInterval instead %%
+            tickInterval 1month
+            title DM Program Timeline (Approximate Monthly View)
+            %% Dates are illustrative estimates %%
+
+            section Term 1 (Fall Y1)
+            Define Sprout Intent    :a1, 2024-08-19, 4w
+            Select Faculty Farmer   :a2, 2024-08-19, 2w
+            Define Field of Inquiry :a3, after a1, 8w
+            Submit 1-Paragraph Summary : milestone, ms1, 2024-12-13, 1d
+
+            section Term 2 (Spring Y1)
+            Conduct Literature Review :a4, 2025-01-13, 8w
+            Develop Proposal v1     :a5, after a4, 8w
+            Submit IRB Discovery Proposal : milestone, ms2, 2025-04-25, 1d
+
+            section Summer Y1
+            Conduct Data Collection / Internship :a6, 2025-05-05, 12w
+            Reflect & Reorient Project Direction :a7, after a6, 4w
+
+            section Term 3 (Fall Y2)
+            Synthesize Data & Define Design Criteria :a8, 2025-08-18, 6w
+            Develop Technical Prototype v1 :a9, after a8, 8w
+            Submit IRB Evaluation Proposal :a10, after a9, 4w
+            Submit Website v1 : milestone, ms3, 2025-12-12, 1d
+
+            section Term 4 (Spring Y2)
+            Implement Technical Prototype v2 :a11, 2026-01-12, 8w
+            Conduct Evaluation Study :a12, after a11, 6w
+            Compile Final Documentation :a13, after a12, 4w
+            Submit Final Video :a14, after a13, 1w
+            Thesis Defense : milestone, ms4, 2026-05-15, 1d
+    </pre>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>

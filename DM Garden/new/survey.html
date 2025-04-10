@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM Program Feedback Survey</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; padding: 2em; max-width: 800px; margin: auto; }
+        h1, h2, h3 { border-bottom: 1px solid #ccc; padding-bottom: 0.3em; margin-top: 1.5em; }
+        h3 { font-size: 1.1em; border-bottom-style: dashed; margin-top: 2em; }
+        .question-group { margin-bottom: 2em; padding: 1em; border: 1px solid #eee; border-radius: 5px; background-color: #fdfdfd; }
+        label { display: block; margin-bottom: 0.5em; font-weight: bold; }
+        textarea, select { width: 95%; padding: 0.5em; margin-bottom: 1em; border: 1px solid #ccc; border-radius: 3px; }
+        code { background-color: #eee; padding: 0.2em 0.4em; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
+        .likert-scale { margin-bottom: 1em; }
+        .likert-scale legend { font-weight: bold; margin-bottom: 0.5em; display: block; } /* Use legend for accessibility */
+        .likert-scale label { font-weight: normal; display: inline-block; margin-right: 1em; margin-bottom: 0; }
+        .likert-scale input[type="radio"] { margin-right: 0.3em; }
+        .term-section { margin-top: 1.5em; padding-top: 1.5em; border-top: 1px dashed #ddd; }
+        .back-link { display: inline-block; margin-bottom: 2em; padding: 0.5em 1em; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; text-decoration: none; color: #333; }
+        .back-link:hover { background-color: #e0e0e0; }
+        .scale-desc { font-size: 0.85em; color: #555; margin-bottom: 0.5em; }
+        .optional-label { font-weight: normal; font-style: italic; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">&laquo; Back to Resources</a>
+    <h1>DM Program Feedback Survey</h1>
+    <p>Thank you for providing feedback on the Digital Media Master's program. Your insights help us understand student experiences and improve the program, aligning it with its core principles of flexibility, iteration, and cohort support.</p>
+
+    <form action="#" method="post"> <!-- Placeholder action -->
+
+        <div class="question-group">
+            <h2>Overall Program Experience & Structure</h2>
+
+            <label for="experience_flexibility">Did you feel you had the flexibility to explore different directions or adjust your project goals during the program? Please describe your experience.</label>
+            <textarea id="experience_flexibility" name="experience_flexibility" rows="3"></textarea>
+
+            <fieldset class="likert-scale">
+                <legend>How easy or difficult was it to manage changes to your project over different terms (e.g., tracking ideas, documenting shifts in direction)?</legend>
+                <span class="scale-desc">1 = Very Difficult, 5 = Very Easy</span><br>
+                <label><input type="radio" name="manage_changes" value="1"> 1</label>
+                <label><input type="radio" name="manage_changes" value="2"> 2</label>
+                <label><input type="radio" name="manage_changes" value="3"> 3</label>
+                <label><input type="radio" name="manage_changes" value="4"> 4</label>
+                <label><input type="radio" name="manage_changes" value="5"> 5</label>
+            </fieldset>
+            <label for="manage_changes_comments">Optional: What methods or tools did you use, or wish you had, for managing project evolution?</label>
+            <textarea id="manage_changes_comments" name="manage_changes_comments" rows="2"></textarea>
+
+            <fieldset class="likert-scale">
+                <legend>How clear was the overall goal or expectation for the final project by the end of the program?</legend>
+                <span class="scale-desc">1 = Very Unclear, 5 = Very Clear</span><br>
+                <label><input type="radio" name="final_goal_clarity" value="1"> 1</label>
+                <label><input type="radio" name="final_goal_clarity" value="2"> 2</label>
+                <label><input type="radio" name="final_goal_clarity" value="3"> 3</label>
+                <label><input type="radio" name="final_goal_clarity" value="4"> 4</label>
+                <label><input type="radio" name="final_goal_clarity" value="5"> 5</label>
+            </fieldset>
+
+            <fieldset class="likert-scale">
+                <legend>If you significantly changed your project's direction, how helpful was the support you received (from faculty, peers, etc.)?</legend>
+                <span class="scale-desc">1 = Not at all Effective, 5 = Very Effective</span><br>
+                <label><input type="radio" name="change_support" value="1"> 1</label>
+                <label><input type="radio" name="change_support" value="2"> 2</label>
+                <label><input type="radio" name="change_support" value="3"> 3</label>
+                <label><input type="radio" name="change_support" value="4"> 4</label>
+                <label><input type="radio" name="change_support" value="5"> 5</label>
+                <label><input type="radio" name="change_support" value="na"> N/A (Did not change significantly)</label>
+            </fieldset>
+            <label for="structure_comments">Optional: Further comments on the program's overall structure or your experience navigating it.</label>
+            <textarea id="structure_comments" name="structure_comments" rows="3"></textarea>
+        </div>
+
+        <div class="question-group">
+            <h2>Your Experiences Term-by-Term (Reflect on each term you completed)</h2>
+            <p>Reflect on each phase, considering goals, workload, support, and any significant deviations or challenges.</p>
+            <span class="scale-desc">Scale for ratings below: 1 = Strongly Disagree / Very Poor, 5 = Strongly Agree / Very Good</span>
+
+            <div class="term-section">
+                <h3>Term 1 (T1 - Fall Y1/Accel)</h3>
+                <fieldset class="likert-scale">
+                    <legend>During T1, how clear were the main goals and expectations for your work?</legend>
+                    <span class="scale-desc">1 = Very Unclear, 5 = Very Clear</span><br>
+                    <label><input type="radio" name="t1_clarity" value="1"> 1</label>
+                    <label><input type="radio" name="t1_clarity" value="2"> 2</label>
+                    <label><input type="radio" name="t1_clarity" value="3"> 3</label>
+                    <label><input type="radio" name="t1_clarity" value="4"> 4</label>
+                    <label><input type="radio" name="t1_clarity" value="5"> 5</label>
+                    <label><input type="radio" name="t1_clarity" value="na"> N/A</label>
+                </fieldset>
+                <fieldset class="likert-scale">
+                    <legend>How manageable did you find the workload during T1?</legend>
+                    <span class="scale-desc">1 = Very Unmanageable, 5 = Very Manageable</span><br>
+                    <label><input type="radio" name="t1_workload" value="1"> 1</label>
+                    <label><input type="radio" name="t1_workload" value="2"> 2</label>
+                    <label><input type="radio" name="t1_workload" value="3"> 3</label>
+                    <label><input type="radio" name="t1_workload" value="4"> 4</label>
+                    <label><input type="radio" name="t1_workload" value="5"> 5</label>
+                    <label><input type="radio" name="t1_workload" value="na"> N/A</label>
+                </fieldset>
+                <fieldset class="likert-scale">
+                    <legend>How helpful was the support (from faculty, peers, etc.) you received during T1?</legend>
+                    <span class="scale-desc">1 = Very Inadequate, 5 = Very Adequate</span><br>
+                    <label><input type="radio" name="t1_support" value="1"> 1</label>
+                    <label><input type="radio" name="t1_support" value="2"> 2</label>
+                    <label><input type="radio" name="t1_support" value="3"> 3</label>
+                    <label><input type="radio" name="t1_support" value="4"> 4</label>
+                    <label><input type="radio" name="t1_support" value="5"> 5</label>
+                    <label><input type="radio" name="t1_support" value="na"> N/A</label>
+                </fieldset>
+                <label for="t1_comments">Optional: Please share any significant challenges or positive experiences you had during T1.</label>
+                <textarea id="t1_comments" name="t1_comments" rows="2"></textarea>
+            </div>
+
+            <div class="term-section">
+                <h3>Term 2 (T2 - Spring Y1/Accel)</h3>
+                <fieldset class="likert-scale">
+                    <legend>During T2, how clear were the main goals and expectations for your work?</legend>
+                    <span class="scale-desc">1 = Very Unclear, 5 = Very Clear</span><br>
+                     <label><input type="radio" name="t2_clarity" value="1"> 1</label>
+                     <label><input type="radio" name="t2_clarity" value="2"> 2</label>
+                     <label><input type="radio" name="t2_clarity" value="3"> 3</label>
+                     <label><input type="radio" name="t2_clarity" value="4"> 4</label>
+                     <label><input type="radio" name="t2_clarity" value="5"> 5</label>
+                     <label><input type="radio" name="t2_clarity" value="na"> N/A</label>
+                </fieldset>
+                <fieldset class="likert-scale">
+                    <legend>How manageable did you find the workload during T2?</legend>
+                    <span class="scale-desc">1 = Very Unmanageable, 5 = Very Manageable</span><br>
+                    <label><input type="radio" name="t2_workload" value="1"> 1</label>
+                    <label><input type="radio" name="t2_workload" value="2"> 2</label>
+                    <label><input type="radio" name="t2_workload" value="3"> 3</label>
+                    <label><input type="radio" name="t2_workload" value="4"> 4</label>
+                    <label><input type="radio" name="t2_workload" value="5"> 5</label>
+                    <label><input type="radio" name="t2_workload" value="na"> N/A</label>
+                </fieldset>
+                 <fieldset class="likert-scale">
+                    <legend>How helpful was the support (from faculty, peers, etc.) you received during T2?</legend>
+                    <span class="scale-desc">1 = Very Inadequate, 5 = Very Adequate</span><br>
+                    <label><input type="radio" name="t2_support" value="1"> 1</label>
+                    <label><input type="radio" name="t2_support" value="2"> 2</label>
+                    <label><input type="radio" name="t2_support" value="3"> 3</label>
+                    <label><input type="radio" name="t2_support" value="4"> 4</label>
+                    <label><input type="radio" name="t2_support" value="5"> 5</label>
+                    <label><input type="radio" name="t2_support" value="na"> N/A</label>
+                </fieldset>
+                 <label for="t2_comments">Optional: Please share any significant challenges or positive experiences you had during T2.</label>
+                 <textarea id="t2_comments" name="t2_comments" rows="2"></textarea>
+            </div>
+
+            <div class="term-section">
+                 <h3>Summer (TS - Approx. May - Aug)</h3>
+                 <fieldset class="likert-scale">
+                    <legend>During the Summer term/internship, how clear were the main goals and expectations for your work?</legend>
+                    <span class="scale-desc">1 = Very Unclear, 5 = Very Clear</span><br>
+                     <label><input type="radio" name="ts_clarity" value="1"> 1</label>
+                     <label><input type="radio" name="ts_clarity" value="2"> 2</label>
+                     <label><input type="radio" name="ts_clarity" value="3"> 3</label>
+                     <label><input type="radio" name="ts_clarity" value="4"> 4</label>
+                     <label><input type="radio" name="ts_clarity" value="5"> 5</label>
+                     <label><input type="radio" name="ts_clarity" value="na"> N/A</label>
+                </fieldset>
+                 <fieldset class="likert-scale">
+                    <legend>How manageable did you find the workload during the Summer term/internship?</legend>
+                    <span class="scale-desc">1 = Very Unmanageable, 5 = Very Manageable</span><br>
+                    <label><input type="radio" name="ts_workload" value="1"> 1</label>
+                    <label><input type="radio" name="ts_workload" value="2"> 2</label>
+                    <label><input type="radio" name="ts_workload" value="3"> 3</label>
+                    <label><input type="radio" name="ts_workload" value="4"> 4</label>
+                    <label><input type="radio" name="ts_workload" value="5"> 5</label>
+                    <label><input type="radio" name="ts_workload" value="na"> N/A</label>
+                </fieldset>
+                 <fieldset class="likert-scale">
+                    <legend>How helpful was the support (from faculty, peers, etc.) you received during the Summer term/internship?</legend>
+                    <span class="scale-desc">1 = Very Inadequate, 5 = Very Adequate</span><br>
+                    <label><input type="radio" name="ts_support" value="1"> 1</label>
+                    <label><input type="radio" name="ts_support" value="2"> 2</label>
+                    <label><input type="radio" name="ts_support" value="3"> 3</label>
+                    <label><input type="radio" name="ts_support" value="4"> 4</label>
+                    <label><input type="radio" name="ts_support" value="5"> 5</label>
+                    <label><input type="radio" name="ts_support" value="na"> N/A</label>
+                </fieldset>
+                 <label for="ts_comments">Optional: Please share any significant challenges or positive experiences you had during the Summer term/internship.</label>
+                 <textarea id="ts_comments" name="ts_comments" rows="2"></textarea>
+            </div>
+
+            <div class="term-section">
+                 <h3>Term 3 (Approx. Aug - Dec): Design Criteria & Prototyping</h3>
+                  <fieldset class="likert-scale">
+                    <legend>During T3, how clear were the main goals and expectations for your work?</legend>
+                    <span class="scale-desc">1 = Very Unclear, 5 = Very Clear</span><br>
+                    <label><input type="radio" name="t3_clarity" value="1"> 1</label>
+                    <label><input type="radio" name="t3_clarity" value="2"> 2</label>
+                    <label><input type="radio" name="t3_clarity" value="3"> 3</label>
+                    <label><input type="radio" name="t3_clarity" value="4"> 4</label>
+                    <label><input type="radio" name="t3_clarity" value="5"> 5</label>
+                    <label><input type="radio" name="t3_clarity" value="na"> N/A</label>
+                 </fieldset>
+                  <fieldset class="likert-scale">
+                    <legend>How manageable did you find the workload during T3?</legend>
+                    <span class="scale-desc">1 = Very Unmanageable, 5 = Very Manageable</span><br>
+                    <label><input type="radio" name="t3_workload" value="1"> 1</label>
+                    <label><input type="radio" name="t3_workload" value="2"> 2</label>
+                    <label><input type="radio" name="t3_workload" value="3"> 3</label>
+                    <label><input type="radio" name="t3_workload" value="4"> 4</label>
+                    <label><input type="radio" name="t3_workload" value="5"> 5</label>
+                    <label><input type="radio" name="t3_workload" value="na"> N/A</label>
+                 </fieldset>
+                  <fieldset class="likert-scale">
+                    <legend>How helpful was the support (from faculty, peers, etc.) you received during T3?</legend>
+                    <span class="scale-desc">1 = Very Inadequate, 5 = Very Adequate</span><br>
+                    <label><input type="radio" name="t3_support" value="1"> 1</label>
+                    <label><input type="radio" name="t3_support" value="2"> 2</label>
+                    <label><input type="radio" name="t3_support" value="3"> 3</label>
+                    <label><input type="radio" name="t3_support" value="4"> 4</label>
+                    <label><input type="radio" name="t3_support" value="5"> 5</label>
+                    <label><input type="radio" name="t3_support" value="na"> N/A</label>
+                 </fieldset>
+                 <label for="t3_comments">Optional: Please share any significant challenges or positive experiences you had during T3.</label>
+                 <textarea id="t3_comments" name="t3_comments" rows="2"></textarea>
+            </div>
+
+            <div class="term-section">
+                <h3>Term 4 (Approx. Jan - May): Implementation, Eval & Defense</h3>
+                  <fieldset class="likert-scale">
+                    <legend>During T4, how clear were the main goals and expectations for your work?</legend>
+                    <span class="scale-desc">1 = Very Unclear, 5 = Very Clear</span><br>
+                    <label><input type="radio" name="t4_clarity" value="1"> 1</label>
+                    <label><input type="radio" name="t4_clarity" value="2"> 2</label>
+                    <label><input type="radio" name="t4_clarity" value="3"> 3</label>
+                    <label><input type="radio" name="t4_clarity" value="4"> 4</label>
+                    <label><input type="radio" name="t4_clarity" value="5"> 5</label>
+                    <label><input type="radio" name="t4_clarity" value="na"> N/A</label>
+                 </fieldset>
+                  <fieldset class="likert-scale">
+                    <legend>How manageable did you find the workload during T4?</legend>
+                    <span class="scale-desc">1 = Very Unmanageable, 5 = Very Manageable</span><br>
+                    <label><input type="radio" name="t4_workload" value="1"> 1</label>
+                    <label><input type="radio" name="t4_workload" value="2"> 2</label>
+                    <label><input type="radio" name="t4_workload" value="3"> 3</label>
+                    <label><input type="radio" name="t4_workload" value="4"> 4</label>
+                    <label><input type="radio" name="t4_workload" value="5"> 5</label>
+                    <label><input type="radio" name="t4_workload" value="na"> N/A</label>
+                 </fieldset>
+                  <fieldset class="likert-scale">
+                    <legend>How helpful was the support (from faculty, peers, etc.) you received during T4?</legend>
+                    <span class="scale-desc">1 = Very Inadequate, 5 = Very Adequate</span><br>
+                    <label><input type="radio" name="t4_support" value="1"> 1</label>
+                    <label><input type="radio" name="t4_support" value="2"> 2</label>
+                    <label><input type="radio" name="t4_support" value="3"> 3</label>
+                    <label><input type="radio" name="t4_support" value="4"> 4</label>
+                    <label><input type="radio" name="t4_support" value="5"> 5</label>
+                    <label><input type="radio" name="t4_support" value="na"> N/A</label>
+                 </fieldset>
+                 <label for="t4_comments">Optional: Please share any significant challenges or positive experiences you had during T4.</label>
+                 <textarea id="t4_comments" name="t4_comments" rows="2"></textarea>
+            </div>
+        </div>
+
+         <div class="question-group">
+             <h2>Specific Processes & Structures</h2>
+
+            <h3>Institutional Review Board (IRB) for Research Ethics</h3>
+             <fieldset class="likert-scale">
+                <legend>How clear did you find the overall IRB process and its requirements?</legend>
+                <span class="scale-desc">1 = Very Unclear, 5 = Very Clear</span><br>
+                <label><input type="radio" name="irb_clarity" value="1"> 1</label>
+                <label><input type="radio" name="irb_clarity" value="2"> 2</label>
+                <label><input type="radio" name="irb_clarity" value="3"> 3</label>
+                <label><input type="radio" name="irb_clarity" value="4"> 4</label>
+                <label><input type="radio" name="irb_clarity" value="5"> 5</label>
+                <label><input type="radio" name="irb_clarity" value="na"> N/A</label>
+            </fieldset>
+            <fieldset class="likert-scale">
+                <legend>How manageable did you find navigating the IRB process alongside your project work?</legend>
+                <span class="scale-desc">1 = Very Unmanageable, 5 = Very Manageable</span><br>
+                <label><input type="radio" name="irb_manage" value="1"> 1</label>
+                <label><input type="radio" name="irb_manage" value="2"> 2</label>
+                <label><input type="radio" name="irb_manage" value="3"> 3</label>
+                <label><input type="radio" name="irb_manage" value="4"> 4</label>
+                <label><input type="radio" name="irb_manage" value="5"> 5</label>
+                <label><input type="radio" name="irb_manage" value="na"> N/A</label>
+            </fieldset>
+             <label for="irb_challenges">Optional: Briefly describe any significant challenges or helpful aspects regarding the IRB process.</label>
+             <textarea id="irb_challenges" name="irb_challenges" rows="2"></textarea>
+
+            <h3>Cohort Structure & Interaction</h3>
+             <fieldset class="likert-scale">
+                <legend>How clear were the expectations for students based on their year or stage in the program (e.g., Year 1/Accelerated vs. Year 2/Standard)?</legend>
+                <span class="scale-desc">1 = Very Unclear, 5 = Very Clear</span><br>
+                 <label><input type="radio" name="cohort_roles" value="1"> 1</label>
+                 <label><input type="radio" name="cohort_roles" value="2"> 2</label>
+                 <label><input type="radio" name="cohort_roles" value="3"> 3</label>
+                 <label><input type="radio" name="cohort_roles" value="4"> 4</label>
+                 <label><input type="radio" name="cohort_roles" value="5"> 5</label>
+                 <label><input type="radio" name="cohort_roles" value="na"> N/A</label>
+            </fieldset>
+             <fieldset class="likert-scale">
+                <legend>How helpful were the interactions or mentorship opportunities (if any) with students from different cohorts/stages?</legend>
+                 <span class="scale-desc">1 = Not at all Helpful, 5 = Very Helpful</span><br>
+                 <label><input type="radio" name="peer_mentorship" value="1"> 1</label>
+                 <label><input type="radio" name="peer_mentorship" value="2"> 2</label>
+                 <label><input type="radio" name="peer_mentorship" value="3"> 3</label>
+                 <label><input type="radio" name="peer_mentorship" value="4"> 4</label>
+                 <label><input type="radio" name="peer_mentorship" value="5"> 5</label>
+                 <label><input type="radio" name="peer_mentorship" value="na"> N/A</label>
+            </fieldset>
+            <label for="cohort_dynamics_comments">Optional: Comments on your experience with the cohort structure or interactions between students.</label>
+            <textarea id="cohort_dynamics_comments" name="cohort_dynamics_comments" rows="2"></textarea>
+
+            <h3>Project Development & Evaluation</h3>
+             <fieldset class="likert-scale">
+                <legend>How clear was the connection between how your project developed over time and how it was ultimately evaluated?</legend>
+                 <span class="scale-desc">1 = Very Unclear, 5 = Very Clear</span><br>
+                 <label><input type="radio" name="criteria_anchor" value="1"> 1</label>
+                 <label><input type="radio" name="criteria_anchor" value="2"> 2</label>
+                 <label><input type="radio" name="criteria_anchor" value="3"> 3</label>
+                 <label><input type="radio" name="criteria_anchor" value="4"> 4</label>
+                 <label><input type="radio" name="criteria_anchor" value="5"> 5</label>
+                 <label><input type="radio" name="criteria_anchor" value="na"> N/A</label>
+            </fieldset>
+            <fieldset class="likert-scale">
+                <legend>How well did the program support the development of your final project as a strong piece for your portfolio?</legend>
+                 <span class="scale-desc">1 = Very Poorly, 5 = Very Well</span><br>
+                 <label><input type="radio" name="final_project_support" value="1"> 1</label>
+                 <label><input type="radio" name="final_project_support" value="2"> 2</label>
+                 <label><input type="radio" name="final_project_support" value="3"> 3</label>
+                 <label><input type="radio" name="final_project_support" value="4"> 4</label>
+                 <label><input type="radio" name="final_project_support" value="5"> 5</label>
+                 <label><input type="radio" name="final_project_support" value="na"> N/A</label>
+            </fieldset>
+            <label for="project_dev_comments">Optional: Comments on your experience developing and getting feedback on your main project.</label>
+            <textarea id="project_dev_comments" name="project_dev_comments" rows="2"></textarea>
+        </div>
+
+        <div class="question-group">
+            <h2>Program Support & Resources</h2>
+
+            <h3>Feedback Processes</h3>
+             <fieldset class="likert-scale">
+                <legend>Overall, how effective did you find the feedback you received from faculty and peers for improving your work?</legend>
+                 <span class="scale-desc">1 = Very Ineffective, 5 = Very Effective</span><br>
+                  <label><input type="radio" name="feedback_effectiveness" value="1"> 1</label>
+                  <label><input type="radio" name="feedback_effectiveness" value="2"> 2</label>
+                  <label><input type="radio" name="feedback_effectiveness" value="3"> 3</label>
+                  <label><input type="radio" name="feedback_effectiveness" value="4"> 4</label>
+                  <label><input type="radio" name="feedback_effectiveness" value="5"> 5</label>
+                  <label><input type="radio" name="feedback_effectiveness" value="na"> N/A</label>
+            </fieldset>
+             <label for="feedback_comments">Optional: Suggestions for improving how feedback is given or used in the program.</label>
+             <textarea id="feedback_comments" name="feedback_comments" rows="2"></textarea>
+
+            <h3>Portfolio Development Support</h3>
+             <fieldset class="likert-scale">
+                <legend>How valuable would dedicated support (e.g., workshops, reviews) for developing your professional portfolio be?</legend>
+                 <span class="scale-desc">1 = Not at all Valuable, 5 = Extremely Valuable</span><br>
+                 <label><input type="radio" name="portfolio_support_value" value="1"> 1</label>
+                 <label><input type="radio" name="portfolio_support_value" value="2"> 2</label>
+                 <label><input type="radio" name="portfolio_support_value" value="3"> 3</label>
+                 <label><input type="radio" name="portfolio_support_value" value="4"> 4</label>
+                 <label><input type="radio" name="portfolio_support_value" value="5"> 5</label>
+                 <label><input type="radio" name="portfolio_support_value" value="na"> N/A</label>
+            </fieldset>
+            <label for="portfolio_support_ideas">Optional: What specific types of portfolio support would be most helpful?</label>
+            <textarea id="portfolio_support_ideas" name="portfolio_support_ideas" rows="2"></textarea>
+
+            <h3>Program Timeline & Navigation</h3>
+            <fieldset class="likert-scale">
+                 <legend>How helpful would a tool or resource be for visualizing the program timeline, tracking your progress, and seeing key deadlines?</legend>
+                 <span class="scale-desc">1 = Not at all Helpful, 5 = Extremely Helpful</span><br>
+                 <label><input type="radio" name="timeline_tool_need" value="1"> 1</label>
+                 <label><input type="radio" name="timeline_tool_need" value="2"> 2</label>
+                 <label><input type="radio" name="timeline_tool_need" value="3"> 3</label>
+                 <label><input type="radio" name="timeline_tool_need" value="4"> 4</label>
+                 <label><input type="radio" name="timeline_tool_need" value="5"> 5</label>
+                 <label><input type="radio" name="timeline_tool_need" value="na"> N/A</label>
+            </fieldset>
+            <label for="timeline_tool_comments">Optional: Comments on navigating the program schedule or ideas for helpful tools.</label>
+            <textarea id="timeline_tool_comments" name="timeline_tool_comments" rows="2"></textarea>
+
+            <h3>Learning from Past Cohorts</h3>
+            <fieldset class="likert-scale">
+                <legend>How valuable would it be to have better ways to learn from the experiences or projects of previous students?</legend>
+                <span class="scale-desc">1 = Not at all Valuable, 5 = Extremely Valuable</span><br>
+                 <label><input type="radio" name="continuity_value" value="1"> 1</label>
+                 <label><input type="radio" name="continuity_value" value="2"> 2</label>
+                 <label><input type="radio" name="continuity_value" value="3"> 3</label>
+                 <label><input type="radio" name="continuity_value" value="4"> 4</label>
+                 <label><input type="radio" name="continuity_value" value="5"> 5</label>
+                 <label><input type="radio" name="continuity_value" value="na"> N/A</label>
+            </fieldset>
+            <label for="continuity_ideas">Optional: Suggestions for improving knowledge sharing between cohorts or access to past work.</label>
+            <textarea id="continuity_ideas" name="continuity_ideas" rows="2"></textarea>
+          </div>
+
+          <div class="question-group">
