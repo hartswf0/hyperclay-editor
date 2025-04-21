@@ -1,0 +1,106 @@
+{
+  "olog": {
+    "title": "Against Apparatus: Critique, Play, and the Politics of Technical Systems",
+    "entities": [
+      {
+        "id": "apparatus",
+        "label": "Apparatus",
+        "description": "A technical, social, or institutional system that structures behavior, perception, and meaning (cf. Agamben, Flusser)."
+      },
+      {
+        "id": "operator",
+        "label": "Operator",
+        "description": "An agent (human or non-human) who interacts with, resists, or subverts the apparatus."
+      },
+      {
+        "id": "program",
+        "label": "Program",
+        "description": "The set of rules, protocols, or logics that govern the apparatus’s operation."
+      },
+      {
+        "id": "play",
+        "label": "Play",
+        "description": "A mode of interaction that explores, subverts, or reconfigures the possibilities of the apparatus (cf. Flusser)."
+      },
+      {
+        "id": "capture",
+        "label": "Capture",
+        "description": "The process by which the apparatus absorbs, channels, or disciplines agency and meaning."
+      },
+      {
+        "id": "resistance",
+        "label": "Resistance",
+        "description": "Acts or strategies that disrupt, evade, or transform the apparatus’s intended functions (cf. Agamben)."
+      },
+      {
+        "id": "critical_reflection",
+        "label": "Critical Reflection",
+        "description": "The analytic stance that reveals the power, limits, and politics of apparatuses (cf. Foucault, Agamben)."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "apparatus_programs_operator",
+        "source": "apparatus",
+        "target": "operator",
+        "relation": "programs",
+        "how": "Structures possible actions, perceptions, and meanings through embedded logics.",
+        "why": "Shapes the field of agency and subjectivity."
+      },
+      {
+        "id": "operator_plays_apparatus",
+        "source": "operator",
+        "target": "play",
+        "relation": "engages in",
+        "how": "Explores and subverts the limits and affordances of the apparatus.",
+        "why": "Opens new creative and critical possibilities (Flusser)."
+      },
+      {
+        "id": "apparatus_captures_operator",
+        "source": "apparatus",
+        "target": "capture",
+        "relation": "enacts",
+        "how": "Absorbs and channels operator activity into pre-defined outcomes.",
+        "why": "Maintains control and predictability."
+      },
+      {
+        "id": "operator_resists_apparatus",
+        "source": "operator",
+        "target": "resistance",
+        "relation": "performs",
+        "how": "Disrupts or transforms the apparatus’s logic through refusal or creative misuse (Agamben).",
+        "why": "Challenges the apparatus’s claim to total control."
+      },
+      {
+        "id": "reflection_reveals_apparatus",
+        "source": "critical_reflection",
+        "target": "apparatus",
+        "relation": "reveals",
+        "how": "Makes visible the power, limits, and politics of technical systems (Foucault, Agamben).",
+        "why": "Enables critique and reconfiguration."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does play against the apparatus enable?",
+        "answer": "New forms of agency, critique, and creative reconfiguration (Flusser)."
+      },
+      {
+        "question": "What does resistance require?",
+        "answer": "Awareness of the apparatus’s logics and the capacity to subvert or evade them (Agamben)."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A dynamic field where power, agency, and meaning are continually negotiated between operators and apparatuses."
+      }
+    ],
+    "thesis": "To act ‘against the apparatus’ is to engage in critique, play, and resistance—revealing the politics of technical systems and opening new possibilities for agency and meaning (Flusser, Agamben, Foucault).",
+    "problem_statement": "How can individuals and collectives resist, reconfigure, or play against apparatuses to reclaim agency and transform the politics of technical systems?",
+    "vectors_of_influence": [
+      "Challenges the naturalization and invisibility of technical and institutional apparatuses.",
+      "Enables new forms of creative play, resistance, and critique (Flusser, Agamben).",
+      "Connects to broader debates in media theory, philosophy of technology, and political theory (Foucault, Agamben, Flusser)."
+    ],
+    "olog_prompt": "For any apparatus, identify all agents, logics, and forms of play or resistance; specify all morphisms that enable, capture, or disrupt agency and meaning; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

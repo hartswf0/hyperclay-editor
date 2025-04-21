@@ -1,0 +1,106 @@
+{
+  "olog": {
+    "title": "Death of Curation: AI, Abundance, and the Crisis of Meaning in the Age of Infinite Content",
+    "entities": [
+      {
+        "id": "ai_system",
+        "label": "AI System",
+        "description": "A generative agent capable of producing, aggregating, and distributing content at unprecedented scale and speed."
+      },
+      {
+        "id": "curator",
+        "label": "Curator",
+        "description": "An individual or institution responsible for selecting, organizing, and assigning value to cultural content."
+      },
+      {
+        "id": "content_abundance",
+        "label": "Content Abundance",
+        "description": "The overwhelming proliferation of digital artifacts, narratives, and data enabled by algorithmic production."
+      },
+      {
+        "id": "algorithmic_curation",
+        "label": "Algorithmic Curation",
+        "description": "The automated selection and ranking of content, often optimized for engagement rather than meaning."
+      },
+      {
+        "id": "meaning_crisis",
+        "label": "Meaning Crisis",
+        "description": "The difficulty of discerning value, relevance, and significance in a saturated information environment."
+      },
+      {
+        "id": "filter_bubble",
+        "label": "Filter Bubble",
+        "description": "A personalized information environment shaped by algorithms, limiting exposure to diverse perspectives."
+      },
+      {
+        "id": "attention_scarcity",
+        "label": "Attention Scarcity",
+        "description": "The increasing value and competition for human focus in the context of content abundance."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "ai_enables_abundance",
+        "source": "ai_system",
+        "target": "content_abundance",
+        "relation": "enables",
+        "how": "Generates vast quantities of content with minimal human intervention.",
+        "why": "Overwhelms traditional curatorial practices."
+      },
+      {
+        "id": "curator_assigns_value",
+        "source": "curator",
+        "target": "meaning_crisis",
+        "relation": "attempts to resolve",
+        "how": "Selects and organizes content to create coherence and significance.",
+        "why": "Mitigates the risk of meaninglessness."
+      },
+      {
+        "id": "algorithmic_curation_replaces_curator",
+        "source": "algorithmic_curation",
+        "target": "curator",
+        "relation": "replaces",
+        "how": "Automates selection based on engagement metrics.",
+        "why": "Shifts value assignment from human judgment to algorithmic optimization."
+      },
+      {
+        "id": "abundance_intensifies_scarcity",
+        "source": "content_abundance",
+        "target": "attention_scarcity",
+        "relation": "intensifies",
+        "how": "Outpaces the capacity for human attention and discernment.",
+        "why": "Makes attention the limiting resource."
+      },
+      {
+        "id": "algorithmic_curation_creates_bubble",
+        "source": "algorithmic_curation",
+        "target": "filter_bubble",
+        "relation": "creates",
+        "how": "Personalizes content streams, narrowing exposure.",
+        "why": "Limits diversity and reinforces existing preferences."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does the replacement of human curation by algorithms enable?",
+        "answer": "Scalable content delivery but a loss of contextual judgment and meaning."
+      },
+      {
+        "question": "What does content abundance require?",
+        "answer": "New strategies for discernment, value assignment, and meaning-making."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A crisis where meaning, value, and attention must be renegotiated in the face of infinite content and automated selection."
+      }
+    ],
+    "thesis": "The 'death of curation' in the age of AI-driven content abundance marks a shift from human judgment to algorithmic optimization, producing a crisis of meaning, attention scarcity, and the need for new frameworks of value in digital culture.",
+    "problem_statement": "How can individuals and communities reclaim agency, discernment, and meaning in a world where curation is automated and content is infinite?",
+    "vectors_of_influence": [
+      "Challenges traditional roles of expertise and authority in cultural production.",
+      "Enables new critiques of algorithmic governance and information overload.",
+      "Connects to broader debates in media theory, epistemology, and the politics of attention."
+    ],
+    "olog_prompt": "For any digital culture, identify all agents and processes of curation, abundance, and meaning-making; specify all morphisms that enable, replace, or intensify these dynamics; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

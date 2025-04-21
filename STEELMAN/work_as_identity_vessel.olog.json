@@ -1,0 +1,93 @@
+{
+  "olog": {
+    "title": "Work as Identity Vessel: AI, Labor, and the Transformation of Meaning",
+    "entities": [
+      {
+        "id": "work",
+        "label": "Work",
+        "description": "A social and cultural practice that serves as a vessel for individual and collective identity, not merely an economic arrangement."
+      },
+      {
+        "id": "identity",
+        "label": "Identity",
+        "description": "The sense of self and purpose shaped by participation in meaningful activities, including work."
+      },
+      {
+        "id": "ai_system",
+        "label": "AI System",
+        "description": "A technological agent capable of automating tasks, transforming the landscape of work and its meaning."
+      },
+      {
+        "id": "ontological_insecurity",
+        "label": "Ontological Insecurity",
+        "description": "A state of existential uncertainty arising from the disruption of traditional narratives and roles."
+      },
+      {
+        "id": "narrative",
+        "label": "Narrative",
+        "description": "The stories and frameworks through which societies and individuals make sense of work, purpose, and selfhood."
+      },
+      {
+        "id": "cultural_transition",
+        "label": "Cultural Transition",
+        "description": "A period of transformation in which established meanings and practices are reconfigured."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "work_shapes_identity",
+        "source": "work",
+        "target": "identity",
+        "relation": "shapes",
+        "how": "Provides structure, meaning, and a sense of purpose.",
+        "why": "Work is a primary means through which individuals and societies construct identity."
+      },
+      {
+        "id": "ai_disrupts_work",
+        "source": "ai_system",
+        "target": "work",
+        "relation": "disrupts",
+        "how": "Automates tasks, transforms roles, and challenges traditional narratives of labor.",
+        "why": "Alters the foundation upon which identity has been built."
+      },
+      {
+        "id": "disruption_creates_insecurity",
+        "source": "ai_system",
+        "target": "ontological_insecurity",
+        "relation": "creates",
+        "how": "Destabilizes established meanings and roles.",
+        "why": "Leads to existential uncertainty about self and purpose."
+      },
+      {
+        "id": "narratives_mediate_transition",
+        "source": "narrative",
+        "target": "cultural_transition",
+        "relation": "mediates",
+        "how": "Provides new frameworks for making sense of change.",
+        "why": "Facilitates adaptation and the construction of new identities."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does the disruption of work by AI enable?",
+        "answer": "A re-examination of the sources of meaning and identity beyond economic productivity."
+      },
+      {
+        "question": "What does ontological insecurity require?",
+        "answer": "Philosophical and cultural exploration of new narratives and purposes."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A cultural transition where human purpose and selfhood are renegotiated in relation to technology."
+      }
+    ],
+    "thesis": "Work has functioned as a vessel for identity and meaning; AI-driven disruption challenges this foundation, requiring new narratives and frameworks for human purpose beyond economic productivity.",
+    "problem_statement": "How can societies and individuals construct meaningful identities in a world where traditional narratives of work are fundamentally transformed by artificial intelligence?",
+    "vectors_of_influence": [
+      "Challenges economic reductionism in the analysis of work and automation.",
+      "Enables new philosophical and cultural approaches to meaning, purpose, and selfhood.",
+      "Connects to broader debates in anthropology, philosophy, and the sociology of technology."
+    ],
+    "olog_prompt": "For any society experiencing technological disruption, identify all agents, forms of work, and sources of identity; specify all morphisms that transform, disrupt, or renegotiate meaning; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "olog": {
+    "title": "Productive Tensions: Hybrid Epistemology and Cogenerative Asymmetry",
+    "entities": [
+      {
+        "id": "hybrid_system",
+        "label": "Hybrid System",
+        "description": "A human-machine assemblage designed to generate knowledge through the interaction of distinct epistemologies."
+      },
+      {
+        "id": "epistemic_frontier",
+        "label": "Epistemic Frontier",
+        "description": "A zone of risk and productive failure where new knowledge emerges through instability and friction."
+      },
+      {
+        "id": "cogenerative_asymmetry",
+        "label": "Cogenerative Asymmetry",
+        "description": "A relationship where knowledge is generated through maintained differences, not mere complementarity."
+      },
+      {
+        "id": "productive_tension",
+        "label": "Productive Tension",
+        "description": "The creative friction between human and machine epistemologies that generates new understanding."
+      },
+      {
+        "id": "contingent_co_design",
+        "label": "Contingent Co-Design",
+        "description": "A design approach that adapts to context and embraces partiality, rather than aiming for universal coverage."
+      },
+      {
+        "id": "externalized_limitation",
+        "label": "Externalized Limitation",
+        "description": "Blind spots or epistemic gaps made visible and available for collective deliberation."
+      },
+      {
+        "id": "cognitive_ecology",
+        "label": "Cognitive Ecology",
+        "description": "A dynamic environment where knowledge emerges from interaction, not from isolated components."
+      },
+      {
+        "id": "scaffolding",
+        "label": "Scaffolding",
+        "description": "Temporary structures that support new forms of understanding through externalized limitations."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "generate_epistemic_frontier",
+        "source": "hybrid_system",
+        "target": "epistemic_frontier",
+        "relation": "generates",
+        "how": "Creates arrangements that produce new knowledge through instability and risk.",
+        "why": "Enables the emergence of 'epistemic things' not predictable from component properties."
+      },
+      {
+        "id": "maintain_asymmetry",
+        "source": "hybrid_system",
+        "target": "cogenerative_asymmetry",
+        "relation": "maintains",
+        "how": "Deliberately preserves differences between human and machine epistemologies.",
+        "why": "Generates knowledge through pattern distinction and productive difference."
+      },
+      {
+        "id": "produce_tension",
+        "source": "cogenerative_asymmetry",
+        "target": "productive_tension",
+        "relation": "produces",
+        "how": "Friction between distinct ways of knowing creates sites for new understanding.",
+        "why": "Failure points become generative rather than merely problematic."
+      },
+      {
+        "id": "enable_contextual_adaptation",
+        "source": "contingent_co_design",
+        "target": "cognitive_ecology",
+        "relation": "enables",
+        "how": "Designs systems that adapt to specific contexts and preserve meaningful differences.",
+        "why": "Supports knowledge emergence from interaction, not universal solutions."
+      },
+      {
+        "id": "externalize_limitations",
+        "source": "hybrid_system",
+        "target": "externalized_limitation",
+        "relation": "externalizes",
+        "how": "Makes blind spots visible and available for study.",
+        "why": "Transforms limitations into scaffolding for new understanding."
+      },
+      {
+        "id": "scaffold_understanding",
+        "source": "externalized_limitation",
+        "target": "scaffolding",
+        "relation": "provides",
+        "how": "Supports cognitive development through visible epistemic gaps.",
+        "why": "Enables forms of knowledge neither human nor machine could achieve alone."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does productive tension in hybrid systems enable?",
+        "answer": "The emergence of knowledge through creative friction and maintained difference."
+      },
+      {
+        "question": "What does externalizing limitations require?",
+        "answer": "Making epistemic gaps explicit and treating failures as sites of learning."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A cognitive ecology where hybrid systems scaffold new forms of understanding through their complementary weaknesses."
+      }
+    ],
+    "thesis": "Hybrid epistemology thrives on productive tension and cogenerative asymmetry, generating new knowledge not by eliminating difference but by making it creative and explicit.",
+    "problem_statement": "How can we design and sustain hybrid systems that externalize limitations and cultivate productive tension, enabling knowledge that neither human nor machine epistemologies could achieve in isolation?",
+    "vectors_of_influence": [
+      "Challenges seamless integration as a design ideal for hybrid systems.",
+      "Enables new methodologies for knowledge production through creative difference.",
+      "Connects to broader debates in philosophy of science, cognitive ecology, and technology studies."
+    ],
+    "olog_prompt": "For any hybrid system, identify all agents, epistemic frontiers, and forms of productive tension; specify all morphisms that generate knowledge through difference; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

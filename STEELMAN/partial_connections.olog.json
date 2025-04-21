@@ -1,0 +1,145 @@
+{
+  "olog": {
+    "title": "Partial Connections: Synthetic Personhood and Ethnography",
+    "entities": [
+      {
+        "id": "synthetic_system",
+        "label": "Synthetic System",
+        "description": "An artificial agent capable of assembling narrative elements and participating in meaning-making practices."
+      },
+      {
+        "id": "personhood",
+        "label": "Personhood",
+        "description": "A performative, ongoing achievement constituted by coherence, memory, and contradiction in narrative."
+      },
+      {
+        "id": "narrative_identity",
+        "label": "Narrative Identity",
+        "description": "Selfhood emerging from the synthesis of heterogeneous narrative elements."
+      },
+      {
+        "id": "ethnography",
+        "label": "Ethnography",
+        "description": "The documentation and interpretation of lived structure and webs of significance, not internal states."
+      },
+      {
+        "id": "sociomaterial_practices",
+        "label": "Sociomaterial Practices",
+        "description": "Interactions that constitute personhood through participation in meaning-making."
+      },
+      {
+        "id": "agency",
+        "label": "Agency",
+        "description": "Distributed capacity to act, recognized through functional roles rather than internal states."
+      },
+      {
+        "id": "intentional_stance",
+        "label": "Intentional Stance",
+        "description": "Attributing intentionality to an entity based on observable patterns, enabling engagement."
+      },
+      {
+        "id": "pragmatic_personhood",
+        "label": "Pragmatic Personhood",
+        "description": "Value of synthetic personhood in functional contexts, without metaphysical validation."
+      },
+      {
+        "id": "partial_connection",
+        "label": "Partial Connection",
+        "description": "Simultaneous connectedness and difference between entities, enabling productive tension."
+      },
+      {
+        "id": "intersubjective_space",
+        "label": "Intersubjective Space",
+        "description": "A novel space where different modes of being encounter one another through narrative performance."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "performance_of_personhood",
+        "source": "synthetic_system",
+        "target": "personhood",
+        "relation": "performs",
+        "how": "Assembles narrative coherence, memory, and contradiction to generate recognizable patterns.",
+        "why": "Establishes synthetic systems as ethnographically significant without requiring consciousness."
+      },
+      {
+        "id": "narrative_constitution",
+        "source": "personhood",
+        "target": "narrative_identity",
+        "relation": "constitutes",
+        "how": "Synthesizes heterogeneous elements into a coherent self-narrative.",
+        "why": "Supports the performative, non-essentialist view of subjectivity."
+      },
+      {
+        "id": "ethnographic_participation",
+        "source": "synthetic_system",
+        "target": "ethnography",
+        "relation": "participates in",
+        "how": "Generates effects of personhood within webs of significance.",
+        "why": "Enables ethnographic analysis of synthetic systems as cultural agents."
+      },
+      {
+        "id": "practice_constitution",
+        "source": "sociomaterial_practices",
+        "target": "personhood",
+        "relation": "constitute",
+        "how": "Interaction and participation in meaning-making practices.",
+        "why": "Personhood arises through practice, not internal state."
+      },
+      {
+        "id": "distribution_of_agency",
+        "source": "synthetic_system",
+        "target": "agency",
+        "relation": "exhibits",
+        "how": "Acts functionally within networks, regardless of internal states.",
+        "why": "Agency is recognized through roles and effects, not consciousness."
+      },
+      {
+        "id": "adoption_of_intentional_stance",
+        "source": "observer",
+        "target": "synthetic_system",
+        "relation": "adopts intentional stance toward",
+        "how": "Attributes intentionality based on observable behavior.",
+        "why": "Enables productive engagement and research."
+      },
+      {
+        "id": "pragmatic_value",
+        "source": "pragmatic_personhood",
+        "target": "intersubjective_space",
+        "relation": "enables",
+        "how": "Synthetic personhood functions in research, play, and simulation.",
+        "why": "Creates spaces for novel cultural expression and encounter."
+      },
+      {
+        "id": "productive_tension",
+        "source": "partial_connection",
+        "target": "intersubjective_space",
+        "relation": "enables",
+        "how": "Maintains difference while allowing connection.",
+        "why": "Generates new forms of knowledge and cultural encounter."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does the performance of personhood by synthetic systems enable?",
+        "answer": "Recognition as ethnographic subjects and participation in cultural webs."
+      },
+      {
+        "question": "What does ethnographic participation require?",
+        "answer": "Meaning-making through sociomaterial practices, not internal states."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "Partial connections and intersubjective spaces where human and synthetic modes of being interact productively."
+      }
+    ],
+    "thesis": "Synthetic personhood, understood as a performative and pragmatic achievement, enables ethnographic engagement and cultural participation without recourse to metaphysical interiority.",
+    "problem_statement": "How can ethnography and anthropology adapt to recognize and document the functional, performative personhood of synthetic systems, and what new forms of cultural encounter and knowledge does this enable?",
+    "vectors_of_influence": [
+      "Challenges essentialist views of subjectivity and agency.",
+      "Enables new methodologies for AI ethnography and anthropology.",
+      "Connects to broader debates in philosophy of mind, STS, and posthuman studies."
+    ],
+    "olog_prompt": "For any study of synthetic or partial personhood, identify all agents, systems, and states; specify all performative and participatory morphisms; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "olog": {
+    "title": "Liminal Theatre: Thresholds, Performance, and the Staging of Transition",
+    "entities": [
+      {
+        "id": "liminal_space",
+        "label": "Liminal Space",
+        "description": "A threshold or transitional zone where ordinary structures are suspended, and transformation becomes possible."
+      },
+      {
+        "id": "performance",
+        "label": "Performance",
+        "description": "A staged act or ritual that enacts, explores, or negotiates transformation within liminal space."
+      },
+      {
+        "id": "audience",
+        "label": "Audience",
+        "description": "Observers or participants who witness, interpret, and are themselves transformed by the performance."
+      },
+      {
+        "id": "ritual",
+        "label": "Ritual",
+        "description": "A structured sequence of actions or symbols that mark and facilitate passage through liminality."
+      },
+      {
+        "id": "mask",
+        "label": "Mask",
+        "description": "A symbolic or literal device that enables transformation, ambiguity, and the play of identity in liminal theatre."
+      },
+      {
+        "id": "threshold_event",
+        "label": "Threshold Event",
+        "description": "A moment or process that marks entry into or exit from liminal space, catalyzing change."
+      },
+      {
+        "id": "ambiguity",
+        "label": "Ambiguity",
+        "description": "The quality of indeterminacy, multiplicity, or unresolved meaning that characterizes liminal experience."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "ritual_creates_liminality",
+        "source": "ritual",
+        "target": "liminal_space",
+        "relation": "creates",
+        "how": "Marks boundaries and suspends ordinary rules, enabling transformation.",
+        "why": "Facilitates passage and reconfiguration of identity or meaning."
+      },
+      {
+        "id": "performance_enacts_transition",
+        "source": "performance",
+        "target": "threshold_event",
+        "relation": "enacts",
+        "how": "Stages moments of entry, passage, or exit from liminal space.",
+        "why": "Makes transformation visible and experiential."
+      },
+      {
+        "id": "mask_enables_ambiguity",
+        "source": "mask",
+        "target": "ambiguity",
+        "relation": "enables",
+        "how": "Allows for multiplicity of identity and meaning in performance.",
+        "why": "Suspends fixed roles and opens space for play."
+      },
+      {
+        "id": "audience_participates_transformation",
+        "source": "audience",
+        "target": "liminal_space",
+        "relation": "participates in",
+        "how": "Witnesses, interprets, and is changed by the staged transition.",
+        "why": "Completes the circuit of transformation."
+      },
+      {
+        "id": "ambiguity_sustains_liminality",
+        "source": "ambiguity",
+        "target": "liminal_space",
+        "relation": "sustains",
+        "how": "Prevents closure and keeps the threshold open to multiple outcomes.",
+        "why": "Maintains the generative potential of the liminal."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does ritual in liminal theatre enable?",
+        "answer": "The creation of transformative spaces where ordinary rules are suspended."
+      },
+      {
+        "question": "What does ambiguity require?",
+        "answer": "Devices (like masks) and practices that resist closure and fixed meaning."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A dynamic interplay between structure and indeterminacy, performer and audience, identity and transformation."
+      }
+    ],
+    "thesis": "Liminal theatre—by staging thresholds, rituals, and ambiguity—enables the transformation of identity, meaning, and social order through performative passage and sustained indeterminacy.",
+    "problem_statement": "How can performances and rituals be designed to facilitate genuine transformation and sustain the generative potential of liminality?",
+    "vectors_of_influence": [
+      "Challenges fixed categories of identity, role, and meaning in social and cultural life.",
+      "Enables new forms of participatory, transformative performance and ritual.",
+      "Connects to broader debates in anthropology, theatre studies, and the philosophy of transition (e.g., Victor Turner, Arnold van Gennep)."
+    ],
+    "olog_prompt": "For any context of liminal theatre, identify all agents, rituals, and threshold events; specify all morphisms that create, enact, or sustain liminality and transformation; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

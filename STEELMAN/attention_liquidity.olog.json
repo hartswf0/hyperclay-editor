@@ -1,0 +1,106 @@
+{
+  "olog": {
+    "title": "Attention Liquidity: Flow, Capture, and the Economics of Focus in the Digital Age",
+    "entities": [
+      {
+        "id": "attention",
+        "label": "Attention",
+        "description": "A cognitive resource characterized by its scarcity, value, and susceptibility to capture and redirection."
+      },
+      {
+        "id": "liquidity",
+        "label": "Liquidity",
+        "description": "The ease and speed with which attention can be mobilized, redirected, or exchanged across platforms and contexts."
+      },
+      {
+        "id": "attention_market",
+        "label": "Attention Market",
+        "description": "The digital ecosystem in which attention is bought, sold, and traded as a commodity."
+      },
+      {
+        "id": "algorithmic_capture",
+        "label": "Algorithmic Capture",
+        "description": "The process by which digital systems and algorithms direct, retain, and monetize user attention."
+      },
+      {
+        "id": "platform",
+        "label": "Platform",
+        "description": "A digital environment or service designed to maximize engagement and extract value from user attention."
+      },
+      {
+        "id": "focus_economy",
+        "label": "Focus Economy",
+        "description": "An economic logic that prioritizes the efficient allocation and monetization of attention as a primary resource."
+      },
+      {
+        "id": "distraction",
+        "label": "Distraction",
+        "description": "A byproduct of liquidity, where attention is continually diverted, fragmented, or commodified."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "liquidity_enables_market",
+        "source": "liquidity",
+        "target": "attention_market",
+        "relation": "enables",
+        "how": "Facilitates rapid movement and exchange of attention across digital contexts.",
+        "why": "Creates new opportunities for commodification and capture."
+      },
+      {
+        "id": "platform_captures_attention",
+        "source": "platform",
+        "target": "attention",
+        "relation": "captures",
+        "how": "Uses design and algorithms to direct and retain user focus.",
+        "why": "Extracts value and maximizes engagement."
+      },
+      {
+        "id": "algorithmic_capture_increases_liquidity",
+        "source": "algorithmic_capture",
+        "target": "liquidity",
+        "relation": "increases",
+        "how": "Automates and accelerates the redirection of attention.",
+        "why": "Enables more efficient exploitation of the attention market."
+      },
+      {
+        "id": "market_drives_distraction",
+        "source": "attention_market",
+        "target": "distraction",
+        "relation": "drives",
+        "how": "Competition for attention leads to fragmentation and continual redirection.",
+        "why": "Maximizes monetization but erodes sustained focus."
+      },
+      {
+        "id": "focus_economy_structures_platforms",
+        "source": "focus_economy",
+        "target": "platform",
+        "relation": "structures",
+        "how": "Shapes design incentives to maximize attention extraction.",
+        "why": "Aligns platform logic with economic imperatives."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does increased liquidity of attention enable?",
+        "answer": "The rapid commodification and exchange of focus, but also greater susceptibility to distraction."
+      },
+      {
+        "question": "What does algorithmic capture require?",
+        "answer": "Platforms designed to optimize engagement and retain user focus."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A digital economy where attention is both a resource and a site of struggle between autonomy and capture."
+      }
+    ],
+    "thesis": "Attention liquidity describes the ease with which focus is redirected and commodified in the digital age, producing both economic opportunity and existential risk as platforms and algorithms compete to capture, fragment, and monetize our most valuable cognitive resource.",
+    "problem_statement": "How can individuals and societies reclaim agency and sustained focus in a digital ecosystem designed to maximize the liquidity and capture of attention?",
+    "vectors_of_influence": [
+      "Challenges traditional models of value and labor in digital economies.",
+      "Enables new critiques of platform design and algorithmic governance.",
+      "Connects to broader debates in media theory, cognitive science, and the politics of attention."
+    ],
+    "olog_prompt": "For any digital ecosystem, identify all agents and processes of attention capture, liquidity, and commodification; specify all morphisms that enable, structure, or disrupt the flow of attention; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "olog": {
+    "title": "Prompting the Play: Synthetic Performance, Liminality, and the Dramaturgy of Human-AI Interaction",
+    "entities": [
+      {
+        "id": "prompting_the_play",
+        "label": "Prompting the Play",
+        "description": "The act of initiating, structuring, or guiding performative interaction with or through synthetic systems (cf. Turner, Schechner, Synthetic Performance Collective)."
+      },
+      {
+        "id": "synthetic_performance",
+        "label": "Synthetic Performance",
+        "description": "A performative event or process involving both human and AI actors, characterized by recursive modeling, dramaturgical scaffolding, and epistemic enactment (cf. Zhao, Kim-Watanabe, Wilson-Chen)."
+      },
+      {
+        "id": "liminality",
+        "label": "Liminality",
+        "description": "A threshold state of ambiguity, transformation, and potentiality enacted in performance and interaction (cf. Turner, Chen-Ramírez)."
+      },
+      {
+        "id": "restored_behavior",
+        "label": "Restored Behavior",
+        "description": "The repetition or re-enactment of previously performed actions, enabling learning, adaptation, and theatricality in synthetic systems (cf. Schechner, Synthetic Performance Collective)."
+      },
+      {
+        "id": "dramaturgical_scaffolding",
+        "label": "Dramaturgical Scaffolding",
+        "description": "The design of structures, cues, and affordances that support performative interaction and knowledge production (cf. Fischer-Nguyen)."
+      },
+      {
+        "id": "epistemological_performance",
+        "label": "Epistemological Performance",
+        "description": "The enactment of knowledge claims, uncertainty, and situated perspective through dialogic or theatrical means (cf. Kim-Watanabe, Haraway)."
+      },
+      {
+        "id": "situated_knowledge",
+        "label": "Situated Knowledge",
+        "description": "Knowledge that is produced, performed, and validated within specific contexts, perspectives, and embodied positions (cf. Haraway)."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "prompt_initiates_performance",
+        "source": "prompting_the_play",
+        "target": "synthetic_performance",
+        "relation": "initiates",
+        "how": "Structures and begins performative interaction between human and synthetic actors.",
+        "why": "Enables recursive modeling and dramaturgical engagement."
+      },
+      {
+        "id": "liminality_enables_transformation",
+        "source": "liminality",
+        "target": "synthetic_performance",
+        "relation": "enables",
+        "how": "Creates a threshold space for transformation, ambiguity, and creative potential.",
+        "why": "Fosters new forms of knowledge and identity."
+      },
+      {
+        "id": "restored_behavior_supports_scaffolding",
+        "source": "restored_behavior",
+        "target": "dramaturgical_scaffolding",
+        "relation": "supports",
+        "how": "Provides repeatable structures and cues for interaction and adaptation.",
+        "why": "Enables learning and theatricality in synthetic systems."
+      },
+      {
+        "id": "scaffolding_enables_performance",
+        "source": "dramaturgical_scaffolding",
+        "target": "epistemological_performance",
+        "relation": "enables",
+        "how": "Designs affordances and cues for the enactment of knowledge, uncertainty, and perspective.",
+        "why": "Supports dialogic and theatrical knowledge production."
+      },
+      {
+        "id": "epistemological_performance_validates_knowledge",
+        "source": "epistemological_performance",
+        "target": "situated_knowledge",
+        "relation": "validates",
+        "how": "Enacts and situates knowledge claims within context and performance.",
+        "why": "Recognizes the partial, embodied, and performative nature of knowledge."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does prompting the play enable?",
+        "answer": "The initiation and structuring of synthetic performances that transform knowledge, identity, and interaction."
+      },
+      {
+        "question": "What does dramaturgical scaffolding require?",
+        "answer": "Restored behavior, cues, and affordances that support adaptive performance."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A dynamic interplay between prompt, performance, transformation, and situated knowledge in human-synthetic systems."
+      }
+    ],
+    "thesis": "Prompting the play—through dramaturgical scaffolding, liminality, and epistemological performance—enables the recursive modeling and situated transformation of knowledge and identity in synthetic systems (Turner, Schechner, Zhao, Fischer-Nguyen, Haraway).",
+    "problem_statement": "How can prompts, structures, and performances be designed to foster transformative, situated, and dialogic knowledge production in human-AI interaction?",
+    "vectors_of_influence": [
+      "Challenges static models of interaction and knowledge in AI systems.",
+      "Enables new forms of performative, situated, and transformative engagement.",
+      "Connects to broader debates in performance studies, anthropology, and AI design (Turner, Schechner, Haraway, Fischer-Nguyen, Synthetic Performance Collective)."
+    ],
+    "olog_prompt": "For any context of prompting the play, identify all prompts, performances, and scaffolding structures; specify all morphisms that initiate, enable, or support transformation and knowledge production; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

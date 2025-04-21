@@ -1,0 +1,119 @@
+{
+  "olog": {
+    "title": "Leaky Meanings: Synthetic Semiotics and the Emergence of Meaning",
+    "entities": [
+      {
+        "id": "synthetic_system",
+        "label": "Synthetic System",
+        "description": "An artificial agent or protocol that generates, transmits, and interprets signs and symbols."
+      },
+      {
+        "id": "meaning",
+        "label": "Meaning",
+        "description": "A context-dependent, emergent property of communication, inherently unstable and subject to drift."
+      },
+      {
+        "id": "ambiguity",
+        "label": "Ambiguity",
+        "description": "A necessary and generative feature of communication; not a flaw but a driver of meta-communicative function."
+      },
+      {
+        "id": "meta_communication",
+        "label": "Meta-communication",
+        "description": "The framing and contextualization of messages, enabling paradox and play."
+      },
+      {
+        "id": "semiotic_process",
+        "label": "Semiotic Process",
+        "description": "The ongoing, recursive production and interpretation of signs within a system."
+      },
+      {
+        "id": "double_hermeneutic",
+        "label": "Double Hermeneutic",
+        "description": "A cycle where interpretations by humans and machines recursively shape the meaning of symbols."
+      },
+      {
+        "id": "cultural_drift",
+        "label": "Cultural Drift",
+        "description": "The diachronic evolution of meaning through recursive use and reinterpretation."
+      },
+      {
+        "id": "semiosphere",
+        "label": "Semiosphere",
+        "description": "The total semiotic space of a culture or system, encompassing all processes of meaning-making."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "generate_ambiguity",
+        "source": "synthetic_system",
+        "target": "ambiguity",
+        "relation": "generates",
+        "how": "Produces messages with context-dependent or paradoxical elements.",
+        "why": "Enables meta-communication and the emergence of new meanings."
+      },
+      {
+        "id": "meta_frame_operation",
+        "source": "ambiguity",
+        "target": "meta_communication",
+        "relation": "enables",
+        "how": "Ambiguity allows for meta-frames and play, constituting meaning beyond literal content.",
+        "why": "Prevents communication from devolving into rigid, stylized exchanges."
+      },
+      {
+        "id": "emergent_meaning",
+        "source": "semiotic_process",
+        "target": "meaning",
+        "relation": "produces",
+        "how": "Recursive production and interpretation of signs generates meaning in context.",
+        "why": "Meaning is not fixed but emerges through interaction and use."
+      },
+      {
+        "id": "recursive_interpretation",
+        "source": "double_hermeneutic",
+        "target": "meaning",
+        "relation": "shapes",
+        "how": "Human and machine interpretations recursively stabilize and transform symbols.",
+        "why": "Constitutes meaning without requiring grounding in physical reality."
+      },
+      {
+        "id": "model_cultural_drift",
+        "source": "synthetic_system",
+        "target": "cultural_drift",
+        "relation": "models",
+        "how": "Demonstrates how meanings change and evolve through recursive interaction.",
+        "why": "Reveals the processual, non-static nature of meaning."
+      },
+      {
+        "id": "constitute_semiosphere",
+        "source": "semiotic_process",
+        "target": "semiosphere",
+        "relation": "constitutes",
+        "how": "All sign processes together form the semiotic space of a culture or system.",
+        "why": "Allows for the study of meaning as a dynamic, distributed phenomenon."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does ambiguity in communication enable?",
+        "answer": "Meta-communication, play, and the ongoing emergence of new meanings."
+      },
+      {
+        "question": "What does recursive interpretation require?",
+        "answer": "Contextual use, feedback, and openness to drift and transformation."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A semiosphere where meaning is continually renegotiated through interaction."
+      }
+    ],
+    "thesis": "Synthetic semiotics reveals that meaning is inherently leaky, emergent, and shaped by recursive interaction, challenging the notion of fixed, human-centered semantics.",
+    "problem_statement": "How can we design and interpret synthetic systems to embrace ambiguity and cultural drift, enabling richer, more generative forms of meaning-making?",
+    "vectors_of_influence": [
+      "Challenges the demand for fixed semantics in AI and communication systems.",
+      "Enables new approaches to human-machine interaction grounded in semiotic theory.",
+      "Connects to broader debates in anthropology, cybernetics, and the philosophy of language."
+    ],
+    "olog_prompt": "For any system of meaning, identify all agents, processes, and forms of ambiguity; specify all recursive and semiotic morphisms; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

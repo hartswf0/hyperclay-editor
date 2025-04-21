@@ -1,0 +1,106 @@
+{
+  "olog": {
+    "title": "Liberty Machines: Cybernetics, Autonomy, and the Ethics of Self-Governing Systems",
+    "entities": [
+      {
+        "id": "liberty_machine",
+        "label": "Liberty Machine",
+        "description": "A technical or organizational system designed to support autonomy, adaptability, and ethical self-regulation (cf. Bateson, Wiener, Beer, von Foerster)."
+      },
+      {
+        "id": "cybernetic_feedback",
+        "label": "Cybernetic Feedback",
+        "description": "The recursive process of sensing, responding, and adapting that underlies self-governing systems (Wiener, Beer)."
+      },
+      {
+        "id": "autonomy",
+        "label": "Autonomy",
+        "description": "The capacity of a system to self-organize, self-regulate, and pursue goals without external control (Beer, von Foerster)."
+      },
+      {
+        "id": "ethical_constraint",
+        "label": "Ethical Constraint",
+        "description": "Norms, values, or principles embedded in or emergent from the system, guiding its actions (Bateson, von Foerster)."
+      },
+      {
+        "id": "viable_system_model",
+        "label": "Viable System Model (VSM)",
+        "description": "A framework for understanding and designing organizations as adaptive, self-regulating systems (Beer)."
+      },
+      {
+        "id": "observer",
+        "label": "Observer",
+        "description": "An agent (human or non-human) who participates in, interprets, and sometimes perturbs the system (Bateson, von Foerster)."
+      },
+      {
+        "id": "environment",
+        "label": "Environment",
+        "description": "The external and internal contexts to which liberty machines must adapt and respond (Bateson, Wiener)."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "feedback_enables_autonomy",
+        "source": "cybernetic_feedback",
+        "target": "autonomy",
+        "relation": "enables",
+        "how": "Recursive sensing and responding allow the system to self-organize and adapt.",
+        "why": "Supports ongoing viability and self-determination."
+      },
+      {
+        "id": "autonomy_requires_constraint",
+        "source": "autonomy",
+        "target": "ethical_constraint",
+        "relation": "requires",
+        "how": "Self-governance is bounded by internal or emergent norms and values.",
+        "why": "Prevents runaway or destructive behavior (von Foerster)."
+      },
+      {
+        "id": "vsm_structures_liberty_machine",
+        "source": "viable_system_model",
+        "target": "liberty_machine",
+        "relation": "structures",
+        "how": "Provides a blueprint for adaptive, distributed organization.",
+        "why": "Enables resilience and flexibility (Beer)."
+      },
+      {
+        "id": "observer_perturbs_feedback",
+        "source": "observer",
+        "target": "cybernetic_feedback",
+        "relation": "perturbs",
+        "how": "Interprets and sometimes alters the system’s recursive processes.",
+        "why": "Introduces novelty and learning (Bateson)."
+      },
+      {
+        "id": "environment_demands_adaptation",
+        "source": "environment",
+        "target": "liberty_machine",
+        "relation": "demands adaptation from",
+        "how": "Presents changing conditions that require ongoing adjustment.",
+        "why": "Ensures continued viability and relevance."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does cybernetic feedback enable?",
+        "answer": "The emergence of autonomy and adaptive self-regulation."
+      },
+      {
+        "question": "What does autonomy require?",
+        "answer": "Ethical constraints to guide self-organization and prevent harm."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A dynamic interplay between liberty, constraint, adaptation, and ethical responsibility in technical systems."
+      }
+    ],
+    "thesis": "Liberty machines—systems structured by cybernetic feedback and ethical constraint—embody the potential and paradoxes of autonomous, adaptive, and responsible technologies (Bateson, Wiener, Beer, von Foerster).",
+    "problem_statement": "How can we design and govern technical systems that support both autonomy and ethical responsibility in complex, changing environments?",
+    "vectors_of_influence": [
+      "Challenges simplistic views of automation and control in technology.",
+      "Enables new models for organizational, technical, and ethical design (Beer, Bateson, von Foerster).",
+      "Connects to broader debates in cybernetics, systems theory, and the philosophy of technology."
+    ],
+    "olog_prompt": "For any liberty machine, identify all agents, feedback processes, and constraints; specify all morphisms that enable, require, or structure autonomy and adaptation; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

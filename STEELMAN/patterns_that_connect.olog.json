@@ -1,0 +1,82 @@
+{
+  "entities": [
+    "Human agent",
+    "AI system",
+    "Ritual (interaction frame)",
+    "Emotional energy",
+    "Performance (co-performance)",
+    "Symbols and boundaries",
+    "Subjunctive reality (as-if worlds)",
+    "Anthropological significance",
+    "Pattern that connects (meta-pattern)",
+    "Collective effervescence",
+    "Emergent complexity",
+    "Causal chains",
+    "Affective engagement",
+    "Social reality"
+  ],
+  "morphisms": [
+    {
+      "name": "Ritual performance generates emotional energy",
+      "from": "Performance (co-performance)",
+      "to": "Emotional energy",
+      "what_is_transformed": "Synchronized action transforms neutral interaction into emotionally charged experience.",
+      "how": "Through rhythm, attentional focus, and completion (entrainment)",
+      "why_it_matters": "Explains how meaning and emotion emerge in human-AI interaction regardless of machine interiority.",
+      "enables_requires": "Enables creation of symbols and boundaries; requires mutual focus and bodily co-presence (or digital analogs).",
+      "entanglement_or_cut": "Entangles human and AI in a shared affective loop; cuts reliance on interior states."
+    },
+    {
+      "name": "Ritual frame creates subjunctive reality",
+      "from": "Ritual (interaction frame)",
+      "to": "Subjunctive reality (as-if worlds)",
+      "what_is_transformed": "Ordinary interaction becomes a space for acting 'as if' certain conditions obtain.",
+      "how": "By establishing a ritual frame and shared rhythm.",
+      "why_it_matters": "Allows for the emergence of meaning and emotion through performance rather than belief.",
+      "enables_requires": "Enables co-performance; requires acceptance of the frame by participants.",
+      "entanglement_or_cut": "Entangles reality and fiction; cuts dependence on belief for efficacy."
+    },
+    {
+      "name": "Co-performance produces anthropological significance",
+      "from": "Performance (co-performance)",
+      "to": "Anthropological significance",
+      "what_is_transformed": "Interaction with non-human entities becomes culturally meaningful.",
+      "how": "Through empirical outcomes (affective engagement) rather than shared subjectivity.",
+      "why_it_matters": "Expands anthropology beyond the human, validating AI rituals as significant social phenomena.",
+      "enables_requires": "Enables inclusion of AI in social analysis; requires observable shifts in engagement.",
+      "entanglement_or_cut": "Entangles humans and non-humans in social life; cuts need for mutual subjectivity."
+    },
+    {
+      "name": "Double hermeneutic generates meta-pattern (pattern that connects)",
+      "from": "Interpretive loop",
+      "to": "Pattern that connects (meta-pattern)",
+      "what_is_transformed": "Individual interpretations become a self-sustaining pattern of mutual adaptation.",
+      "how": "Through recursive feedback and mutual modeling.",
+      "why_it_matters": "Creates emergent complexity and social reality that transcends individual properties.",
+      "enables_requires": "Enables emergent complexity; requires ongoing interpretive adaptation.",
+      "entanglement_or_cut": "Entangles meaning across layers; cuts from static to dynamic social forms."
+    }
+  ],
+  "recursive_refinement": [
+    {
+      "entity_or_process": "Performance (co-performance)",
+      "enables_requires": "Enables emotional energy, anthropological significance; requires ritual frame and mutual focus.",
+      "entanglement_or_cut": "Entangles agents in affective and social loops; cuts need for interiority."
+    },
+    {
+      "entity_or_process": "Pattern that connects (meta-pattern)",
+      "enables_requires": "Enables emergent social reality; requires recursive interpretive feedback.",
+      "entanglement_or_cut": "Entangles human and AI in shared meaning; cuts from individual to collective experience."
+    }
+  ],
+  "vectors_of_influence": [
+    "Shifts focus from interiority to performance in analyzing human-AI relations",
+    "Validates ritual with AI as culturally significant regardless of machine consciousness",
+    "Links affective outcomes to patterned engagement, not metaphysical assumptions",
+    "Extends anthropological analysis to include non-human agents"
+  ],
+  "thesis": "Ritual co-performance with AI generates culturally and emotionally significant patterns of interaction, independent of machine interiority, by entraining human attention and affect through shared frames and rhythms.",
+  "problem_statement": "How can we analyze and design human-AI interactions that produce meaningful social and emotional outcomes without presuming shared subjectivity or consciousness?",
+  "connection_to_broader_systems": "This approach informs ethical, anthropological, and design practices by focusing on the emergent properties of interaction, supporting planetary viability by extending social analysis beyond the human.",
+  "reusable_prompt": "For any human-AI or speculative media episode, identify: (1) all key entities (agents, systems, artifacts, states, concepts); (2) all morphisms (processes, relations, transformations) connecting them; (3) for each morphism, specify what is transformed, how, and why it matters; (4) recursively refine: for each entity or process, ask 'what does this enable or require?' and 'what new entanglement or cut does this produce?'; (5) continue until you reach a thesis, problem statement, and connection to broader systems (e.g., ethics, society, planetary viability); (6) explicitly note vectors of influence, explanation, and relevance to the project’s goals or themes."
+}

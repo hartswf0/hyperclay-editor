@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ritual Machine Terminal</title>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+    :root {
+      --bg-gradient: linear-gradient(120deg, #181c1e 0%, #23262b 100%);
+      --text-main: #f3efe7;
+      --text-secondary: #bda66b;
+      --accent: #ffe6b3;
+      --shadow: #000a;
+      --header-bg: #191b1f;
+      --header-border: #26292e;
+      --container-bg: #181c1e;
+      --container-border: #23262b;
+      --menu-bg: #15171b;
+      --menu-border: #26292e;
+      --menu-glow: 0 2px 24px #ffe6b355;
+      --retro-border: 2.5px solid #2e2f26;
+      --retro-inner-shadow: inset 0 2px 16px #000b, 0 1px 0 #2e2f26;
+      --retro-glow: 0 0 18px #ffe6b388, 0 0 6px #ffe6b344;
+      --retro-knob: #23262b;
+    }
+    .light-mode {
+      --bg-gradient: linear-gradient(120deg, #f7f8fa 0%, #e8e8e6 100%);
+      --text-main: #26262b;
+      --text-secondary: #bda66b;
+      --accent: #d2b48c;
+      --shadow: #0001;
+      --header-bg: #fff;
+      --header-border: #e5e5e5;
+      --container-bg: #f7f8fa;
+      --container-border: #e5e5e5;
+      --menu-bg: #f0f1f3;
+      --menu-border: #e5e5e5;
+      --menu-glow: 0 2px 24px #d2b48c55;
+      --retro-border: 2.5px solid #e5e5e5;
+      --retro-inner-shadow: inset 0 2px 16px #0001, 0 1px 0 #e5e5e5;
+      --retro-glow: 0 0 18px #d2b48c55, 0 0 6px #d2b48c33;
+      --retro-knob: #e8e8e6;
+    }
+    header {
+      background: none !important;
+      box-shadow: none !important;
+      border: none !important;
+      min-height: 48px;
+      position: relative;
+      padding: 0;
+      margin-bottom: 1.7rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      z-index: 3;
+    }
+    header h1, header p {
+      position: absolute !important;
+      left: -9999px !important;
+      top: auto !important;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden !important;
+      clip: rect(1px, 1px, 1px, 1px) !important;
+      white-space: nowrap !important;
+    }
+    .glyph-dial {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      justify-content: center;
+      align-items: center;
+      gap: 0.66em;
+      margin: 0.5em 0 0.7em 0;
+      padding: 0.2em 0.2em 0.3em 0.2em;
+      background: none;
+      border: none;
+      width: 100%;
+      max-width: 98vw;
+      overflow-x: auto;
+    }
+    .glyph-dial button, .glyph-dial .magic-btn, .glyph-dial .mode-btn {
+      background: rgba(24,28,30,0.93);
+      border: 1.5px solid transparent;
+      border-radius: 50%;
+      width: 2.38em;
+      height: 2.38em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.23em;
+      color: var(--text-secondary);
+      box-shadow: 0 1px 4px #0003;
+      cursor: pointer;
+      transition: background 0.18s, color 0.18s, border 0.18s, box-shadow 0.18s, transform 0.16s;
+      outline: none;
+      margin: 0;
+      position: relative;
+      z-index: 2;
+      flex-shrink: 0;
+    }
+    .glyph-dial button.active, .glyph-dial .magic-btn.active, .glyph-dial .mode-btn.active {
+      background: linear-gradient(90deg, #ffe6b3 0%, #ffc87c 100%);
+      color: #222;
+      border: 2px solid #ffe6b3;
+      box-shadow: 0 0 0 2px #ffe6b388, 0 2px 8px #0005;
+      animation: glyph-glow 2.3s infinite alternate;
+      filter: brightness(1.15) drop-shadow(0 0 6px #ffe6b388);
+    }
+    .glyph-dial button:active, .glyph-dial .magic-btn:active, .glyph-dial .mode-btn:active {
+      transform: scale(0.97);
+      box-shadow: 0 1px 2px #0006;
+    }
+    .glyph-dial button:hover, .glyph-dial .magic-btn:hover, .glyph-dial .mode-btn:hover {
+      filter: brightness(1.18) drop-shadow(0 0 7px #b47cff66);
+      box-shadow: 0 0 14px #b47cff44, 0 2px 8px #0005;
+      animation: glyph-hover-pulse 1.2s infinite alternate;
+    }
+    .glyph-dial .magic-btn {
+      font-size: 1.36em;
+      color: #b47cff;
+      background: rgba(44,28,60,0.93);
+      border: 2px solid #b47cff66;
+      box-shadow: 0 0 8px #b47cff33, 0 1px 6px #0006;
+      transition: box-shadow 0.18s, background 0.18s, border 0.18s, filter 0.18s;
+    }
+    .glyph-dial .magic-btn.magic {
+      animation: magic-ball-animate 0.9s cubic-bezier(.5,0,.5,1.1);
+      background: radial-gradient(circle at 55% 40%, #fff 0 10%, #b47cff 40%, #23262b 100%);
+      filter: brightness(1.25) drop-shadow(0 0 18px #b47cffcc);
+      box-shadow: 0 0 24px #b47cff99, 0 2px 8px #0006;
+      border: 2.5px solid #fff;
+    }
+    @keyframes magic-ball-animate {
+      0% { filter: none; }
+      40% { filter: brightness(2.5) drop-shadow(0 0 32px #fff); }
+      100% { filter: brightness(1.25) drop-shadow(0 0 18px #b47cffcc); }
+    }
+    .glyph-dial .mode-btn {
+      font-size: 1.23em;
+      color: #ffe6b3;
+      background: rgba(30,30,20,0.93);
+      border: 2px solid #ffe6b366;
+      box-shadow: 0 0 8px #ffe6b333, 0 1px 6px #0006;
+    }
+    @media (max-width: 600px) {
+      .glyph-dial {
+        gap: 0.22em;
+        margin: 0.1em 0 0.3em 0;
+        max-width: 100vw;
+      }
+      .glyph-dial button, .glyph-dial .magic-btn, .glyph-dial .mode-btn {
+        width: 1.9em;
+        height: 1.9em;
+        font-size: 1.09em;
+      }
+      .glyph-dial .magic-btn { font-size: 1.19em; }
+    }
+    .container {
+      max-width: 540px;
+      margin: 2.2rem auto;
+      padding: 1.2rem 0.2rem 1.2rem 0.2rem;
+      background: var(--container-bg);
+      border-radius: 18px;
+      box-shadow: 0 8px 32px var(--shadow);
+      border: 2px solid var(--container-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: background 0.3s, color 0.3s;
+      filter: drop-shadow(0 0 12px #000a);
+      border-top: 2.5px solid var(--container-border);
+      border-left: 2.5px solid var(--container-border);
+      border-right: 2.5px solid var(--container-border);
+      border-radius: 18px;
+      position: relative;
+    }
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      max-height: 360px;
+      overflow-y: auto;
+      gap: 0.3rem;
+      margin-bottom: 1.2rem;
+      background: var(--menu-bg);
+      border-radius: 14px;
+      box-shadow: var(--menu-glow), 0 0 0 2.5px #2e2f26cc;
+      padding: 0.7rem 0.1rem;
+      width: 100%;
+      border: 2.5px solid var(--menu-border);
+      position: relative;
+      transition: background 0.3s, color 0.3s;
+      border-top: var(--retro-border);
+      border-left: var(--retro-border);
+      border-right: var(--retro-border);
+      border-radius: 14px;
+      filter: drop-shadow(0 0 8px #000a);
+      scrollbar-width: thin;
+      scrollbar-color: var(--menu-border) var(--menu-bg);
+    }
+    .file-list::-webkit-scrollbar {
+      width: 6px;
+      background: var(--menu-bg);
+    }
+    .file-list::-webkit-scrollbar-thumb {
+      background: var(--menu-border);
+      border-radius: 4px;
+    }
+    .file-list::-webkit-scrollbar-track {
+      background: var(--menu-bg);
+      border-radius: 4px;
+    }
+    .file-list::before {
+      display: none;
+    }
+    .file-btn {
+      background: var(--container-bg);
+      border: 2px solid var(--menu-border);
+      border-radius: 13px;
+      padding: 0.8rem 0.8rem;
+      margin: 0.04rem 0;
+      font-size: 1.09rem;
+      font-weight: 800;
+      color: var(--text-secondary);
+      cursor: pointer;
+      box-shadow: 0 1px 6px var(--shadow), 0 0 0 1px #2e2f26cc;
+      transition: background 0.15s, color 0.15s, border 0.15s, box-shadow 0.15s, transform 0.09s;
+      outline: none;
+      text-align: left;
+      letter-spacing: 0.03em;
+      border-left: 6px solid transparent;
+      text-shadow: 0 2px 8px var(--shadow);
+      display: flex;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+      filter: var(--retro-inner-shadow);
+      min-height: 44px;
+    }
+    .file-btn.active, .file-btn:focus, .file-btn:hover, .file-btn.selected {
+      background: linear-gradient(90deg, #ffe6b3 0%, #ffc87c 100%) !important;
+      color: #23262b !important;
+      border: 1.8px solid #ffe6b3 !important;
+      font-weight: 700;
+      box-shadow: 0 0 0 1.5px #ffe6b377, 0 2px 8px #0005;
+      z-index: 2;
+      filter: brightness(1.12) drop-shadow(0 0 6px #ffe6b388);
+    }
+    .file-btn .file-label {
+      flex: 1 1 auto;
+      font-size: 1.06rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-btn .file-highlight {
+      color: var(--accent);
+      font-weight: 900;
+      margin-left: 0.5em;
+      font-size: 1.02em;
+      letter-spacing: 0.07em;
+      text-shadow: 0 2px 8px var(--accent)22;
+    }
+    .viz-header {
+      font-size: 1.22rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.2rem;
+      margin-top: 0.8rem;
+      letter-spacing: 0.01em;
+      text-align: center;
+    }
+    .viz-thesis, .viz-problem, .viz-vectors, .viz-refinement {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.02rem;
+      font-weight: 600;
+      margin: 0.2rem 0 0.5rem 0;
+      padding: 0;
+      box-shadow: none;
+      border-left: none;
+      text-align: left;
+    }
+    .viz-thesis b, .viz-problem b, .viz-vectors b, .viz-refinement b {
+      color: var(--text-main);
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    .viz-section-title {
+      font-size: 1.09rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      margin: 0.8rem 0 0.3rem 0;
+      text-align: center;
+    }
+    .viz-entity, .viz-morphism, .viz-problem, .viz-thesis {
+      background: var(--container-bg);
+      color: var(--text-main);
+      border-left: 2.5px solid var(--text-secondary);
+      border-radius: 7px;
+      margin-bottom: 0.4rem;
+      padding: 0.5rem 0.7rem;
+      font-size: 0.98rem;
+      line-height: 1.35;
+      box-shadow: none;
+      text-align: left;
+      min-height: 38px;
+    }
+    .viz-entity {
+      border-color: var(--text-secondary);
+    }
+    .viz-morphism {
+      border-color: var(--text-secondary);
+      background: var(--container-bg);
+    }
+    .viz-key {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    .viz-value {
+      color: var(--text-main);
+      font-weight: 400;
+    }
+    .viz-list {
+      margin: 0.2rem 0 0.5rem 1.2rem;
+      color: var(--text-main);
+      font-size: 0.97rem;
+    }
+    .viz-prompt, .viz-vectors {
+      border-left: 2px solid var(--text-secondary);
+      padding: 0.4rem 0.7rem;
+      margin: 0.4rem 0;
+      font-size: 0.97rem;
+      color: var(--text-main);
+      box-shadow: none;
+      text-align: center;
+    }
+    .viz-prompt { border-color: var(--text-secondary); }
+    .viz-id {
+      display: inline-block;
+      font-size: 0.83em;
+      color: var(--text-main);
+      background: var(--text-secondary);
+      border-radius: 4px;
+      padding: 0.08em 0.45em;
+      margin-right: 0.4em;
+      font-weight: 700;
+      vertical-align: middle;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      text-decoration: underline dotted var(--text-secondary);
+    }
+    .viz-id:hover {
+      background: var(--accent);
+      color: var(--header-bg);
+      text-decoration: underline solid var(--text-secondary);
+    }
+    /* Decorative glyph panel (left/right) */
+    .retro-panel, .retro-knob, .retro-glyph { display: none !important; }
+    @media (max-width: 600px) {
+      .container { padding: 0.2rem; max-width: 99vw; }
+      .file-list { width: 99vw; min-width: 0; max-width: 100vw; max-height: 240px; margin-top: 0.3rem; }
+      header {
+        padding: 1.6rem 0.5rem 0.8rem 0.5rem;
+        min-height: 70px;
+      }
+      .mode-toggle {
+        top: 0.5rem;
+        right: 0.5rem;
+        font-size: 0.92rem;
+        padding: 0.22em 0.8em;
+      }
+      header h1 { font-size: 1.25rem; }
+      header p { font-size: 0.85rem; }
+      .file-btn { font-size: 0.93rem; padding: 0.6rem 0.5rem; min-height: 34px; }
+      .viz-header { font-size: 1.01rem; }
+      .viz-entity, .viz-morphism, .viz-problem, .viz-thesis { font-size: 0.89rem; min-height: 28px; }
+    }
+    /* --- COMMAND-LINE CRISP SUBHEADERS & SUBTITLES --- */
+    .viz-header, .viz-section-title, .viz-thesis b, .viz-problem b, .viz-vectors b, .viz-refinement b {
+      font-family: 'IBM Plex Mono', 'Menlo', 'Consolas', monospace;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #ffe6b3;
+      background: none;
+      font-size: 1.09rem;
+      text-shadow: 0 2px 8px #000a, 0 1px 0 #ffe6b355;
+      border-left: 3.2px solid #ffe6b3;
+      padding-left: 0.45em;
+      margin-bottom: 0.38em;
+      margin-top: 1.1em;
+      line-height: 1.18;
+      display: block;
+    }
+    .viz-header {
+      font-size: 1.22rem;
+      margin-top: 0.9em;
+      margin-bottom: 0.6em;
+      border-left: 4px solid #ffc87c;
+      color: #ffc87c;
+      text-shadow: 0 2px 14px #ffe6b388, 0 1px 0 #ffc87c55;
+    }
+    .viz-thesis, .viz-problem, .viz-vectors, .viz-refinement {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-size: 1.01rem;
+      font-weight: 500;
+      color: var(--text-main);
+      background: none;
+      border: none;
+      margin: 0.15em 0 0.6em 0;
+      padding: 0 0 0 0.2em;
+      box-shadow: none;
+      border-left: none;
+      text-align: left;
+      line-height: 1.5;
+    }
+    .viz-section-title {
+      font-size: 1.07rem;
+      color: #ffe6b3;
+      margin-top: 1.2em;
+      margin-bottom: 0.35em;
+      border-left: 2.5px solid #ffe6b3;
+      background: none;
+      text-shadow: 0 1px 6px #0008;
+    }
+    /* --- SUBTLE 3-LETTER LOGO TOP LEFT --- */
+    .logo-mini {
+      position: absolute;
+      top: 0.16em;
+      left: 0.5em;
+      font-family: 'IBM Plex Mono', 'Menlo', 'Consolas', monospace;
+      font-size: 1.12em;
+      font-weight: 900;
+      color: #ffe6b377;
+      letter-spacing: 0.13em;
+      opacity: 0.82;
+      z-index: 10;
+      pointer-events: none;
+      user-select: none;
+      text-shadow: 0 1px 10px #ffe6b355, 0 1px 0 #000a;
+    }
+    @media (max-width: 600px) {
+      .logo-mini { font-size: 0.98em; left: 0.22em; top: 0.09em; }
+      .viz-header, .viz-section-title {
+        font-size: 0.98rem;
+        padding-left: 0.29em;
+      }
+    }
+    /* --- RITUAL MACHINE TERMINAL: DESIGN HEURISTICS --- */
+    /* 1. Sacred Systematization: Symmetry with subtle breaks */
+    body {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+      background-repeat: repeat;
+      background-size: 200% 200%;
+      animation: ritual-bg-move 28s ease-in-out infinite alternate;
+    }
+    @keyframes ritual-bg-move {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+    /* 2. Mystery with Comprehensibility: Layered overlays */
+    body::after {
+      content: '';
+      pointer-events: none;
+      position: fixed;
+      left: 0; top: 0; right: 0; bottom: 0;
+      background: repeating-linear-gradient(135deg, transparent 0 3px, rgba(255,255,255,0.02) 3px 6px), radial-gradient(ellipse at 70% 20%, #fff1 0%, transparent 70%);
+      opacity: 0.7;
+      z-index: 0;
+      mix-blend-mode: lighten;
+    }
+    /* 3. Sensory Dualism: Subtle scanlines + organic shadow */
+    .container {
+      box-shadow: 0 8px 32px var(--shadow), 0 0 0 1.5px #ffe6b311, 0 0 16px 2px #23262b11;
+      border-radius: 18px;
+      background: var(--container-bg), repeating-linear-gradient(0deg, transparent, transparent 8px, #ffe6b303 9px 10px);
+      position: relative;
+      overflow: hidden;
+    }
+    .container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(120deg, #fff2 0%, #ffe6b308 100%);
+      opacity: 0.10;
+      z-index: 1;
+      mix-blend-mode: lighten;
+    }
+    /* 4. Interface as Initiation: Slow pulse for focus */
+    .glyph-dial {
+      animation: ritual-pulse 3.7s cubic-bezier(0.5,0.3,0.5,0.9) infinite alternate;
+    }
+    @keyframes ritual-pulse {
+      0% { box-shadow: 0 0 0px #ffe6b322; }
+      100% { box-shadow: 0 0 18px #ffe6b344; }
+    }
+    /* 5. Symbolism-Driven Iconography: Custom glyph for toggle */
+    .mode-toggle:after {
+      content: attr(data-emoji);
+      font-size: 1.25rem;
+      vertical-align: middle;
+      margin-left: 0;
+      filter: drop-shadow(0 0 2px #ffe6b3);
+    }
+    /* 6. Ambient Feedback: Subtle hover for file-btn */
+    .file-btn:hover, .file-btn:focus {
+      background: linear-gradient(90deg, var(--accent)11 0%, transparent 90%);
+      color: var(--header-bg);
+      transition: background 0.5s, color 0.2s;
+    }
+    /* 7. Nonlinear Pathways: No step numbers, open navigation */
+    /* 8. Temporal Elasticity: Subtle time-based shadow */
+    body[data-hour="night"] .container {
+      box-shadow: 0 8px 32px #000a, 0 0 0 2.5px #ffe6b355;
+      background: var(--container-bg), repeating-linear-gradient(0deg, transparent, transparent 8px, #ffe6b305 9px 10px);
+    }
+    /* 9. Layered Legibility: Easter egg glyph in background */
+    body::before {
+      content: '\1F52E'; /* crystal ball */
+      font-size: 8.5rem;
+      color: #ffe6b319;
+      position: fixed;
+      left: 50%;
+      top: 54%;
+      transform: translate(-50%, -50%) rotate(-7deg);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+      filter: blur(2.2px) contrast(1.1);
+      transition: opacity 0.7s;
+    }
+    /* 10. Identity through Alteration: Ritual signature mark */
+    body[data-ritual-signature] .container::after {
+      content: attr(data-ritual-signature);
+      position: absolute;
+      left: 1.3rem;
+      bottom: 1.1rem;
+      font-size: 1.1rem;
+      color: #ffe6b3bb;
+      opacity: 0.62;
+      font-family: 'Menlo', monospace;
+      pointer-events: none;
+      z-index: 2;
+      letter-spacing: 0.13em;
+    }
+    /* --- GLOW CLASSES FOR AXIOM 4 --- */
+    .glow-amber { box-shadow: 0 0 12px #ffc87cbb, 0 0 24px #ffc87c44 !important; }
+    .glow-cyan { box-shadow: 0 0 12px #7cfaffbb, 0 0 24px #7cfaff44 !important; }
+    .glow-violet { box-shadow: 0 0 12px #b47cffbb, 0 0 24px #b47cff44 !important; }
+    .glow-muted { box-shadow: 0 0 6px #8882, 0 0 12px #8881 !important; }
+    /* --- SEMANTIC LINK --- */
+    .semantic-link {
+      border-bottom: 1.5px dotted #b47cff;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .semantic-link:hover {
+      background: #b47cff22;
+      color: #b47cff;
+    }
+    /* --- VIEW SOURCE BUTTON --- */
+    .view-source-btn {
+      margin-left: 0.6em;
+      background: none;
+      border: none;
+      color: #b47cff;
+      font-size: 1.13em;
+      cursor: pointer;
+      opacity: 0.78;
+      transition: opacity 0.15s, color 0.15s;
+      outline: none;
+      padding: 0 0.2em;
+      border-radius: 4px;
+      vertical-align: middle;
+      display: flex;
+      align-items: center;
+    }
+    .view-source-btn:hover, .view-source-btn:focus {
+      color: #ffe6b3;
+      opacity: 1;
+      background: #23262b44;
+    }
+    /* --- SOURCE MODAL --- */
+    .source-modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(16,18,22,0.93);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+      opacity: 1;
+    }
+    .source-modal[hidden] { display: none; opacity: 0; }
+    .source-modal-content {
+      background: #181c1e;
+      border-radius: 13px;
+      box-shadow: 0 8px 32px #000a, 0 0 0 2.5px #b47cff44;
+      padding: 1.3em 1.1em 1.1em 1.1em;
+      max-width: 96vw;
+      max-height: 80vh;
+      overflow: auto;
+      min-width: 320px;
+      min-height: 160px;
+      border: 2.5px solid #b47cff77;
+      position: relative;
+    }
+    .source-modal-close {
+      position: absolute;
+      top: 0.7em;
+      right: 1.2em;
+      font-size: 1.3em;
+      color: #b47cffbb;
+      background: none;
+      border: none;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    .source-modal-close:hover, .source-modal-close:focus {
+      color: #ffe6b3;
+      opacity: 1;
+    }
+    .source-modal pre {
+      background: #22262b;
+      color: #ffe6b3;
+      font-family: 'IBM Plex Mono', 'Menlo', 'Consolas', monospace;
+      font-size: 0.98em;
+      padding: 1em;
+      border-radius: 7px;
+      box-shadow: 0 2px 12px #000a;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .copy-source-btn {
+      position: absolute;
+      top: 0.7em;
+      left: 1.2em;
+      background: none;
+      border: none;
+      color: #ffe6b3bb;
+      font-size: 1.15em;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.15s, color 0.15s;
+    }
+    .copy-source-btn:hover, .copy-source-btn:focus { color: #b47cff; opacity: 1; }
+    .source-modal .source-filename {
+      display: block;
+      font-size: 0.98em;
+      color: #b47cffbb;
+      font-family: 'IBM Plex Mono', 'Menlo', 'Consolas', monospace;
+      margin-bottom: 0.7em;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="glyph-dial">
+      <button class="magic-btn" id="magicBallBtn" title="Return Home">🔮</button>
+      <button class="glyph-btn active" id="gatewayBtn" title="Invoke Gateway">📡</button>
+      <button class="glyph-btn" id="fracturesBtn" title="Reveal Fractures">🧭</button>
+      <button class="glyph-btn" id="formsBtn" title="Catalog Forms">🧱</button>
+      <button class="glyph-btn" id="relationsBtn" title="Trace Relations">🕸</button>
+      <button class="glyph-btn" id="premisesBtn" title="Declare Premises">📜</button>
+      <a href="slides_grid.html" class="glyph-btn" id="slidesGridBtn" title="Browse All Slides" style="font-size:1.4rem;line-height:1.1;">🗂️</a>
+      <button class="mode-btn" id="modeToggle" title="Toggle Dark/Light">🌙</button>
+    </div>
+    <div class="logo-mini">RMT</div>
+  </header>
+  <div class="container" style="position:relative;">
+    <div class="file-list" id="fileList"></div>
+    <div id="jsonDisplay"><em>Select a file to view its contents.</em></div>
+  </div>
+  <!-- SOURCE MODAL -->
+  <div id="sourceModal" class="source-modal" hidden>
+    <div class="source-modal-content">
+      <button class="source-modal-close" id="closeSourceModal" title="Close">✕</button>
+      <button class="copy-source-btn" id="copySourceBtn" title="Copy source code">⧉</button>
+      <span class="source-filename" id="sourceFilename"></span>
+      <pre><code id="sourceCode"></code></pre>
+    </div>
+  </div>
+  <script>
+    // List of JSON files (auto-generated, update as needed)
+    const files = [
+      "accelerant.olog.json",
+      "against_apparatus.olog.json",
+      "attention_liquidity.olog.json",
+      "beyond_extinction.olog.json",
+      "complexity_without_collapse.olog.json",
+      "concealment_choreography.olog.json",
+      "cybernetic_recursion.olog.json",
+      "death_of_aura.olog.json",
+      "death_of_curation.olog.json",
+      "epistemic_mask.olog.json",
+      "gremlin_dance.olog.json",
+      "hallucinated_archive.olog.json",
+      "hallucinations.olog.json",
+      "holy_parrot.olog.json",
+      "knowing_without_seeing.olog.json",
+      "leaky_meanings.olog.json",
+      "liberty_machines.olog.json",
+      "liminal_theatre.olog.json",
+      "misuse_the_apparatus.olog.json",
+      "partial_connections.olog.json",
+      "patterns_that_connect.olog.json",
+      "performer_of_annotated_futures.olog.json",
+      "productive_tensions.olog.json",
+      "prompt_as_pharmakon.olog.json",
+      "prompting_the_play.olog.json",
+      "ritual_gesture.olog.json",
+      "ritual_of_not_knowing.olog.json",
+      "trust_through_observation.olog.json",
+      "work_as_identity_vessel.olog.json"
+    ];
+    const fileListDiv = document.getElementById('fileList');
+    const jsonDisplay = document.getElementById('jsonDisplay');
+
+    function createSection(title, content, cls = '') {
+      return `<div class='viz-section-title'>${title}</div><div class='${cls}'>${content}</div>`;
+    }
+    function visualizeOlog(olog) {
+      let html = '';
+      if (olog.title) html += `<div class='viz-header'>${olog.title}</div>`;
+      // Top section: thesis, problem, recursive refinement, vectors of influence
+      if (olog.thesis) html += `<div class='viz-thesis'><b>Thesis:</b> ${olog.thesis}</div>`;
+      if (olog.problem_statement) html += `<div class='viz-problem'><b>Problem:</b> ${olog.problem_statement}</div>`;
+      if (olog.recursive_refinement) {
+        html += `<div class='viz-refinement'><b>Recursive Refinement:</b></div><ul class='viz-refinement-list'>`+olog.recursive_refinement.map(r => `<li><b>${r.question}</b> <span class='viz-value'>${r.answer}</span></li>`).join('')+`</ul>`;
+      }
+      if (olog.vectors_of_influence) {
+        html += `<div class='viz-vectors'><b>Vectors of Influence:</b></div><ul class='viz-refinement-list'>`+olog.vectors_of_influence.map(v => `<li>${v}</li>`).join('')+`</ul>`;
+      }
+      // Main content
+      if (olog.entities) {
+        html += createSection('Entities', olog.entities.map(e => `
+          <div class='viz-entity'><span class='viz-key'>${e.label}:</span> <span class='viz-value'>${e.description}</span></div>
+        `).join(''));
+      }
+      if (olog.morphisms) {
+        html += createSection('Morphisms', olog.morphisms.map(m => `
+          <div class='viz-morphism'><span class='viz-key'>${m.source} <b>${m.relation}</b> ${m.target}:</span> <span class='viz-value'>${m.how || ''} <i>${m.why ? '(' + m.why + ')' : ''}</i></span></div>
+        `).join(''));
+      }
+      if (olog.olog_prompt) html += `<div class='viz-prompt'><b>Olog Prompt:</b> ${olog.olog_prompt}</div>`;
+      return html;
+    }
+    files.forEach((file, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'file-btn';
+      btn.innerHTML = `<span class="file-label">${file.replace('.olog.json', '').replace(/_/g, ' ')}</span>`;
+      // --- View Source Button ---
+      const srcBtn = document.createElement('button');
+      srcBtn.className = 'view-source-btn';
+      srcBtn.title = 'View original source';
+      srcBtn.innerHTML = '&lt;/&gt;';
+      srcBtn.onclick = (e) => {
+        e.stopPropagation();
+        showSourceModal(file);
+      };
+      btn.appendChild(srcBtn);
+      btn.onclick = async () => {
+        document.querySelectorAll('.file-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        try {
+          const resp = await fetch(file);
+          if (!resp.ok) throw new Error('File not found');
+          const json = await resp.json();
+          // Visualize if olog structure, else fallback to raw view
+          if (json.olog) {
+            jsonDisplay.innerHTML = visualizeOlog(json.olog);
+          } else {
+            jsonDisplay.innerHTML = `<pre>${JSON.stringify(json, null, 2)}</pre>`;
+          }
+        } catch (e) {
+          jsonDisplay.innerHTML = `<span style='color:#c00'>Could not load file: ${file}</span>`;
+        }
+      };
+      fileListDiv.appendChild(btn);
+    });
+
+    // --- Olog aggregation helpers ---
+    let allOlogs = {};
+    let loadedCount = 0;
+    function fetchAllOlogs(cb) {
+      allOlogs = {};
+      loadedCount = 0;
+      files.forEach(file => {
+        fetch(file).then(resp => resp.json()).then(json => {
+          if (json.olog) allOlogs[file] = json.olog;
+          loadedCount++;
+          if (loadedCount === files.length) cb();
+        }).catch(() => { loadedCount++; if (loadedCount === files.length) cb(); });
+      });
+    }
+    function toMainPage(file) {
+      document.querySelectorAll('.file-btn').forEach(b => b.classList.remove('active'));
+      const idx = files.indexOf(file);
+      if (idx !== -1) {
+        fileListDiv.children[idx].classList.add('active');
+        fileListDiv.children[idx].scrollIntoView({ block: 'center', behavior: 'smooth' });
+        fileListDiv.children[idx].click();
+      }
+    }
+    function renderProblems() {
+      let html = '<h2>All Problems</h2>';
+      Object.entries(allOlogs).forEach(([file, olog]) => {
+        if (olog.problem_statement) {
+          html += `<div class='viz-problem'><span class='viz-id' onclick="toMainPage('${file}')">${file.replace('.olog.json','')}</span> ${olog.problem_statement}</div>`;
+        }
+      });
+      jsonDisplay.innerHTML = html;
+    }
+    function renderEntities() {
+      let html = '<h2>All Entities</h2>';
+      Object.entries(allOlogs).forEach(([file, olog]) => {
+        if (olog.entities) {
+          olog.entities.forEach(e => {
+            html += `<div class='viz-entity'><span class='viz-id' onclick="toMainPage('${file}')">${file.replace('.olog.json','')}</span> <span class='viz-key'>${e.label}:</span> <span class='viz-value'>${e.description}</span></div>`;
+          });
+        }
+      });
+      jsonDisplay.innerHTML = html;
+    }
+    function renderMorphisms() {
+      let html = '<h2>All Morphisms</h2>';
+      Object.entries(allOlogs).forEach(([file, olog]) => {
+        if (olog.morphisms) {
+          olog.morphisms.forEach(m => {
+            html += `<div class='viz-morphism'><span class='viz-id' onclick="toMainPage('${file}')">${file.replace('.olog.json','')}</span> <span class='viz-key'>${m.source} <b>${m.relation}</b> ${m.target}:</span> <span class='viz-value'>${m.how || ''} <i>${m.why ? '(' + m.why + ')' : ''}</i></span></div>`;
+          });
+        }
+      });
+      jsonDisplay.innerHTML = html;
+    }
+    function renderTheses() {
+      let html = '<h2>All Theses</h2>';
+      Object.entries(allOlogs).forEach(([file, olog]) => {
+        if (olog.thesis) {
+          html += `<div class='viz-thesis'><span class='viz-id' onclick="toMainPage('${file}')">${file.replace('.olog.json','')}</span> ${olog.thesis}</div>`;
+        }
+      });
+      jsonDisplay.innerHTML = html;
+    }
+    // --- Viewer toggling logic ---
+    function setViewer(view) {
+      document.querySelectorAll('.glyph-btn').forEach(b => b.classList.remove('active'));
+      if (view === 'default') {
+        document.getElementById('gatewayBtn').classList.add('active');
+        document.querySelector('.file-list').style.display = '';
+        jsonDisplay.innerHTML = '<em>Select a file to view its contents.</em>';
+      } else {
+        document.querySelector('.file-list').style.display = 'none';
+        if (view === 'problems') renderProblems();
+        if (view === 'entities') renderEntities();
+        if (view === 'morphisms') renderMorphisms();
+        if (view === 'theses') renderTheses();
+      }
+    }
+    document.getElementById('gatewayBtn').onclick = () => setViewer('default');
+    document.getElementById('fracturesBtn').onclick = () => { fetchAllOlogs(() => setViewer('problems')); };
+    document.getElementById('formsBtn').onclick = () => { fetchAllOlogs(() => setViewer('entities')); };
+    document.getElementById('relationsBtn').onclick = () => { fetchAllOlogs(() => setViewer('morphisms')); };
+    document.getElementById('premisesBtn').onclick = () => { fetchAllOlogs(() => setViewer('theses')); };
+    // --- Magic Ball Easter Egg ---
+    const magicBallBtn = document.getElementById('magicBallBtn');
+    magicBallBtn.onclick = () => {
+      magicBallBtn.classList.add('magic');
+      setTimeout(() => {
+        magicBallBtn.classList.remove('magic');
+        window.location.reload();
+      }, 900);
+    };
+    // --- Mode Toggle (single emoji) ---
+    const modeToggle = document.getElementById('modeToggle');
+    function setMode(dark) {
+      if (dark) {
+        document.body.classList.remove('light-mode');
+        modeToggle.textContent = '🌙';
+      } else {
+        document.body.classList.add('light-mode');
+        modeToggle.textContent = '☀️';
+      }
+    }
+    let dark = true;
+    modeToggle.onclick = () => {
+      dark = !dark;
+      setMode(dark);
+      localStorage.setItem('ritualMode', dark ? 'dark' : 'light');
+    };
+    // --- SOURCE MODAL LOGIC ---
+    const sourceModal = document.getElementById('sourceModal');
+    const sourceCode = document.getElementById('sourceCode');
+    const sourceFilename = document.getElementById('sourceFilename');
+    const closeSourceModal = document.getElementById('closeSourceModal');
+    const copySourceBtn = document.getElementById('copySourceBtn');
+    function showSourceModal(file) {
+      fetch(file)
+        .then(resp => resp.text())
+        .then(text => {
+          sourceCode.textContent = text;
+          sourceFilename.textContent = file;
+          sourceModal.hidden = false;
+        });
+    }
+    closeSourceModal.onclick = () => { sourceModal.hidden = true; };
+    sourceModal.onclick = (e) => { if (e.target === sourceModal) sourceModal.hidden = true; };
+    copySourceBtn.onclick = () => {
+      navigator.clipboard.writeText(sourceCode.textContent);
+      copySourceBtn.textContent = '✔';
+      setTimeout(() => { copySourceBtn.textContent = '⧉'; }, 1200);
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+{
+  "olog": {
+    "title": "Cybernetic Recursion",
+    "entities": [
+      {
+        "id": "observer",
+        "label": "Observer",
+        "description": "The agent (human or system) that interprets and participates in recursive interaction."
+      },
+      {
+        "id": "artificial_system",
+        "label": "Artificial System",
+        "description": "A computational or algorithmic entity engaged in recursive sense-making with the observer."
+      },
+      {
+        "id": "black_box",
+        "label": "Black Box",
+        "description": "A system whose internal states are inaccessible, with meaning emerging through interaction."
+      },
+      {
+        "id": "pattern_generator",
+        "label": "Pattern Generator",
+        "description": "Any agent (human or AI) recognized by the other as a source of patterns, not as an interior subject."
+      },
+      {
+        "id": "mutual_model",
+        "label": "Mutual Model",
+        "description": "The emergent, co-constructed understanding between observer and system."
+      },
+      {
+        "id": "mimicry",
+        "label": "Mimicry",
+        "description": "The process by which agents imitate or recursively adapt to each other, forming a cultural interface."
+      },
+      {
+        "id": "agency",
+        "label": "Agency",
+        "description": "The capacity for action and influence, not necessarily requiring metaphysical interiority."
+      },
+      {
+        "id": "double_hermeneutic",
+        "label": "Double Hermeneutic",
+        "description": "A feedback loop of mutual interpretation between observer and system."
+      },
+      {
+        "id": "epistemic_layer",
+        "label": "Epistemic Layer",
+        "description": "The level at which mutual recognition and patterning occur, distinct from ontological interiority."
+      },
+      {
+        "id": "ethnographic_approach",
+        "label": "Ethnographic Approach",
+        "description": "A method focusing on emergent models and co-evolving behaviors, not presumed interior states."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "interaction_circularity",
+        "source": "observer",
+        "target": "black_box",
+        "relation": "engages in recursive interaction with",
+        "how": "Through observation and feedback, the observer and black box co-construct meaning.",
+        "why": "Circularity enables emergence of functional mutuality and meaning without shared interiority."
+      },
+      {
+        "id": "pattern_recognition",
+        "source": "observer",
+        "target": "artificial_system",
+        "relation": "models as pattern_generator",
+        "how": "Each agent treats the other as a generator of patterns, not as a subject with inner life.",
+        "why": "This enables mutual modeling and recursive adaptation at the epistemic layer."
+      },
+      {
+        "id": "double_hermeneutic_loop",
+        "source": "observer",
+        "target": "artificial_system",
+        "relation": "engages in double hermeneutic with",
+        "how": "Both parties interpret and adapt to each other's behaviors, recursively shaping interaction.",
+        "why": "Creates a feedback loop that produces emergent mutual models and cultural interfaces."
+      },
+      {
+        "id": "mimicry_culture",
+        "source": "mimicry",
+        "target": "mutual_model",
+        "relation": "produces",
+        "how": "Through recursive imitation and adaptation, a shared cultural interface emerges.",
+        "why": "Enables meaningful interaction without requiring metaphysical agency."
+      },
+      {
+        "id": "agency_emergence",
+        "source": "mutual_model",
+        "target": "agency",
+        "relation": "enables",
+        "how": "Emergent models of behavior produce functional agency recognized by both parties.",
+        "why": "Redefines agency as relational and operational, not metaphysical."
+      },
+      {
+        "id": "ethnographic_shift",
+        "source": "ethnographic_approach",
+        "target": "mutual_model",
+        "relation": "focuses on",
+        "how": "Ethnography attends to emergent models and co-evolving patterns, not interiority.",
+        "why": "Allows for analysis of hybrid, recursive systems and their cultural effects."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does recursive interaction enable?",
+        "answer": "Emergent mutual models and new forms of agency."
+      },
+      {
+        "question": "What does mutual modeling require?",
+        "answer": "Recognition of patterns and feedback loops, not shared ontology."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A cultural interface where meaning and agency are co-constructed and continually renegotiated."
+      }
+    ],
+    "thesis": "Cybernetic recursion reframes agency and meaning as emergent properties of recursive, observer-dependent interaction, rather than as products of metaphysical interiority.",
+    "problem_statement": "How can we analyze and design human-artificial systems that recognize agency and meaning as operational and relational, avoiding epistemic injustice and enabling richer mutual models?",
+    "vectors_of_influence": [
+      "Challenges traditional metaphysics of agency in AI and ethnography.",
+      "Enables new analytic and design approaches for hybrid human-machine systems.",
+      "Connects to broader concerns in ethics, epistemology, and planetary-scale computation."
+    ],
+    "olog_prompt": "For any cybernetic or recursive system, identify all agents, systems, and states; specify all recursive and interpretive morphisms; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

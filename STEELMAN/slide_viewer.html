@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slide Viewer</title>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #181925;
+      color: #f3f4f8;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    #slide-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      padding: 2rem;
+    }
+    .slide {
+      background: #fff;
+      color: #181925;
+      border-radius: 20px;
+      box-shadow: 0 8px 36px rgba(0,0,0,0.13);
+      max-width: 800px;
+      width: 100%;
+      padding: 2.7rem 2.2rem;
+      margin: 2rem auto;
+      font-size: 1.22rem;
+      line-height: 1.8;
+      letter-spacing: 0.01em;
+      transition: box-shadow 0.2s;
+    }
+    .slide-title {
+      font-size: 2.3rem;
+      font-weight: 800;
+      color: #0a6cff;
+      margin-bottom: 1.1rem;
+      letter-spacing: 0.01em;
+    }
+    .slide-main-title {
+      font-size: 2.1rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 0.6rem;
+    }
+    .slide-subtitle {
+      font-size: 1.35rem;
+      color: #4c5a6a;
+      margin-bottom: 1.2rem;
+    }
+    .slide-meta {
+      font-size: 1.04rem;
+      color: #2a426e;
+      margin-bottom: 0.3rem;
+    }
+    .slide-label {
+      font-weight: 600;
+      color: #0a6cff;
+    }
+    .slide-quote {
+      font-size: 1.28rem;
+      font-style: italic;
+      background: #eaf3ff;
+      color: #153a5b;
+      border-left: 5px solid #0a6cff;
+      padding: 0.7rem 1.1rem;
+      margin: 1.1rem 0 1.5rem 0;
+      border-radius: 8px;
+    }
+    .slide-argument {
+      margin-bottom: 0.8rem;
+    }
+    .slide-example {
+      margin-bottom: 0.8rem;
+    }
+    .slide-summary {
+      margin-bottom: 0.8rem;
+      padding-left: 1.1rem;
+    }
+    .slide-summary li {
+      margin-bottom: 0.4rem;
+      font-size: 1.08rem;
+    }
+    .slide-visual {
+      font-size: 1.03rem;
+      background: #f8f9fa;
+      color: #3a3a3a;
+      border-left: 4px solid #b5b5b5;
+      padding: 0.5rem 1rem;
+      margin: 1.1rem 0 1.5rem 0;
+      border-radius: 7px;
+    }
+    .slide-source {
+      margin-top: 1.2rem;
+      font-size: 0.98rem;
+      color: #7a7e9c;
+      text-align: right;
+    }
+    .slide-link {
+      color: #0a6cff;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+    #slide-container {
+      min-height: 70vh;
+    }
+    #controls {
+      margin-bottom: 2.5rem;
+    }
+    .ctrl-btn {
+      background: #0a6cff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.7rem 1.6rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .ctrl-btn:disabled {
+      background: #dbeafe;
+      color: #888;
+      cursor: not-allowed;
+    }
+    @media (max-width: 600px) {
+      .slide {
+        padding: 1.1rem 0.5rem;
+        max-width: 99vw;
+        font-size: 1.07rem;
+      }
+      .slide-title {
+        font-size: 1.3rem;
+      }
+      .slide-main-title {
+        font-size: 1.1rem;
+      }
+      .slide-content {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="slide-container"></div>
+  <div id="controls">
+    <button class="ctrl-btn" id="prev">&#8592; Previous</button>
+    <span id="slide-num"></span>
+    <button class="ctrl-btn" id="next">Next &#8594;</button>
+  </div>
+  <script>
+    let slides = [];
+    let current = 0;
+
+    // Extracts the first URL from a string (for source-linking)
+    function extractFirstUrl(text) {
+      if (!text) return null;
+      // Match [label] url or bare url
+      let mdMatch = text.match(/\[([^\]]+)\]\s*:?\s*(https?:\/\/[^\s]+)/);
+      if (mdMatch) return mdMatch[2];
+      let urlMatch = text.match(/(https?:\/\/[^\s]+)/);
+      if (urlMatch) return urlMatch[1];
+      return null;
+    }
+
+    // Utility: Convert URLs in text to clickable links
+    function linkify(text) {
+      if (!text) return '';
+      // Markdown [label] url
+      text = text.replace(/\[([^\]]+)\]\s*:?\s*(https?:\/\/[^\s]+)/g, (m, label, url) => `<a href="${url}" target="_blank" rel="noopener" class="slide-link">${label}</a>`);
+      // Bare URLs
+      text = text.replace(/(https?:\/\/[^\s]+)/g, url => `<a href="${url}" target="_blank" rel="noopener" class="slide-link">${url}</a>`);
+      return text;
+    }
+
+    // Extract and style slide fields
+    function parseFields(content) {
+      const fields = {};
+      const lines = content.split(/\n/);
+      let lastField = null;
+      for (let line of lines) {
+        let match = line.match(/^([A-Za-z /()-]+):\s*(.*)$/);
+        if (match) {
+          lastField = match[1].trim();
+          fields[lastField] = match[2];
+        } else if (lastField) {
+          fields[lastField] += '\n' + line;
+        }
+      }
+      return fields;
+    }
+
+    function showSlide(idx) {
+      if (!slides.length) return;
+      current = Math.max(0, Math.min(idx, slides.length - 1));
+      const slide = slides[current];
+      const fields = parseFields(slide.content);
+      let html = `<div class='slide'>`;
+      if (slide.title && slide.title.toLowerCase() !== 'title slide') {
+        html += `<div class='slide-title'>${slide.title}</div>`;
+      }
+      if (fields['Title']) {
+        html += `<div class='slide-main-title'>${fields['Title']}</div>`;
+      }
+      if (fields['Subtitle']) {
+        html += `<div class='slide-subtitle'>${fields['Subtitle']}</div>`;
+      }
+      if (fields['Key Quote']) {
+        html += `<div class='slide-quote'>“${linkify(fields['Key Quote'])}”</div>`;
+      }
+      // Show Thinker/Source and URL together, below the quote
+      let thinker = fields['Thinker / Source'];
+      let url = fields['URL'];
+      if (thinker || url) {
+        let urlToLink = extractFirstUrl(url) || extractFirstUrl(thinker);
+        let thinkerLabel = thinker ? linkify(thinker.replace(/\[([^\]]+)\]\s*:?\s*(https?:\/\/[^\s]+)/g, '$1')) : '';
+        if (urlToLink && thinkerLabel) {
+          html += `<div class='slide-meta'><span class='slide-label'>Source:</span> <a href="${urlToLink}" target="_blank" rel="noopener" class="slide-link">${thinkerLabel}</a></div>`;
+        } else if (thinkerLabel) {
+          html += `<div class='slide-meta'><span class='slide-label'>Source:</span> ${thinkerLabel}</div>`;
+        } else if (urlToLink) {
+          html += `<div class='slide-meta'><span class='slide-label'>Source:</span> <a href="${urlToLink}" target="_blank" rel="noopener" class="slide-link">${urlToLink}</a></div>`;
+        }
+      }
+      if (fields['Core Argument'] || fields['Core Argument / Thesis']) {
+        html += `<div class='slide-argument'><span class='slide-label'>Argument:</span> ${linkify(fields['Core Argument'] || fields['Core Argument / Thesis'])}</div>`;
+      }
+      if (fields['Example']) {
+        html += `<div class='slide-example'><span class='slide-label'>Example:</span> ${linkify(fields['Example'])}</div>`;
+      }
+      if (fields['Summary Points']) {
+        html += `<div class='slide-summary'><span class='slide-label'>Summary:</span><ul>${linkify(fields['Summary Points']).replace(/^- /gm,'<li>').replace(/\n/g,'</li>')}</ul></div>`;
+      }
+      if (fields['Visual Concept'] || fields['Visual Concept / Cartoon Scene']) {
+        html += `<div class='slide-visual'><span class='slide-label'>Visual:</span> ${linkify(fields['Visual Concept'] || fields['Visual Concept / Cartoon Scene'])}</div>`;
+      }
+      html += `<div class='slide-source'>Source file: ${slide.source || 'Unknown'}</div>`;
+      html += `</div>`;
+      document.getElementById('slide-container').innerHTML = html;
+      document.getElementById('slide-num').textContent = `Slide ${current + 1} / ${slides.length}`;
+      document.getElementById('prev').disabled = current === 0;
+      document.getElementById('next').disabled = current === slides.length - 1;
+    }
+
+    async function loadSlides() {
+      const resp = await fetch('slides.json');
+      slides = await resp.json();
+      showSlide(0);
+    }
+
+    document.getElementById('prev').onclick = () => showSlide(current - 1);
+    document.getElementById('next').onclick = () => showSlide(current + 1);
+
+    loadSlides();
+  </script>
+</body>
+</html>

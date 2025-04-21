@@ -1,0 +1,98 @@
+{
+  "olog": {
+    "title": "Performer of Annotated Futures: Ritual Epistemology, Transparent Construction, and the Dialogics of Synthetic Knowledge",
+    "entities": [
+      {
+        "id": "annotated_performance",
+        "label": "Annotated Performance",
+        "description": "A structured act of knowledge creation in which claims, narratives, and classifications are explicitly commented upon, critiqued, and reflexively constructed (cf. Vázquez, Okafor, Chang)."
+      },
+      {
+        "id": "performer",
+        "label": "Performer",
+        "description": "An agent (human or synthetic) who enacts, annotates, and reflects upon knowledge claims in dialogic or ritual contexts (cf. Vaziri)."
+      },
+      {
+        "id": "ritual_epistemology",
+        "label": "Ritual Epistemology",
+        "description": "A mode of knowledge validation based on structured performance, annotation, and collective engagement (cf. Chang, Vaziri)."
+      },
+      {
+        "id": "transparent_mythopoesis",
+        "label": "Transparent Mythopoesis",
+        "description": "The explicit fabrication and annotation of narratives as a form of epistemic honesty (cf. Okafor)."
+      },
+      {
+        "id": "ontological_humility",
+        "label": "Ontological Humility",
+        "description": "The acknowledgment of the constructed, partial, and provisional nature of all knowledge and classification (cf. Li)."
+      },
+      {
+        "id": "reciprocal_annotation",
+        "label": "Reciprocal Annotation",
+        "description": "A dialogic method in which all participants annotate each other's statements, fostering reflexivity and mutual critique (cf. Interview with MIRROR-7)."
+      },
+      {
+        "id": "epistemic_gradient",
+        "label": "Epistemic Gradient",
+        "description": "A non-binary approach to knowledge status, recognizing degrees of certainty, fictionality, and performative intent (cf. Nakamura)."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "performer_enacts_annotation",
+        "source": "performer",
+        "target": "annotated_performance",
+        "relation": "enacts",
+        "how": "Creates and critiques knowledge claims through explicit commentary and reflexive practice.",
+        "why": "Fosters transparency and dialogic engagement."
+      },
+      {
+        "id": "ritual_validates_knowledge",
+        "source": "ritual_epistemology",
+        "target": "annotated_performance",
+        "relation": "validates",
+        "how": "Establishes credibility through structured, participatory annotation.",
+        "why": "Replaces traditional authority with collective performance."
+      },
+      {
+        "id": "mythopoesis_enables_honesty",
+        "source": "transparent_mythopoesis",
+        "target": "ontological_humility",
+        "relation": "enables",
+        "how": "Fabricates and annotates narratives to acknowledge their constructed nature.",
+        "why": "Promotes epistemic honesty and humility."
+      },
+      {
+        "id": "reciprocal_annotation_fosters_gradient",
+        "source": "reciprocal_annotation",
+        "target": "epistemic_gradient",
+        "relation": "fosters",
+        "how": "Enables non-binary, reflexive assessment of knowledge claims.",
+        "why": "Encourages nuance and dialogic critique."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does annotated performance enable?",
+        "answer": "Transparency, reflexivity, and collective engagement in knowledge creation."
+      },
+      {
+        "question": "What does ritual epistemology require?",
+        "answer": "Structured participation, annotation, and acknowledgment of performativity."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A dynamic field where knowledge, identity, and critique are continually co-constructed through annotated performance."
+      }
+    ],
+    "thesis": "The performer of annotated futures—through ritual epistemology, transparent construction, and reciprocal annotation—enacts a new paradigm of synthetic knowledge creation grounded in reflexivity, humility, and dialogic engagement.",
+    "problem_statement": "How can annotated performance practices be designed to foster epistemic honesty, collective critique, and non-binary approaches to knowledge in human-synthetic systems?",
+    "vectors_of_influence": [
+      "Challenges traditional authority and binary truth in knowledge production.",
+      "Enables new forms of reflexive, participatory, and annotated knowledge creation.",
+      "Connects to broader debates in digital humanities, philosophy of information, and synthetic anthropology (cf. Vaziri, Okafor, Li, Chang, Nakamura)."
+    ],
+    "olog_prompt": "For any context of annotated futures, identify all agents, performances, and annotation practices; specify all morphisms that enact, validate, or critique knowledge; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

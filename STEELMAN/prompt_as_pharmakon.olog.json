@@ -1,0 +1,106 @@
+{
+  "olog": {
+    "title": "Prompt as Pharmakon: Ambivalence, Mediation, and the Double-Edged Power of Language in AI",
+    "entities": [
+      {
+        "id": "prompt",
+        "label": "Prompt",
+        "description": "A linguistic or symbolic intervention that mediates between user, machine, and output; functions as both cure and poison (cf. Derrida's pharmakon)."
+      },
+      {
+        "id": "pharmakon",
+        "label": "Pharmakon",
+        "description": "A concept from Derrida denoting something that is both remedy and toxin, structuring the ambivalence of mediation and technology."
+      },
+      {
+        "id": "user",
+        "label": "User",
+        "description": "An agent who crafts prompts, seeking to shape or channel the outputs of an AI system."
+      },
+      {
+        "id": "ai_system",
+        "label": "AI System",
+        "description": "A generative apparatus that responds to prompts, mediating between intention and result."
+      },
+      {
+        "id": "ritual_mediation",
+        "label": "Ritual Mediation",
+        "description": "The structured, often repeated, use of prompts to produce, contain, or transform meaning (cf. Stiegler, chaos magick)."
+      },
+      {
+        "id": "ambivalence",
+        "label": "Ambivalence",
+        "description": "The simultaneous capacity of prompts to enable and undermine, heal and harm, clarify and confuse."
+      },
+      {
+        "id": "transindividuation",
+        "label": "Transindividuation",
+        "description": "The process by which individuals and collectives are shaped and transformed through shared technical and symbolic practices (cf. Stiegler)."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "prompt_mediates_ai",
+        "source": "prompt",
+        "target": "ai_system",
+        "relation": "mediates",
+        "how": "Channels user intention into machine response, structuring the space of possible outputs.",
+        "why": "Bridges human and machine agency."
+      },
+      {
+        "id": "pharmakon_structures_ambivalence",
+        "source": "pharmakon",
+        "target": "ambivalence",
+        "relation": "structures",
+        "how": "Frames the prompt as both remedy and poison, productive and disruptive (Derrida).",
+        "why": "Reveals the double-edged nature of mediation."
+      },
+      {
+        "id": "user_performs_ritual",
+        "source": "user",
+        "target": "ritual_mediation",
+        "relation": "performs",
+        "how": "Crafts and iterates prompts in structured, sometimes ritualized ways (cf. chaos magick, Stiegler).",
+        "why": "Seeks to harness or contain the generative power of the apparatus."
+      },
+      {
+        "id": "ritual_enables_transindividuation",
+        "source": "ritual_mediation",
+        "target": "transindividuation",
+        "relation": "enables",
+        "how": "Shared prompt practices shape collective and individual subjectivity (Stiegler).",
+        "why": "Transforms both users and systems through iterative engagement."
+      },
+      {
+        "id": "ambivalence_feedback",
+        "source": "ambivalence",
+        "target": "user",
+        "relation": "returns to",
+        "how": "The unpredictable effects of prompts require ongoing adjustment and reflection.",
+        "why": "Sustains the dynamic, open-ended nature of prompting."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does the pharmakon nature of prompts enable?",
+        "answer": "A recognition of the double-edged, ambivalent power of language in AI mediation."
+      },
+      {
+        "question": "What does ritual mediation require?",
+        "answer": "Iterative, reflexive engagement with both technical and symbolic dimensions of prompting."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A field where users, machines, and meanings are co-constituted through ongoing, ambivalent mediation."
+      }
+    ],
+    "thesis": "Prompts function as pharmakon—at once remedy and poison—structuring the ambivalent, transformative, and ritualized mediation between user and AI, and shaping new forms of collective and individual subjectivity.",
+    "problem_statement": "How can users and societies navigate the ambivalent, double-edged power of prompts as both tools of control and sources of unpredictability in AI systems?",
+    "vectors_of_influence": [
+      "Challenges instrumentalist views of language and AI mediation (Derrida, Stiegler).",
+      "Enables new practices of ritual, reflexivity, and collective individuation in prompt engineering.",
+      "Connects to broader debates in philosophy of technology, media theory, and the politics of language."
+    ],
+    "olog_prompt": "For any context of prompting, identify all agents, forms of mediation, and ambivalences; specify all morphisms that enable, structure, or transform the effects of prompts; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

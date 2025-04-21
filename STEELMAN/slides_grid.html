@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slides Grid View</title>
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f7f8fa;
+      color: #222;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 2rem;
+      font-size: 2.2rem;
+      letter-spacing: 0.01em;
+      color: #0a6cff;
+    }
+    .grid-controls {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .slide-grid {
+      display: grid;
+      /* Responsive columns: more on zoom in, fewer on zoom out */
+      grid-template-columns: repeat(auto-fit, minmax(calc(340px * var(--grid-scale, 1)), 1fr));
+      gap: 1.5rem;
+      padding: 2rem;
+      max-width: 1600px;
+      margin: 0 auto;
+      transform-origin: top center;
+      font-size: calc(1rem * var(--grid-scale, 1));
+    }
+    .slide-cell {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+      padding: 1.3rem 1rem 1.2rem 1.2rem;
+      transition: box-shadow 0.18s, font-size 0.18s;
+      cursor: pointer;
+      border: 2px solid transparent;
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      font-size: inherit;
+    }
+    .slide-cell:hover {
+      box-shadow: 0 8px 32px rgba(0,0,0,0.13);
+      border: 2px solid #0a6cff;
+    }
+    .slide-title {
+      font-size: 1.16em;
+      font-weight: 700;
+      color: #0a6cff;
+      margin-bottom: 0.5rem;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .slide-quote {
+      font-size: 1.03em;
+      color: #153a5b;
+      font-style: italic;
+      margin-bottom: 0.6rem;
+      margin-top: 0.2rem;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: unset;
+    }
+    .slide-meta, .slide-source {
+      font-size: 0.97em;
+      color: #2a426e;
+      margin-bottom: 0.2rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .slide-source {
+      color: #7a7e9c;
+      margin-top: auto;
+      text-align: right;
+    }
+    .slide-link { text-decoration: underline; color: #0a6cff; }
+    .go-to-viewer {
+      background: #0a6cff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.7rem 1.6rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.18s;
+      margin: 0 1rem 2.2rem 1rem;
+      display: inline-block;
+    }
+    .go-to-viewer:hover {
+      background: #084fb3;
+    }
+    @media (max-width: 700px) {
+      .slide-grid {
+        padding: 0.6rem;
+        gap: 0.7rem;
+      }
+      .slide-cell {
+        padding: 0.7rem 0.3rem 0.9rem 0.7rem;
+      }
+    }
+    .slide-modal-bg {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(20,30,50,0.82);
+      align-items: center;
+      justify-content: center;
+    }
+    #slide-modal {
+      background: #fff;
+      border-radius: 18px;
+      max-width: 600px;
+      width: 96vw;
+      max-height: 90vh;
+      overflow: auto;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.27);
+      padding: 2.2rem 2rem 1.7rem 2rem;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+  </style>
+</head>
+<body>
+  <h1>All Slides Grid View</h1>
+  <div class="grid-controls">
+    <a href="slide_viewer.html" class="go-to-viewer">Fullscreen Slide Viewer</a>
+    <a href="index.html" class="go-to-viewer" style="background:#393a5a;">Back to Index</a>
+    <button id="zoomOut" class="go-to-viewer" style="background:#e0e7ef;color:#222;">- Zoom Out</button>
+    <button id="zoomIn" class="go-to-viewer" style="background:#e0e7ef;color:#222;">+ Zoom In</button>
+    <span id="zoomLevel" style="font-size:1.1rem;margin-left:0.7rem;color:#393a5a;"></span>
+  </div>
+  <div class="slide-grid" id="slide-grid"></div>
+  <div class="slide-modal-bg" id="slide-modal-bg">
+    <div id="slide-modal"></div>
+  </div>
+  <script>
+    let gridScale = 1;
+    const grid = document.getElementById('slide-grid');
+    const zoomLevel = document.getElementById('zoomLevel');
+    function applyZoom() {
+      gridScale = Math.max(0.3, Math.min(2.5, gridScale));
+      document.documentElement.style.setProperty('--grid-scale', gridScale);
+      grid.style.transform = 'none'; // no scaling, just change grid columns
+      zoomLevel.textContent = `${Math.round(gridScale * 100)}%`;
+    }
+    document.getElementById('zoomOut').onclick = () => {
+      gridScale = Math.max(0.3, gridScale + 0.1);
+      applyZoom();
+    };
+    document.getElementById('zoomIn').onclick = () => {
+      gridScale = Math.min(2.5, gridScale - 0.1);
+      applyZoom();
+    };
+    applyZoom();
+    function linkify(text) {
+      if (!text) return '';
+      text = text.replace(/\[([^\]]+)\]\s*:?\s*(https?:\/\/[^\s]+)/g, (m, label, url) => `<a href='${url}' target='_blank' rel='noopener' class='slide-link'>${label}</a>`);
+      text = text.replace(/(https?:\/\/[^\s]+)/g, url => `<a href='${url}' target='_blank' rel='noopener' class='slide-link'>${url}</a>`);
+      return text;
+    }
+    function parseFields(content) {
+      const fields = {};
+      const lines = content.split(/\n/);
+      let lastField = null;
+      for (let line of lines) {
+        let match = line.match(/^([A-Za-z /()-]+):\s*(.*)$/);
+        if (match) {
+          lastField = match[1].trim();
+          fields[lastField] = match[2];
+        } else if (lastField) {
+          fields[lastField] += '\n' + line;
+        }
+      }
+      return fields;
+    }
+    function extractFirstUrl(text) {
+      if (!text) return null;
+      let mdMatch = text.match(/\[([^\]]+)\]\s*:?\s*(https?:\/\/[^\s]+)/);
+      if (mdMatch) return mdMatch[2];
+      let urlMatch = text.match(/(https?:\/\/[^\s]+)/);
+      if (urlMatch) return urlMatch[1];
+      return null;
+    }
+    let slidesData = [];
+    fetch('slides.json').then(r => r.json()).then(slides => {
+      slidesData = slides;
+      let html = '';
+      slides.forEach((slide, idx) => {
+        const fields = parseFields(slide.content);
+        html += `<div class='slide-cell' tabindex='0' role='button' aria-label='Go to slide ${idx+1}' data-slide='${idx}'>`;
+        html += `<div class='slide-title'>${slide.title || '(Untitled Slide)'}</div>`;
+        if (fields['Key Quote']) {
+          html += `<div class='slide-quote'>${linkify(fields['Key Quote'])}</div>`;
+        }
+        if (fields['Thinker / Source']) {
+          html += `<div class='slide-meta'>${linkify(fields['Thinker / Source'])}</div>`;
+        }
+        html += `<div class='slide-source'>${slide.source || ''}</div>`;
+        html += `</div>`;
+      });
+      grid.innerHTML = html;
+      // Add event listeners for modal view
+      Array.from(grid.getElementsByClassName('slide-cell')).forEach(cell => {
+        cell.onclick = e => {
+          const idx = parseInt(cell.getAttribute('data-slide'));
+          openSlideModal(idx);
+        };
+        cell.onkeydown = e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            const idx = parseInt(cell.getAttribute('data-slide'));
+            openSlideModal(idx);
+          }
+        };
+      });
+    });
+    // Modal logic
+    function openSlideModal(idx) {
+      const slide = slidesData[idx];
+      const fields = parseFields(slide.content);
+      let html = `<button onclick='closeSlideModal()' style='position:absolute;top:8px;right:14px;font-size:1.7rem;background:none;border:none;cursor:pointer;color:#2a426e;' aria-label='Close'>&times;</button>`;
+      html += `<div class='slide-title' style='font-size:1.28rem;margin-bottom:0.4rem;'>${slide.title || '(Untitled Slide)'}</div>`;
+      if (fields['Key Quote']) {
+        html += `<div class='slide-quote' style='margin-bottom:0.7rem;'>${linkify(fields['Key Quote'])}</div>`;
+      }
+      // Show Thinker/Source and URL together, below the quote
+      let thinker = fields['Thinker / Source'];
+      let url = fields['URL'];
+      if (thinker || url) {
+        let urlToLink = extractFirstUrl(url) || extractFirstUrl(thinker);
+        let thinkerLabel = thinker ? linkify(thinker.replace(/\[([^\]]+)\]\s*:?\s*(https?:\/\/[^\s]+)/g, '$1')) : '';
+        if (urlToLink && thinkerLabel) {
+          html += `<div class='slide-meta' style='margin-bottom:0.6rem;'><span class='slide-label'>Source:</span> <a href="${urlToLink}" target="_blank" rel="noopener" class="slide-link">${thinkerLabel}</a></div>`;
+        } else if (thinkerLabel) {
+          html += `<div class='slide-meta' style='margin-bottom:0.6rem;'><span class='slide-label'>Source:</span> ${thinkerLabel}</div>`;
+        } else if (urlToLink) {
+          html += `<div class='slide-meta' style='margin-bottom:0.6rem;'><span class='slide-label'>Source:</span> <a href="${urlToLink}" target="_blank" rel="noopener" class="slide-link">${urlToLink}</a></div>`;
+        }
+      }
+      if (fields['Core Argument'] || fields['Core Argument / Thesis']) {
+        html += `<div class='slide-argument' style='margin-bottom:0.6rem;'><b>Argument:</b> ${linkify(fields['Core Argument'] || fields['Core Argument / Thesis'])}</div>`;
+      }
+      if (fields['Example']) {
+        html += `<div class='slide-example' style='margin-bottom:0.6rem;'><b>Example:</b> ${linkify(fields['Example'])}</div>`;
+      }
+      if (fields['Summary Points']) {
+        html += `<div class='slide-summary' style='margin-bottom:0.6rem;'><b>Summary:</b> <ul>${linkify(fields['Summary Points']).replace(/^- /gm,'<li>').replace(/\n/g,'</li>')}</ul></div>`;
+      }
+      if (fields['Visual Concept'] || fields['Visual Concept / Cartoon Scene']) {
+        html += `<div class='slide-visual' style='margin-bottom:0.6rem;'><b>Visual:</b> ${linkify(fields['Visual Concept'] || fields['Visual Concept / Cartoon Scene'])}</div>`;
+      }
+      html += `<div class='slide-source' style='margin-top:1.1rem;text-align:right;'>${slide.source || ''}</div>`;
+      // Navigation
+      html += `<div style='display:flex;justify-content:space-between;align-items:center;margin-top:1.3rem;'>`;
+      html += `<button onclick='window.slideModalNav(-1)' style='font-size:1.1rem;padding:0.5rem 1.1rem;border-radius:7px;border:none;background:#e0e7ef;color:#222;cursor:pointer;' ${idx===0?'disabled':''}>&larr; Prev</button>`;
+      html += `<span style='font-size:1.08rem;color:#393a5a;'>Slide ${idx+1} / ${slidesData.length}</span>`;
+      html += `<button onclick='window.slideModalNav(1)' style='font-size:1.1rem;padding:0.5rem 1.1rem;border-radius:7px;border:none;background:#e0e7ef;color:#222;cursor:pointer;' ${idx===slidesData.length-1?'disabled':''}>Next &rarr;</button>`;
+      html += `</div>`;
+      document.getElementById('slide-modal').innerHTML = html;
+      document.getElementById('slide-modal-bg').style.display = 'flex';
+      window.currentSlideModalIdx = idx;
+    }
+    function closeSlideModal() {
+      document.getElementById('slide-modal-bg').style.display = 'none';
+    }
+    window.closeSlideModal = closeSlideModal;
+    window.slideModalNav = function(dir) {
+      const next = window.currentSlideModalIdx + dir;
+      if (next >= 0 && next < slidesData.length) openSlideModal(next);
+    }
+    // Keyboard zoom shortcuts
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey && (e.key === '+' || e.key === '=')) { gridScale = Math.min(2.5, gridScale - 0.1); applyZoom(); e.preventDefault(); }
+      if (e.ctrlKey && (e.key === '-' || e.key === '_')) { gridScale = Math.max(0.3, gridScale + 0.1); applyZoom(); e.preventDefault(); }
+      // Modal navigation
+      if (document.getElementById('slide-modal-bg').style.display==='flex') {
+        if (e.key==='ArrowLeft') window.slideModalNav(-1);
+        if (e.key==='ArrowRight') window.slideModalNav(1);
+        if (e.key==='Escape') closeSlideModal();
+      }
+    });
+  </script>
+</body>
+</html>

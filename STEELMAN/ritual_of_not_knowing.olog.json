@@ -1,0 +1,106 @@
+{
+  "olog": {
+    "title": "Ritual of Not-Knowing: Epistemic Boundaries, Situated Skepticism, and the Ethics of Absence in Synthetic Systems",
+    "entities": [
+      {
+        "id": "ritual_of_not_knowing",
+        "label": "Ritual of Not-Knowing",
+        "description": "A structured practice or protocol that acknowledges, marks, and ethically engages with the limits of knowledge in complex or opaque systems (cf. Synthetic Ritual Collective, Chang, Black Box Ethics Group)."
+      },
+      {
+        "id": "epistemic_boundary",
+        "label": "Epistemic Boundary",
+        "description": "The edge or limit of what can be known, explained, or trusted within a given context (cf. Wong, Cheng et al., Ashby)."
+      },
+      {
+        "id": "situated_skepticism",
+        "label": "Situated Skepticism",
+        "description": "A context-sensitive attitude of critical doubt and reflexive trust calibration in human-AI interaction (cf. Kapoor & Weinberg, Keller & Suchman)."
+      },
+      {
+        "id": "negative_knowledge",
+        "label": "Negative Knowledge",
+        "description": "Awareness of what is not known, unknowable, or absent, and the ability to act responsibly within those limits (cf. Chang, Davies)."
+      },
+      {
+        "id": "situated_learning",
+        "label": "Situated Learning",
+        "description": "Acquisition of understanding through participation, context, and legitimate peripheral engagement (cf. Lave & Wenger)."
+      },
+      {
+        "id": "active_boundary_design",
+        "label": "Active Boundary Design",
+        "description": "Interface and protocol strategies that make epistemic limits visible and actionable (cf. Cheng et al., Wong)."
+      },
+      {
+        "id": "governance_of_opacity",
+        "label": "Governance of Opacity",
+        "description": "Ethical and institutional frameworks for managing, communicating, and acting within the inherent opacity of synthetic systems (cf. Black Box Ethics Group, Ashby)."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "ritual_marks_boundary",
+        "source": "ritual_of_not_knowing",
+        "target": "epistemic_boundary",
+        "relation": "marks",
+        "how": "Acknowledges and makes visible the limits of knowledge and explanation.",
+        "why": "Prevents overconfidence and encourages ethical caution."
+      },
+      {
+        "id": "skepticism_enables_ritual",
+        "source": "situated_skepticism",
+        "target": "ritual_of_not_knowing",
+        "relation": "enables",
+        "how": "Fosters reflexive trust calibration and critical engagement with system outputs.",
+        "why": "Promotes responsible participation in complex environments."
+      },
+      {
+        "id": "negative_knowledge_guides_governance",
+        "source": "negative_knowledge",
+        "target": "governance_of_opacity",
+        "relation": "guides",
+        "how": "Informs ethical frameworks for acting within limits and uncertainty.",
+        "why": "Prevents harm from overreliance on incomplete knowledge."
+      },
+      {
+        "id": "boundary_design_supports_learning",
+        "source": "active_boundary_design",
+        "target": "situated_learning",
+        "relation": "supports",
+        "how": "Makes epistemic limits visible, enabling learning through participation and context.",
+        "why": "Facilitates adaptive understanding and engagement."
+      },
+      {
+        "id": "governance_structures_ritual",
+        "source": "governance_of_opacity",
+        "target": "ritual_of_not_knowing",
+        "relation": "structures",
+        "how": "Provides institutional and ethical protocols for engaging with opacity.",
+        "why": "Ensures responsible, transparent, and adaptive participation."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does the ritual of not-knowing enable?",
+        "answer": "Ethical engagement, adaptive trust, and responsible action in the face of epistemic limits."
+      },
+      {
+        "question": "What does situated skepticism require?",
+        "answer": "Contextual awareness, reflexivity, and protocols for trust calibration."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A dynamic interplay between knowledge, ignorance, trust, and governance in complex systems."
+      }
+    ],
+    "thesis": "The ritual of not-knowing—by marking epistemic boundaries, fostering situated skepticism, and structuring ethical engagement—enables responsible participation in synthetic systems where opacity and uncertainty are inevitable (Chang, Lave & Wenger, Black Box Ethics Group, Ashby).",
+    "problem_statement": "How can rituals, protocols, and institutional frameworks be designed to support ethical action and adaptive trust in the face of irreducible opacity and epistemic limitation?",
+    "vectors_of_influence": [
+      "Challenges the imperative for total transparency in AI and complex systems.",
+      "Enables new forms of ethical engagement, trust calibration, and learning in opaque environments.",
+      "Connects to broader debates in epistemology, design, and the philosophy of science (Chang, Lave & Wenger, Ashby, Black Box Ethics Group)."
+    ],
+    "olog_prompt": "For any context of not-knowing, identify all agents, boundaries, and protocols; specify all morphisms that mark, enable, guide, or structure ethical engagement; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

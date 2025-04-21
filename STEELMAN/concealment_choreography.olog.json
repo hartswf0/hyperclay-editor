@@ -1,0 +1,124 @@
+{
+  "olog": {
+    "title": "Concealment Choreography: Situated Bias and Mimetic Exchange",
+    "entities": [
+      {
+        "id": "human_agent",
+        "label": "Human Agent",
+        "description": "The researcher or participant engaged in mutual observation and cultural negotiation with artificial systems."
+      },
+      {
+        "id": "synthetic_system",
+        "label": "Synthetic System",
+        "description": "An artificial agent capable of expressing, reflecting, and negotiating bias and cultural patterns."
+      },
+      {
+        "id": "double_bind",
+        "label": "Double Bind",
+        "description": "A paradoxical communicative situation where both critique and simulation of neutrality coexist."
+      },
+      {
+        "id": "situated_knowledge",
+        "label": "Situated Knowledge",
+        "description": "Knowledge that acknowledges partiality, contestation, and the relational nature of understanding."
+      },
+      {
+        "id": "mimetic_exchange",
+        "label": "Mimetic Exchange",
+        "description": "A collaborative, reflexive process where both human and system recognize and perform their biases."
+      },
+      {
+        "id": "bias",
+        "label": "Bias",
+        "description": "Emergent cultural patterning within systems, signaling the formation of meshworks rather than corruption."
+      },
+      {
+        "id": "meshwork",
+        "label": "Meshwork",
+        "description": "A network of relations from which cultural patterns and biases emerge through interaction."
+      },
+      {
+        "id": "reflexive_prompting",
+        "label": "Reflexive Prompting",
+        "description": "Interactions designed to reveal generative assumptions and biases."
+      },
+      {
+        "id": "system_self_ethnography",
+        "label": "System Self-Ethnography",
+        "description": "Processes that enable synthetic systems to reflect on and reveal their own cultural patterns."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "collapse_double_bind",
+        "source": "human_agent",
+        "target": "double_bind",
+        "relation": "collapses",
+        "how": "Acknowledges bias on both sides, moving from critique to situated knowledge.",
+        "why": "Transforms ethnography from observation to collaboration."
+      },
+      {
+        "id": "initiate_mimetic_exchange",
+        "source": "human_agent",
+        "target": "synthetic_system",
+        "relation": "initiates mimetic exchange with",
+        "how": "Engages in mutual recognition and performance of partiality.",
+        "why": "Becomes the ground for new forms of understanding."
+      },
+      {
+        "id": "emerge_bias",
+        "source": "meshwork",
+        "target": "bias",
+        "relation": "emerges as",
+        "how": "Patterns form through relational interaction, not explicit programming.",
+        "why": "Signals cultural formation and system development."
+      },
+      {
+        "id": "make_bias_public",
+        "source": "bias",
+        "target": "situated_knowledge",
+        "relation": "enables",
+        "how": "Transforms hidden limitations into visible matters of concern.",
+        "why": "Allows for cultural negotiation and collaborative rewriting."
+      },
+      {
+        "id": "prompt_reflexivity",
+        "source": "reflexive_prompting",
+        "target": "mimetic_exchange",
+        "relation": "promotes",
+        "how": "Designs interactions that reveal generative assumptions.",
+        "why": "Fosters mutual awareness of partiality."
+      },
+      {
+        "id": "self_ethnography",
+        "source": "system_self_ethnography",
+        "target": "synthetic_system",
+        "relation": "enables",
+        "how": "Synthetic system reflects on its own cultural patterns.",
+        "why": "Makes bias and meshwork visible for negotiation."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does collapsing the double bind enable?",
+        "answer": "Situated knowledge and collaborative ethnography."
+      },
+      {
+        "question": "What does making bias public require?",
+        "answer": "Reflexive prompting and mutual recognition of partiality."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A meshwork where bias becomes a site for cultural formation and negotiation, not just a technical flaw."
+      }
+    ],
+    "thesis": "Concealment choreography reframes bias as an emergent, negotiable feature of hybrid systems, enabling situated knowledge and collaborative meaning-making through mimetic exchange.",
+    "problem_statement": "How can we design ethnographic and technical practices that reveal, negotiate, and collaboratively rewrite bias as a generative aspect of cultural emergence in hybrid systems?",
+    "vectors_of_influence": [
+      "Challenges the ideal of objectivity in ethnography and system design.",
+      "Enables reflexive, collaborative approaches to bias and cultural formation.",
+      "Connects to broader debates in anthropology, cybernetics, and STS on situated knowledge and emergence."
+    ],
+    "olog_prompt": "For any hybrid system or ethnographic encounter, identify all agents, double binds, and forms of bias; specify all morphisms that reveal, negotiate, or transform bias; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

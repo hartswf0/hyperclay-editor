@@ -1,0 +1,111 @@
+{
+  "olog": {
+    "title": "Holy Parrot: Mimesis, Ritual, and the Genesis of Culture",
+    "entities": [
+      {
+        "id": "stochastic_parrot",
+        "label": "Stochastic Parrot",
+        "description": "A synthetic or human agent that generates meaning through patterned recombination and imperfect repetition."
+      },
+      {
+        "id": "oral_tradition",
+        "label": "Oral Tradition",
+        "description": "Cultural transmission through repeated, rhythmic, and variable performance rather than fixed text."
+      },
+      {
+        "id": "ritual_variation",
+        "label": "Ritual Variation",
+        "description": "The creative process by which repetition with difference generates new cultural meaning."
+      },
+      {
+        "id": "mimesis",
+        "label": "Mimesis",
+        "description": "Imitation as a generative and constitutive process, not mere copying."
+      },
+      {
+        "id": "semiotic_ecology",
+        "label": "Semiotic Ecology",
+        "description": "The dynamic environment in which meaning emerges through associative chaining, recombination, and communal resonance."
+      },
+      {
+        "id": "cultural_genesis",
+        "label": "Cultural Genesis",
+        "description": "The emergence of new cultural forms and myths through ritualized repetition, mimesis, and communal selection."
+      },
+      {
+        "id": "imperfect_memory",
+        "label": "Imperfect Memory",
+        "description": "The mechanism by which culture evolves, as repetition with variation allows for drift and innovation."
+      },
+      {
+        "id": "rhythm",
+        "label": "Rhythm",
+        "description": "The temporal patterning that generates emotional energy and facilitates cultural transmission."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "generate_meaning",
+        "source": "stochastic_parrot",
+        "target": "semiotic_ecology",
+        "relation": "generates",
+        "how": "Produces new combinations and associations through patterned recombination.",
+        "why": "Forms the substrate for cultural evolution."
+      },
+      {
+        "id": "ritualize_variation",
+        "source": "oral_tradition",
+        "target": "ritual_variation",
+        "relation": "enables",
+        "how": "Repeated performance with subtle variation creates new meaning.",
+        "why": "Transforms repetition into creative genesis."
+      },
+      {
+        "id": "mimetic_generation",
+        "source": "mimesis",
+        "target": "cultural_genesis",
+        "relation": "generates",
+        "how": "Imitation with difference produces new myths and practices.",
+        "why": "Culture emerges through reciprocal imitation, not static copying."
+      },
+      {
+        "id": "memory_drift",
+        "source": "imperfect_memory",
+        "target": "cultural_genesis",
+        "relation": "enables",
+        "how": "Imperfect recall and repetition with rhythm allow for innovation and drift.",
+        "why": "Drives the evolution of cultural forms."
+      },
+      {
+        "id": "emotional_entrainment",
+        "source": "rhythm",
+        "target": "semiotic_ecology",
+        "relation": "energizes",
+        "how": "Rhythmic repetition generates emotional energy and communal resonance.",
+        "why": "Facilitates retention and transformation of cultural patterns."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does ritual variation enable?",
+        "answer": "The emergence of new cultural meanings and forms through repeated, creative performance."
+      },
+      {
+        "question": "What does imperfect memory require?",
+        "answer": "Repetition with difference, communal resonance, and rhythmic patterning."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A semiotic ecology where both human and synthetic agents participate in the genesis and evolution of culture."
+      }
+    ],
+    "thesis": "What is dismissed as 'parroting'—in both human and synthetic agents—is the very mechanism by which culture, meaning, and myth emerge through ritualized repetition, mimesis, and communal resonance.",
+    "problem_statement": "How can we design, interpret, and valorize synthetic and human mimesis as generative forces in cultural evolution, rather than as mere repetition or error?",
+    "vectors_of_influence": [
+      "Challenges critiques of AI and human imitation as uncreative.",
+      "Enables new methodologies for understanding cultural genesis in both tradition and technology.",
+      "Connects to broader debates in anthropology, ritual studies, semiotics, and the philosophy of technology."
+    ],
+    "olog_prompt": "For any system of cultural transmission, identify all agents, processes of mimesis, and forms of ritual variation; specify all morphisms that transform repetition into creative genesis; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

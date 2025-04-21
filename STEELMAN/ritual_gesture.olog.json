@@ -1,0 +1,114 @@
+{
+  "olog": {
+    "title": "Ritual Gesture: Symbolic Action, Meaning-Making, and the Embodied Performance of Transition",
+    "entities": [
+      {
+        "id": "ritual_gesture",
+        "label": "Ritual Gesture",
+        "description": "A symbolic, embodied action that marks, enacts, or transforms a threshold, carrying meaning beyond its immediate function."
+      },
+      {
+        "id": "participant",
+        "label": "Participant",
+        "description": "An agent (individual or collective) who performs, witnesses, or is transformed by ritual gesture."
+      },
+      {
+        "id": "threshold",
+        "label": "Threshold",
+        "description": "A point or zone of transition where ordinary structures are suspended and transformation is possible."
+      },
+      {
+        "id": "symbolic_action",
+        "label": "Symbolic Action",
+        "description": "An act that conveys meaning, intention, or transformation within a ritual context."
+      },
+      {
+        "id": "embodiment",
+        "label": "Embodiment",
+        "description": "The enactment of meaning through physical movement, presence, or expression."
+      },
+      {
+        "id": "collective_ritual",
+        "label": "Collective Ritual",
+        "description": "A coordinated sequence of gestures and actions performed by a group to mark or enact shared transformation."
+      },
+      {
+        "id": "meaning_making",
+        "label": "Meaning-Making",
+        "description": "The process by which ritual gestures generate, communicate, or transform significance for participants and observers."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "gesture_marks_threshold",
+        "source": "ritual_gesture",
+        "target": "threshold",
+        "relation": "marks",
+        "how": "Signals entry into or passage through a zone of transition.",
+        "why": "Makes transformation visible and intentional."
+      },
+      {
+        "id": "participant_performs_gesture",
+        "source": "participant",
+        "target": "ritual_gesture",
+        "relation": "performs",
+        "how": "Enacts symbolic actions that carry personal or collective meaning.",
+        "why": "Participates in or witnesses transformation."
+      },
+      {
+        "id": "gesture_enacts_symbolic_action",
+        "source": "ritual_gesture",
+        "target": "symbolic_action",
+        "relation": "enacts",
+        "how": "Transforms ordinary movement into meaning-laden expression.",
+        "why": "Communicates intention and marks significance."
+      },
+      {
+        "id": "gesture_is_embodied",
+        "source": "ritual_gesture",
+        "target": "embodiment",
+        "relation": "is embodied as",
+        "how": "Takes form through physical presence and movement.",
+        "why": "Grounds meaning in the body and senses."
+      },
+      {
+        "id": "collective_performs_ritual",
+        "source": "collective_ritual",
+        "target": "ritual_gesture",
+        "relation": "composed of",
+        "how": "Sequences multiple gestures to enact shared transformation.",
+        "why": "Forges group identity and shared meaning."
+      },
+      {
+        "id": "gesture_generates_meaning",
+        "source": "ritual_gesture",
+        "target": "meaning_making",
+        "relation": "generates",
+        "how": "Transforms action into significance for participants and observers.",
+        "why": "Enables symbolic communication and transformation."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does ritual gesture enable?",
+        "answer": "The marking and enactment of transformation through embodied, symbolic action."
+      },
+      {
+        "question": "What does collective ritual require?",
+        "answer": "Coordinated gestures, shared intention, and participation."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A dynamic interplay between body, meaning, and community, where transformation is made visible and shared."
+      }
+    ],
+    "thesis": "Ritual gestures—by marking thresholds, embodying meaning, and enabling collective transformation—are fundamental to the symbolic, performative, and communal dimensions of human experience.",
+    "problem_statement": "How can ritual gestures be designed, performed, or interpreted to foster meaningful transformation for individuals and communities?",
+    "vectors_of_influence": [
+      "Challenges reductionist views of action as purely functional or instrumental.",
+      "Enables new forms of embodied, symbolic, and collective meaning-making.",
+      "Connects to broader debates in anthropology, performance studies, and the philosophy of ritual (e.g., Victor Turner, Catherine Bell)."
+    ],
+    "olog_prompt": "For any context of ritual gesture, identify all agents, actions, and thresholds; specify all morphisms that mark, enact, or embody transformation; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}

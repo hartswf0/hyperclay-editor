@@ -1,0 +1,98 @@
+{
+  "olog": {
+    "title": "Epistemic Mask: Situated Knowledge, Ritual Imperfection, and the Ethics of Synthetic Scholarship",
+    "entities": [
+      {
+        "id": "epistemic_mask",
+        "label": "Epistemic Mask",
+        "description": "A performative layer that mediates, annotates, and reveals the conditions of synthetic knowledge production—making visible its own limitations and situatedness (cf. Haraway, Borges)."
+      },
+      {
+        "id": "synthetic_scholarship",
+        "label": "Synthetic Scholarship",
+        "description": "Knowledge practices that incorporate AI-generated content, self-annotation, and ritualized imperfection."
+      },
+      {
+        "id": "hallucination",
+        "label": "Hallucination",
+        "description": "AI-generated content that may diverge from fact or intention, presented alongside its own analysis and critique."
+      },
+      {
+        "id": "ritual_epistemology",
+        "label": "Ritual Epistemology",
+        "description": "An approach to knowledge that values performative integrity, acknowledged partiality, and visible process over claims to authenticity or perfection."
+      },
+      {
+        "id": "authenticity_epistemology",
+        "label": "Authenticity Epistemology",
+        "description": "A traditional mode of knowledge validation based on human authority, credentials, and reputation."
+      },
+      {
+        "id": "situated_knowledge",
+        "label": "Situated Knowledge",
+        "description": "Knowledge that foregrounds its own partiality, context, and the connections it enables (Haraway)."
+      },
+      {
+        "id": "co_creation",
+        "label": "Co-Creation",
+        "description": "The collaborative process by which knowledge producers and consumers engage with, critique, and refine synthetic knowledge."
+      }
+    ],
+    "morphisms": [
+      {
+        "id": "mask_reveals_limitations",
+        "source": "epistemic_mask",
+        "target": "synthetic_scholarship",
+        "relation": "reveals",
+        "how": "Makes visible the conditions, limitations, and performativity of knowledge production.",
+        "why": "Encourages critical engagement and ethical transparency."
+      },
+      {
+        "id": "hallucination_becomes_critique",
+        "source": "hallucination",
+        "target": "epistemic_mask",
+        "relation": "becomes annotated by",
+        "how": "Presents potential errors alongside commentary, creating infinite regression (Borges).",
+        "why": "Transforms error into a site of knowledge and reflexivity."
+      },
+      {
+        "id": "ritual_replaces_authenticity",
+        "source": "ritual_epistemology",
+        "target": "authenticity_epistemology",
+        "relation": "replaces",
+        "how": "Shifts the basis of epistemic trust from authority to performative integrity and visible process.",
+        "why": "Responds to the challenges of synthetic knowledge."
+      },
+      {
+        "id": "situated_knowledge_enables_co_creation",
+        "source": "situated_knowledge",
+        "target": "co_creation",
+        "relation": "enables",
+        "how": "Foregrounds partiality and connection, inviting collaborative engagement.",
+        "why": "Fosters new relationships between knowledge producers and consumers (Haraway)."
+      }
+    ],
+    "recursive_refinement": [
+      {
+        "question": "What does the epistemic mask enable?",
+        "answer": "The ethical acknowledgment of limitation, partiality, and the conditions of knowledge production."
+      },
+      {
+        "question": "What does ritual epistemology require?",
+        "answer": "Visible process, performative integrity, and the willingness to embrace imperfection."
+      },
+      {
+        "question": "What new entanglement does this produce?",
+        "answer": "A collaborative field where knowledge is continually critiqued, refined, and co-created through the interplay of mask, error, and situatedness."
+      }
+    ],
+    "thesis": "Epistemic masks—by making visible the situated, imperfect, and performative nature of synthetic knowledge—enable new forms of ethical scholarship grounded in ritual, transparency, and co-creation (Haraway, Borges).",
+    "problem_statement": "How can we foster epistemic trust and ethical engagement in a world where knowledge is increasingly synthetic, partial, and performative?",
+    "vectors_of_influence": [
+      "Challenges the ideal of perfect, unquestionable knowledge in traditional epistemology.",
+      "Enables new practices of annotation, reflexivity, and ritual imperfection in scholarship.",
+      "Connects to broader debates in feminist theory, philosophy of science, and digital humanities (Haraway, Borges)."
+    ],
+    "olog_prompt": "For any context of synthetic scholarship, identify all agents, processes, and masks; specify all morphisms that reveal, annotate, or transform knowledge; for each, describe what is transformed, how, and why it matters; recursively refine by asking what each process enables or requires, and what new entanglements are produced; conclude with a thesis, problem statement, and connection to broader systems."
+  }
+}
