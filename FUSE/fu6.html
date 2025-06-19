@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUSE // RADAR-GENOME INTERFACE [EXP-M-A-02]</title>
+    <style>
+        /*
+        *   ARTIFACT: FUSE + RADAR SCOPE INTERFACE (v2 - Enhanced)
+        *   ID: EXP-M-A-02
+        *   CONCEPT: "Scan + lock + overlay."
+        *   ENHANCEMENTS: Info-rich HUD, dynamic genome properties, intuitive feedback.
+        */
+
+        :root {
+            --phosphor-green: #0f0;
+            --phosphor-medium: #0c0;
+            --phosphor-dark: #080;
+            --phosphor-glow: rgba(100, 255, 100, 0.7);
+            --background: #020402;
+            --font: 'Courier New', 'Lucida Console', monospace;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(0.2); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        @keyframes jiggle {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(1px, -1px); }
+            50% { transform: translate(-1px, 1px); }
+            75% { transform: translate(1px, 1px); }
+        }
+        @keyframes terminal-blink {
+            0%, 100% { background-color: var(--phosphor-green); }
+            50% { background-color: transparent; }
+        }
+        @keyframes express-glow {
+            0%, 100% { box-shadow: 0 0 10px 5px #aff, 0 0 15px 8px #0ff; }
+            50% { box-shadow: 0 0 25px 12px #aff, 0 0 40px 20px #0ff; }
+        }
+        @keyframes express-morse { /* S.O.S. ...---... */
+            0%,4%,8%, 20%,26%,32%, 44%,48%,52%, 100% { opacity: 1; transform: scale(1.2); }
+            2%,6%,10%, 23%,29%,35%, 46%,50%,54% { opacity: 0.3; transform: scale(1); }
+        }
+        @keyframes express-auc {
+            0%, 100% { background-color: #f55; } /* A */
+            33% { background-color: #ff5; } /* U */
+            66% { background-color: #5ff; } /* C */
+        }
+        @keyframes scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+
+        /* --- BASE & LAYOUT --- */
+        * { box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background);
+            color: var(--phosphor-green);
+            font-family: var(--font);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        body::before { /* CRT Scanline Overlay */
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0;
+            bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 1000;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            animation: scanlines 20s linear infinite;
+        }
+        #artifact-container {
+            display: grid;
+            grid-template-columns: 600px 1fr;
+            grid-template-rows: 600px;
+            gap: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 1400px;
+        }
+        #main-display {
+            display: flex;
+            gap: 20px;
+            flex-direction: column;
+        }
+
+        /* --- RADAR SCOPE --- */
+        #radar-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            grid-column: 1 / 2;
+        }
+        #radar-screen {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 3px solid rgba(0, 255, 0, 0.4);
+            position: relative;
+            background: 
+                radial-gradient(circle, transparent 24.8%, rgba(0, 255, 0, 0.2) 25%, transparent 25.2%),
+                radial-gradient(circle, transparent 49.8%, rgba(0, 255, 0, 0.2) 50%, transparent 50.2%),
+                radial-gradient(circle, transparent 74.8%, rgba(0, 255, 0, 0.2) 75%, transparent 75.2%),
+                repeating-conic-gradient(from 0deg, rgba(0, 255, 0, 0.2) 0deg 0.5deg, transparent 0.5deg 30deg);
+            box-shadow: inset 0 0 40px rgba(0, 255, 0, 0.25), 0 0 15px rgba(0, 255, 0, 0.3);
+            cursor: crosshair;
+        }
+        #sweep-arm {
+            position: absolute;
+            width: 3px;
+            height: 50%;
+            background: linear-gradient(to top, var(--phosphor-glow) 10%, transparent 70%);
+            top: 0; left: calc(50% - 1.5px);
+            transform-origin: bottom center;
+            animation: sweep 4s linear infinite;
+        }
+        #blip-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        /* --- BLIPS & FUSIONS --- */
+        .blip {
+            position: absolute;
+            width: 8px; height: 8px;
+            background-color: var(--phosphor-green);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .blip:hover, .blip.selected {
+            transform: scale(2.0);
+            background-color: #fff;
+            box-shadow: 0 0 8px 4px #fff, 0 0 20px 8px var(--phosphor-green);
+            z-index: 10;
+        }
+        .blip.selected { background-color: #ff0; box-shadow: 0 0 8px 4px #ff0, 0 0 20px 8px #ff9800; }
+        .targeting-vector {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #f90);
+            transform-origin: 0 50%;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        .fusion-line {
+            position: absolute;
+            height: 2px;
+            background-color: rgba(0, 255, 0, 0.6);
+            transform-origin: 0 50%;
+        }
+        .fused-strand {
+            position: absolute;
+            width: 20px; height: 20px;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 5;
+        }
+        .fused-strand .core {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 10px; height: 10px;
+            background: var(--phosphor-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px 4px var(--phosphor-green), 0 0 12px 6px var(--phosphor-dark);
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            transition: all 0.2s ease;
+        }
+        .fused-strand:hover .core { transform: translate(-50%, -50%) scale(1.5); background-color: #fff; }
+        .fused-strand .pulse-ring {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: 1px solid var(--phosphor-green);
+            border-radius: 50%;
+            animation: pulse 1.5s ease-out infinite;
+        }
+        .fused-strand.expressed-phase .core { animation: express-glow 0.8s ease-in-out; }
+        .fused-strand.expressed-morse .core { animation: express-morse 1.5s step-end; }
+        .fused-strand.expressed-auc .core { animation: express-auc 1s linear; }
+
+        /* --- HUD & TERMINAL --- */
+        #info-panel {
+            border: 1px solid var(--phosphor-dark);
+            background-color: rgba(0, 20, 0, 0.3);
+            padding: 15px;
+            flex-grow: 1;
+        }
+        #info-panel h3 {
+            margin: 0 0 15px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--phosphor-dark);
+            color: var(--phosphor-medium);
+            font-weight: normal;
+        }
+        .info-line { margin-bottom: 8px; white-space: pre; }
+        .info-label { color: var(--phosphor-medium); }
+        .info-value { color: #fff; font-weight: bold; }
+        #terminal {
+            border: 1px solid var(--phosphor-dark);
+            background-color: rgba(0, 20, 0, 0.5);
+            padding: 15px;
+            height: 350px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        #terminal-output { flex-grow: 1; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+        #terminal-output::-webkit-scrollbar { width: 6px; }
+        #terminal-output::-webkit-scrollbar-track { background: transparent; }
+        #terminal-output::-webkit-scrollbar-thumb { background: var(--phosphor-green); }
+        #terminal-input-line { display: flex; align-items: center; }
+        .prompt { margin-right: 8px; }
+        #command-input {
+            background: transparent; border: none; outline: none;
+            color: var(--phosphor-green); font-family: inherit; font-size: 1em; width: 100%;
+            caret-color: transparent;
+        }
+        #command-input:focus + .cursor { animation: terminal-blink 1s step-end infinite; }
+        .cursor { width: 10px; height: 1.2em; background-color: var(--phosphor-green); display: inline-block; vertical-align: middle;}
+
+        /* --- LOG STYLES --- */
+        .log-system { color: #8f8; }
+        .log-action { color: #0ff; }
+        .log-fusion { color: #f90; font-weight: bold; }
+        .log-error { color: #f55; }
+        .log-expression { color: #fff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="artifact-container">
+    <div id="radar-container">
+        <div id="radar-screen">
+            <div id="blip-container"></div>
+        </div>
+        <div id="sweep-arm"></div>
+    </div>
+    <div id="main-display">
+        <div id="info-panel">
+            <h3>// TARGET ANALYSIS</h3>
+            <div id="info-content">
+                <div class="info-line"><span class="info-label">STATUS: </span><span class="info-value">AWAITING TARGET</span></div>
+            </div>
+        </div>
+        <div id="terminal">
+            <div id="terminal-output"></div>
+            <div id="terminal-input-line">
+                <span class="prompt">></span>
+                <input type="text" id="command-input" autocomplete="off" autofocus>
+                <span class="cursor"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- DOM ELEMENTS ---
+    const blipContainer = document.getElementById('blip-container');
+    const output = document.getElementById('terminal-output');
+    const input = document.getElementById('command-input');
+    const infoContent = document.getElementById('info-content');
+    const radarScreen = document.getElementById('radar-screen');
+
+    // --- CONFIGURATION ---
+    const NUM_BLIPS = 30;
+    const RADAR_RADIUS = 300; // Half of the container width
+
+    // --- STATE ---
+    let blips = [];
+    let selectedBlip = null;
+    let fusedPairs = {};
+    let fusionCounter = 1;
+
+    // --- UTILITIES ---
+    const log = (message, type = 'log-system') => {
+        const line = document.createElement('div');
+        line.className = type;
+        line.textContent = message;
+        output.appendChild(line);
+        output.scrollTop = output.scrollHeight;
+    };
+
+    const formatValue = (value, unit = '') => value.toFixed(2) + unit;
+    const formatLabel = (label) => label.padEnd(12, ' ');
+
+    // --- CORE FUNCTIONS ---
+
+    function updateInfoPanel(targetData = null) {
+        if (!targetData && selectedBlip) {
+            targetData = selectedBlip; // Keep selected info on panel
+        }
+
+        if (!targetData) {
+            infoContent.innerHTML = `<div class="info-line"><span class="info-label">STATUS: </span><span class="info-value">AWAITING TARGET</span></div>`;
+            return;
+        }
+
+        let html = '';
+        if (targetData.type === 'blip') {
+            html += `<div class="info-line"><span class="info-label">${formatLabel('ID:')}</span><span class="info-value">${targetData.id}</span></div>`;
+            html += `<div class="info-line"><span class="info-label">${formatLabel('TYPE:')}</span><span class="info-value">GENOME ECHO</span></div>`;
+            html += `<div class="info-line"><span class="info-label">${formatLabel('SIZE (bp):')}</span><span class="info-value">${targetData.size}</span></div>`;
+            html += `<div class="info-line"><span class="info-label">${formatLabel('COMPLEXITY:')}</span><span class="info-value">${formatValue(targetData.complexity)}</span></div>`;
+            html += `<div class="info-line"><span class="info-label">${formatLabel('MUTATION:')}</span><span class="info-value">${formatValue(targetData.mutation, '%')}</span></div>`;
+        } else if (targetData.type === 'fused') {
+            html += `<div class="info-line"><span class="info-label">${formatLabel('ID:')}</span><span class="info-value">${targetData.id}</span></div>`;
+            html += `<div class="info-line"><span class="info-label">${formatLabel('TYPE:')}</span><span class="info-value">FUSED STRAND</span></div>`;
+            html += `<div class="info-line"><span class="info-label">${formatLabel('PARENTAGE:')}</span><span class="info-value">${targetData.parents.join(' & ')}</span></div>`;
+            html += `<div class="info-line"><span class="info-label">${formatLabel('SIZE (bp):')}</span><span class="info-value">${targetData.size}</span></div>`;
+            html += `<div class="info-line"><span class="info-label">${formatLabel('STABILITY:')}</span><span class="info-value">${formatValue(targetData.stability)}</span></div>`;
+        }
+        infoContent.innerHTML = html;
+    }
+
+    function createBlip(index) {
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = 40 + Math.random() * (RADAR_RADIUS - 60);
+        const x = RADAR_RADIUS + radius * Math.cos(angle);
+        const y = RADAR_RADIUS + radius * Math.sin(angle);
+
+        const blipData = {
+            id: `g-${String(index).padStart(3, '0')}`,
+            el: document.createElement('div'),
+            type: 'blip', x, y,
+            size: 5000 + Math.floor(Math.random() * 15000),
+            complexity: Math.random(),
+            mutation: Math.random() * 1.5, // %
+        };
+        
+        blipData.el.className = 'blip';
+        blipData.el.id = blipData.id;
+        blipData.el.style.left = `${x - 4}px`;
+        blipData.el.style.top = `${y - 4}px`;
+        
+        // Visuals based on properties
+        const shadowIntensity = Math.min(blipData.mutation * 20, 40);
+        blipData.el.style.boxShadow = `0 0 ${shadowIntensity/4}px 1px var(--phosphor-green), 0 0 ${shadowIntensity}px ${shadowIntensity/10}px var(--phosphor-glow)`;
+        if (blipData.mutation > 0.8) {
+            blipData.el.style.animation = `jiggle ${2 - blipData.mutation}s infinite`;
+        }
+        
+        blipData.el.addEventListener('click', (e) => { e.stopPropagation(); handleBlipClick(blipData); });
+        blipData.el.addEventListener('mouseover', () => updateInfoPanel(blipData));
+        blipData.el.addEventListener('mouseout', () => updateInfoPanel());
+
+        blips.push(blipData);
+        blipContainer.appendChild(blipData.el);
+    }
+    
+    function clearSelection() {
+        if (selectedBlip) {
+            selectedBlip.el.classList.remove('selected');
+            selectedBlip = null;
+        }
+        const vector = document.querySelector('.targeting-vector');
+        if (vector) vector.remove();
+        updateInfoPanel();
+        log('Target lock cancelled.', 'log-action');
+    }
+
+    function handleBlipClick(blipData) {
+        if (selectedBlip === blipData) { // Clicked the same one again
+            clearSelection();
+            return;
+        }
+
+        if (!selectedBlip) { // First selection
+            selectedBlip = blipData;
+            selectedBlip.el.classList.add('selected');
+            log(`Genome echo [${blipData.id}] locked for temporal alignment. Select second target.`, 'log-action');
+            drawTargetingVector(blipData);
+            updateInfoPanel(blipData);
+        } else { // Second selection
+            log(`> Fusing ${selectedBlip.id} @ ${blipData.id}...`);
+            fuseBlips(selectedBlip, blipData);
+            clearSelection();
+        }
+    }
+
+    function drawTargetingVector(blipData) {
+        const dx = blipData.x - RADAR_RADIUS;
+        const dy = blipData.y - RADAR_RADIUS;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+        const vector = document.createElement('div');
+        vector.className = 'targeting-vector';
+        vector.style.width = `${distance}px`;
+        vector.style.left = `${RADAR_RADIUS}px`;
+        vector.style.top = `${RADAR_RADIUS}px`;
+        vector.style.transform = `rotate(${angle}deg)`;
+        blipContainer.appendChild(vector);
+    }
+
+    function fuseBlips(blipA, blipB) {
+        const dx = blipB.x - blipA.x;
+        const dy = blipB.y - blipA.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+        const midX = blipA.x + dx / 2;
+        const midY = blipA.y + dy / 2;
+        
+        // Draw connecting line
+        const line = document.createElement('div');
+        line.className = 'fusion-line';
+        line.style.width = `${distance}px`;
+        line.style.left = `${blipA.x}px`;
+        line.style.top = `${blipA.y}px`;
+        line.style.transform = `rotate(${angle}deg)`;
+        blipContainer.appendChild(line);
+
+        // Create the fused strand
+        const strandEl = document.createElement('div');
+        strandEl.className = 'fused-strand';
+        strandEl.innerHTML = `<div class="core"></div><div class="pulse-ring"></div>`;
+        strandEl.style.left = `${midX}px`;
+        strandEl.style.top = `${midY}px`;
+        
+        // Calculate new properties
+        const fusionData = {
+            id: `fs-${String(fusionCounter++).padStart(2, '0')}`,
+            type: 'fused',
+            el: strandEl,
+            parents: [blipA.id, blipB.id],
+            size: Math.floor((blipA.size + blipB.size) / 2),
+            stability: 1.0 - Math.abs(blipA.complexity - blipB.complexity),
+        };
+        
+        strandEl.addEventListener('mouseover', () => updateInfoPanel(fusionData));
+        strandEl.addEventListener('mouseout', () => updateInfoPanel());
+        blipContainer.appendChild(strandEl);
+        
+        // Store for command access
+        const fusionId1 = `${blipA.id}-${blipB.id}`;
+        const fusionId2 = `${blipB.id}-${blipA.id}`;
+        fusedPairs[fusionId1] = fusedPairs[fusionId2] = fusionData;
+        
+        log(`SUCCESS: Fused Strand [${fusionData.id}] created. Stability: ${formatValue(fusionData.stability)}`, 'log-fusion');
+        log(`> fuse lock ${blipA.id} @ ${blipB.id} using:phase`, 'log-system');
+    }
+
+    function handleCommand(command) {
+        log(`> ${command}`);
+        const parts = command.trim().toLowerCase().split(/\s+/);
+
+        if (parts[0] === 'fuse' && parts[1] === 'lock' && parts.length >= 5) {
+            const id1 = parts[2]; const id2 = parts[4];
+            const fusionId = `${id1}-${id2}`;
+
+            if (fusedPairs[fusionId]) {
+                const pair = fusedPairs[fusionId];
+                const expressionType = (parts[5] || 'using:phase').replace('using:', '');
+                
+                log(`EXPRESSION TRIGGERED: Strand [${pair.id}] emits ${expressionType.toUpperCase()} waveform.`, 'log-expression');
+                
+                // Remove old classes and trigger new animation
+                pair.el.className = 'fused-strand'; 
+                void pair.el.offsetWidth; // Force reflow to restart animation
+                pair.el.classList.add(`expressed-${expressionType}`);
+                
+            } else { log(`ERROR: Fused pair [${fusionId}] not found in memory space.`, 'log-error'); }
+        } else if (command === 'help') {
+            log('Available Commands:');
+            log('  fuse lock [id1] @ [id2] using:[type]');
+            log('    types: phase, morse, auc');
+            log('  scan status - Reports system state.');
+            log('  clear - Clears the terminal log.');
+        } else if (command === 'scan status') {
+            log(`SYSTEM STATUS: ${blips.length} echoes tracked. ${Object.keys(fusedPairs).length / 2} fused strands active.`);
+        } else if (command === 'clear') { output.innerHTML = '';
+        } else { log(`ERROR: Command unrecognized. Type 'help'.`, 'log-error'); }
+    }
+
+    // --- INITIALIZATION & LISTENERS ---
+    function init() {
+        log('📡 FUSE + RADAR SCOPE INTERFACE v2.1b');
+        log('Booting Genome Memory Space Scanner...');
+        for (let i = 1; i <= NUM_BLIPS; i++) { createBlip(i); }
+        log(`Ready. ${NUM_BLIPS} genome echoes detected. Awaiting temporal lock.`);
+        log('To fuse: Click two blips (echoes).');
+        updateInfoPanel();
+        input.focus();
+    }
+
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { handleCommand(input.value); input.value = ''; } });
+    radarScreen.addEventListener('click', clearSelection);
+    document.body.addEventListener('click', (e) => { if (e.target.id !== 'command-input' && !e.target.closest('.blip, .fused-strand')) input.focus(); });
+
+    init();
+});
+</script>
+</body>
+</html>

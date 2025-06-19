@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5. 🪞 REFLECTION STACK</title>
+    <style>
+        /* FONT IMPORT - Embedded for single-file portability */
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500&display=swap');
+
+        :root {
+            --bg-color: #1a1a1d;
+            --pane-bg: #222226;
+            --header-bg: #333338;
+            --border-color: #444449;
+            --text-color: #c5c6c7;
+            --accent-color: #4b88a2;
+            --highlight-color: #a2d2ff;
+            --dissonance-low: rgba(75, 136, 162, 0.1); /* Cool blue */
+            --dissonance-mid: rgba(255, 199, 44, 0.2); /* Warning yellow */
+            --dissonance-high: rgba(198, 2, 2, 0.3);   /* Alert red */
+            --inconsistent-glow: #ff4d4d;
+            --font-family: 'Fira Code', monospace;
+            --pane-gap: -80px; /* How much the panes overlap */
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            font-size: 14px;
+        }
+
+        #reflection-stack-app {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- CONTROL PANEL (LEFT) --- */
+        #controls {
+            width: 320px;
+            height: 100%;
+            background-color: #161618;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 100;
+        }
+
+        h1, h2, h3 {
+            margin: 0 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--accent-color);
+            font-weight: 500;
+        }
+        
+        h1 { font-size: 1.5em; }
+        h1 .icon { font-size: 1.2em; vertical-align: middle; }
+        #app-tagline {
+            font-style: italic;
+            color: #888;
+            margin-bottom: 25px;
+        }
+        
+        #thought-palette {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px; /* for scrollbar */
+        }
+
+        .thought-chip {
+            background-color: var(--pane-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            user-select: none;
+            position: relative;
+        }
+        .thought-chip:hover {
+            border-color: var(--highlight-color);
+            background-color: #3a3a40;
+        }
+        .thought-chip:active {
+            cursor: grabbing;
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+        }
+        .thought-chip.in-use {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background-color: #2a2a2e;
+        }
+        .thought-chip.inconsistent {
+            border-color: var(--inconsistent-glow);
+            box-shadow: 0 0 10px var(--inconsistent-glow), inset 0 0 5px rgba(255, 77, 77, 0.5);
+            animation: pulse-error 2s infinite;
+        }
+        .thought-chip .tag {
+            position: absolute;
+            top: -8px;
+            right: 5px;
+            font-size: 0.7em;
+            background: var(--header-bg);
+            padding: 2px 5px;
+            border-radius: 3px;
+            color: #aaa;
+        }
+
+        #metareflex-controls {
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        #metareflex-toggle {
+            width: 100%;
+            padding: 12px;
+            font-family: var(--font-family);
+            font-size: 1em;
+            font-weight: 500;
+            background-color: var(--accent-color);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #metareflex-toggle:hover {
+            background-color: #64a2be;
+        }
+        #metareflex-toggle:active {
+            background-color: #3b748a;
+        }
+        #analysis-result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 5px;
+            min-height: 40px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        #analysis-result.scan { animation: scan-text 1.5s forwards; }
+
+        /* --- STACK CONTAINER (RIGHT) --- */
+        #stack-container {
+            flex-grow: 1;
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            gap: var(--pane-gap);
+            perspective: 1500px; /* This enables 3D transforms for children */
+            overflow: hidden;
+        }
+
+        .stack-pane {
+            height: 200px;
+            flex-shrink: 0;
+            background-color: var(--pane-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: transform 0.5s ease, background-color 0.5s ease;
+            transform-style: preserve-3d;
+            display: flex;
+            flex-direction: column;
+        }
+        .stack-pane:hover {
+            transform: rotateX(0deg) scale(1.02);
+            z-index: 50;
+        }
+        
+        .pane-header {
+            background-color: var(--header-bg);
+            padding: 8px 15px;
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pane-title {
+            font-weight: 500;
+        }
+        .pane-logic-selector {
+            background: var(--pane-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            border-radius: 4px;
+        }
+        
+        .pane-content {
+            padding: 15px;
+            flex-grow: 1;
+            overflow-y: auto;
+            border-radius: 0 0 10px 10px;
+            transition: background-color 0.5s ease;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-content: flex-start;
+        }
+        .pane-content.drag-over {
+            background-color: rgba(75, 136, 162, 0.2);
+            border: 2px dashed var(--accent-color);
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes pulse-error {
+            0% { box-shadow: 0 0 5px var(--inconsistent-glow), inset 0 0 3px rgba(255, 77, 77, 0.3); }
+            50% { box-shadow: 0 0 15px var(--inconsistent-glow), inset 0 0 8px rgba(255, 77, 77, 0.6); }
+            100% { box-shadow: 0 0 5px var(--inconsistent-glow), inset 0 0 3px rgba(255, 77, 77, 0.3); }
+        }
+        @keyframes scan-text {
+            0% { content: "ANALYZING..."; }
+            20% { content: "ANALYZING... LAYER 1 <> 2"; }
+            40% { content: "ANALYZING... CHECKING AXIOMS"; }
+            60% { content: "ANALYZING... MAPPING DISSONANCE"; }
+            80% { content: "ANALYZING... RESOLVING REFLEXIONS"; }
+            100% { content: "ANALYSIS COMPLETE."; }
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div id="reflection-stack-app">
+        
+        <!-- ======================================= -->
+        <!-- ==        CONTROL & FEEDBACK         == -->
+        <!-- ======================================= -->
+        <aside id="controls">
+            <h1><span class="icon">🪞</span> REFLECTION STACK</h1>
+            <p id="app-tagline">Think in layers. See your thoughts thinking.</p>
+            
+            <div class="user-guide">
+                <p><strong>Use:</strong> For philosophers, self-inquiry engineers, dialogic AI trainers.</p>
+                <p><strong>Equivalent:</strong> Cognitive loop debugger.</p>
+            </div>
+
+            <h2>THOUGHT PALETTE</h2>
+            <div id="thought-palette">
+                <!-- Thought chips will be generated here by JS -->
+            </div>
+
+            <div id="metareflex-controls">
+                <h2>SYSTEM ANALYSIS</h2>
+                <button id="metareflex-toggle">ENGAGE METAREFLEXION</button>
+                <div id="analysis-result">System idle. Drag thoughts to begin.</div>
+            </div>
+        </aside>
+
+        <!-- ======================================= -->
+        <!-- ==        STACK WORKSPACE          == -->
+        <!-- ======================================= -->
+        <main id="stack-container">
+            <!-- Panes will be generated here by JS -->
+        </main>
+
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // =======================================
+    // ==         DATA DEFINITIONS        ==
+    // =======================================
+
+    const THOUGHT_DATA = {
+        't01': { text: "All thinking beings desire happiness.", type: 'axiom', ethical: 0.8, contradicts: 't02' },
+        't02': { text: "Suffering is a necessary condition for growth.", type: 'axiom', ethical: 0.3, contradicts: 't01' },
+        't03': { text: "I am a thinking being.", type: 'observation', ethical: 0.5, dependsOn: ['t01'] },
+        't04': { text: "Therefore, I must desire happiness.", type: 'deduction', ethical: 0.7, dependsOn: ['t01', 't03'] },
+        't05': { text: "A system designed for pure happiness would stagnate.", type: 'hypothesis', ethical: 0.4, dependsOn: ['t02'] },
+        't06': { text: "Is my definition of 'happiness' flawed?", type: 'inquiry', ethical: 0.9 },
+        't07': { text: "Memory: I felt joy after overcoming a challenge.", type: 'memory', ethical: 0.6, supports: ['t02'] },
+        't08': { text: "The needs of the many outweigh the few.", type: 'maxim', ethical: 0.6, contradicts: 't09' },
+        't09': { text: "The individual's right to self-determination is absolute.", type: 'maxim', ethical: 0.7, contradicts: 't08' },
+    };
+
+    const LOGIC_THREADS = [
+        'Core Premise', 
+        'Ethical Review', 
+        'Memory Audit', 
+        'Hypothetical Space',
+        'Inquiry & Doubt'
+    ];
+
+    const PANE_CONFIG = [
+        { id: 'p1', title: 'LEVEL 1: Foundational Axioms', logic: 'Core Premise' },
+        { id: 'p2', title: 'LEVEL 2: Observations & Deductions', logic: 'Core Premise' },
+        { id: 'p3', title: 'LEVEL 3: Ethical Implications', logic: 'Ethical Review' },
+        { id: 'p4', title: 'LEVEL 4: Meta-Reflection', logic: 'Inquiry & Doubt' },
+    ];
+
+    // =======================================
+    // ==        APPLICATION STATE        ==
+    // =======================================
+    let paneState = {}; // { p1: { logic: 'Core Premise', thoughts: ['t01', 't02'] }, ... }
+
+
+    // =======================================
+    // ==          DOM ELEMENTS           ==
+    // =======================================
+    const palette = document.getElementById('thought-palette');
+    const stackContainer = document.getElementById('stack-container');
+    const metareflexBtn = document.getElementById('metareflex-toggle');
+    const analysisResult = document.getElementById('analysis-result');
+
+
+    // =======================================
+    // ==        INITIALIZATION           ==
+    // =======================================
+    function init() {
+        // Create thought chips in the palette
+        Object.keys(THOUGHT_DATA).forEach(id => {
+            const thought = THOUGHT_DATA[id];
+            const chip = createThoughtChip(id, thought);
+            palette.appendChild(chip);
+        });
+
+        // Create the panes in the stack
+        PANE_CONFIG.forEach((config, index) => {
+            const pane = createPane(config, index);
+            stackContainer.appendChild(pane);
+            paneState[config.id] = { logic: config.logic, thoughts: [] };
+        });
+
+        setupEventListeners();
+    }
+
+    // =======================================
+    // ==       ELEMENT CREATION          ==
+    // =======================================
+    function createThoughtChip(id, thoughtData, isDraggable = true) {
+        const chip = document.createElement('div');
+        chip.className = 'thought-chip';
+        chip.dataset.thoughtId = id;
+        chip.textContent = thoughtData.text;
+        
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = thoughtData.type;
+        chip.appendChild(tag);
+        
+        if (isDraggable) {
+            chip.draggable = true;
+        }
+        return chip;
+    }
+
+    function createPane(config, index) {
+        const pane = document.createElement('div');
+        pane.className = 'stack-pane';
+        pane.dataset.paneId = config.id;
+        pane.style.transform = `rotateX(-15deg) translateY(${index * 20}px)`; // Initial 3D effect
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'pane-header';
+        
+        const title = document.createElement('span');
+        title.className = 'pane-title';
+        title.textContent = config.title;
+
+        const selector = document.createElement('select');
+        selector.className = 'pane-logic-selector';
+        selector.dataset.paneId = config.id;
+        LOGIC_THREADS.forEach(thread => {
+            const option = document.createElement('option');
+            option.value = thread;
+            option.textContent = thread;
+            if (thread === config.logic) {
+                option.selected = true;
+            }
+            selector.appendChild(option);
+        });
+        selector.addEventListener('change', (e) => {
+            paneState[config.id].logic = e.target.value;
+            updateAllPanes();
+        });
+
+        header.appendChild(title);
+        header.appendChild(selector);
+
+        // Content
+        const content = document.createElement('div');
+        content.className = 'pane-content';
+        content.dataset.paneId = config.id;
+
+        pane.appendChild(header);
+        pane.appendChild(content);
+
+        return pane;
+    }
+
+
+    // =======================================
+    // ==        EVENT LISTENERS          ==
+    // =======================================
+    function setupEventListeners() {
+        // Dragging from Palette
+        palette.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('thought-chip') && !e.target.classList.contains('in-use')) {
+                e.dataTransfer.setData('text/plain', e.target.dataset.thoughtId);
+                e.dataTransfer.effectAllowed = 'move';
+            } else {
+                e.preventDefault();
+            }
+        });
+
+        // Dragging over and dropping on panes
+        stackContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const targetPaneContent = e.target.closest('.pane-content');
+            if (targetPaneContent) {
+                document.querySelectorAll('.pane-content').forEach(p => p.classList.remove('drag-over'));
+                targetPaneContent.classList.add('drag-over');
+            }
+        });
+
+        stackContainer.addEventListener('dragleave', (e) => {
+             e.target.closest('.pane-content')?.classList.remove('drag-over');
+        });
+
+        stackContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            document.querySelectorAll('.pane-content').forEach(p => p.classList.remove('drag-over'));
+            
+            const targetPaneContent = e.target.closest('.pane-content');
+            if (targetPaneContent) {
+                const thoughtId = e.dataTransfer.getData('text/plain');
+                const paneId = targetPaneContent.dataset.paneId;
+
+                // Move thought to new pane in state
+                paneState[paneId].thoughts.push(thoughtId);
+                
+                // Update UI
+                const originalChip = palette.querySelector(`[data-thought-id='${thoughtId}']`);
+                originalChip.classList.add('in-use');
+
+                updateAllPanes();
+            }
+        });
+
+        metareflexBtn.addEventListener('click', runMetareflexAnalysis);
+    }
+    
+    // =======================================
+    // ==         UI/STATE UPDATE         ==
+    // =======================================
+    function updateAllPanes() {
+        document.querySelectorAll('.pane-content').forEach(content => {
+            const paneId = content.dataset.paneId;
+            const paneData = paneState[paneId];
+            
+            // Clear current thoughts
+            content.innerHTML = '';
+
+            // Render thoughts from state
+            paneData.thoughts.forEach(thoughtId => {
+                const thoughtData = THOUGHT_DATA[thoughtId];
+                const chip = createThoughtChip(thoughtId, thoughtData, false); // Not draggable once placed
+                content.appendChild(chip);
+            });
+            
+            // Update heatmap
+            const dissonance = calculateDissonance(paneData);
+            let heatmapColor = varToRgba('dissonance-low');
+            if (dissonance > 0.6) heatmapColor = varToRgba('dissonance-high');
+            else if (dissonance > 0.3) heatmapColor = varToRgba('dissonance-mid');
+            
+            content.style.backgroundColor = heatmapColor;
+        });
+    }
+
+    // =======================================
+    // ==         CORE LOGIC              ==
+    // =======================================
+
+    function calculateDissonance(paneData) {
+        if (paneData.thoughts.length < 2) return 0;
+
+        let dissonanceScore = 0;
+        const thoughtObjects = paneData.thoughts.map(id => ({...THOUGHT_DATA[id], id}));
+        
+        switch (paneData.logic) {
+            case 'Ethical Review':
+                // High dissonance if average ethical score is low
+                const avgEthical = thoughtObjects.reduce((acc, t) => acc + t.ethical, 0) / thoughtObjects.length;
+                dissonanceScore = 1 - avgEthical;
+                break;
+            case 'Memory Audit':
+                // High dissonance if non-memory thoughts are present
+                const nonMemoryCount = thoughtObjects.filter(t => t.type !== 'memory').length;
+                dissonanceScore = nonMemoryCount / thoughtObjects.length;
+                break;
+            case 'Core Premise':
+            default:
+                // High dissonance if contradictions exist within the same pane
+                for (const t1 of thoughtObjects) {
+                    for (const t2 of thoughtObjects) {
+                        if (t1.id !== t2.id && t1.contradicts === t2.id) {
+                            dissonanceScore = 1.0;
+                            break;
+                        }
+                    }
+                    if (dissonanceScore === 1.0) break;
+                }
+                break;
+        }
+        return dissonanceScore;
+    }
+
+    function runMetareflexAnalysis() {
+        analysisResult.textContent = "ANALYZING...";
+        analysisResult.classList.add('scan');
+
+        // Reset previous highlights
+        document.querySelectorAll('.thought-chip.inconsistent').forEach(c => c.classList.remove('inconsistent'));
+
+        setTimeout(() => {
+            let inconsistencies = new Set();
+            const allPlacedThoughts = Object.entries(paneState).flatMap(([paneId, data]) => 
+                data.thoughts.map(thoughtId => ({ thoughtId, paneId }))
+            );
+
+            // Simple check: Find any explicitly contradictory thoughts present anywhere on the board
+            const placedIds = new Set(allPlacedThoughts.map(t => t.thoughtId));
+            for (const id of placedIds) {
+                const thought = THOUGHT_DATA[id];
+                if (thought.contradicts && placedIds.has(thought.contradicts)) {
+                    inconsistencies.add(id);
+                    inconsistencies.add(thought.contradicts);
+                }
+            }
+
+            // Highlight inconsistent thoughts
+            inconsistencies.forEach(id => {
+                document.querySelectorAll(`[data-thought-id='${id}']`).forEach(el => {
+                    el.classList.add('inconsistent');
+                });
+            });
+
+            // Update result text
+            analysisResult.classList.remove('scan');
+            if (inconsistencies.size > 0) {
+                analysisResult.textContent = `Analysis complete. Found ${inconsistencies.size / 2} cognitive contradiction(s).`;
+            } else {
+                analysisResult.textContent = "Analysis complete. All layers are logically consistent.";
+            }
+        }, 1500);
+    }
+    
+    // =======================================
+    // ==           UTILITIES             ==
+    // =======================================
+    function varToRgba(varName) {
+        const val = getComputedStyle(document.documentElement).getPropertyValue(`--${varName}`).trim();
+        return val;
+    }
+
+    // Launch the application
+    init();
+
+});
+</script>
+</body>
+</html>

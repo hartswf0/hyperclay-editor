@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROJECT GENOME DIRECTORY // ARCHIVE-INDEX 78</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* === Iyex Styles Imported === */
+        :root {
+            --bg-manila: #f3e9d2;
+            --text-typewriter: #3a3a3a;
+            --border-dark: #5a5a5a;
+            --highlight-bg: rgba(255, 251, 235, 0.8); /* Not directly used, but good to have */
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+
+            /* Chromosome Band Colors (Amino Acids) - Pastel Fallbacks */
+            --band-green: #77dd77;
+            --band-yellow: #fdfd96;
+            --band-blue: #89cff0;
+            --band-pink: #ffb3de;
+            --band-orange: #ffb347;
+            --band-gray: #cfcfc4;
+            
+            /* Default band color if no dynamic or pastel assigned */
+            --band-default: #cccccc;
+        }
+
+        #project-title-container {
+            text-align: center;
+            margin-bottom: 15px; /* Space between title and manila folder */
+        }
+        #project-title-container h1 {
+            font-family: var(--font-display);
+            font-size: 2.8rem; /* Large display size */
+            color: var(--text-typewriter); 
+            letter-spacing: 1px;
+            margin: 0;
+            font-weight: 600; /* Teko font weight */
+        }
+
+        body {
+            background-color: #c8bda9; /* Outer page background */
+            margin: 0;
+            font-family: var(--font-main);
+            color: var(--text-typewriter);
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1em; /* Ensure some padding if content is smaller than viewport */
+            box-sizing: border-box;
+        }
+
+        #archive-container {
+            width: 100%;
+            max-width: 1600px; /* Max width from iyex */
+            height: 90vh; /* Relative height */
+            max-height: 900px; /* Max height from iyex */
+            background-color: var(--bg-manila);
+            background-image: linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 1px solid #aaa;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            display: flex; /* Changed from grid to flex for main panels */
+            padding: 20px;
+            box-sizing: border-box;
+            gap: 20px;
+        }
+        
+        /* --- KARYOTYPE PANEL (Main View, adapted from iyex) --- */
+        #karyotype-panel {
+            flex: 1 1 70%; /* Takes more space */
+            padding: 10px; /* Reduced padding */
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Wider minmax */
+            gap: 25px; /* Increased gap */
+            align-content: start;
+            overflow-y: auto;
+            border: 1px solid #d3c8b0; /* Subtle border */
+        }
+        .chromosome-pair { text-align: center; }
+        .chromosome-label {
+            font-family: var(--font-display);
+            font-size: 2.5rem; /* Make it larger like in the image */
+            letter-spacing: 1px;
+            color: var(--text-typewriter);
+            margin-bottom: 8px; /* Adjust spacing */
+            line-height: 1; /* Ensure tight line height for large font */
+        }
+        /* .chromosome-symbol is no longer used, styles removed */
+        .chromosome {
+            position: relative;
+            width: 25px; /* Slightly wider */
+            height: 220px; /* Slightly shorter */
+            background: #e0e0e0; /* Lighter background for the stick */
+            border: 1px solid var(--border-dark);
+            border-radius: 12px; /* More rounded */
+            margin: 0 auto; /* Centered */
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+        }
+        .chromosome-band {
+            position: absolute;
+            width: 100%;
+            border-top: 1px solid rgba(0,0,0,0.1); /* Softer border */
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            box-sizing: border-box; /* Ensure border doesn't add to size */
+        }
+        .chromosome-band:hover {
+            transform: scale(1.15); /* Slightly less scale */
+            z-index: 10;
+            border: 2px solid var(--text-typewriter); /* Clearer hover border */
+        }
+        .chromosome-band.active { /* Style for the active (clicked) band */
+            transform: scale(1.15);
+            z-index: 11; /* Above hover */
+            border: 2.5px solid #000000; /* Prominent active border */
+            box-shadow: 0 0 8px rgba(0,0,0,0.3);
+        }
+        
+        /* --- TOOLTIP / FILE TAB (from iyex) --- */
+        #file-tab-tooltip {
+            position: fixed;
+            background: #fff;
+            border: 1px solid var(--border-dark);
+            padding: 6px 12px; /* Adjusted padding */
+            font-size: 1rem; /* Adjusted size */
+            font-family: var(--font-main);
+            color: var(--text-typewriter);
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000; /* Ensure it's on top */
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            border-top: 8px solid var(--band-default); /* Default tab color, JS will set actual */
+            pointer-events: none; /* Critical for not interfering with mouse events */
+            white-space: nowrap; /* Prevent ugly wrapping */
+        }
+
+        /* --- CODON SPOOL (Right Panel, adapted from iyex) --- */
+        #codon-spool {
+            flex: 0 0 30%; /* Takes less space */
+            background: #e6dac6;
+            border: 1px solid #d3c8b0; /* Subtle border */
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent content spill */
+        }
+        .spool-header {
+            font-family: var(--font-display);
+            font-size: 1.8rem; /* Adjusted size */
+            letter-spacing: 1px;
+            padding-bottom: 8px;
+            border-bottom: 1.5px solid var(--border-dark);
+            margin-bottom: 12px;
+            color: var(--text-typewriter);
+            flex-shrink: 0; /* Prevent header from shrinking */
+            transition: background-color 0.3s ease, color 0.3s ease; /* Added transition */
+        }
+        .spool-header-label {
+            display: block;
+            font-size: 0.9rem; /* Adjusted size */
+            font-family: var(--font-main);
+            color: #777;
+            margin-top: 2px;
+        }
+        #codon-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 5px; /* Space for scrollbar */
+        }
+        /* Styling for items in the codon list */
+        .codon-item { /* This will be an <a> tag */
+            display: block;
+            background-color: var(--bg-manila);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: inherit;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+        .codon-item:hover {
+            background-color: #fffcf2; /* Lighter manila on hover */
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.15);
+        }
+        .codon-filename { /* Used for title in new structure */
+            font-weight: bold;
+            color: #222; /* Darker text for title */
+            font-size: 1.0em;
+        }
+        .codon-note { /* For the optional note */
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 4px;
+            padding-left: 1em;
+            font-style: italic;
+        }
+
+        /* === Status Banner (Manila Theme) === */
+        #status-banner {
+            padding: 0.8em 1em;
+            margin-bottom: 1em; /* Positioned outside archive-container by HTML structure change */
+            border-radius: 3px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9em;
+            display: none; /* Hidden by default */
+            position: absolute; /* To overlay if needed, or fixed */
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000; /* Above everything */
+            min-width: 300px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #status-banner.error { background-color: #5e1e1e; color: #ffc4c4; display: block; }
+        #status-banner.success { background-color: #d4edda; color: #155724; display: block; } /* iyex-friendly success */
+        #status-banner.loading { background-color: #fff3cd; color: #856404; display: block; } /* iyex-friendly loading */
+
+        /* --- Responsive Design --- */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px; /* Reduce body padding */
+            }
+            #project-title-container {
+                position: relative; /* Ensure it's above absolute positioned elements like status banner */
+                z-index: 2001; 
+            }
+            #project-title-container h1 {
+                font-size: 2rem; /* Smaller title */
+            }
+            #archive-container {
+                flex-direction: column;
+                height: auto; /* Allow height to be determined by content */
+                padding: 10px; /* Reduce padding */
+            }
+            #karyotype-panel {
+                flex-basis: auto;
+                width: 100%;
+                padding: 10px;
+                margin-bottom: 15px; /* Space between panels */
+                max-height: none; /* Allow it to grow */
+            }
+            #karyotype-panel-content {
+                display: flex; /* Ensure flex context */
+                gap: 12px; /* Adjust gap for scrolling layout */
+                /* flex-wrap: wrap; REMOVED to prevent wrapping */
+                justify-content: flex-start; /* Align items to the start */
+                overflow-x: auto;   /* Enable horizontal scrolling */
+                white-space: nowrap;  /* Prevent items from wrapping internally if they were inline-block based */
+                padding-bottom: 10px; /* Space for scrollbar */
+                padding-left: 5px; /* Minor padding for start of scroll */
+                padding-right: 5px; /* Minor padding for end of scroll */
+            }
+            .chromosome-label {
+                font-size: 1.8rem; /* Smaller labels */
+            }
+            .chromosome-pair {
+                flex-shrink: 0; /* Prevent chromosome pairs from shrinking */
+            }
+            .chromosome {
+                width: 20px; /* Slightly narrower chromosomes */
+                max-height: 200px; /* Limit height on mobile */
+            }
+            .chromosome-band {
+                min-height: 5px; /* Smaller min band height */
+            }
+            #codon-spool-panel {
+                flex-basis: auto;
+                width: 100%;
+                padding: 10px;
+                max-height: 50vh; /* Ensure it doesn't take too much screen height */
+            }
+            .spool-header {
+                font-size: 1.5rem; /* Smaller spool header */
+            }
+            .spool-header-label {
+                font-size: 0.8rem;
+            }
+            .spool-item a {
+                font-size: 0.85rem; /* Smaller spool items */
+                padding: 6px 8px;
+            }
+            .file-note {
+                font-size: 0.7rem;
+            }
+            #file-tab-tooltip {
+                font-size: 0.8rem;
+                padding: 5px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="project-title-container">
+        <h1>The FUSE Project (FU)</h1>
+    </div>
+    <div id="status-banner" role="alert" aria-live="assertive"></div>
+    
+    <div id="archive-container">
+        <div id="karyotype-panel" role="navigation">
+            <!-- JS will populate this with .chromosome-pair elements -->
+        </div>
+        <div id="codon-spool" role="main">
+            <div class="spool-header">
+                <span id="spool-title-text">CODON LIST</span>
+                <span class="spool-header-label">AMINO ACID</span>
+            </div>
+            <div id="codon-list" role="list">
+                <div style="text-align: center; padding: 50px; color: #888; font-size: 0.9em;">Select a colored band from a chromosome to view its files.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="file-tab-tooltip"></div>
+
+    <script>
+    /*
+     * === Data Mapping Table (from ipflex, adapted for iyex terms) ===
+     * | JSON path                  | Stored in CORPUS as | Karyotype Element             | Codon Spool Element   | Tooltip On...      |
+     * | -------------------------- | --------------------- | ----------------------------- | --------------------- | ------------------ |
+     * | `files[*].macro_structure` | `corpus[ms]`          | .chromosome-label             | (Spool header context)|                    |
+     * | `files[*].codon_group`     | `corpus[ms][cg]`      | .chromosome-band              | #spool-title-text     | Band: Codon Group  |
+     * | `files[*].id` (object key) | `files[].id`         | —                             | .codon-item (href)    | File: File ID      |
+     * | Lookup title               | `files[].title`       | —                             | .codon-filename       |                    |
+     * | `files[*].note`            | `files[].note?`       | —                             | .codon-note           |                    |
+     * | `files[*].keywords`        | `files[].keywords?`   | (Not used in UI)              | (Not used in UI)      |                    |
+     */
+
+    // === JSON Pipeline & Rendering Logic (adapted from ipflex.html, styled for iyex.html) ===
+    const GenomicArchive = {
+        ontology: null,
+        titles: null,
+        corpus: {},
+        activeBandElement: null, // Stores the DOM element of the active band
+        pastelColorIndex: 0, // For cycling through fallback colors
+        pastelColors: ['--band-green', '--band-yellow', '--band-blue', '--band-pink', '--band-orange', '--band-gray'],
+        
+        // Dynamically assigned colorMap from ipflex.html (can be extended)
+        colorMap: {
+            "GENOMIRE SCOPE (GM-S)": "#4e79a7", "GENOMIRE FIELD (GM-F)": "#f28e2b",
+            "GENOSCOPE / GENOMA (GS/GG)": "#e15759", "FUSE INTERFACES (FU-I)": "#76b7b2",
+            "FUSE CONCEPTS (FU-C)": "#59a14f", "ECD ANALYSIS ENGINES (ECD-A)": "#edc948",
+            "ECD COMPOSITION & TRANSLATION (ECD-C)": "#b07aa1", "ECD ONTOLOGICAL INTERFACES (ECD-O)": "#ff9da7",
+            "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)": "#9c755f", "ECD HARMONIZERS (ECD-H)": "#bab0ac",
+            "SIGMADOS (Operating System)": "#d4a6c8", "SIGMATIC FORGE / OWE (Ontological Weaving Engine)": "#9d7660",
+            "CODONSYNTH (CS)": "#f1ce63", "MIRE (MI)": "#8cd17d",
+        },
+
+        elems: {}, // Will be populated in init
+
+        init() {
+            this.elems = {
+                karyotypePanel: document.getElementById('karyotype-panel'),
+                spoolTitleText: document.getElementById('spool-title-text'), // The span for the main title text itself
+                spoolHeader: document.querySelector('.spool-header'), // The entire header div
+                spoolHeaderLabel: document.querySelector('.spool-header .spool-header-label'), // The sub-label span
+                codonList: document.getElementById('codon-list'),
+                tooltip: document.getElementById('file-tab-tooltip'),
+                statusBanner: document.getElementById('status-banner')
+            };
+
+            this.updateBanner('Loading genomic data...', 'loading');
+            this.fetchData()
+                .then(() => {
+                    this.processOntologyData();
+                    this.renderKaryotype();
+                    this.updateBanner('Data loaded. Ready to explore.', 'success');
+                })
+                .catch(error => {
+                    console.error('⚠️ Initialization failed:', error);
+                    this.updateBanner(`Error: ${error.message}`, 'error');
+                });
+            
+            // Global mousemove for tooltip positioning (from iyex)
+            document.addEventListener('mousemove', e => {
+                if (this.elems.tooltip.style.opacity === '1') { // Only update if visible
+                    // Position tooltip near cursor, but prevent it from going off-screen
+                    const x = Math.min(e.clientX + 20, window.innerWidth - this.elems.tooltip.offsetWidth - 10);
+                    const y = Math.min(e.clientY - 30, window.innerHeight - this.elems.tooltip.offsetHeight - 10); // Above cursor
+                    this.elems.tooltip.style.left = `${x}px`;
+                    this.elems.tooltip.style.top = `${y}px`;
+                }
+            });
+        },
+
+        async fetchData() {
+            try {
+                const [ontologyRes, titlesRes] = await Promise.all([
+                    fetch('project_ontology.json'),
+                    fetch('file_titles.json')
+                ]);
+                if (!ontologyRes.ok) throw new Error(`Failed to load project_ontology.json (${ontologyRes.status})`);
+                if (!titlesRes.ok) throw new Error(`Failed to load file_titles.json (${titlesRes.status})`);
+                
+                this.ontology = await ontologyRes.json();
+                this.titles = await titlesRes.json();
+            } catch (error) {
+                throw new Error(`Network or fetch error: ${error.message}`);
+            }
+        },
+
+        isColorDark(rgbColorString) {
+            // Expects a string like "rgb(r, g, b)" or "rgba(r, g, b, a)"
+            if (!rgbColorString || !(rgbColorString.startsWith('rgb(') || rgbColorString.startsWith('rgba('))) {
+                return false; // Default to not dark if format is unexpected or not resolved
+            }
+            const match = rgbColorString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d\.]+)?\)/);
+            if (!match) return false;
+            const r = parseInt(match[1], 10);
+            const g = parseInt(match[2], 10);
+            const b = parseInt(match[3], 10);
+            // Standard luminance calculation
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance < 0.5; // Threshold for considering a color dark
+        },
+
+        processOntologyData() {
+            const { files, macro_structures_order, codon_groups_order } = this.ontology;
+            if (!files || !macro_structures_order || !codon_groups_order) {
+                throw new Error('Ontology missing core keys: files, macro_structures_order, or codon_groups_order.');
+            }
+            if (typeof codon_groups_order !== 'object' || Array.isArray(codon_groups_order)) {
+                throw new Error('`codon_groups_order` must be an object mapping macro-structures to arrays.');
+            }
+            const missingCodonGroups = macro_structures_order.filter(ms => !Array.isArray(codon_groups_order[ms]));
+            if (missingCodonGroups.length > 0) {
+                throw new Error(`Missing codon group definitions for macro-structures: ${missingCodonGroups.join(', ')}.`);
+            }
+
+            this.corpus = {};
+            const knownFileFields = new Set(['macro_structure', 'codon_group', 'note', 'keywords']);
+            let unknownFieldsFound = new Set();
+
+            macro_structures_order.forEach(ms => {
+                this.corpus[ms] = {};
+                (codon_groups_order[ms] || []).forEach(cg => this.corpus[ms][cg] = []);
+            });
+
+            for (const fileId in files) {
+                const fileData = files[fileId];
+                Object.keys(fileData).forEach(key => !knownFileFields.has(key) && unknownFieldsFound.add(key));
+                const { macro_structure, codon_group } = fileData;
+                if (this.corpus[macro_structure] && this.corpus[macro_structure][codon_group]) {
+                    this.corpus[macro_structure][codon_group].push({
+                        id: fileId,
+                        title: this.titles[fileId] || fileId,
+                        note: fileData.note,
+                        keywords: fileData.keywords || []
+                    });
+                } else {
+                    console.warn(`⚠️ File "${fileId}" references unknown structure/group. Skipping.`);
+                }
+            }
+            if (unknownFieldsFound.size > 0) {
+                 console.warn(`⚠️ Unknown fields found in files data: ${[...unknownFieldsFound].join(', ')}`);
+            }
+        },
+
+        renderKaryotype() {
+            this.elems.karyotypePanel.innerHTML = '';
+            const { macro_structures_order, codon_groups_order } = this.ontology;
+
+            macro_structures_order.forEach(ms => {
+                const chromosomePairDiv = document.createElement('div');
+                chromosomePairDiv.className = 'chromosome-pair';
+
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'chromosome-label';
+                labelDiv.textContent = ms.length > 0 ? ms[0].toUpperCase() : '?'; // Use first letter as the main label
+                chromosomePairDiv.appendChild(labelDiv);
+
+                // .chromosome-symbol div is removed as per the new design in the image
+
+                const chromosomeDiv = document.createElement('div');
+                chromosomeDiv.className = 'chromosome';
+                
+                const orderedCodonGroups = codon_groups_order[ms] || [];
+                let totalFilesinMS = 0;
+                orderedCodonGroups.forEach(cg => totalFilesinMS += (this.corpus[ms]?.[cg]?.length || 0));
+
+                let currentPosition = 0;
+                orderedCodonGroups.forEach(cg => {
+                    const filesInCG = this.corpus[ms]?.[cg];
+                    if (filesInCG && filesInCG.length > 0) {
+                        const bandEl = document.createElement('div');
+                        bandEl.className = 'chromosome-band';
+                        bandEl.dataset.macroStructure = ms;
+                        bandEl.dataset.codonGroup = cg;
+                        bandEl.setAttribute('role', 'button');
+                        bandEl.setAttribute('tabindex', '0');
+
+                        const bandHeight = totalFilesinMS > 0 ? (filesInCG.length / totalFilesinMS) * 100 : (100 / orderedCodonGroups.length);
+                        bandEl.style.top = `${currentPosition}%`;
+                        bandEl.style.height = `${bandHeight}%`;
+                        currentPosition += bandHeight;
+
+                        let color = this.colorMap[cg];
+                        if (!color) {
+                            color = `var(${this.pastelColors[this.pastelColorIndex % this.pastelColors.length]})`;
+                            this.pastelColorIndex++;
+                            console.warn(`⚠️ No dynamic color for codon group: "${cg}". Using pastel fallback.`);
+                        }
+                        bandEl.style.backgroundColor = color;
+                        
+                        bandEl.addEventListener('click', () => this.handleBandClick(bandEl, ms, cg));
+                        bandEl.addEventListener('mouseenter', (e) => this.showTooltip(e, cg, bandEl.style.backgroundColor));
+                        bandEl.addEventListener('mouseleave', () => this.hideTooltip());
+                        bandEl.addEventListener('focus', (e) => this.showTooltip(e, cg, bandEl.style.backgroundColor));
+                        bandEl.addEventListener('blur', () => this.hideTooltip());
+                        bandEl.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault(); this.handleBandClick(bandEl, ms, cg);
+                            }
+                        });
+                        chromosomeDiv.appendChild(bandEl);
+                    }
+                });
+                chromosomePairDiv.appendChild(chromosomeDiv);
+                this.elems.karyotypePanel.appendChild(chromosomePairDiv);
+            });
+        },
+
+        handleBandClick(element, ms, cg) {
+            if (this.activeBandElement) {
+                this.activeBandElement.classList.remove('active');
+            }
+            this.activeBandElement = element;
+            this.activeBandElement.classList.add('active');
+            
+            const bandColor = window.getComputedStyle(this.activeBandElement).backgroundColor;
+            if (this.elems.spoolHeader) {
+                this.elems.spoolHeader.style.backgroundColor = bandColor;
+                if (this.isColorDark(bandColor)) {
+                    this.elems.spoolHeader.style.color = '#ffffff'; // Affects spoolTitleText by inheritance
+                    if(this.elems.spoolHeaderLabel) this.elems.spoolHeaderLabel.style.color = '#e0e0e0'; // Lighter gray for sub-label
+                } else {
+                    this.elems.spoolHeader.style.color = 'var(--text-typewriter)'; // Resets spoolTitleText too
+                    if(this.elems.spoolHeaderLabel) this.elems.spoolHeaderLabel.style.color = '#777'; // Default sub-label color
+                }
+            }
+
+            this.elems.spoolTitleText.textContent = cg; // Update spool header text (codon group name)
+            this.renderCodonSpool(ms, cg);
+        },
+
+        renderCodonSpool(ms, cg) {
+            this.elems.codonList.innerHTML = ''; // Clear previous list
+            const files = this.corpus[ms]?.[cg];
+            if (!files || files.length === 0) {
+                this.elems.codonList.innerHTML = '<div style="text-align: center; padding: 20px; color: #888;">No files in this group.</div>';
+                return;
+            }
+
+            files.forEach(file => {
+                const linkItem = document.createElement('a'); // Use <a> for the whole item
+                linkItem.className = 'codon-item';
+                linkItem.href = file.id;
+                linkItem.target = '_blank';
+                linkItem.rel = 'noopener noreferrer';
+                linkItem.setAttribute('role', 'listitem');
+                
+                let innerHTML = `<div class="codon-filename">${file.title}</div>`;
+                if (file.note) {
+                    innerHTML += `<div class="codon-note">${file.note}</div>`;
+                }
+                linkItem.innerHTML = innerHTML;
+
+                linkItem.addEventListener('mouseenter', (e) => this.showTooltip(e, `File ID: ${file.id}`, 'var(--text-typewriter)')); // Tooltip for file items
+                linkItem.addEventListener('mouseleave', () => this.hideTooltip());
+                // No focus/blur for file items as they are links, default browser behavior is fine.
+
+                this.elems.codonList.appendChild(linkItem);
+            });
+        },
+
+        updateBanner(message, type) {
+            this.elems.statusBanner.textContent = (type === 'error' ? '⚠️ ' : '') + message;
+            this.elems.statusBanner.className = type; // 'loading', 'success', or 'error'
+        },
+
+        showTooltip(event, text, tabColorStr) {
+            this.elems.tooltip.textContent = text;
+            this.elems.tooltip.style.setProperty('--color', tabColorStr); // For border-top-color via CSS var
+            this.elems.tooltip.style.borderTopColor = tabColorStr; // Direct fallback
+            this.elems.tooltip.style.display = 'block';
+            // Positioning is handled by global mousemove, but set initial position quickly
+            const x = Math.min(event.clientX + 20, window.innerWidth - this.elems.tooltip.offsetWidth - 10);
+            const y = Math.min(event.clientY - 30, window.innerHeight - this.elems.tooltip.offsetHeight - 10);
+            this.elems.tooltip.style.left = `${x}px`;
+            this.elems.tooltip.style.top = `${y}px`;
+            // Slight delay for opacity to ensure display:block has taken effect for transition
+            setTimeout(() => { this.elems.tooltip.style.opacity = '1'; }, 10);
+        },
+
+        hideTooltip() {
+            this.elems.tooltip.style.opacity = '0';
+            // Wait for transition to finish before hiding
+            setTimeout(() => { this.elems.tooltip.style.display = 'none'; }, 200);
+        }
+    };
+
+    GenomicArchive.init();
+    </script>
+</body>
+</html>

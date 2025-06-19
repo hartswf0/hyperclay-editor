@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENOMIRE SCOPE v2.7 [SYSTEM CORE]</title>
+    <style>
+        /* This CSS remains the same, as it styles the "monitor" and "terminal" shell */
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        :root {
+            --monitor-bg: #040804;
+            --phosphor-color: #33ff33;
+            --phosphor-glow: 0 0 8px #33ff33, 0 0 10px #33ff33;
+        }
+        body { background-color: #111; color: var(--phosphor-color); font-family: 'VT323', monospace; font-size: 22px; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        #crt { width: 100vw; height: 100vh; background-color: var(--monitor-bg); box-shadow: inset 0 0 10em 2em rgba(0,0,0,0.8); position: relative; overflow: hidden; }
+        #screen { width: 100%; height: 100%; padding: 2em; box-sizing: border-box; position: relative; z-index: 1; }
+        #crt::after { content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0; background: linear-gradient(to bottom, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%); background-size: 100% 4px; z-index: 2; pointer-events: none; animation: flicker 0.15s infinite; }
+        @keyframes flicker { 0% { opacity: 0.2; } 20% { opacity: 1; } 80% { opacity: 0.5; } 100% { opacity: 1; } }
+        #output { height: calc(100% - 30px); overflow-y: scroll; overflow-x: hidden; word-wrap: break-word; text-shadow: var(--phosphor-glow); }
+        #output::-webkit-scrollbar { display: none; }
+        #output { -ms-overflow-style: none; scrollbar-width: none; }
+        .prompt-line { display: flex; align-items: center; }
+        #input-line { background: transparent; border: none; color: var(--phosphor-color); font-family: 'VT323', monospace; font-size: 22px; text-shadow: var(--phosphor-glow); width: 100%; outline: none; }
+        .prompt-line[data-busy="true"] #input-line { display: none; }
+        .prompt-line[data-busy="true"] .cursor { display: none; }
+        .cursor { display: inline-block; width: 12px; height: 22px; background: var(--phosphor-color); box-shadow: var(--phosphor-glow); animation: blink 1s step-end infinite; }
+        @keyframes blink { from, to { background: transparent; box-shadow: none; } 50% { background: var(--phosphor-color); box-shadow: var(--phosphor-glow); } }
+        #fusion-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: none; }
+    </style>
+</head>
+<body>
+    <div id="crt">
+        <canvas id="fusion-canvas"></canvas>
+        <div id="screen">
+            <div id="output"></div>
+            <div class="prompt-line" data-busy="true">
+                <span>> </span>
+                <input type="text" id="input-line">
+                <span class="cursor"></span>
+            </div>
+        </div>
+    </div>
+
+<script>
+//==================================================================//
+//                                                                  //
+//          SYSTEM CORE: GenomireSystem (Backend Logic)             //
+//                                                                  //
+//==================================================================//
+
+class GenomireSystem {
+    // --- PRIVATE FIELDS ---
+    #state; // 'BOOTING', 'IDLE', 'PROCESSING'
+    #callbacks;
+    #genomes;
+    #logHistory;
+    #activeVisualization;
+    #animationFrameId;
+
+    /**
+     * @param {object} config - Configuration object
+     * @param {function} config.onLog - Callback for new log entries. Payload: { text: string, type: 'system'|'user'|'error', instant: boolean }
+     * @param {function} config.onStateChange - Callback for system state changes. Payload: { state: 'BOOTING'|'IDLE'|'PROCESSING' }
+     * @param {function} config.onClear - Callback to clear the display.
+     * @param {function} config.onVisUpdate - Callback for visualization frame updates. Payload: { mode: string, data: object }
+     * @param {function} config.onVisEnd - Callback when a visualization ends.
+     */
+    constructor(config) {
+        this.#state = 'IDLE';
+        this.#callbacks = config;
+        this.#logHistory = [];
+        this.#activeVisualization = null;
+        this.#animationFrameId = null;
+
+        this.#genomes = {
+            'g-021': { name: "Crystalline Lattice", complexity: 0.8, baseHue: 120, structure: 'serif', frequency: 88.1, path: 'line' },
+            'g-034': { name: "Pulsar Mollusc", complexity: 0.5, baseHue: 200, structure: 'sans-serif', frequency: 101.5, path: 'curve' },
+            'g-113': { name: "Mycelial Network", complexity: 0.3, baseHue: 40, structure: 'script', frequency: 94.2, path: 'network' },
+            'g-777': { name: "Echoing Void", complexity: 1.0, baseHue: 300, structure: 'blackletter', frequency: 60.0, path: 'chaotic' }
+        };
+    }
+
+    // --- PUBLIC API ---
+
+    async boot() {
+        this.#setState('BOOTING');
+        this.#log("<< GENOMIRE SCOPE BIOS v2.7 (Phosphor-Burn revision) >>", { instant: true });
+        this.#log("(c) 1978, Esoterica Cybernetics Division", { instant: true });
+        await this.#sleep(500);
+        await this.#log("> CHECKING MEMORY... 1024K OK");
+        await this.#log("> CALIBRATING CRT DEFLECTION YOKE... OK");
+        await this.#log("> LOADING KERNEL... OK");
+        await this.#log(`> MOUNTING GENOMIC GRIMOIRE... ${Object.keys(this.#genomes).length} ENTITIES FOUND`);
+        await this.#log("> AWAITING COMMAND...");
+        await this.#sleep(200);
+        await this.#log("Type 'help' for a list of commands.");
+        this.#setState('IDLE');
+    }
+
+    async processCommand(commandText) {
+        if (this.#state !== 'IDLE') return;
+
+        this.#setState('PROCESSING');
+        this.#log(`> ${commandText}`, { type: 'user', instant: true });
+
+        const fuseRegex = /^fuse\s+(g-\d{3})\+(g-\d{3})\s+using:(\w+)(?:\((am|fm)\))?$/;
+        const fuseMatch = commandText.toLowerCase().match(fuseRegex);
+
+        if (fuseMatch) {
+            const [, g1Id, g2Id, mode, subMode] = fuseMatch;
+            await this.#handleFusion(g1Id, g2Id, mode, subMode);
+        } else {
+            await this.#handleUtilityCommand(commandText);
+        }
+
+        this.#setState('IDLE');
+    }
+
+    // --- PRIVATE LOGIC ---
+
+    #setState(newState) {
+        this.#state = newState;
+        this.#callbacks.onStateChange({ state: this.#state });
+    }
+
+    #log(text, options = {}) {
+        const { type = 'system', instant = false } = options;
+        const logEntry = { text, type, instant };
+        this.#logHistory.push(logEntry);
+        this.#callbacks.onLog(logEntry);
+        // Simulate typing delay for non-instant logs
+        return this.#sleep(instant ? 0 : 50 + text.length * 10);
+    }
+    
+    #sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async #handleUtilityCommand(commandText) {
+        switch (commandText.toLowerCase()) {
+            case 'help':
+                await this.#log("GENOMIRE SCOPE v2.7 - COMMAND LIST");
+                await this.#log("------------------------------------");
+                await this.#log("fuse g-xxx+g-yyy using:[mode] - Perform fusion.");
+                await this.#log("  Modes: radar, radio, type, wave(am|fm), vector");
+                await this.#log("list - List available genomes.");
+                await this.#log("clear - Clear the screen.");
+                await this.#log("help - Display this help text.");
+                break;
+            case 'list':
+                await this.#log("AVAILABLE GENOMIC ENTITIES:");
+                for (const id in this.#genomes) {
+                    await this.#log(`${id}: ${this.#genomes[id].name}`, { instant: true });
+                }
+                break;
+            case 'clear':
+                this.#logHistory = [];
+                this.#callbacks.onClear();
+                break;
+            default:
+                await this.#log(`SYNTAX ERROR: UNKNOWN COMMAND "${commandText}"`, { type: 'error' });
+        }
+    }
+
+    async #handleFusion(g1Id, g2Id, mode, subMode) {
+        if (!this.#genomes[g1Id] || !this.#genomes[g2Id]) {
+            await this.#log("ERROR: GENOME ID NOT FOUND IN GRIMOIRE.", { type: 'error' });
+            return;
+        }
+        if (!this.#FUSION_LOGIC[mode]) {
+            await this.#log(`ERROR: UNKNOWN FUSION MODE: [${mode}]`, { type: 'error' });
+            return;
+        }
+
+        const g1 = this.#genomes[g1Id];
+        const g2 = this.#genomes[g2Id];
+        await this.#FUSION_LOGIC[mode].call(this, g1, g2, subMode);
+    }
+    
+    // --- VISUALIZATION CONTROL ---
+
+    #startVisualization(visConfig) {
+        this.#stopVisualization();
+        this.#activeVisualization = visConfig;
+        const loop = () => {
+            if (!this.#activeVisualization) return;
+            // The visualization logic itself updates its state and provides data
+            const updateData = this.#activeVisualization.update();
+            this.#callbacks.onVisUpdate({
+                mode: this.#activeVisualization.mode,
+                data: updateData
+            });
+            this.#animationFrameId = requestAnimationFrame(loop);
+        };
+        loop();
+    }
+
+    #stopVisualization() {
+        if (this.#animationFrameId) {
+            cancelAnimationFrame(this.#animationFrameId);
+        }
+        this.#animationFrameId = null;
+        if(this.#activeVisualization){
+            this.#callbacks.onVisEnd();
+            this.#activeVisualization = null;
+        }
+    }
+
+    // --- FUSION MODE IMPLEMENTATIONS ---
+
+    #FUSION_LOGIC = {
+        'radar': async function(g1, g2) {
+            await this.#log("[SYSTEM] INITIALIZING RADAR FUSION PROTOCOL...");
+            
+            // Phase 1: Locking
+            const radarState = {
+                angle: 0,
+                maxRadius: 0.8,
+                blip1: { angle: Math.random() * 2 * Math.PI, radius: 0.2 + g1.complexity * 0.7 },
+                blip2: { angle: Math.random() * 2 * Math.PI, radius: 0.2 + g2.complexity * 0.7 },
+                locked: false
+            };
+
+            this.#startVisualization({
+                mode: 'radar_lock',
+                g1, g2,
+                update: () => {
+                    radarState.angle += 0.02;
+                    if (!radarState.locked) {
+                        const angleDiff = Math.abs(radarState.blip1.angle - radarState.blip2.angle);
+                        if (angleDiff < 0.2 || angleDiff > (2*Math.PI - 0.2)) {
+                            const sweepDiff = Math.abs((radarState.angle % (2*Math.PI)) - radarState.blip1.angle);
+                            if(sweepDiff < 0.1) radarState.locked = true;
+                        }
+                    }
+                    return radarState;
+                }
+            });
+
+            while(!radarState.locked) await this.#sleep(100);
+
+            await this.#log("[SYSTEM] RESONANCE LOCK ACHIEVED.");
+            await this.#log("[SYSTEM] FUSION COMPLETE. NEW ENTITY DESIGNATED g-055.");
+            await this.#log("[SYSTEM] DISPLAYING PHENOTYPIC EXPRESSION...");
+
+            // Phase 2: Phenotype
+            const phenotypeState = { pulseRadius: 0, pulseAlpha: 1 };
+            this.#startVisualization({
+                mode: 'radar_phenotype',
+                update: () => {
+                    phenotypeState.pulseRadius += 2;
+                    phenotypeState.pulseAlpha -= 0.01;
+                    if (phenotypeState.pulseAlpha <= 0) {
+                        phenotypeState.pulseRadius = 0;
+                        phenotypeState.pulseAlpha = 1;
+                    }
+                    return phenotypeState;
+                }
+            });
+
+            await this.#sleep(5000); // Let it run for 5 seconds
+            this.#stopVisualization();
+        },
+        'vector': async function(g1, g2) {
+             await this.#log("[SYSTEM] TRANSLATING GENOMES TO VECTOR PATHS...");
+             await this.#log("[SYSTEM] GENERATING INTERLEAVED DISPLAY LIST...");
+             await this.#sleep(1500);
+             await this.#log("[SYSTEM] FUSION COMPLETE. NEW ENTITY DESIGNATED g-059.");
+             await this.#log("[SYSTEM] DISPLAYING PHENOTYPIC EXPRESSION...");
+
+            const vectorState = {
+                time: 0,
+                hue: (g1.baseHue + g2.baseHue) / 2,
+                pathFn: (t) => {
+                    // A Lissajous-like curve based on genome properties
+                    const x = Math.sin(t * g1.complexity * 3) * Math.cos(t);
+                    const y = Math.sin(t * g2.complexity * 3) * Math.sin(t);
+                    return { x, y };
+                }
+            };
+            
+            this.#startVisualization({
+                mode: 'vector_phenotype',
+                update: () => {
+                    vectorState.time += 0.01;
+                    return vectorState;
+                }
+            });
+
+            await this.#sleep(8000);
+            this.#stopVisualization();
+        },
+        // ... Other fusion modes (radio, type, wave) would be implemented here following the same pattern
+        // For brevity, they are omitted but would work identically:
+        // 1. Log intro text.
+        // 2. Start a visualization for the "process".
+        // 3. Await completion.
+        // 4. Log outro text.
+        // 5. Start a visualization for the "phenotype".
+        // 6. Await a timeout, then stop.
+        'radio': async function() { await this.#log("MODE [radio] NOT YET IMPLEMENTED IN THIS CORE BUILD.", {type:'error'}); },
+        'type': async function() { await this.#log("MODE [type] NOT YET IMPLEMENTED IN THIS CORE BUILD.", {type:'error'}); },
+        'wave': async function() { await this.#log("MODE [wave] NOT YET IMPLEMENTED IN THIS CORE BUILD.", {type:'error'}); },
+    };
+}
+
+
+//==================================================================//
+//                                                                  //
+//          PRESENTATION LAYER: Renderer (Frontend Logic)           //
+//                                                                  //
+//==================================================================//
+
+class Renderer {
+    #system;
+    #outputEl;
+    #inputEl;
+    #promptEl;
+    #canvasEl;
+    #ctx;
+    #commandHistory;
+    #historyIndex;
+
+    constructor(system, elements) {
+        this.#system = system;
+        this.#outputEl = elements.output;
+        this.#inputEl = elements.input;
+        this.#promptEl = elements.prompt;
+        this.#canvasEl = elements.canvas;
+        this.#ctx = this.#canvasEl.getContext('2d');
+        this.#commandHistory = [];
+        this.#historyIndex = -1;
+
+        this.#attachEventListeners();
+    }
+    
+    #attachEventListeners() {
+        // User input handling
+        this.#inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const command = this.#inputEl.value.trim();
+                if (command) {
+                    this.#commandHistory.unshift(command);
+                    this.#historyIndex = -1;
+                    this.#system.processCommand(command);
+                    this.#inputEl.value = '';
+                }
+            } else if (e.key === 'ArrowUp') {
+                if (this.#historyIndex < this.#commandHistory.length - 1) {
+                    this.#historyIndex++;
+                    this.#inputEl.value = this.#commandHistory[this.#historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                if (this.#historyIndex > 0) {
+                    this.#historyIndex--;
+                    this.#inputEl.value = this.#commandHistory[this.#historyIndex];
+                } else {
+                    this.#historyIndex = -1;
+                    this.#inputEl.value = '';
+                }
+            }
+        });
+        document.getElementById('screen').addEventListener('click', () => this.#inputEl.focus());
+        window.addEventListener('resize', () => this.#resizeCanvas());
+    }
+
+    #resizeCanvas() {
+        this.#canvasEl.width = window.innerWidth;
+        this.#canvasEl.height = window.innerHeight;
+    }
+
+    // --- RENDERER DRAWING LOGIC ---
+
+    #VIS_RENDERERS = {
+        'radar_lock': (data) => {
+            const { g1, g2, angle, maxRadius, blip1, blip2 } = data;
+            const w = this.#canvasEl.width;
+            const h = this.#canvasEl.height;
+            const centerX = w / 2;
+            const centerY = h / 2;
+            const radius = Math.min(centerX, centerY) * maxRadius;
+            
+            this.#ctx.fillStyle = 'rgba(4, 8, 4, 0.1)';
+            this.#ctx.fillRect(0, 0, w, h);
+            
+            // Grid
+            this.#ctx.strokeStyle = 'rgba(51, 255, 51, 0.2)';
+            this.#ctx.lineWidth = 1;
+            for (let i = 1; i <= 4; i++) {
+                this.#ctx.beginPath();
+                this.#ctx.arc(centerX, centerY, radius * (i / 4), 0, 2 * Math.PI);
+                this.#ctx.stroke();
+            }
+            
+            // Sweep
+            this.#ctx.beginPath();
+            this.#ctx.moveTo(centerX, centerY);
+            this.#ctx.lineTo(centerX + radius * Math.cos(angle), centerY + radius * Math.sin(angle));
+            this.#ctx.strokeStyle = 'rgba(51, 255, 51, 0.8)';
+            this.#ctx.lineWidth = 2;
+            this.#ctx.stroke();
+
+            // Blips
+            const drawBlip = (b, g) => {
+                const x = centerX + b.radius * radius * Math.cos(b.angle);
+                const y = centerY + b.radius * radius * Math.sin(b.angle);
+                const angleDiff = Math.abs((angle % (2*Math.PI)) - b.angle);
+                if (angleDiff < 0.1 || angleDiff > (2*Math.PI - 0.1)) {
+                     this.#ctx.fillStyle = '#ffff00';
+                     this.#ctx.shadowColor = '#ffff00';
+                     this.#ctx.shadowBlur = 15;
+                } else {
+                     this.#ctx.fillStyle = `hsla(${g.baseHue}, 100%, 50%, 0.8)`;
+                     this.#ctx.shadowColor = `hsla(${g.baseHue}, 100%, 50%, 0.8)`;
+                     this.#ctx.shadowBlur = 10;
+                }
+                this.#ctx.beginPath();
+                this.#ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                this.#ctx.fill();
+                this.#ctx.shadowBlur = 0;
+            }
+            drawBlip(blip1, g1);
+            drawBlip(blip2, g2);
+        },
+        'radar_phenotype': (data) => {
+            const { pulseRadius, pulseAlpha } = data;
+            const w = this.#canvasEl.width;
+            const h = this.#canvasEl.height;
+            this.#ctx.fillStyle = 'rgba(4, 8, 4, 0.2)';
+            this.#ctx.fillRect(0, 0, w, h);
+            
+            this.#ctx.strokeStyle = `rgba(51, 255, 51, ${pulseAlpha})`;
+            this.#ctx.lineWidth = 3;
+            this.#ctx.beginPath();
+            this.#ctx.arc(w/2, h/2, pulseRadius, 0, 2 * Math.PI);
+            this.#ctx.stroke();
+        },
+        'vector_phenotype': (data) => {
+            const { time, hue, pathFn } = data;
+            const w = this.#canvasEl.width;
+            const h = this.#canvasEl.height;
+
+            this.#ctx.fillStyle = 'rgba(4, 8, 4, 0.1)'; // Phosphor decay
+            this.#ctx.fillRect(0, 0, w, h);
+            this.#ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
+            this.#ctx.lineWidth = 2;
+            this.#ctx.shadowColor = `hsla(${hue}, 100%, 70%, 1)`;
+            this.#ctx.shadowBlur = 15;
+
+            this.#ctx.beginPath();
+            const scale = Math.min(w,h) / 2.5;
+            for(let i=0; i<200; i++) {
+                const t = time + i * 0.1;
+                const p = pathFn(t);
+                const x = w/2 + p.x * scale;
+                const y = h/2 + p.y * scale;
+                if(i === 0) this.#ctx.moveTo(x,y);
+                else this.#ctx.lineTo(x,y);
+            }
+            this.#ctx.stroke();
+            this.#ctx.shadowBlur = 0;
+        }
+    };
+
+    // --- SYSTEM EVENT HANDLERS ---
+
+    handleLog(logEntry) {
+        const line = document.createElement('div');
+        line.innerHTML = logEntry.text.replace(/ /g, ' ');
+        if (logEntry.type === 'error') {
+            line.style.color = '#ff4444';
+        }
+        this.#outputEl.appendChild(line);
+        this.#outputEl.scrollTop = this.#outputEl.scrollHeight;
+    }
+    
+    handleStateChange(payload) {
+        const isBusy = payload.state !== 'IDLE';
+        this.#promptEl.dataset.busy = isBusy;
+        this.#inputEl.disabled = isBusy;
+        if (!isBusy) {
+            this.#inputEl.focus();
+        }
+    }
+
+    handleClear() {
+        this.#outputEl.innerHTML = '';
+    }
+
+    handleVisUpdate(payload) {
+        if (!this.#canvasEl.style.display || this.#canvasEl.style.display === "none") {
+            this.#resizeCanvas();
+            this.#canvasEl.style.display = 'block';
+        }
+
+        const rendererFn = this.#VIS_RENDERERS[payload.mode];
+        if (rendererFn) {
+            rendererFn(payload.data);
+        }
+    }
+    
+    handleVisEnd() {
+        this.#canvasEl.style.display = 'none';
+    }
+}
+
+
+//==================================================================//
+//                                                                  //
+//          INITIALIZATION                                          //
+//                                                                  //
+//==================================================================//
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Instantiate the system with callbacks that link to the renderer
+    const system = new GenomireSystem({
+        onLog: (data) => renderer.handleLog(data),
+        onStateChange: (data) => renderer.handleStateChange(data),
+        onClear: () => renderer.handleClear(),
+        onVisUpdate: (data) => renderer.handleVisUpdate(data),
+        onVisEnd: () => renderer.handleVisEnd()
+    });
+
+    // Instantiate the renderer, giving it the system and DOM elements
+    const renderer = new Renderer(system, {
+        output: document.getElementById('output'),
+        input: document.getElementById('input-line'),
+        prompt: document.querySelector('.prompt-line'),
+        canvas: document.getElementById('fusion-canvas'),
+    });
+
+    // Boot the system. The renderer will react to the events fired during boot.
+    system.boot();
+});
+
+</script>
+</body>
+</html>

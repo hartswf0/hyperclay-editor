@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // semcode // RITUAL/LOGIC BUILDER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: semcode - Ritual/Logic Metaphor Code Builder
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: A tool for designing cultural systems and rituals using
+        *   a metaphor-driven, symbolic pseudocode language.
+        */
+
+        :root {
+            --sc-bg: #2a2d34;
+            --sc-panel: #e0e5e9;
+            --sc-panel-dark: #b8c0c8;
+            --sc-text: #1a1c20;
+            --sc-text-light: #f0f5f9;
+            --sc-accent: #4a7a8c;
+            --sc-accent-light: #8dc3d8;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+
+        /* --- LOGIC BLOCK COLORS --- */
+        [data-type="INVOKE"], [data-type="RELEASE"] { --block-color: #8c4a4a; }
+        [data-type="PRESENT"] { --block-color: #8c7b4a; }
+        [data-type="TEST"] { --block-color: #6a8c4a; }
+        [data-type="OFFER"], [data-type="RECEIVE"] { --block-color: #4a8c82; }
+        [data-type="TRANSFORM"] { --block-color: #6a4a8c; }
+        [data-type="ECHO"] { --block-color: #4a6a8c; }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #111; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--sc-text); user-select: none;
+        }
+        #semcode-chassis {
+            width: 1600px; height: 900px; background-color: var(--sc-panel);
+            border: 2px solid #555; box-shadow: 0 0 30px rgba(0,0,0,0.4);
+            padding: 20px; display: grid; grid-template-columns: 350px 1fr 500px;
+            gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--sc-panel-dark); padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 2px solid var(--sc-text);
+            padding-bottom: 5px; margin: 0 0 15px 0;
+        }
+
+        /* --- LEFT PANEL: METAPHOR & PALETTE --- */
+        #left-panel { grid-column: 1 / 2; }
+        #metaphor-selector { margin-bottom: 20px; }
+        .metaphor-button {
+            width: 100%; background: #a0a8b0; border: 1px solid #555;
+            padding: 8px; font-size: 1.1rem; margin-bottom: 5px; cursor: pointer;
+        }
+        .metaphor-button.active { background: var(--sc-accent); color: var(--sc-text-light); }
+        
+        #block-palette { flex-grow: 1; overflow-y: auto; }
+        .palette-block {
+            padding: 12px; margin-bottom: 8px; font-size: 1.2rem; cursor: pointer;
+            border-left: 8px solid var(--block-color); background: #c8d0d8;
+            transition: transform 0.1s;
+        }
+        .palette-block:hover { transform: translateX(5px); }
+        .palette-block-desc { font-size: 0.9rem; color: #555; margin-top: 4px; }
+
+        /* --- CENTER PANEL: LOGIC CHAIN BUILDER --- */
+        #center-panel { grid-column: 2 / 3; background-color: var(--sc-bg); color: var(--sc-text-light); }
+        #logic-chain { flex-grow: 1; overflow-y: auto; padding: 10px; }
+        .logic-block-instance {
+            background: #3c4049; border-left: 8px solid var(--block-color);
+            padding: 15px; margin-bottom: 10px; position: relative;
+        }
+        .logic-block-header { display: flex; justify-content: space-between; align-items: center; }
+        .logic-block-type { font-size: 1.3rem; font-weight: bold; color: var(--block-color); }
+        .logic-block-delete {
+            background: #c94e4e; color: #fff; border: none; font-size: 1rem;
+            width: 25px; height: 25px; cursor: pointer;
+        }
+        .logic-block-params { margin-top: 10px; }
+        .param-input {
+            width: calc(100% - 10px); background: var(--sc-bg); color: var(--sc-accent-light);
+            border: 1px solid var(--sc-accent); padding: 5px; font-family: inherit; font-size: 1rem;
+        }
+
+        /* --- RIGHT PANEL: RITUAL LAYOUT (OUTPUT) --- */
+        #right-panel { grid-column: 3 / 4; background-color: #fff; color: #000; }
+        #ritual-layout { flex-grow: 1; overflow-y: auto; padding: 20px; line-height: 1.8; font-size: 1.1rem;}
+        .layout-title { font-family: var(--font-display); font-size: 2.5rem; text-align: center; border-bottom: 2px solid #000; margin-bottom: 20px; }
+        .layout-step { margin-bottom: 15px; border-left: 3px solid #ccc; padding-left: 15px; }
+        .layout-step-title { font-weight: bold; }
+        .layout-step-actor { font-style: italic; color: #555; }
+        .layout-step-condition { background: #eee; padding: 5px; margin-top: 5px; }
+        .layout-loop { border: 1px dashed #999; padding: 10px; margin: 15px 0; }
+        .layout-loop::before { content: 'BEGIN ECHO'; font-weight: bold; color: #777; font-family: var(--font-main); }
+    </style>
+</head>
+<body>
+    <div id="semcode-chassis">
+        <!-- LEFT PANEL -->
+        <div class="panel" id="left-panel">
+            <h2 class="module-label">CONTEXT & PALETTE</h2>
+            <div id="metaphor-selector">
+                <h3 class="module-label" style="font-size:1.2rem;">METAPHORICAL CONTEXT</h3>
+                <button class="metaphor-button active" data-context="Judicial">JUDICIAL / LEGAL</button>
+                <button class="metaphor-button" data-context="Therapeutic">THERAPEUTIC / PSYCHOLOGICAL</button>
+                <button class="metaphor-button" data-context="Alchemical">ALCHEMICAL / TRANSFORMATIONAL</button>
+            </div>
+            <div id="block-palette-module">
+                <h3 class="module-label" style="font-size:1.2rem;">LOGIC BLOCKS</h3>
+                <div id="block-palette"></div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL -->
+        <div class="panel" id="center-panel">
+            <h2 class="module-label">LOGIC CHAIN BUILDER</h2>
+            <div id="logic-chain">
+                <div style="text-align:center; padding: 20px; color: #888;">Select a Logic Block to begin.</div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel" id="right-panel">
+            <h2 class="module-label">RITUAL LAYOUT</h2>
+            <div id="ritual-layout">
+                <div class="layout-title">AWAITING LOGIC CHAIN...</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const semcode = {
+    // --- Data ---
+    BLOCK_TEMPLATES: {
+        'INVOKE': { params: ['process_name'], desc: 'Begin a process or ritual.' },
+        'PRESENT': { params: ['actor', 'item'], desc: 'Introduce an entity or object.' },
+        'TEST': { params: ['condition'], desc: 'A conditional branch.' },
+        'OFFER': { params: ['giver', 'item', 'receiver'], desc: 'An act of giving.' },
+        'RECEIVE': { params: ['receiver', 'item', 'giver'], desc: 'An act of taking.' },
+        'TRANSFORM': { params: ['subject', 'new_state'], desc: 'Change the state of a subject.' },
+        'ECHO': { params: ['count'], desc: 'Repeat the enclosed blocks.' },
+        'RELEASE': { params: ['process_name'], desc: 'Formally end a process.' }
+    },
+    METAPHOR_MAP: {
+        'Judicial': {
+            'INVOKE': 'Convene Session', 'PRESENT': 'Submit Evidence', 'TEST': 'Cross-Examine',
+            'OFFER': 'Present Argument', 'RECEIVE': 'Accept Plea', 'TRANSFORM': 'Render Verdict',
+            'ECHO': 'Deliberate', 'RELEASE': 'Adjourn Session'
+        },
+        'Therapeutic': {
+            'INVOKE': 'Begin Session', 'PRESENT': 'Identify Feeling', 'TEST': 'Challenge Belief',
+            'OFFER': 'Share Vulnerability', 'RECEIVE': 'Acknowledge Perspective', 'TRANSFORM': 'Reframe Narrative',
+            'ECHO': 'Reinforce Positive Loop', 'RELEASE': 'End Session'
+        },
+        'Alchemical': {
+            'INVOKE': 'Initiate Operation', 'PRESENT': 'Introduce Prima Materia', 'TEST': 'Assay Quality',
+            'OFFER': 'Apply Reagent', 'RECEIVE': 'Extract Essence', 'TRANSFORM': 'Calcify/Distill',
+            'ECHO': 'Circulate', 'RELEASE': 'Project Final Stone'
+        }
+    },
+
+    // --- DOM Elements ---
+    elems: {
+        palette: document.getElementById('block-palette'),
+        logicChain: document.getElementById('logic-chain'),
+        ritualLayout: document.getElementById('ritual-layout'),
+        metaphorButtons: document.querySelectorAll('.metaphor-button'),
+    },
+    
+    // --- State ---
+    state: {
+        chain: [], // Array of {id, type, params}
+        activeContext: 'Judicial',
+        nextId: 0,
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, click: null, add: null, remove: null, compile: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.click = this.createSound(800, 0.05, 0.1);
+            this.add = this.createSound(440, 0.1, 0.2, true);
+            this.remove = this.createSound(220, 0.1, 0.2);
+            this.compile = this.createSound(100, 0.3, 0.05);
+        },
+        createSound(freq, dur, vol, desc=false) {
+            return () => { if(!this.ctx) return;
+                const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g); g.connect(this.ctx.destination);
+                o.frequency.value=freq; g.gain.setValueAtTime(vol,this.ctx.currentTime);
+                if(desc) o.frequency.exponentialRampToValueAtTime(freq*1.5,this.ctx.currentTime+dur);
+                g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur);
+            }
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.renderPalette();
+        this.addEventListeners();
+        this.updateAll();
+    },
+
+    addEventListeners() {
+        this.elems.metaphorButtons.forEach(btn => {
+            btn.onclick = () => {
+                this.audio.click();
+                this.state.activeContext = btn.dataset.context;
+                this.elems.metaphorButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.compileAndRenderLayout();
+            };
+        });
+    },
+
+    // --- Core Logic ---
+    renderPalette() {
+        this.elems.palette.innerHTML = Object.entries(this.BLOCK_TEMPLATES).map(([type, data]) => `
+            <div class="palette-block" data-type="${type}" title="Click to add to chain">
+                <div class="palette-block-type">${type}</div>
+                <div class="palette-block-desc">${data.desc}</div>
+            </div>
+        `).join('');
+
+        this.elems.palette.querySelectorAll('.palette-block').forEach(el => {
+            el.onclick = () => this.addBlock(el.dataset.type);
+        });
+    },
+    
+    addBlock(type) {
+        this.audio.add();
+        const template = this.BLOCK_TEMPLATES[type];
+        const newBlock = {
+            id: this.state.nextId++,
+            type: type,
+            params: template.params.reduce((acc, param) => { acc[param] = ''; return acc; }, {})
+        };
+        this.state.chain.push(newBlock);
+        this.updateAll();
+    },
+
+    removeBlock(id) {
+        this.audio.remove();
+        this.state.chain = this.state.chain.filter(block => block.id !== id);
+        this.updateAll();
+    },
+    
+    updateBlockParam(id, paramName, value) {
+        const block = this.state.chain.find(b => b.id === id);
+        if (block) {
+            block.params[paramName] = value;
+            this.compileAndRenderLayout(); // Live update
+        }
+    },
+
+    updateAll() {
+        this.renderLogicChain();
+        this.compileAndRenderLayout();
+    },
+
+    // --- Rendering ---
+    renderLogicChain() {
+        if (this.state.chain.length === 0) {
+            this.elems.logicChain.innerHTML = `<div style="text-align:center; padding: 20px; color: #888;">Select a Logic Block to begin.</div>`;
+            return;
+        }
+
+        this.elems.logicChain.innerHTML = this.state.chain.map(block => {
+            const template = this.BLOCK_TEMPLATES[block.type];
+            const paramsHtml = Object.keys(template.params).map(paramName => `
+                <input type="text" class="param-input" placeholder="${paramName}" value="${block.params[paramName] || ''}" 
+                       oninput="semcode.updateBlockParam(${block.id}, '${paramName}', this.value)">
+            `).join('');
+            
+            return `
+                <div class="logic-block-instance" data-type="${block.type}">
+                    <div class="logic-block-header">
+                        <div class="logic-block-type">${block.type}</div>
+                        <button class="logic-block-delete" onclick="semcode.removeBlock(${block.id})">X</button>
+                    </div>
+                    <div class="logic-block-params">${paramsHtml}</div>
+                </div>
+            `;
+        }).join('');
+    },
+    
+    compileAndRenderLayout() {
+        this.audio.compile();
+        const contextMap = this.METAPHOR_MAP[this.state.activeContext];
+        let layoutHtml = '';
+        let stepCounter = 1;
+
+        if (this.state.chain.length === 0) {
+            this.elems.ritualLayout.innerHTML = '<div class="layout-title">AWAITING LOGIC CHAIN...</div>';
+            return;
+        }
+
+        const title = this.state.chain[0]?.type === 'INVOKE' ? this.state.chain[0].params.process_name : "UNTITLED PROCESS";
+        layoutHtml += `<div class="layout-title">${title || '...'}</div>`;
+
+        this.state.chain.forEach((block, index) => {
+            const verb = contextMap[block.type] || block.type;
+            let content = '';
+
+            switch(block.type) {
+                case 'INVOKE':
+                case 'RELEASE':
+                    content = `<div class="layout-step-title">${stepCounter++}. ${verb}</div>`;
+                    break;
+                case 'PRESENT':
+                    content = `<div class="layout-step-title">${stepCounter++}. ${verb}</div>
+                               <div class="layout-step-actor">ACTOR: ${block.params.actor || '___'}<br>ITEM: ${block.params.item || '___'}</div>`;
+                    break;
+                case 'TEST':
+                    content = `<div class="layout-step-title">${stepCounter++}. ${verb}</div>
+                               <div class="layout-step-condition">CONDITION: ${block.params.condition || '___'}</div>`;
+                    break;
+                case 'OFFER':
+                    content = `<div class="layout-step-title">${stepCounter++}. ${verb}</div>
+                               <div class="layout-step-actor">FROM: ${block.params.giver || '___'} TO: ${block.params.receiver || '___'}<br>ITEM: ${block.params.item || '___'}</div>`;
+                    break;
+                case 'RECEIVE':
+                     content = `<div class="layout-step-title">${stepCounter++}. ${verb}</div>
+                               <div class="layout-step-actor">BY: ${block.params.receiver || '___'} FROM: ${block.params.giver || '___'}<br>ITEM: ${block.params.item || '___'}</div>`;
+                    break;
+                case 'TRANSFORM':
+                    content = `<div class="layout-step-title">${stepCounter++}. ${verb}</div>
+                               <div class="layout-step-actor">SUBJECT: ${block.params.subject || '___'} is changed to state [${block.params.new_state || '___'}]</div>`;
+                    break;
+                case 'ECHO':
+                    content = `<div class="layout-loop"><div class="layout-step-title">Perform ${block.params.count || 'N'} times:</div></div>`;
+                    break;
+            }
+            layoutHtml += `<div class="layout-step">${content}</div>`;
+        });
+        
+        this.elems.ritualLayout.innerHTML = layoutHtml;
+    }
+};
+
+semcode.init();
+</script>
+</body>
+</html>

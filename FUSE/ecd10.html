@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // siggrep // SEMANTIC ANALYSIS CONSOLE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: siggrep - Meaning-Based File Search
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: An analysis console for searching document corpora based on
+        *   narrative content, emotional fields, and semantic drift.
+        */
+
+        :root {
+            --sg-bg: #20242a;
+            --sg-panel-dark: #2c3138;
+            --sg-panel-light: #3d4247;
+            --sg-text: #c0c5ce;
+            --sg-text-dim: #7c828d;
+            --sg-accent: #8be9fd;
+            --sg-accent-hot: #ff5555;
+            --sg-accent-warm: #ffb86c;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+        
+        /* --- KEYFRAMES --- */
+        @keyframes node-drift {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-1px, 1px); }
+            50% { transform: translate(1px, -1px); }
+            75% { transform: translate(1px, 1px); }
+        }
+        @keyframes query-pulse {
+            0% { r: 10px; opacity: 0.5; }
+            100% { r: 40px; opacity: 0; }
+        }
+        
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--sg-text); user-select: none;
+        }
+        #siggrep-chassis {
+            width: 1600px; height: 900px; background-color: var(--sg-bg);
+            border: 1px solid #555; box-shadow: 0 0 30px rgba(139, 233, 253, 0.1);
+            padding: 20px; display: grid; grid-template-columns: 350px 1fr 400px;
+            gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--sg-panel-dark); padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 1px solid var(--sg-text-dim);
+            padding-bottom: 5px; margin: 0 0 15px 0; color: var(--sg-accent);
+        }
+
+        /* --- LEFT PANEL: QUERY RESONATOR --- */
+        #query-panel { grid-column: 1 / 2; }
+        .query-module { margin-bottom: 25px; }
+        .theme-button {
+            width: 100%; background: var(--sg-panel-light); border: 1px solid #1a1a1a;
+            padding: 10px; font-size: 1.2rem; margin-bottom: 8px; cursor: pointer;
+            text-align: left; transition: all 0.2s;
+        }
+        .theme-button:hover { background-color: #4a5057; }
+        .theme-button.active { background-color: var(--sg-accent-warm); color: #000; font-weight: bold; }
+        
+        .slider-unit { margin-bottom: 15px; }
+        .slider-unit label { display: block; margin-bottom: 8px; font-size: 1.1rem; }
+        input[type="range"] {
+            -webkit-appearance: none; appearance: none; width: 100%; height: 5px;
+            background: #1a1a1a; outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 15px; height: 25px;
+            background: var(--sg-text); cursor: pointer; border: 1px solid #000;
+        }
+        #dread-slider::-webkit-slider-thumb { background: var(--sg-accent-hot); }
+        #nostalgia-slider::-webkit-slider-thumb { background: var(--sg-accent-warm); }
+
+        /* --- CENTER PANEL: SEMANTIC MAP --- */
+        #map-panel { grid-column: 2 / 3; }
+        #semantic-map-canvas { width: 100%; height: 100%; background: #111; }
+
+        /* --- RIGHT PANEL: RESULTS & METADATA --- */
+        #results-panel { grid-column: 3 / 4; }
+        #ranked-list { flex-grow: 1; overflow-y: auto; }
+        .list-item {
+            padding: 8px; margin-bottom: 5px; background: var(--sg-panel-light);
+            border-left: 4px solid var(--sg-text-dim); cursor: pointer;
+        }
+        .list-item:hover { background: #4a5057; }
+        .list-item.highlighted { border-left-color: var(--sg-accent); background: #4a5057; }
+        .list-item-title { font-weight: bold; }
+        .list-item-score { float: right; color: var(--sg-accent); }
+        
+        #metadata-display { height: 250px; flex-shrink: 0; margin-top: 15px; }
+        .meta-field { margin-bottom: 10px; }
+        .meta-label { color: var(--sg-text-dim); }
+        .meta-value { color: var(--sg-text-highlight); font-size: 1.2rem; }
+        .emotion-bar-container { display: flex; gap: 2px; height: 10px; background: #1a1a1a; }
+        .emotion-bar { height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="siggrep-chassis">
+        <!-- LEFT PANEL: QUERY RESONATOR -->
+        <div class="panel" id="query-panel">
+            <h2 class="module-label">QUERY RESONATOR</h2>
+            <div class="query-module">
+                <h3 class="module-label" style="font-size:1.2rem;">THEMATIC CORE</h3>
+                <div id="theme-selector"></div>
+            </div>
+            <div class="query-module">
+                <h3 class="module-label" style="font-size:1.2rem;">EMOTIONAL FIELD TUNING</h3>
+                <div class="slider-unit">
+                    <label for="dread-slider">DREAD</label>
+                    <input type="range" id="dread-slider" min="0" max="1" value="0" step="0.01">
+                </div>
+                <div class="slider-unit">
+                    <label for="nostalgia-slider">NOSTALGIA</label>
+                    <input type="range" id="nostalgia-slider" min="0" max="1" value="0" step="0.01">
+                </div>
+                <div class="slider-unit">
+                    <label for="apathy-slider">APATHY</label>
+                    <input type="range" id="apathy-slider" min="0" max="1" value="0" step="0.01">
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: SEMANTIC VECTOR MAP -->
+        <div class="panel" id="map-panel">
+            <h2 class="module-label">SEMANTIC VECTOR CLUSTER</h2>
+            <canvas id="semantic-map-canvas"></canvas>
+        </div>
+
+        <!-- RIGHT PANEL: RESULTS & METADATA -->
+        <div class="panel" id="results-panel">
+            <h2 class="module-label">SURFACED DOCUMENTS</h2>
+            <div id="ranked-list">
+                <div style="text-align:center; color: var(--sg-text-dim); padding-top: 20px;">Awaiting query...</div>
+            </div>
+            <div id="metadata-display">
+                <h2 class="module-label" style="margin-top: 10px;">METADATA</h2>
+                <div id="meta-content" style="padding: 10px;">Select a document...</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const siggrep = {
+    // --- Data ---
+    DOCUMENT_CORPUS: [],
+    THEMES: ['abandonment', 'recursion', 'collapse', 'unity', 'transformation'],
+    EMOTIONS: ['dread', 'nostalgia', 'apathy', 'joy', 'serenity'],
+    
+    // --- DOM Elements ---
+    elems: {
+        canvas: document.getElementById('semantic-map-canvas'),
+        ctx: null,
+        themeSelector: document.getElementById('theme-selector'),
+        rankedList: document.getElementById('ranked-list'),
+        metaContent: document.getElementById('meta-content'),
+        sliders: {
+            dread: document.getElementById('dread-slider'),
+            nostalgia: document.getElementById('nostalgia-slider'),
+            apathy: document.getElementById('apathy-slider')
+        }
+    },
+    
+    // --- State ---
+    state: {
+        query: {
+            theme: null,
+            emotionVector: { dread: 0, nostalgia: 0, apathy: 0 }
+        },
+        queryTargetPos: { x: 0.5, y: 0.5 },
+        hoveredNode: null,
+        selectedNode: null,
+        animationFrame: null,
+    },
+    
+    // --- Audio (simplified) ---
+    audio: {
+        ctx: null, click: null, search: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.click = this.createSound(800, 0.05, 0.1);
+            this.search = this.createSound(50, 1.5, 0.05);
+        },
+        createSound(freq, dur, vol) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sawtooth'; o.frequency.value=freq; g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.elems.ctx = this.elems.canvas.getContext('2d');
+        this.generateCorpus(200);
+        this.renderThemeButtons();
+        this.addEventListeners();
+        this.resizeCanvas(); window.onresize = () => this.resizeCanvas();
+        this.drawLoop();
+    },
+
+    generateCorpus(count) {
+        for (let i = 0; i < count; i++) {
+            // Each doc has a "true" semantic position and emotional signature
+            const doc = {
+                id: `doc_${String(i).padStart(3, '0')}`,
+                theme: this.THEMES[Math.floor(Math.random() * this.THEMES.length)],
+                pos: { x: Math.random(), y: Math.random() }, // "True" semantic position
+                displayPos: { x: Math.random(), y: Math.random() }, // Current on-screen position
+                emotions: {
+                    dread: Math.random(), nostalgia: Math.random(), apathy: Math.random(),
+                    joy: Math.random(), serenity: Math.random()
+                },
+                drift: Math.random() * 0.5, // 0 to 0.5 drift intensity
+                score: 0
+            };
+            this.DOCUMENT_CORPUS.push(doc);
+        }
+    },
+    
+    renderThemeButtons() {
+        this.elems.themeSelector.innerHTML = this.THEMES.map(theme => 
+            `<button class="theme-button" data-theme="${theme}">${theme.toUpperCase()}</button>`
+        ).join('');
+    },
+    
+    addEventListeners() {
+        this.elems.themeSelector.addEventListener('click', e => {
+            if (e.target.matches('.theme-button')) {
+                this.audio.click();
+                this.state.query.theme = e.target.dataset.theme;
+                this.updateQuery();
+                document.querySelectorAll('.theme-button').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+            }
+        });
+        Object.values(this.elems.sliders).forEach(slider => {
+            slider.addEventListener('input', () => this.updateQuery());
+        });
+        this.elems.canvas.addEventListener('mousemove', e => this.handleMouseMove(e));
+        this.elems.rankedList.addEventListener('click', e => {
+            const item = e.target.closest('.list-item');
+            if (item) {
+                this.state.selectedNode = this.DOCUMENT_CORPUS.find(doc => doc.id === item.dataset.id);
+                this.renderMetadata();
+            }
+        });
+    },
+
+    // --- Core Logic ---
+    updateQuery() {
+        Object.keys(this.elems.sliders).forEach(emo => {
+            this.state.query.emotionVector[emo] = parseFloat(this.elems.sliders[emo].value);
+        });
+
+        // Determine the "gravitational center" for this query on the map
+        if (this.state.query.theme) {
+            const themeIndex = this.THEMES.indexOf(this.state.query.theme);
+            const angle = (themeIndex / this.THEMES.length) * Math.PI * 2;
+            this.state.queryTargetPos.x = 0.5 + Math.cos(angle) * 0.4;
+            this.state.queryTargetPos.y = 0.5 + Math.sin(angle) * 0.4;
+        } else {
+            this.state.queryTargetPos.x = 0.5;
+            this.state.queryTargetPos.y = 0.5;
+        }
+
+        this.audio.search();
+        this.calculateScores();
+        this.renderRankedList();
+    },
+
+    calculateScores() {
+        if (!this.state.query.theme) {
+            this.DOCUMENT_CORPUS.forEach(doc => doc.score = 0);
+            return;
+        }
+        
+        this.DOCUMENT_CORPUS.forEach(doc => {
+            // Theme match score (1 if match, 0.1 if not)
+            const themeScore = doc.theme === this.state.query.theme ? 1 : 0.1;
+            
+            // Emotion match score (dot product of vectors)
+            let emotionScore = 0;
+            const queryMag = Math.sqrt(Object.values(this.state.query.emotionVector).reduce((a, b) => a + b*b, 0)) || 1;
+            const docMag = Math.sqrt(Object.values(doc.emotions).reduce((a, b) => a + b*b, 0)) || 1;
+            
+            Object.keys(this.state.query.emotionVector).forEach(emo => {
+                emotionScore += this.state.query.emotionVector[emo] * doc.emotions[emo];
+            });
+            emotionScore = (emotionScore / (queryMag * docMag)) || 0;
+            
+            doc.score = themeScore * (0.5 + emotionScore * 0.5);
+        });
+    },
+
+    handleMouseMove(e) {
+        const rect = this.elems.canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const w = this.elems.canvas.width;
+        const h = this.elems.canvas.height;
+
+        let closest = null;
+        let min_d2 = 10 * 10; // 10px hover radius
+
+        this.DOCUMENT_CORPUS.forEach(doc => {
+            const dx = (doc.displayPos.x * w) - mouseX;
+            const dy = (doc.displayPos.y * h) - mouseY;
+            const d2 = dx*dx + dy*dy;
+            if (d2 < min_d2) {
+                min_d2 = d2;
+                closest = doc;
+            }
+        });
+        
+        if (this.state.hoveredNode !== closest) {
+            this.state.hoveredNode = closest;
+            if (closest) this.renderMetadata();
+        }
+    },
+    
+    // --- Rendering ---
+    renderRankedList() {
+        const sortedDocs = [...this.DOCUMENT_CORPUS]
+            .filter(d => d.score > 0.1)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 50);
+
+        if (sortedDocs.length === 0) {
+            this.elems.rankedList.innerHTML = `<div style="text-align:center; color: var(--sg-text-dim); padding-top: 20px;">No results. Tune query.</div>`;
+            return;
+        }
+
+        this.elems.rankedList.innerHTML = sortedDocs.map(doc => `
+            <div class="list-item" data-id="${doc.id}">
+                <div class="list-item-score">${doc.score.toFixed(2)}</div>
+                <div class="list-item-title">${doc.id}</div>
+                <div class="list-item-tags" style="color:${this.THEMES.indexOf(doc.theme) % 2 ? 'var(--sg-accent-warm)' : 'var(--sg-accent)'}">${doc.theme}</div>
+            </div>`).join('');
+    },
+    
+    renderMetadata() {
+        const doc = this.state.hoveredNode || this.state.selectedNode;
+        if (!doc) {
+            this.elems.metaContent.innerHTML = 'Select a document...';
+            return;
+        }
+        
+        const emotionBars = Object.keys(doc.emotions).map(emo => {
+            const color = `var(--sg-accent-${emo === 'dread' ? 'hot' : 'warm'})`; // simplified color logic
+            return `<div class="emotion-bar" style="width:${doc.emotions[emo]*100}%; background-color:${color};" title="${emo}: ${doc.emotions[emo].toFixed(2)}"></div>`;
+        }).join('');
+
+        this.elems.metaContent.innerHTML = `
+            <div class="meta-field">
+                <div class="meta-label">DOCUMENT ID</div>
+                <div class="meta-value">${doc.id}</div>
+            </div>
+            <div class="meta-field">
+                <div class="meta-label">PRIMARY THEME</div>
+                <div class="meta-value">${doc.theme.toUpperCase()}</div>
+            </div>
+            <div class="meta-field">
+                <div class="meta-label">EMOTIONAL SIGNATURE</div>
+                <div class="emotion-bar-container">${emotionBars}</div>
+            </div>
+            <div class="meta-field">
+                <div class="meta-label">DRIFT INTENSITY</div>
+                <div class="meta-value" style="color: ${doc.drift > 0.3 ? 'var(--sg-accent-hot)' : 'var(--sg-text-highlight)'}">${(doc.drift*100).toFixed(1)}%</div>
+            </div>
+        `;
+        
+        // Highlight in ranked list
+        document.querySelectorAll('.list-item').forEach(el => {
+            el.classList.toggle('highlighted', el.dataset.id === doc.id);
+        });
+    },
+
+    drawLoop() {
+        const ctx = this.elems.ctx;
+        const w = this.elems.canvas.width;
+        const h = this.elems.canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        
+        const targetX = this.state.queryTargetPos.x * w;
+        const targetY = this.state.queryTargetPos.y * h;
+        
+        // Update and draw nodes
+        this.DOCUMENT_CORPUS.forEach(doc => {
+            // Physics: move towards "true" semantic position
+            let forceX = (doc.pos.x - doc.displayPos.x) * 0.1;
+            let forceY = (doc.pos.y - doc.displayPos.y) * 0.1;
+
+            // Physics: move towards query target based on score
+            if (doc.score > 0) {
+                forceX += (this.state.queryTargetPos.x - doc.displayPos.x) * doc.score * 0.2;
+                forceY += (this.state.queryTargetPos.y - doc.displayPos.y) * doc.score * 0.2;
+            }
+
+            doc.displayPos.x += forceX;
+            doc.displayPos.y += forceY;
+
+            // Drawing
+            const x = doc.displayPos.x * w;
+            const y = doc.displayPos.y * h;
+            const size = 3 + doc.score * 5;
+
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+
+            if (doc === this.state.hoveredNode || doc === this.state.selectedNode) {
+                ctx.fillStyle = 'var(--sg-accent)';
+            } else {
+                ctx.fillStyle = `rgba(255, 184, 108, ${0.2 + doc.score * 0.8})`;
+            }
+            ctx.fill();
+
+            if (doc.drift > 0.3) {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.globalAlpha = doc.drift;
+                ctx.strokeStyle = 'var(--sg-accent-hot)';
+                const driftOffset = Math.sin(Date.now() * 0.005 + doc.id.charCodeAt(4)) * 2;
+                ctx.strokeRect(-size-driftOffset, -size-driftOffset, (size+driftOffset)*2, (size+driftOffset)*2);
+                ctx.restore();
+            }
+        });
+        
+        // Draw query target
+        if (this.state.query.theme) {
+            ctx.save();
+            ctx.strokeStyle = 'var(--sg-accent-warm)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(targetX - 10, targetY); ctx.lineTo(targetX + 10, targetY);
+            ctx.moveTo(targetX, targetY - 10); ctx.lineTo(targetX, targetY + 10);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        this.state.animationFrame = requestAnimationFrame(() => this.drawLoop());
+    },
+};
+
+siggrep.init();
+</script>
+</body>
+</html>

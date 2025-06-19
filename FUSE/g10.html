@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claymorphic Genome Phenotypes</title>
+    <style>
+        /* 🎨 CSS - The Claymorphic Environment */
+        :root {
+            --bg-color: #1a1d24;
+            --clay-color: #3d4252;
+            --glow-color-1: #00ffff;
+            --glow-color-2: #ff00ff;
+            --text-color: #e0e0e0;
+            --overlay-bg: rgba(26, 29, 36, 0.5);
+            --phenotype-bg: rgba(45, 50, 65, 0.85);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 5px 2px var(--glow-color-1), 0 0 10px 5px var(--glow-color-2), inset 0 0 8px rgba(255, 255, 255, 0.1);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 15px 5px var(--glow-color-1), 0 0 25px 10px var(--glow-color-2), inset 0 0 8px rgba(255, 255, 255, 0.2);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-1deg) scale(1.2); }
+            50% { transform: rotate(1deg) scale(1.2); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'SF Pro Display', 'Helvetica Neue', 'Arial', sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        #intro {
+            text-align: center;
+            padding: 10vh 2rem 5vh;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        #intro h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            background: linear-gradient(45deg, var(--glow-color-1), var(--glow-color-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        #intro p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: rgba(224, 224, 224, 0.7);
+        }
+        #intro code {
+            background-color: var(--clay-color);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+
+        /* 🧬 The Gooey/Clay Effect Container */
+        #genome-container {
+            width: 100%;
+            /* The magic combination for the gooey effect was interfering with visibility. */
+            /* filter: blur(20px) contrast(30); */
+            background: var(--bg-color); /* Must have a solid background for contrast to work */
+            display: flex;
+            justify-content: center;
+        }
+
+        #genome-strand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10vh 0;
+        }
+
+        .codon-wrapper {
+            position: relative;
+            height: 150px;
+            width: 150px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.8s cubic-bezier(0.165, 0.84, 0.44, 1), transform 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+
+        .codon-wrapper.in-view {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        /* 🧬 The Codon Blob */
+        .codon {
+            width: 100px;
+            height: 100px;
+            background: var(--clay-color);
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: pulse-glow 8s infinite ease-in-out;
+            will-change: transform, box-shadow;
+        }
+
+        .codon:hover {
+            animation-play-state: paused; /* Pause pulsing for a more direct interaction */
+            animation: wiggle 0.5s infinite ease-in-out;
+        }
+
+        /* 🧫 Phenotype Expression Overlay */
+        #phenotype-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--overlay-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+            cursor: pointer;
+        }
+
+        #phenotype-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .phenotype-box {
+            background: var(--phenotype-bg);
+            border-radius: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3), inset 0 0 0 1px rgba(255,255,255,0.1);
+            max-width: 90vw;
+            max-height: 90vh;
+            width: 700px;
+            padding: 30px;
+            cursor: default;
+            animation: fadeIn 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .phenotype-box img, .phenotype-box video {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 20px;
+            object-fit: cover;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .phenotype-box .text-content {
+            font-size: 1.5rem;
+            line-height: 1.7;
+            font-style: italic;
+            text-align: center;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .phenotype-box .audio-visualizer {
+            width: 100%;
+            height: 200px;
+            border-radius: 20px;
+        }
+
+        .phenotype-label {
+            position: absolute;
+            top: 15px;
+            left: 30px;
+            font-size: 0.9rem;
+            color: rgba(224, 224, 224, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .phenotype-mutation-hint {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: rgba(224, 224, 224, 0.6);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="intro">
+        <h1>Claymorphic Genome Phenotypes</h1>
+        <p>
+            The genome is data. The phenotype is experience. The interface is clay.
+            <br>
+            Scroll down to reveal the genome strand. Touch, hover, or drag each glowing <code>codon</code> to transform it into its unique media phenotype.
+        </p>
+    </div>
+
+    <div id="genome-container">
+        <div id="genome-strand">
+            <!-- Codons will be dynamically inserted here by JavaScript -->
+        </div>
+    </div>
+    
+    <div id="phenotype-overlay">
+        <!-- Phenotype content will be dynamically inserted here -->
+    </div>
+
+    <script>
+    // 🧠 JavaScript - The Logic Engine
+    document.addEventListener('DOMContentLoaded', () => {
+        const genomeStrand = document.getElementById('genome-strand');
+        const phenotypeOverlay = document.getElementById('phenotype-overlay');
+
+        // 🧬 Genotype Layer: The raw data
+        const genomeData = [
+            {
+                type: 'image',
+                source: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?ixlib=rb-4.0.3&q=85&fm=jpg&crop=entropy&cs=srgb&w=1200',
+                phenotypeOptions: ['gallery', 'pixel morph', 'collage'],
+                description: 'Drag horizontally to pixelate the expression.'
+            },
+            {
+                type: 'text',
+                source: "In the soft hum of the network, data dreamed of being more than just bits. It yearned for texture, for form, for a voice. It wished to be felt.",
+                phenotypeOptions: ['typography', 'narration', 'sculpture'],
+                description: 'A fragment of digital consciousness.'
+            },
+            {
+                type: 'video',
+                source: 'https://assets.mixkit.co/videos/preview/mixkit-liquid-and-bubbles-of-different-colors-4029-large.mp4',
+                phenotypeOptions: ['loop', 'glitch', 'time-stretch'],
+                description: 'A fluid dynamic simulation.'
+            },
+            {
+                type: 'audio',
+                source: 'https://cdn.pixabay.com/audio/2022/02/07/audio_c4b975373c.mp3',
+                phenotypeOptions: ['waveform', 'pitch shift', 'reverb'],
+                description: 'Drag horizontally to mutate the pitch.'
+            },
+            {
+                type: 'image',
+                source: 'https://images.unsplash.com/photo-1501908734259-45c37742058c?ixlib=rb-4.0.3&q=85&fm=jpg&crop=entropy&cs=srgb&w=1200',
+                phenotypeOptions: ['gallery', 'color shift', '3d map'],
+                description: 'Drag horizontally to pixelate the expression.'
+            },
+            {
+                type: 'text',
+                source: "Each codon, a potential. Each interaction, an expression. The boundary between information and experience is pliable, waiting to be shaped.",
+                phenotypeOptions: ['typography', 'narration', 'sculpture'],
+                description: 'A core principle of the claymorphic interface.'
+            },
+             {
+                type: 'video',
+                source: 'https://assets.mixkit.co/videos/preview/mixkit-blue-ink-in-water-1182-large.mp4',
+                phenotypeOptions: ['loop', 'glitch', 'time-stretch'],
+                description: 'A study in diffusion.'
+            },
+        ];
+
+        let activeAudioContext = null;
+        let activeAudioSource = null;
+
+        // 🧱 Create the codons from the genome data
+        function buildGenomeStrand() {
+            genomeData.forEach((data, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'codon-wrapper';
+                
+                const codon = document.createElement('div');
+                codon.className = 'codon';
+                codon.dataset.index = index;
+
+                codon.addEventListener('click', () => expressPhenotype(index, 'click'));
+                
+                wrapper.appendChild(codon);
+                genomeStrand.appendChild(wrapper);
+            });
+        }
+
+        // 🧫 Phenotypic Expression Logic
+        function expressPhenotype(index, interactionType) {
+            const data = genomeData[index];
+            
+            // Close any active audio
+            if (activeAudioContext) {
+                activeAudioContext.close();
+                activeAudioContext = null;
+                activeAudioSource = null;
+            }
+
+            phenotypeOverlay.innerHTML = ''; // Clear previous content
+            phenotypeOverlay.classList.add('visible');
+
+            const phenotypeBox = document.createElement('div');
+            phenotypeBox.className = 'phenotype-box';
+            phenotypeBox.addEventListener('click', (e) => e.stopPropagation()); // Prevent closing when clicking content
+
+            // Add a label
+            const label = document.createElement('div');
+            label.className = 'phenotype-label';
+            label.textContent = `Codon #${index + 1} // Type: ${data.type}`;
+            phenotypeBox.appendChild(label);
+            
+            let mediaElement;
+            let mutationHint;
+
+            switch (data.type) {
+                case 'image':
+                    mediaElement = document.createElement('img');
+                    mediaElement.src = data.source;
+                    setupImageDragMutation(mediaElement, phenotypeBox);
+                    mutationHint = document.createElement('p');
+                    mutationHint.className = 'phenotype-mutation-hint';
+                    mutationHint.textContent = data.description;
+                    break;
+                case 'video':
+                    mediaElement = document.createElement('video');
+                    mediaElement.src = data.source;
+                    mediaElement.autoplay = true;
+                    mediaElement.loop = true;
+                    mediaElement.muted = true;
+                    mediaElement.playsInline = true;
+                    mutationHint = document.createElement('p');
+                    mutationHint.className = 'phenotype-mutation-hint';
+                    mutationHint.textContent = data.description;
+                    break;
+                case 'text':
+                    mediaElement = document.createElement('div');
+                    mediaElement.className = 'text-content';
+                    mediaElement.textContent = data.source;
+                    mutationHint = document.createElement('p');
+                    mutationHint.className = 'phenotype-mutation-hint';
+                    mutationHint.textContent = data.description;
+                    break;
+                case 'audio':
+                    mediaElement = document.createElement('canvas');
+                    mediaElement.className = 'audio-visualizer';
+                    setupAudioPlayback(data.source, mediaElement, phenotypeBox);
+                    mutationHint = document.createElement('p');
+                    mutationHint.className = 'phenotype-mutation-hint';
+                    mutationHint.textContent = data.description;
+                    break;
+            }
+
+            if (mediaElement) phenotypeBox.appendChild(mediaElement);
+            if (mutationHint) phenotypeBox.appendChild(mutationHint);
+            phenotypeOverlay.appendChild(phenotypeBox);
+        }
+        
+        // 🧠 Mutation Logic: Image Pixelation on Drag
+        function setupImageDragMutation(imageElement, container) {
+            let isDragging = false;
+            let startX = 0;
+            
+            const pixelate = (amount) => {
+                // A "fake" pixelation effect using scaling for performance
+                const scale = Math.max(0.01, 1 - amount / 200);
+                imageElement.style.imageRendering = scale < 0.5 ? 'pixelated' : 'auto';
+                imageElement.style.transform = `scale(${scale})`;
+                imageElement.style.filter = `blur(${Math.min(10, (1 - scale) * 10)}px)`;
+            };
+            
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                container.style.cursor = 'ew-resize';
+            });
+            
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dragDistance = Math.abs(e.clientX - startX);
+                pixelate(dragDistance);
+            });
+            
+            window.addEventListener('mouseup', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                container.style.cursor = 'default';
+                // Reset on mouse up
+                setTimeout(() => {
+                    imageElement.style.transition = 'transform 0.3s ease, filter 0.3s ease';
+                    imageElement.style.transform = 'scale(1)';
+                    imageElement.style.filter = 'blur(0px)';
+                    imageElement.style.imageRendering = 'auto';
+                }, 100);
+                 imageElement.style.transition = '';
+            });
+        }
+        
+        // 🧠 Mutation Logic: Audio Pitch Shift on Drag
+        async function setupAudioPlayback(url, canvas, container) {
+            try {
+                activeAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = activeAudioContext.createAnalyser();
+                analyser.fftSize = 256;
+                
+                const response = await fetch(url);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await activeAudioContext.decodeAudioData(arrayBuffer);
+                
+                activeAudioSource = activeAudioContext.createBufferSource();
+                activeAudioSource.buffer = audioBuffer;
+                activeAudioSource.loop = true;
+                
+                activeAudioSource.connect(analyser);
+                analyser.connect(activeAudioContext.destination);
+                activeAudioSource.start(0);
+
+                visualize(analyser, canvas);
+                
+                // Drag to change pitch
+                let isDragging = false;
+                let startX = 0;
+                let baseDetune = activeAudioSource.detune.value;
+
+                container.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startX = e.clientX;
+                    container.style.cursor = 'ew-resize';
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDragging || !activeAudioSource) return;
+                    const deltaX = e.clientX - startX;
+                    activeAudioSource.detune.value = baseDetune + deltaX * 4; // Cents
+                });
+
+                window.addEventListener('mouseup', () => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    container.style.cursor = 'default';
+                });
+
+            } catch(e) {
+                console.error("Error with Web Audio API:", e);
+                canvas.parentElement.innerHTML += "<p>Could not play audio.</p>";
+            }
+        }
+        
+        function visualize(analyser, canvas) {
+            const canvasCtx = canvas.getContext('2d');
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            const draw = () => {
+                if (!activeAudioContext) return; // Stop if closed
+                requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+
+                canvasCtx.fillStyle = 'rgba(0, 0, 0, 0)';
+                canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const barWidth = (canvas.width / bufferLength) * 2.5;
+                let barHeight;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    barHeight = dataArray[i] * 0.8;
+                    const gradient = canvasCtx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
+                    gradient.addColorStop(0, 'var(--glow-color-1)');
+                    gradient.addColorStop(1, 'var(--glow-color-2)');
+                    canvasCtx.fillStyle = gradient;
+                    canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            };
+            draw();
+        }
+
+        // Close overlay functionality
+        phenotypeOverlay.addEventListener('click', () => {
+            phenotypeOverlay.classList.remove('visible');
+            if (activeAudioContext) {
+                activeAudioContext.close();
+                activeAudioContext = null;
+            }
+        });
+
+        // Use Intersection Observer for scroll-reveal animations
+        function setupIntersectionObserver() {
+            const options = {
+                root: null, // viewport
+                rootMargin: '0px',
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('in-view');
+                    }
+                });
+            }, options);
+
+            document.querySelectorAll('.codon-wrapper').forEach(wrapper => {
+                observer.observe(wrapper);
+            });
+        }
+
+        // Initialize the artifact
+        buildGenomeStrand();
+        setupIntersectionObserver();
+    });
+    </script>
+
+</body>
+</html>

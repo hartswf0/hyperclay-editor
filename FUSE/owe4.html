@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // SIGMATIC FORGE // RECURSIVE ONTOLOGICAL ENVIRONMENT</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --forge-bg: #0d1018;
+            --forge-text: #c0c8d8;
+            --forge-hud-bg: rgba(26, 30, 40, 0.9);
+            --forge-border: #3c4250;
+            --forge-accent: #ffb86c; /* orange */
+            --forge-accent-2: #8be9fd; /* cyan */
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+        
+        /* --- KEYFRAMES --- */
+        @keyframes chamber-fade-in { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        @keyframes ring-echo {
+            0% { transform: scale(0.1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        @keyframes polyhedron-rotate { from { transform: rotateY(0deg) rotateX(10deg); } to { transform: rotateY(360deg) rotateX(10deg); } }
+        @keyframes furnace-heat {
+            0%, 100% { box-shadow: 0 0 20px 5px var(--forge-accent); }
+            50% { box-shadow: 0 0 40px 15px #ff5555; }
+        }
+        
+        /* --- BASE LAYOUT --- */
+        html, body {
+            background-color: #000; margin: 0; overflow: hidden;
+            font-family: var(--font-main); color: var(--forge-text);
+            user-select: none;
+        }
+        #forge-container {
+            width: 100vw; height: 100vh;
+            background-color: var(--forge-bg);
+            position: relative;
+        }
+
+        /* --- CHAMBERS & MODES --- */
+        .chamber {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; pointer-events: none; z-index: 1;
+            transition: opacity 0.8s ease-in-out;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .chamber.active { opacity: 1; pointer-events: all; z-index: 10; animation: chamber-fade-in 0.8s ease-out; }
+        .chamber-title {
+            position: absolute; top: 20px;
+            font-family: var(--font-display); font-size: 2.5rem;
+            letter-spacing: 5px; color: var(--forge-text);
+        }
+        .portal {
+            position: absolute; border: 1px solid var(--forge-border);
+            border-radius: 5px; padding: 10px 20px;
+            font-family: var(--font-display); font-size: 1.5rem;
+            cursor: pointer; background: var(--forge-hud-bg);
+            transition: all 0.3s;
+        }
+        .portal:hover { background: var(--forge-accent); color: #000; border-color: var(--forge-accent); }
+
+        /* --- 1. CHANTWELL --- */
+        #chantwell-input {
+            width: 60%; background: transparent; border: none;
+            border-bottom: 2px solid var(--forge-accent);
+            color: var(--forge-text); font-size: 2rem; text-align: center;
+            outline: none;
+        }
+        #chantwell-echo-container {
+            position: absolute; width: 100%; height: 100%;
+            pointer-events: none;
+        }
+        .echo-ring {
+            position: absolute; top: 50%; left: 50%;
+            border: 2px solid var(--forge-accent-2); border-radius: 50%;
+            transform-origin: center center;
+            animation: ring-echo 3s ease-out;
+        }
+        
+        /* --- 2. ALETHEON LATTICE --- */
+        #aletheon-workspace { width: 400px; height: 400px; perspective: 1000px; }
+        #polyhedron {
+            width: 100%; height: 100%; position: relative;
+            transform-style: preserve-3d;
+            animation: polyhedron-rotate 20s linear infinite;
+        }
+        .poly-face {
+            position: absolute; width: 200px; height: 200px;
+            background: rgba(139, 233, 253, 0.1);
+            border: 1px solid var(--forge-accent-2);
+            display: grid; place-items: center; font-size: 1.5rem;
+        }
+        
+        /* --- 3. MODULONIC CRUCIBLE --- */
+        #crucible-container { display: flex; gap: 50px; align-items: center; }
+        #crucible-source, #crucible-output {
+            width: 300px; height: 300px; background: rgba(0,0,0,0.3);
+            border: 1px solid var(--forge-border); display: grid; place-items: center;
+        }
+        #transmutation-vectors button {
+            display: block; width: 100%; padding: 10px; margin: 10px 0;
+            background: var(--forge-hud-bg); color: var(--forge-text);
+            border: 1px solid var(--forge-border); cursor: pointer;
+        }
+
+        /* --- 4. SIGMA STRATA --- */
+        #sigma-strata-container { width: 800px; height: 800px; position: relative; }
+        .strata-ring {
+            position: absolute; top: 50%; left: 50%;
+            border: 1px dashed var(--forge-border); border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .strata-artifact {
+            position: absolute; width: 100px; height: 50px;
+            background: var(--forge-hud-bg); border: 1px solid var(--forge-accent);
+            text-align: center; padding-top: 5px; cursor: grab;
+        }
+
+        /* --- 5. TEMPORAL FURNACE --- */
+        #furnace-chamber .furnace-dial {
+            width: 300px; height: 300px; border-radius: 50%;
+            background: #111; border: 5px solid var(--forge-border);
+            display: grid; place-items: center; font-size: 2rem;
+            animation: furnace-heat 3s infinite ease-in-out;
+        }
+
+        /* --- SHARED --- */
+        #project-nexus {
+            position: fixed; top: 20px; left: 20px;
+            background: var(--forge-hud-bg); padding: 15px;
+            border: 1px solid var(--forge-border); z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="forge-container">
+        <!-- The Master Project Nexus -->
+        <div id="project-nexus">
+            <div><strong>CURRENT INTENTION:</strong> <span id="nexus-intention">NULL</span></div>
+            <div><strong>FORM:</strong> <span id="nexus-form">RAW</span></div>
+        </div>
+
+        <!-- Chamber 1: CHANTWELL -->
+        <div class="chamber active" id="chantwell-chamber" data-chamber="chantwell">
+            <h1 class="chamber-title">CHANTWELL</h1>
+            <input type="text" id="chantwell-input" placeholder="[ STATE YOUR INTENTION ]">
+            <div id="chantwell-echo-container"></div>
+            <div class="portal" id="portal-to-aletheon" style="bottom:20px;">CRYSTALLIZE LATTICE ▷</div>
+        </div>
+
+        <!-- Chamber 2: ALETHEON LATTICE -->
+        <div class="chamber" id="aletheon-chamber" data-chamber="aletheon">
+             <h1 class="chamber-title">ALETHEON LATTICE</h1>
+             <div id="aletheon-workspace"><div id="polyhedron"></div></div>
+             <div class="portal" id="portal-to-crucible" style="right:20px;">ENTER CRUCIBLE ▷</div>
+        </div>
+
+        <!-- Chamber 3: MODULONIC CRUCIBLE -->
+        <div class="chamber" id="crucible-chamber" data-chamber="crucible">
+            <h1 class="chamber-title">MODULONIC CRUCIBLE</h1>
+            <div id="crucible-container">
+                <div id="crucible-source"></div>
+                <div id="transmutation-vectors">
+                    <button data-modality="sonic">→ SONIC RITUAL</button>
+                    <button data-modality="gestural">→ GESTURAL PROTOCOL</button>
+                </div>
+                <div id="crucible-output"></div>
+            </div>
+            <div class="portal" id="portal-to-strata" style="bottom:20px;">WEAVE INTO STRATA ▷</div>
+        </div>
+        
+        <!-- Chamber 4: SIGMA STRATA -->
+        <div class="chamber" id="sigma-strata-chamber" data-chamber="sigma">
+            <h1 class="chamber-title">SIGMA STRATA</h1>
+            <div id="sigma-strata-container">
+                <div class="strata-ring" style="width: 80%; height: 80%;"><span style="position:absolute; top:-20px; left:50%;">MYTHOS</span></div>
+                <div class="strata-ring" style="width: 55%; height: 55%;"><span style="position:absolute; top:-20px; left:50%;">LOGOS</span></div>
+                <div class="strata-ring" style="width: 30%; height: 30%;"><span style="position:absolute; top:-20px; left:50%;">RITUS</span></div>
+            </div>
+            <div class="portal" id="portal-to-furnace" style="right:20px;">FIRE IN FURNACE ▷</div>
+        </div>
+        
+        <!-- Chamber 5: TEMPORAL FURNACE -->
+        <div class="chamber" id="furnace-chamber" data-chamber="furnace">
+            <h1 class="chamber-title">TEMPORAL FURNACE</h1>
+            <div class="furnace-dial">APPLY PRESSURE</div>
+            <div class="portal" id="portal-to-output" style="bottom:20px;">VIEW ARTIFACT ▷</div>
+        </div>
+        
+        <!-- Final Output (as a modal for now) -->
+        <div class="chamber" id="output-chamber" data-chamber="output">
+             <h1 class="chamber-title">CRYSTALLIZED ARTIFACT</h1>
+             <div id="final-artifact-display" style="width:80%; height: 60%; background: #000; padding:20px; text-align:center;"></div>
+             <div class="portal" id="portal-to-chantwell" style="bottom:20px;">⟲ RE-INVOKE WITH NEW SEED</div>
+        </div>
+    </div>
+
+<script>
+const SigmaticForge = {
+    // --- STATE ---
+    state: {
+        currentChamber: 'chantwell',
+        project: null, // The central object being worked on
+    },
+    
+    // --- DOM ELEMENTS ---
+    elems: {
+        nexusIntention: document.getElementById('nexus-intention'),
+        nexusForm: document.getElementById('nexus-form'),
+        chambers: document.querySelectorAll('.chamber'),
+        chantwellInput: document.getElementById('chantwell-input'),
+        echoContainer: document.getElementById('chantwell-echo-container'),
+        polyhedron: document.getElementById('polyhedron'),
+        crucibleSource: document.getElementById('crucible-source'),
+        crucibleOutput: document.getElementById('crucible-output'),
+        finalArtifactDisplay: document.getElementById('final-artifact-display'),
+        // ... portal buttons
+    },
+
+    // --- AUDIO (simplified) ---
+    audio: {
+        ctx: null, tones: {},
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)(); },
+        playTone(freq, dur, type='sine') { if(!this.ctx) return;
+            const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+            o.connect(g); g.connect(this.ctx.destination); o.type=type;
+            o.frequency.value = freq; g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + dur);
+            o.start(); o.stop(this.ctx.currentTime + dur);
+        }
+    },
+
+    // --- INITIALIZATION ---
+    init() {
+        document.body.addEventListener('click', () => { if (!this.audio.ctx) this.audio.init(); }, { once: true });
+        this.addEventListeners();
+        this.updateNexusDisplay();
+    },
+    
+    addEventListeners() {
+        // Portal navigation
+        document.getElementById('portal-to-aletheon').onclick = () => {
+            if (!this.state.project) { this.initiateProject(); }
+            if (this.state.project) this.transitionTo('aletheon');
+        };
+        document.getElementById('portal-to-crucible').onclick = () => this.transitionTo('crucible');
+        document.getElementById('portal-to-strata').onclick = () => this.transitionTo('sigma');
+        document.getElementById('portal-to-furnace').onclick = () => this.transitionTo('furnace');
+        document.getElementById('portal-to-output').onclick = () => this.transitionTo('output');
+        document.getElementById('portal-to-chantwell').onclick = () => {
+            // Recursive loop
+            const newSeed = this.state.project.recursivePrompt;
+            this.initiateProject(newSeed);
+            this.transitionTo('chantwell');
+        };
+
+        // Chantwell interaction
+        this.elems.chantwellInput.addEventListener('input', e => {
+            this.audio.playTone(440 + e.target.value.length * 5, 0.1);
+            const ring = document.createElement('div');
+            ring.className = 'echo-ring';
+            const size = 50 + Math.random() * 200;
+            ring.style.width = ring.style.height = `${size}px`;
+            ring.style.transform = `translate(-50%, -50%)`;
+            this.elems.echoContainer.appendChild(ring);
+            setTimeout(() => ring.remove(), 3000);
+        });
+        
+        // Crucible interaction
+        document.querySelector('#transmutation-vectors').addEventListener('click', e => {
+            if (e.target.matches('button')) {
+                this.transmute(e.target.dataset.modality);
+            }
+        });
+    },
+
+    // --- CORE WORKFLOW ---
+    initiateProject(text) {
+        const intention = text || this.elems.chantwellInput.value;
+        if (!intention) { alert("An intention must be stated in the Chantwell."); return; }
+        
+        this.state.project = {
+            intention: intention,
+            form: 'waveform', // Initial state
+            polyhedron: { faces: intention.split(' ').filter(w => w.length > 2) },
+            transmutations: {},
+            strata: {},
+            recursivePrompt: ''
+        };
+        this.audio.playTone(220, 0.5, 'sawtooth');
+        this.updateNexusDisplay();
+    },
+
+    transitionTo(chamberName) {
+        this.state.currentChamber = chamberName;
+        this.elems.chambers.forEach(c => c.classList.remove('active'));
+        document.getElementById(`${chamberName}-chamber`).classList.add('active');
+        
+        // Update form state and nexus on transitions
+        switch(chamberName) {
+            case 'aletheon':
+                this.state.project.form = 'polyhedron';
+                this.renderAletheon();
+                break;
+            case 'crucible':
+                this.state.project.form = 'transmutable';
+                this.renderCrucible();
+                break;
+            case 'output':
+                this.finalizeArtifact();
+                this.renderOutput();
+                break;
+        }
+        this.updateNexusDisplay();
+    },
+    
+    updateNexusDisplay() {
+        if (this.state.project) {
+            this.elems.nexusIntention.textContent = this.state.project.intention;
+            this.elems.nexusForm.textContent = this.state.project.form.toUpperCase();
+        } else {
+            this.elems.nexusIntention.textContent = 'NULL';
+            this.elems.nexusForm.textContent = 'RAW';
+        }
+    },
+    
+    // --- CHAMBER-SPECIFIC RENDER/LOGIC ---
+    renderAletheon() {
+        const faces = this.state.project.polyhedron.faces;
+        const numFaces = faces.length;
+        const radius = 100;
+        let faceHTML = '';
+        faces.forEach((faceText, i) => {
+            // Simplified positioning for a dodecahedron-like structure
+            const angle = (i / numFaces) * 2 * Math.PI;
+            const yAngle = Math.asin((i - numFaces/2) / (numFaces/2));
+            const x = Math.cos(angle) * radius * Math.cos(yAngle);
+            const y = Math.sin(yAngle) * radius;
+            const z = Math.sin(angle) * radius * Math.cos(yAngle);
+            const rotX = -yAngle * 180 / Math.PI;
+            const rotY = angle * 180 / Math.PI;
+            faceHTML += `<div class="poly-face" style="transform: rotateY(${rotY}deg) rotateX(${rotX}deg) translateZ(${radius}px)">${faceText}</div>`;
+        });
+        this.elems.polyhedron.innerHTML = faceHTML;
+    },
+    
+    renderCrucible() {
+        this.elems.crucibleSource.innerHTML = `<h3>POLYHEDRON</h3><p>${this.state.project.intention}</p>`;
+        this.elems.crucibleOutput.innerHTML = `<h3>OUTPUT</h3>`;
+    },
+    
+    transmute(modality) {
+        this.audio.playTone(660, 0.2);
+        if (modality === 'sonic') {
+            const words = this.state.project.intention.split(' ');
+            this.state.project.transmutations.sonic = words.map(w => 200 + (w.charCodeAt(0) % 100) * 5);
+            this.elems.crucibleOutput.innerHTML = `<h3>SONIC RITUAL</h3><p>Frequencies generated: ${this.state.project.transmutations.sonic.length}</p>`;
+            // Play a sample
+            this.state.project.transmutations.sonic.slice(0,3).forEach((freq, i) => setTimeout(() => this.audio.playTone(freq, 0.2), i*250));
+        }
+        // other modalities would go here
+    },
+    
+    finalizeArtifact() {
+        // In the furnace, we generate the final recursive prompt
+        const firstWord = this.state.project.intention.split(' ')[0];
+        const lastWord = this.state.project.intention.split(' ').pop();
+        const form = this.state.project.form;
+        this.state.project.recursivePrompt = `Consider the ${form} of ${lastWord} when invoking ${firstWord}.`;
+    },
+    
+    renderOutput() {
+        const p = this.state.project;
+        let artifactHTML = `<h1>${p.intention}</h1>`;
+        if (p.transmutations.sonic) {
+            artifactHTML += `<h2>SONIC SEQUENCE:</h2><p>${p.transmutations.sonic.join('Hz → ')}</p>`;
+        }
+        artifactHTML += `<hr><h2>RECURSIVE PROMPT:</h2><p>${p.recursivePrompt}</p>`;
+        this.elems.finalArtifactDisplay.innerHTML = artifactHTML;
+    }
+};
+
+SigmaticForge.init();
+
+</script>
+</body>
+</html>

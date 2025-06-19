@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENOMIRE SCOPE :: Total Field</title>
+    <style>
+        :root {
+            --green: #00ff41;
+            --dark-green: #008f11;
+            --black: #000000;
+            --trans-black-bar: rgba(0, 0, 0, 0.75);
+            --trans-black-overlay: rgba(10, 10, 10, 0.9);
+            --gray: #555;
+            --light-gray: #aaa;
+            --mono-font: 'SF Mono', 'Consolas', 'Menlo', 'Courier New', monospace;
+
+            /* Codon Colors */
+            --color-txt: #3399ff; /* Blue */
+            --color-img: #ffcc00; /* Yellow */
+            --color-auc: #ff3333; /* Red */
+            --color-lnk: #cc66ff; /* Violet */
+            --color-cmd: #33ff99; /* Green */
+            --color-intr: #444444; /* Dark Gray (Intron) */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: var(--black);
+            color: var(--green);
+            font-family: var(--mono-font);
+            font-size: 14px;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: block;
+        }
+        
+        #background-canvas {
+            z-index: 1;
+        }
+        
+        #genome-field-canvas {
+            z-index: 2;
+            cursor: cell;
+        }
+
+        #console-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: var(--trans-black-bar);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            z-index: 10;
+        }
+
+        #console-input {
+            background: transparent;
+            border: none;
+            color: var(--green);
+            font-family: var(--mono-font);
+            font-size: 1em;
+            width: 100%;
+            outline: none;
+            padding-left: 10px;
+            caret-color: var(--green);
+        }
+        
+        #genome-id-tag {
+            position: absolute;
+            top: 10px;
+            padding: 5px 10px;
+            background-color: var(--trans-black-bar);
+            border-left: 2px solid var(--green);
+            z-index: 5;
+            display: none;
+            user-select: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        #expression-overlay {
+            position: absolute;
+            top: 5%;
+            height: 90%;
+            width: 350px;
+            background-color: var(--trans-black-overlay);
+            border: 1px solid var(--dark-green);
+            z-index: 8;
+            display: none;
+            padding: 20px;
+            overflow-y: auto;
+            animation: expandIn 0.4s ease-out;
+        }
+
+        @keyframes expandIn {
+            from {
+                transform: scaleX(0.1);
+                opacity: 0;
+            }
+            to {
+                transform: scaleX(1);
+                opacity: 1;
+            }
+        }
+        
+        .expression-codon {
+            margin-bottom: 1.5rem;
+            border-left: 2px solid;
+            padding-left: 10px;
+        }
+        .expression-codon-header {
+            font-size: 0.8rem;
+            color: var(--light-gray);
+            margin-bottom: 0.5rem;
+        }
+        .expression-codon-content-img {
+            width: 96px;
+            height: 96px;
+            background: linear-gradient(45deg, #222, #555);
+            filter: grayscale(1);
+        }
+        .expression-codon-content-auc svg {
+            background-color: #1a1a1a;
+        }
+        .expression-codon[data-type="INTR"] {
+            opacity: 0.4;
+            font-style: italic;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Canvas layers for the field -->
+    <canvas id="background-canvas"></canvas>
+    <canvas id="genome-field-canvas"></canvas>
+
+    <!-- UI Overlays -->
+    <div id="genome-id-tag"></div>
+    <div id="expression-overlay"></div>
+
+    <!-- Embedded Console -->
+    <div id="console-container">
+        <span>></span>
+        <input type="text" id="console-input" autofocus autocomplete="off" spellcheck="false">
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- DOM & CANVAS SETUP ---
+        const bgCanvas = document.getElementById('background-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        const fieldCanvas = document.getElementById('genome-field-canvas');
+        const fieldCtx = fieldCanvas.getContext('2d');
+        const consoleInput = document.getElementById('console-input');
+        const idTag = document.getElementById('genome-id-tag');
+        const expressionOverlay = document.getElementById('expression-overlay');
+
+        // --- CONFIGURATION ---
+        const COLUMN_WIDTH = 12;
+        const COLUMN_GAP = 18;
+        const BAND_HEIGHT = 4;
+        const BAND_GAP = 1;
+        const PIXEL_TERRAIN_SIZE = 8;
+        const CODON_COLORS = {
+            TXT: 'var(--color-txt)', IMG: 'var(--color-img)', AUC: 'var(--color-auc)',
+            LNK: 'var(--color-lnk)', CMD: 'var(--color-cmd)', INTR: 'var(--color-intr)',
+        };
+
+        // --- GLOBAL STATE ---
+        const state = {
+            genomes: {},
+            nextGenomeIndex: 1,
+            time: 0,
+            viewY: 0, // Vertical scroll position
+            maxScroll: 0,
+            selection: {
+                id: null,
+                columnIndex: -1,
+                screenX: 0,
+            },
+            expression: {
+                active: false,
+                genomeId: null,
+            }
+        };
+
+        // --- DATA GENERATION ---
+        function createGenomeId() {
+            return `g-${String(state.nextGenomeIndex++).padStart(3, '0')}`;
+        }
+
+        function createRandomCodon() {
+            const types = ['TXT', 'IMG', 'AUC', 'LNK', 'CMD', 'INTR', 'INTR', 'INTR']; // Weight towards introns
+            const type = types[Math.floor(Math.random() * types.length)];
+            const textSamples = ["The sky turned to memory.", "Signal lost in the noise.", "Echoes of a forgotten sun."];
+            const linkSamples = ["archive-frag.β", "echo-seed.γ", "origin-point.α"];
+            let data = '';
+            switch(type) {
+                case 'TXT': data = textSamples[Math.floor(Math.random() * textSamples.length)]; break;
+                case 'IMG': data = 'Grayscale static pattern'; break;
+                case 'AUC': data = 'White noise waveform'; break;
+                case 'LNK': data = linkSamples[Math.floor(Math.random() * linkSamples.length)]; break;
+                case 'CMD': data = `exec --thread=${Math.floor(Math.random()*16)}`; break;
+                case 'INTR': data = 'Non-coding sequence'; break;
+            }
+            return { type, data, active: Math.random() > 0.9 };
+        }
+
+        function generateInitialGenomes(count = 30) {
+            let maxCodons = 0;
+            for (let i = 0; i < count; i++) {
+                const id = createGenomeId();
+                const numCodons = 200 + Math.floor(Math.random() * 800);
+                if (numCodons > maxCodons) maxCodons = numCodons;
+                const codons = Array.from({ length: numCodons }, createRandomCodon);
+                state.genomes[id] = {
+                    id,
+                    codons,
+                    recency: 0.2 + Math.random() * 0.4, // Base opacity
+                    pulse: 0, // For new genomes
+                };
+            }
+            state.maxScroll = maxCodons * (BAND_HEIGHT + BAND_GAP);
+        }
+
+        // --- RENDERING ---
+        function resizeCanvases() {
+            const dpr = window.devicePixelRatio || 1;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            [bgCanvas, fieldCanvas].forEach(canvas => {
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                canvas.getContext('2d').scale(dpr, dpr);
+            });
+        }
+        
+        function drawBackground() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            bgCtx.clearRect(0, 0, width, height);
+
+            const t = state.time * 0.5;
+            for (let x = 0; x < width; x += PIXEL_TERRAIN_SIZE) {
+                for (let y = 0; y < height; y += PIXEL_TERRAIN_SIZE) {
+                    const noise = (Math.sin(x * 0.01 + t) + Math.cos(y * 0.01 + t)) * 0.5 + 0.5;
+                    if (noise > 0.85) {
+                        bgCtx.fillStyle = `rgba(0, 255, 65, ${ (noise - 0.85) * 0.2 })`;
+                        bgCtx.fillRect(x, y, PIXEL_TERRAIN_SIZE, PIXEL_TERRAIN_SIZE);
+                    }
+                }
+            }
+        }
+
+        function drawGenomeField() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            fieldCtx.clearRect(0, 0, width, height);
+            
+            const genomeIds = Object.keys(state.genomes);
+            const totalWidth = genomeIds.length * (COLUMN_WIDTH + COLUMN_GAP);
+            const startX = (width - totalWidth) / 2;
+
+            genomeIds.forEach((id, i) => {
+                const genome = state.genomes[id];
+                const x = startX + i * (COLUMN_WIDTH + COLUMN_GAP);
+
+                // Cull columns outside the viewport
+                if (x < -COLUMN_WIDTH || x > width) return;
+                
+                // Highlight selected column
+                if (state.selection.id === id) {
+                    fieldCtx.fillStyle = 'rgba(0, 255, 65, 0.07)';
+                    fieldCtx.fillRect(x - COLUMN_GAP / 2, 0, COLUMN_WIDTH + COLUMN_GAP, height);
+                }
+                
+                // Pulsing effect for new genomes
+                if (genome.pulse > 0) {
+                    const pulseAlpha = Math.sin(genome.pulse * Math.PI) * 0.2;
+                    fieldCtx.fillStyle = `rgba(0, 255, 65, ${pulseAlpha})`;
+                    fieldCtx.fillRect(x - COLUMN_GAP / 2, 0, COLUMN_WIDTH + COLUMN_GAP, height);
+                    genome.pulse -= 0.01;
+                }
+
+                for (let j = 0; j < genome.codons.length; j++) {
+                    const y = (j * (BAND_HEIGHT + BAND_GAP)) - state.viewY;
+
+                    // Cull bands outside the viewport
+                    if (y < -BAND_HEIGHT || y > height) continue;
+
+                    const codon = genome.codons[j];
+                    const isIntron = codon.type === 'INTR';
+                    
+                    let alpha = isIntron ? 0.3 : 1.0;
+                    if (state.selection.id === id) {
+                         alpha = isIntron ? 0.5 : 1.0; // brighten introns on selection
+                    }
+
+                    // Flicker for active codons
+                    if (codon.active) {
+                        alpha *= (0.85 + Math.sin(state.time * 5 + i * 0.5) * 0.15);
+                    }
+                    
+                    fieldCtx.globalAlpha = genome.recency * alpha;
+                    fieldCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(CODON_COLORS[codon.type]);
+                    fieldCtx.fillRect(x, y, COLUMN_WIDTH, BAND_HEIGHT);
+                }
+                fieldCtx.globalAlpha = 1.0;
+            });
+        }
+        
+        function render() {
+            state.time += 0.016; // Assumes ~60fps
+            
+            // Only draw background every few frames for performance
+            if (Math.floor(state.time * 10) % 2 === 0) {
+                drawBackground();
+            }
+            
+            drawGenomeField();
+            
+            requestAnimationFrame(render);
+        }
+        
+        // --- INTERACTION ---
+        
+        function handleCommand(input) {
+            const parts = input.trim().toLowerCase().split(/\s+/);
+            const command = parts[0];
+            const args = parts.slice(1);
+            consoleInput.value = '';
+
+            const clearSelection = () => {
+                state.selection.id = null;
+                state.selection.columnIndex = -1;
+                idTag.style.display = 'none';
+                expressionOverlay.style.display = 'none';
+                state.expression.active = false;
+            };
+
+            switch (command) {
+                case 'express':
+                    if (state.selection.id) {
+                        showExpression(state.selection.id);
+                    } else if (args[0] && state.genomes[args[0]]) {
+                        // Find and select the genome if not already selected
+                        const genomeIds = Object.keys(state.genomes);
+                        const index = genomeIds.indexOf(args[0]);
+                        if(index !== -1) {
+                           selectColumn(index);
+                           showExpression(args[0]);
+                        }
+                    }
+                    break;
+                case 'collapse':
+                    clearSelection();
+                    break;
+                case 'echo':
+                    const newId = createGenomeId();
+                    const numCodons = 200 + Math.floor(Math.random() * 800);
+                    const codons = Array.from({ length: numCodons }, createRandomCodon);
+                    state.genomes[newId] = { id: newId, codons, recency: 0.8, pulse: 1.0 };
+                    break;
+                case 'trace':
+                case 'fuse':
+                case 'mutate':
+                    // These commands can be hooked into other overlay screens (from the first prompt)
+                    // For now, they just show an alert to demonstrate they are hooked up.
+                    alert(`Command '${command}' recognized. Visualizer not implemented in this view.`);
+                    break;
+            }
+        }
+        
+        function selectColumn(index) {
+            const genomeIds = Object.keys(state.genomes);
+            const id = genomeIds[index];
+            if (!id) return;
+            
+            const totalWidth = genomeIds.length * (COLUMN_WIDTH + COLUMN_GAP);
+            const startX = (window.innerWidth - totalWidth) / 2;
+            const screenX = startX + index * (COLUMN_WIDTH + COLUMN_GAP);
+
+            state.selection.id = id;
+            state.selection.columnIndex = index;
+            state.selection.screenX = screenX;
+            
+            idTag.textContent = id;
+            idTag.style.left = `${screenX - 10}px`;
+            idTag.style.display = 'block';
+            
+            consoleInput.value = `express ${id}`;
+            consoleInput.focus();
+            
+            // Hide expression if one was already open
+            expressionOverlay.style.display = 'none';
+            state.expression.active = false;
+        }
+
+        function showExpression(genomeId) {
+            const genome = state.genomes[genomeId];
+            if (!genome) return;
+
+            state.expression.active = true;
+            state.expression.genomeId = genomeId;
+
+            let content = `<h2>EXPRESSION :: ${genome.id}</h2><br>`;
+            genome.codons.forEach(codon => {
+                const isIntron = codon.type === 'INTR';
+                let codonContent = '';
+                switch (codon.type) {
+                    case 'TXT': codonContent = `<p>${codon.data}</p>`; break;
+                    case 'IMG': codonContent = `<div class="expression-codon-content-img"></div>`; break;
+                    case 'LNK': codonContent = `<a>${codon.data}</a>`; break;
+                    case 'CMD': codonContent = `<code>> ${codon.data}</code>`; break;
+                    case 'AUC': codonContent = `<svg width="200" height="30" class="expression-codon-content-auc">
+                            <polyline points="${Array.from({length: 40}, () => Math.random() * 25 + 2.5).map((h, i) => `${i*5},${h}`).join(' ')}" 
+                            stroke="var(--color-auc)" fill="none" stroke-width="1.5"/>
+                        </svg>`; break;
+                    case 'INTR': codonContent = `<p>${codon.data}</p>`; break;
+                }
+                
+                content += `<div class="expression-codon" data-type="${codon.type}">
+                                <div class="expression-codon-header">[${codon.type}]</div>
+                                ${codonContent}
+                           </div>`;
+            });
+            expressionOverlay.innerHTML = content;
+            
+            // Position overlay to the side of the column
+            const overlayX = state.selection.screenX + COLUMN_WIDTH + COLUMN_GAP;
+            expressionOverlay.style.left = `${overlayX}px`;
+            expressionOverlay.style.display = 'block';
+        }
+
+        // --- EVENT LISTENERS ---
+        window.addEventListener('resize', resizeCanvases);
+
+        fieldCanvas.addEventListener('click', (e) => {
+            const rect = fieldCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+
+            const genomeIds = Object.keys(state.genomes);
+            const totalWidth = genomeIds.length * (COLUMN_WIDTH + COLUMN_GAP);
+            const startX = (window.innerWidth - totalWidth) / 2;
+
+            if (x < startX || x > startX + totalWidth) {
+                return; // Clicked in the margin
+            }
+
+            const clickedIndex = Math.floor((x - startX) / (COLUMN_WIDTH + COLUMN_GAP));
+            selectColumn(clickedIndex);
+        });
+
+        document.addEventListener('wheel', (e) => {
+            // Prevent default browser scroll
+            e.preventDefault();
+            // Update viewY
+            state.viewY += e.deltaY * 0.5; // Adjust multiplier for scroll speed
+            // Clamp scroll
+            state.viewY = Math.max(0, Math.min(state.viewY, state.maxScroll - window.innerHeight + 100));
+        }, { passive: false });
+
+        consoleInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                handleCommand(e.target.value);
+            } else if (e.key === 'Escape') {
+                state.selection.id = null;
+                idTag.style.display = 'none';
+                expressionOverlay.style.display = 'none';
+                state.expression.active = false;
+            }
+        });
+
+        // --- INITIALIZATION ---
+        function init() {
+            resizeCanvases();
+            generateInitialGenomes();
+            render();
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>

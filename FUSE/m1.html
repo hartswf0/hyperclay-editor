@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIRE: Multilayered Information Resonance Engine</title>
+    <style>
+        :root {
+            --color-background: #02040a;
+            --color-text: #c8d1e0;
+            --color-accent: #34d399;
+            --color-glow: #e0f2fe;
+            --font-mono: 'Menlo', 'Consolas', 'Monaco', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--color-background);
+            color: var(--color-text);
+            font-family: var(--font-mono);
+            cursor: none;
+        }
+
+        #mire-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #inspector {
+            position: fixed;
+            top: 20px;
+            right: -400px; /* Start off-screen */
+            width: 350px;
+            background: rgba(10, 20, 40, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(50, 80, 120, 0.5);
+            padding: 20px;
+            z-index: 10;
+            transition: right 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+            color: var(--color-text);
+            font-size: 13px;
+            line-height: 1.6;
+            border-radius: 4px;
+        }
+
+        #inspector.visible {
+            right: 20px;
+        }
+
+        #inspector h2 {
+            font-size: 16px;
+            color: var(--color-accent);
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+        
+        #inspector #unit-core {
+            font-style: italic;
+            color: #8899aa;
+            margin-bottom: 20px;
+        }
+
+        .strata-group {
+            margin-top: 15px;
+            border-left: 2px solid rgba(50, 80, 120, 0.5);
+            padding-left: 10px;
+        }
+        .strata-group h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #778899;
+            margin-bottom: 5px;
+        }
+        .strata-item {
+            display: flex;
+            justify-content: space-between;
+        }
+        .strata-item .key {
+            color: #9ab;
+        }
+        .strata-item .value {
+            color: var(--color-text);
+            font-weight: bold;
+        }
+        
+        .inspector-actions {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .action-button {
+            background: none;
+            border: 1px solid #4a5a70;
+            color: #9ab;
+            padding: 8px 12px;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 4px;
+        }
+
+        .action-button:hover {
+            background: rgba(52, 211, 153, 0.1);
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+        }
+
+        #intro-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(2, 4, 10, 0.95);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            transition: opacity 1s ease;
+            cursor: pointer;
+        }
+
+        #intro-overlay h1 {
+            font-size: 2rem;
+            color: var(--color-accent);
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+        }
+
+        #intro-overlay p {
+            max-width: 600px;
+            line-height: 1.7;
+            margin-bottom: 2rem;
+            color: #9ab;
+        }
+
+        #intro-overlay .start-text {
+            color: var(--color-accent);
+            animation: pulse 2s infinite;
+        }
+        
+        #cursor-glow {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--color-accent);
+            opacity: 0.1;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease-out;
+            filter: blur(25px);
+        }
+
+        #fuse-mode-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(239, 68, 68, 0.8);
+            backdrop-filter: blur(5px);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 20;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+            animation: pulse-red 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        @keyframes pulse-red {
+            0%, 100% { background: rgba(239, 68, 68, 0.8); }
+            50% { background: rgba(248, 113, 113, 0.8); }
+        }
+    </style>
+</head>
+<body>
+    <div id="intro-overlay">
+        <h1>MIRE</h1>
+        <p>Multilayered Information Resonance Engine</p>
+        <p>The system is live. You are viewing a hyperphenotypic surface where data is not stored, but grown. Navigate by resonance, mutation, and drift. Click a unit to excavate its strata.</p>
+        <p class="start-text">[ Click to enter the stream ]</p>
+    </div>
+
+    <canvas id="mire-canvas"></canvas>
+    
+    <div id="inspector">
+        <h2 id="unit-id"></h2>
+        <p id="unit-core"></p>
+        
+        <div class="strata-group"><h3>Z₀: Phenotype</h3><div class="strata-item"><span class="key">Expression</span><span id="strata-expression" class="value"></span></div></div>
+        <div class="strata-group"><h3>Z₁: Temporal Frequency</h3><div class="strata-item"><span class="key">State</span><span id="strata-state" class="value"></span></div></div>
+        <div class="strata-group"><h3>Z₂: Semantic Tone</h3><div class="strata-item"><span class="key">Mood</span><span id="strata-mood" class="value"></span></div></div>
+        <div class="strata-group"><h3>Z₃: Genealogical Ancestry</h3><div class="strata-item"><span class="key">Origin</span><a id="strata-origin" class="value" target="_blank" rel="noopener noreferrer"></a></div></div>
+        <div class="strata-group"><h3>Z₄: Mutability Potential</h3><div class="strata-item"><span class="key">Value</span><span id="strata-mutability" class="value"></span></div></div>
+
+        <div class="inspector-actions">
+            <button id="reexpress-btn" class="action-button">🔁 Re-express</button>
+            <button id="archive-btn" class="action-button">🗂 Archive</button>
+            <button id="fuse-btn" class="action-button">🧲 Fuse</button>
+        </div>
+    </div>
+    
+    <div id="cursor-glow"></div>
+    <div id="fuse-mode-indicator">FUSE MODE: Select another unit to merge</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('mire-canvas');
+    const ctx = canvas.getContext('2d');
+    const inspector = document.getElementById('inspector');
+    const introOverlay = document.getElementById('intro-overlay');
+    const cursorGlow = document.getElementById('cursor-glow');
+    const fuseModeIndicator = document.getElementById('fuse-mode-indicator');
+
+    // --- Read CSS Variables for JS ---
+    const computedStyles = getComputedStyle(document.documentElement);
+    const COLOR_ACCENT = computedStyles.getPropertyValue('--color-accent').trim();
+
+    // --- System State ---
+    let units = [];
+    let selectedUnit = null;
+    let fuseInitiator = null;
+    let animationFrameId;
+
+    const moodColors = {
+        'grey': '#8492a6', 'nostalgia': '#a0aec0', 'action': '#f56565',
+        'calm': '#63b3ed', 'volatile': '#f6e05e', 'code': '#4fd1c5',
+        'archive': '#4a5568', 'composite': '#d53f8c'
+    };
+
+    // --- Sample Genomic Data Seeds ---
+    const genomicSeeds = [
+        { id: "mire-unit-Δ14", genome: { core: "AR23::CODE::WAVE::DECAY", strata: { "0": "video/mp4", "1": "archive.tactile", "2": "mood=volatile", "3": "origin=https://archive.org/details/prelinger", "4": "mutability=0.82" } }, expression: "silt-stack::grid::volatile" },
+        { id: "mire-unit-Σ77", genome: { core: "IMG42::FILTER::STILL::SILENCE", strata: { "0": "image/jpeg", "1": "archive.dormant", "2": "mood=nostalgia", "3": "origin=user://log/2004-10-22", "4": "mutability=0.11" } }, expression: "crystal-growth::gridless::stable" },
+        { id: "mire-unit-Ψ09", genome: { core: "TXT::LOG::KERNEL::PANIC", strata: { "0": "text/plain", "1": "archive.active", "2": "mood=action", "3": "origin=system://kernel/log", "4": "mutability=0.95" } }, expression: "pulse-burst::erratic" },
+        { id: "mire-unit-Ω01", genome: { core: "AUDIO::DRONE::STATIC::FIELD", strata: { "0": "audio/wav", "1": "archive.ambient", "2": "mood=calm", "3": "origin=sensor://field-recorder/b-2", "4": "mutability=0.3" } }, expression: "wave-form::concentric" },
+        { id: "mire-unit-Λ19", genome: { core: "MODEL::3D::FRACTAL::VOID", strata: { "0": "model/gltf", "1": "archive.generated", "2": "mood=code", "3": "origin=procgen://v4.2", "4": "mutability=0.6" } }, expression: "tesseract::folding" },
+    ];
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    class Unit {
+        constructor(seed, parentId = null) {
+            this.id = seed.id;
+            this.genome = seed.genome;
+            this.expression = seed.expression;
+            this.parentId = parentId;
+            this.isArchived = false;
+            this.initFromGenome(Math.random());
+        }
+
+        initFromGenome(newRenderSeed) {
+            this.renderSeed = newRenderSeed;
+            const strata = this.genome.strata;
+
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            
+            this.mutability = parseFloat(strata["4"].split('=')[1]);
+            
+            this.vx = (Math.random() - 0.5) * this.mutability * 0.5;
+            this.vy = (Math.random() - 0.5) * this.mutability * 0.5;
+            
+            this.radius = 10 + Math.random() * 20;
+            this.heat = 0.5 + Math.random() * 0.5; // Z1: Temporal Frequency
+            this.baseColor = moodColors[this.getMood()] || '#ffffff'; // Z2: Semantic Tone
+            
+            this.archivedRadius = 5;
+            this.archivedColor = moodColors['archive'];
+        }
+
+        getPhenotype() { return this.genome.strata["0"]; }
+        getState() { return this.genome.strata["1"]; }
+        getMood() { return this.genome.strata["2"].split('=')[1]; }
+        getOrigin() { return this.genome.strata["3"].split('=')[1]; }
+
+        reExpress() {
+            this.isArchived = false;
+            this.initFromGenome(Math.random());
+            this.heat = 1.0;
+        }
+
+        archive() {
+            this.isArchived = true;
+            this.heat = 0;
+            this.vx = 0;
+            this.vy = 0;
+        }
+
+        update() {
+            if (this.isArchived) return;
+            this.x += this.vx + (Math.random() - 0.5) * this.mutability * 0.2;
+            this.y += this.vy + (Math.random() - 0.5) * this.mutability * 0.2;
+            this.heat *= 0.995;
+
+            if (this.x > canvas.width + this.radius) this.x = -this.radius;
+            if (this.x < -this.radius) this.x = canvas.width + this.radius;
+            if (this.y > canvas.height + this.radius) this.y = -this.radius;
+            if (this.y < -this.radius) this.y = canvas.height + this.radius;
+        }
+
+        draw(ctx) {
+            const r = this.isArchived ? this.archivedRadius : this.radius;
+            const color = this.isArchived ? this.archivedColor : this.baseColor;
+            
+            // Z1: Heat is expressed as a glow
+            const glowIntensity = this.isArchived ? 0 : this.heat * r * 1.5;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = glowIntensity;
+            
+            // Main body
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Bright core
+            ctx.shadowBlur = 0; // Reset shadow for core
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, r * 0.3, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.fill();
+
+            if (this === selectedUnit && !this.isArchived) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, r + 5, 0, Math.PI * 2);
+                
+                // *** THIS IS THE CORRECTED LINE ***
+                ctx.strokeStyle = COLOR_ACCENT;
+
+                const pulse = (Math.sin(Date.now() * 0.005) + 1) / 2;
+                ctx.lineWidth = 2 + pulse * 2;
+                ctx.globalAlpha = 0.7 + pulse * 0.3;
+                ctx.stroke();
+                ctx.globalAlpha = 1.0; // Reset globalAlpha
+            }
+        }
+        
+        isClicked(x, y) {
+            const distance = Math.sqrt((x - this.x)**2 + (y - this.y)**2);
+            return distance < (this.isArchived ? this.archivedRadius : this.radius) + 5; // Add padding
+        }
+    }
+
+    function initializeMire() {
+        resizeCanvas();
+        units = [];
+        for (let i = 0; i < 30; i++) {
+            const seed = genomicSeeds[i % genomicSeeds.length];
+            const uniqueSeed = JSON.parse(JSON.stringify(seed));
+            uniqueSeed.id = `${seed.id}-${i}`;
+            units.push(new Unit(uniqueSeed));
+        }
+        animate();
+    }
+
+    function animate() {
+        // "Sediment" or "weathering" effect
+        ctx.fillStyle = 'rgba(2, 4, 10, 0.08)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        units.forEach(unit => {
+            unit.update();
+            unit.draw(ctx);
+        });
+
+        animationFrameId = requestAnimationFrame(animate);
+    }
+    
+    function updateInspector(unit) {
+        inspector.classList.add('visible');
+        document.getElementById('unit-id').textContent = unit.id;
+        document.getElementById('unit-core').textContent = unit.genome.core;
+        document.getElementById('strata-expression').textContent = unit.expression;
+        document.getElementById('strata-state').textContent = unit.getState();
+        document.getElementById('strata-mood').textContent = unit.getMood();
+        
+        const originEl = document.getElementById('strata-origin');
+        const origin = unit.getOrigin();
+        if (origin && origin.startsWith('http')) {
+            originEl.href = origin;
+            originEl.textContent = 'web_origin';
+            originEl.target = '_blank';
+        } else {
+            originEl.href = '#';
+            originEl.textContent = origin ? origin.split('/').pop() : 'unknown';
+            originEl.target = '';
+        }
+
+        document.getElementById('strata-mutability').textContent = unit.mutability.toFixed(2);
+    }
+
+    function hideInspector() {
+        inspector.classList.remove('visible');
+        selectedUnit = null;
+    }
+    
+    function fuseUnits(unit1, unit2) {
+        const newId = `mire-fuse-${unit1.id.split('-').pop()}+${unit2.id.split('-').pop()}`;
+        const newCore = `${unit1.genome.core.split('::')[0]}+${unit2.genome.core.split('::')[0]}::FUSION::COMPOSITE`;
+        const newMutability = (unit1.mutability + unit2.mutability) / 2;
+        
+        const newSeed = {
+            id: newId,
+            genome: {
+                core: newCore,
+                strata: {
+                    "0": "fusion/composite",
+                    "1": "archive.volatile",
+                    "2": `mood=composite`,
+                    "3": `origin=fusion(${unit1.id})`,
+                    "4": `mutability=${newMutability.toFixed(2)}`
+                }
+            },
+            expression: "composite::emergent",
+        };
+        
+        const newUnit = new Unit(newSeed, unit1.id);
+        newUnit.x = (unit1.x + unit2.x) / 2;
+        newUnit.y = (unit1.y + unit2.y) / 2;
+        newUnit.heat = 2.0;
+
+        units = units.filter(u => u.id !== unit1.id && u.id !== unit2.id);
+        units.push(newUnit);
+        
+        selectedUnit = newUnit;
+        updateInspector(newUnit);
+    }
+
+    // --- Event Listeners ---
+    
+    window.addEventListener('resize', resizeCanvas);
+    
+    document.addEventListener('mousemove', (e) => {
+        cursorGlow.style.transform = `translate(${e.clientX - 25}px, ${e.clientY - 25}px)`;
+    });
+
+    introOverlay.addEventListener('click', () => {
+        introOverlay.style.opacity = '0';
+        setTimeout(() => introOverlay.style.display = 'none', 1000);
+    }, { once: true });
+
+    canvas.addEventListener('click', (e) => {
+        let clickedOnUnit = false;
+        for (let i = units.length - 1; i >= 0; i--) {
+            const unit = units[i];
+            if (unit.isClicked(e.clientX, e.clientY)) {
+                if (fuseInitiator && fuseInitiator !== unit) {
+                    fuseUnits(fuseInitiator, unit);
+                    fuseInitiator = null;
+                    fuseModeIndicator.style.display = 'none';
+                } else {
+                    selectedUnit = unit;
+                    unit.heat = Math.min(1.0, unit.heat + 0.5);
+                    updateInspector(unit);
+                    fuseInitiator = null; 
+                    fuseModeIndicator.style.display = 'none';
+                }
+                clickedOnUnit = true;
+                break;
+            }
+        }
+        if (!clickedOnUnit) {
+            hideInspector();
+            fuseInitiator = null;
+            fuseModeIndicator.style.display = 'none';
+        }
+    });
+
+    document.getElementById('reexpress-btn').addEventListener('click', () => {
+        if (selectedUnit) selectedUnit.reExpress();
+    });
+
+    document.getElementById('archive-btn').addEventListener('click', () => {
+        if (selectedUnit) {
+            selectedUnit.archive();
+            hideInspector();
+        }
+    });
+
+    document.getElementById('fuse-btn').addEventListener('click', () => {
+        if (selectedUnit) {
+            fuseInitiator = selectedUnit;
+            fuseModeIndicator.style.display = 'block';
+            hideInspector();
+        }
+    });
+
+    // --- Start the engine ---
+    initializeMire();
+
+});
+</script>
+</body>
+</html>

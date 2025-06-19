@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codex Scroll - Resonant Wave Modeler</title>
+    <style>
+        :root {
+            --bg-color: #2a2a2e;
+            --text-color: #e8e8e8;
+            --text-muted: #b0b0b0;
+            --modal-bg: #333337;
+            --modal-border: #4a4a4f;
+            --base-codon-height: 10px; 
+            --codon-max-width: 600px; /* Wider max for more dramatic effect */
+
+            /* Color-coding palette */
+            --color-text: #d4c9b5;
+            --color-image: #5c85a1;
+            --color-link: #b0936a;
+            --color-quote: #999999;
+            --color-reference: #788a7c;
+            --color-video: #b19cd9;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            overflow: hidden;
+            background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23343438" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+
+        #codex-viewport {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            overflow-y: scroll; overflow-x: hidden;
+        }
+        #codex-container {
+            display: flex; justify-content: center; padding: 30vh 0;
+        }
+        #genome-strand {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 5px; width: 100%;
+        }
+
+        .codon {
+            position: relative; max-width: var(--codon-max-width);
+            border-radius: 16px; cursor: pointer; overflow: hidden; 
+            will-change: min-height, width, transform;
+            background-color: #333337;
+            box-shadow: inset 5px 5px 10px rgba(0,0,0,0.4), inset -5px -5px 10px rgba(255,255,255,0.05);
+            filter: url(#chromatic-aberration); 
+        }
+        .codon::before {
+            content: ''; position: absolute; top: 0; left: 0;
+            width: 12px; height: 100%; background-color: var(--codon-color);
+            box-shadow: inset 2px 0 4px rgba(0,0,0,0.5);
+            filter: saturate(var(--saturation, 1)); 
+            transition: filter 0.3s;
+        }
+        
+        .type-text { --codon-color: var(--color-text); }
+        .type-image { --codon-color: var(--color-image); }
+        .type-link { --codon-color: var(--color-link); }
+        .type-quote { --codon-color: var(--color-quote); }
+        .type-reference { --codon-color: var(--color-reference); }
+        .type-video { --codon-color: var(--color-video); }
+
+        .codon-content {
+            padding: 20px 25px 20px 35px; opacity: 0; transform: scale(0.9);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            pointer-events: none;
+        }
+        .codon-content.visible { opacity: 1; transform: scale(1); }
+        .codon-title {
+            font-weight: 600; font-size: 1.2rem; margin-bottom: 8px;
+            color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .codon-preview-text { font-size: 1rem; color: var(--text-color); max-height: 200px; overflow: hidden; }
+
+        #scroll-sentinel { height: 100px; width: 100%; }
+
+        /* --- CONTROLS --- */
+        #controls {
+            position: fixed; top: 20px; left: 20px;
+            background: rgba(26, 26, 30, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 20px; border-radius: 8px;
+            border: 1px solid #4a4a4f; z-index: 1000;
+            font-family: monospace;
+        }
+        .control-unit {
+            display: grid; grid-template-columns: 120px 150px 50px;
+            align-items: center; gap: 10px; margin-bottom: 10px;
+        }
+        .control-unit label { font-size: 0.9rem; }
+        .control-unit input[type="range"] { width: 100%; }
+        .control-unit .value-readout { font-size: 0.9rem; color: var(--text-muted); }
+
+        /* --- MODAL --- */
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; padding: 20px; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; z-index: 998; }
+        #modal-overlay.visible { opacity: 1; visibility: visible; }
+        #modal-content { background-color: var(--modal-bg); padding: 2rem; border-radius: 8px; border: 1px solid var(--modal-border); width: 100%; max-width: 800px; max-height: 90vh; overflow-y: auto; position: relative; transform: scale(0.95); transition: transform 0.3s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #modal-overlay.visible #modal-content { transform: scale(1); }
+        .modal-close { position: absolute; top: 1rem; right: 1.25rem; font-size: 1.8rem; line-height: 1; color: var(--text-muted); cursor: pointer; transition: color 0.2s ease; }
+        .modal-close:hover { color: var(--text-color); }
+        #modal-body h2 { margin-bottom: 1rem; font-weight: 500; color: var(--text-color); font-size: 1.8rem; }
+        #modal-body iframe { width: 100%; aspect-ratio: 16/9; border: none; border-radius: 4px; }
+        #modal-body img { max-width: 100%; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div class="control-unit">
+            <label for="amplitude-slider">Amplitude</label>
+            <input type="range" id="amplitude-slider" min="50" max="400" value="180">
+            <span class="value-readout" id="amp-val">180</span>
+        </div>
+        <div class="control-unit">
+            <label for="wavelength-slider">Wavelength</label>
+            <input type="range" id="wavelength-slider" min="100" max="800" value="350">
+             <span class="value-readout" id="wave-val">350</span>
+        </div>
+         <div class="control-unit">
+            <label for="tension-slider">Tension</label>
+            <input type="range" id="tension-slider" min="0.01" max="0.1" value="0.05" step="0.001">
+            <span class="value-readout" id="tension-val">0.050</span>
+        </div>
+        <div class="control-unit">
+            <label for="viscosity-slider">Viscosity</label>
+            <input type="range" id="viscosity-slider" min="0.7" max="0.95" value="0.8" step="0.01">
+            <span class="value-readout" id="visc-val">0.80</span>
+        </div>
+        <hr style="border-color: #4a4a4f; margin: 15px 0;">
+        <div class="control-unit">
+            <label for="compression-slider">Compression</label>
+            <input type="range" id="compression-slider" min="40" max="90" value="60">
+            <span class="value-readout" id="comp-val">60%</span>
+        </div>
+        <div class="control-unit">
+            <label for="saturation-slider">Saturation</label>
+            <input type="range" id="saturation-slider" min="0" max="2" value="1" step="0.01">
+            <span class="value-readout" id="sat-val">1.00</span>
+        </div>
+        <div class="control-unit">
+            <label for="aberration-slider">Aberration</label>
+            <input type="range" id="aberration-slider" min="0" max="5" value="0" step="0.1">
+            <span class="value-readout" id="ab-val">0.0</span>
+        </div>
+    </div>
+
+    <div id="codex-viewport">
+        <div id="codex-container">
+            <main id="genome-strand"></main>
+        </div>
+        <div id="scroll-sentinel"></div>
+    </div>
+
+    <div id="modal-overlay">
+        <div id="modal-content">
+            <span class="modal-close">×</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <svg width="0" height="0">
+        <filter id="chromatic-aberration">
+            <feTurbulence type="fractalNoise" baseFrequency="0.01 0.2" numOctaves="3" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="B" result="r-b"/>
+        </filter>
+    </svg>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const codexData = [ { type: 'text', title: 'Project Inception: The Resonant Wave', content: 'The core idea is to create a more organic browsing experience. Instead of discrete states, the interface exists as a continuous field of potential, which magnifies and reveals itself in response to the user\'s attention.' }, { type: 'quote', title: 'On Fluid Interfaces', content: 'An interface should feel like an extension of one\'s own intention, a responsive medium rather than a rigid tool.', source: 'Adapted from J. C. R. Licklider' }, { type: 'image', title: 'Inspiration: Water Ripples', content: 'https://images.unsplash.com/photo-1506352451747-3a1b1a9e856c?q=80&w=800' }, { type: 'video', title: 'Inspiration: Ferrofluid', content: 'https://www.youtube.com/embed/573G_3B72z0' }, { type: 'link', title: 'Inspiration: Spring Physics', content: 'https://en.wikipedia.org/wiki/Harmonic_oscillator' }, { type: 'text', title: 'On Organic Interaction', content: 'The design must be unobtrusive. Information reveals itself through interaction, not constant visual noise. The aesthetic prioritizes calm and focus.' }, { type: 'reference', title: 'Physics-Based Animation', content: 'A foundational resource for creating organic motion.', source: 'Nature of Code' }, ...Array(250).fill(0).flatMap((_,i) => [ { type: 'text', title: `Procedural Entry #${i+1}`, content: 'This is a procedurally generated text entry to demonstrate the infinite scroll capability.' }, { type: 'image', title: `Procedural Image #${i+1}`, content: `https://picsum.photos/800/600?random=${i+1}` }, { type: 'video', title: `Procedural Video #${i+1}`, content: 'https://www.youtube.com/embed/dQw4w9WgXcQ' }, ]) ];
+
+            const viewport = document.getElementById('codex-viewport');
+            const strand = document.getElementById('genome-strand');
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalBody = document.getElementById('modal-body');
+            const modalClose = document.querySelector('.modal-close');
+            const sentinel = document.getElementById('scroll-sentinel');
+            
+            const controls = {
+                amp: document.getElementById('amplitude-slider'),
+                wave: document.getElementById('wavelength-slider'),
+                tension: document.getElementById('tension-slider'),
+                visc: document.getElementById('viscosity-slider'),
+                comp: document.getElementById('compression-slider'),
+                sat: document.getElementById('saturation-slider'),
+                ab: document.getElementById('aberration-slider'),
+            };
+            const readouts = {
+                amp: document.getElementById('amp-val'), wave: document.getElementById('wave-val'),
+                tension: document.getElementById('tension-val'), visc: document.getElementById('visc-val'),
+                comp: document.getElementById('comp-val'), sat: document.getElementById('sat-val'),
+                ab: document.getElementById('ab-val'),
+            };
+            
+            const itemsPerLoad = 15;
+            let currentDataIndex = 0;
+            let physicsCodons = [];
+            let mouseX = window.innerWidth / 2;
+            let mouseY = -1000;
+            const BASE_HEIGHT = 10;
+            
+            const aberrationFilter = document.querySelector('#chromatic-aberration feDisplacementMap');
+
+            function loadMoreItems() {
+                const fragment = document.createDocumentFragment();
+                const itemsToLoad = codexData.slice(currentDataIndex, currentDataIndex + itemsPerLoad);
+                
+                itemsToLoad.forEach((item, index) => {
+                    const codon = document.createElement('div');
+                    codon.className = `codon type-${item.type}`;
+                    codon.dataset.index = currentDataIndex + index;
+                    const content = document.createElement('div');
+                    content.className = 'codon-content';
+                    
+                    let previewHTML = `<div class="codon-title">${item.title}</div>`;
+                    if(item.type === 'text' || item.type === 'quote' || item.type === 'reference') {
+                         previewHTML += `<div class="codon-preview-text">${item.content.substring(0, 150)}...</div>`;
+                    } else {
+                         previewHTML += `<div class="codon-preview-text">[${item.type.toUpperCase()}]</div>`;
+                    }
+                    content.innerHTML = previewHTML;
+                    
+                    codon.appendChild(content);
+                    fragment.appendChild(codon);
+
+                    physicsCodons.push({
+                        element: codon, contentElement: content,
+                        height: BASE_HEIGHT, vy: 0,
+                        width: parseFloat(controls.comp.value), vw: 0,
+                        x_offset: 0, vx_offset: 0
+                    });
+                });
+                strand.appendChild(fragment);
+                currentDataIndex += itemsToLoad.length;
+            }
+
+            function showModal(item) {
+                let contentHTML = `<h2>${item.title}</h2>`;
+                switch (item.type) {
+                    case 'image': contentHTML += `<img src="${item.content}" alt="${item.title}">`; break;
+                    case 'video': contentHTML += `<div style="aspect-ratio: 16/9;"><iframe src="${item.content}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`; break;
+                    case 'link': contentHTML += `<p><a href="${item.content}" target="_blank" rel="noopener noreferrer">${item.content}</a></p>`; break;
+                    case 'quote': contentHTML += `<blockquote><p>${item.content}</p><cite>— ${item.source}</cite></blockquote>`; break;
+                    default: contentHTML += `<p>${item.content}</p>`; break;
+                }
+                modalBody.innerHTML = contentHTML;
+                modalOverlay.classList.add('visible');
+            }
+            function hideModal() { 
+                modalOverlay.classList.remove('visible');
+                modalBody.innerHTML = ''; // Clear content to stop videos
+            }
+            
+            function updatePhysics() {
+                const viewportCenterX = viewport.clientWidth / 2;
+                const waveAmp = parseFloat(controls.amp.value);
+                const waveSpread = parseFloat(controls.wave.value);
+                const swayFactor = 0.5; // This could be a slider too!
+                const SPRING = parseFloat(controls.tension.value);
+                const DAMPING = parseFloat(controls.visc.value);
+                const baseWidth = parseFloat(controls.comp.value);
+
+                for (const codon of physicsCodons) {
+                    const el = codon.element;
+                    const rect = el.getBoundingClientRect();
+                    
+                    let targetHeight = BASE_HEIGHT;
+                    let targetWidth = baseWidth;
+                    let targetSway = 0;
+
+                    if (rect.bottom >= 0 && rect.top <= viewport.clientHeight) {
+                        const elCenterY = rect.top + rect.height / 2;
+                        const distFromMouse = Math.abs(mouseY - elCenterY);
+                        // Using tanh for a smoother S-curve falloff
+                        const influence = (1 - Math.tanh( (distFromMouse / waveSpread) * 2 - 1 )) / 2;
+
+                        targetHeight = BASE_HEIGHT + waveAmp * influence;
+                        targetWidth = baseWidth + (100 - baseWidth) * influence;
+                        targetSway = (mouseX - viewportCenterX) * swayFactor * influence;
+                    }
+                    
+                    codon.vy += ((targetHeight - codon.height) * SPRING);
+                    codon.vw += ((targetWidth - codon.width) * SPRING);
+                    codon.vx_offset += ((targetSway - codon.x_offset) * SPRING);
+                    
+                    codon.vy *= DAMPING; codon.vw *= DAMPING; codon.vx_offset *= DAMPING;
+                    codon.height += codon.vy; codon.width += codon.vw; codon.x_offset += codon.vx_offset;
+                    
+                    el.style.minHeight = `${codon.height}px`;
+                    el.style.width = `${codon.width}%`;
+                    el.style.transform = `translateX(${codon.x_offset}px)`;
+                    el.style.setProperty('--saturation', controls.sat.value);
+                    
+                    if (codon.height > 60) codon.contentElement.classList.add('visible');
+                    else codon.contentElement.classList.remove('visible');
+                }
+                
+                aberrationFilter.setAttribute('scale', controls.ab.value);
+                requestAnimationFrame(updatePhysics);
+            }
+
+            // --- EVENT LISTENERS ---
+            strand.addEventListener('click', (e) => {
+                const targetCodonEl = e.target.closest('.codon');
+                if (!targetCodonEl) return;
+                const item = codexData[targetCodonEl.dataset.index];
+                if (item) showModal(item);
+            });
+            viewport.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+            viewport.addEventListener('mouseleave', () => { mouseY = -1000; });
+            
+            Object.entries(controls).forEach(([key, slider]) => {
+                slider.addEventListener('input', () => {
+                    const readout = readouts[key];
+                    if (key === 'comp') readout.textContent = `${slider.value}%`;
+                    else if (key === 'sat' || key === 'ab' || key === 'visc') readout.textContent = parseFloat(slider.value).toFixed(2);
+                    else if (key === 'tension') readout.textContent = parseFloat(slider.value).toFixed(3);
+                    else readout.textContent = slider.value;
+                });
+            });
+
+            modalClose.addEventListener('click', hideModal);
+            modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) hideModal(); });
+            
+            const observer = new IntersectionObserver((entries) => { 
+                if (entries[0].isIntersecting && currentDataIndex < codexData.length) {
+                    loadMoreItems();
+                }
+            }, { root: viewport, rootMargin: "1000px" });
+            observer.observe(sentinel);
+
+            // --- INITIALIZATION ---
+            loadMoreItems();
+            updatePhysics();
+        });
+    </script>
+</body>
+</html>

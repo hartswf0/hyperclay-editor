@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬🖼️ PIXON: Genetic Ontology Engine</title>
+    <style>
+        :root {
+            --background-color: #0a0a0c;
+            --text-color: #c0c0c0;
+            --highlight-color: #00ffcc;
+            --inspector-bg: rgba(20, 20, 25, 0.85);
+            --inspector-border: #333;
+            --inspector-header: #aaa;
+            --inspector-key: #88aaff;
+            --inspector-string: #aaffaa;
+            --inspector-number: #ffaa88;
+            --inspector-boolean: #ff88cc;
+            --tether-color: rgba(255, 255, 255, 0.15);
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: 'SF Mono', 'Menlo', 'Consolas', 'Courier New', monospace;
+            cursor: crosshair;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 25px;
+            pointer-events: auto;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin: 0;
+            color: var(--text-color);
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        .header h1 span {
+            color: var(--highlight-color);
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 14px;
+            margin: 5px 0 0;
+            color: #888;
+            max-width: 500px;
+        }
+
+        #inspector {
+            position: absolute;
+            display: none;
+            background-color: var(--inspector-bg);
+            border: 1px solid var(--inspector-border);
+            border-radius: 4px;
+            padding: 15px;
+            font-size: 12px;
+            line-height: 1.6;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+            max-width: 400px;
+            z-index: 10;
+        }
+
+        #inspector.pinned {
+            border: 1px solid var(--highlight-color);
+        }
+
+        #inspector .header-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--inspector-border);
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        #inspector .id {
+            color: var(--inspector-header);
+            font-weight: bold;
+        }
+
+        #inspector .phenotype-style {
+            font-style: italic;
+            color: #999;
+        }
+
+        #inspector .code {
+            color: var(--highlight-color);
+            word-break: break-all;
+            background-color: rgba(0, 255, 204, 0.05);
+            padding: 4px 6px;
+            border-radius: 3px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        #inspector pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        #inspector .json-key { color: var(--inspector-key); }
+        #inspector .json-string { color: var(--inspector-string); }
+        #inspector .json-number { color: var(--inspector-number); }
+        #inspector .json-boolean { color: var(--inspector-boolean); }
+
+        #mutate-button {
+            margin-top: 15px;
+            background-color: transparent;
+            border: 1px solid var(--highlight-color);
+            color: var(--highlight-color);
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            border-radius: 3px;
+        }
+
+        #mutate-button:hover {
+            background-color: var(--highlight-color);
+            color: var(--background-color);
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            right: 25px;
+            font-size: 12px;
+            color: #666;
+            text-align: right;
+        }
+        .footer b {
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="pixon-canvas"></canvas>
+
+    <div class="overlay">
+        <div class="header">
+            <h1>🧬🖼️ <span>PIXON:</span> Genetic Ontology Engine</h1>
+            <p>A visual, living, emergent data garden—where you see what your information wants to become.</p>
+        </div>
+
+        <div id="inspector">
+            <div class="header-line">
+                <span id="inspector-id" class="id"></span>
+                <span id="inspector-phenotype" class="phenotype-style"></span>
+            </div>
+            <span id="inspector-code" class="code"></span>
+            <pre id="inspector-traits"></pre>
+            <button id="mutate-button">Mutate 🧬</button>
+        </div>
+
+        <div class="footer">
+            <p><b>Hover</b> to inspect. <b>Click</b> to pin & tether. <br/> <b>Mutate</b> to evolve phenotype.</p>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const canvas = document.getElementById('pixon-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const inspector = document.getElementById('inspector');
+        const inspectorId = document.getElementById('inspector-id');
+        const inspectorCode = document.getElementById('inspector-code');
+        const inspectorPhenotype = document.getElementById('inspector-phenotype');
+        const inspectorTraits = document.getElementById('inspector-traits');
+        const mutateButton = document.getElementById('mutate-button');
+
+        let genomes = [];
+        let hoveredGenome = null;
+        let pinnedGenome = null;
+
+        let mouse = { x: 0, y: 0 };
+        
+        const possibleTraits = {
+            type: ['image', 'text', 'audio', 'graph'],
+            behavior: ['static', 'loop', 'interactive'],
+            relation: ['feed', 'link', 'isolate'],
+            color: ['green', 'blue', 'red', 'purple', 'orange', 'cyan'],
+            phenotype_style: ['grid-warp', 'point-cloud', 'morph-blob', 'lineage-tree']
+        };
+
+        function generateGenomeCode(traits) {
+            const typeMap = { 'image': 'IMG', 'text': 'TXT', 'audio': 'AUD', 'graph': 'GPH' };
+            const behaviorMap = { 'static': 'STATIC', 'loop': 'LOOP', 'interactive': 'INTER' };
+            const relationMap = { 'feed': 'FEED', 'link': 'LINK', 'isolate': 'ISO' };
+            
+            const p1 = (Math.random().toString(36).substring(2, 7)).toUpperCase();
+            const p2 = typeMap[traits.type] || 'DATA';
+            const p3 = behaviorMap[traits.behavior] || 'BHV';
+            const p4 = relationMap[traits.relation] || 'REL';
+            const p5 = `TAG[${traits.color}]`;
+
+            return `${p1}::${p2}::${p3}::${p4}::${p5}`;
+        }
+
+        function createGenome() {
+            const traits = {
+                type: 'image',
+                behavior: Math.random() > 0.4 ? 'loop' : 'static',
+                relation: 'feed',
+                color: possibleTraits.color[Math.floor(Math.random() * possibleTraits.color.length)],
+                mutation_rate: Math.random() * 0.1 + 0.01
+            };
+            
+            const genome = {
+                id: `unit-${(Math.random().toString(36).substring(2, 8))}`,
+                traits: traits,
+                phenotype_style: 'grid-warp',
+                expression_seed: Math.floor(Math.random() * 10000000),
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4,
+                size: Math.random() * 40 + 60,
+                renderSize: 0, // Start at 0 for grow-in effect
+            };
+            genome.code = generateGenomeCode(genome.traits);
+            return genome;
+        }
+
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            genomes = Array.from({ length: 15 }, createGenome);
+            requestAnimationFrame(animate);
+        }
+
+        function renderPhenotype(genome, time) {
+            const { x, y, renderSize, traits, expression_seed, phenotype_style } = genome;
+            if (renderSize < 1) return; // Don't render if too small
+            
+            const { color, mutation_rate, behavior } = traits;
+            
+            const timeFactor = (behavior === 'loop') ? time * 0.0005 : 0;
+            const jitter = renderSize * mutation_rate * 0.5;
+            
+            ctx.save();
+            ctx.translate(x, y);
+
+            if (phenotype_style === 'grid-warp') {
+                const gridSize = 10;
+                const pointSize = 1.5;
+                const spacing = renderSize / gridSize;
+
+                for (let i = 0; i < gridSize; i++) {
+                    for (let j = 0; j < gridSize; j++) {
+                        const px = (i - gridSize / 2) * spacing;
+                        const py = (j - gridSize / 2) * spacing;
+
+                        const seed = expression_seed + i * 50 + j * 500;
+                        const warpFactor = Math.sin(seed + timeFactor * 2) * Math.cos(seed * 0.5 + timeFactor);
+                        
+                        const offsetX = Math.sin(py * 0.1 + timeFactor + seed) * warpFactor * spacing * 1.5;
+                        const offsetY = Math.cos(px * 0.1 + timeFactor + seed) * warpFactor * spacing * 1.5;
+                        
+                        const finalX = px + offsetX + (Math.random() - 0.5) * jitter;
+                        const finalY = py + offsetY + (Math.random() - 0.5) * jitter;
+
+                        const alpha = 0.5 + Math.sin(timeFactor * 3 + i * 0.5) * 0.4;
+                        const hueMap = {'green': 120, 'blue': 240, 'red': 0, 'purple': 280, 'orange': 30, 'cyan': 180};
+                        const hue = hueMap[color] || 0;
+                        
+                        const lightness = 50 + warpFactor * 20;
+
+                        ctx.fillStyle = `hsla(${hue}, 80%, ${lightness}%, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(finalX, finalY, pointSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+            ctx.restore();
+        }
+        
+        function updatePositions() {
+            genomes.forEach(g => {
+                g.x += g.vx;
+                g.y += g.vy;
+
+                if (g.x < -g.size) g.x = window.innerWidth + g.size;
+                if (g.x > window.innerWidth + g.size) g.x = -g.size;
+                if (g.y < -g.size) g.y = window.innerHeight + g.size;
+                if (g.y > window.innerHeight + g.size) g.y = -g.size;
+
+                // Smoothly animate render size for a nice effect on creation/mutation
+                const targetSize = g.size;
+                g.renderSize += (targetSize - g.renderSize) * 0.08;
+            });
+        }
+        
+        function drawTethers() {
+            if (!pinnedGenome) return;
+            
+            ctx.save();
+            // *** CORRECTED LINE ***
+            // Read CSS variable value correctly for use in canvas
+            const tetherColor = getComputedStyle(document.documentElement).getPropertyValue('--tether-color').trim();
+            ctx.strokeStyle = tetherColor;
+            ctx.lineWidth = 1;
+
+            genomes.forEach(g => {
+                if (g.id !== pinnedGenome.id && g.traits.color === pinnedGenome.traits.color) {
+                    ctx.beginPath();
+                    ctx.setLineDash([4, 4]);
+                    const jitterX = (Math.random() - 0.5) * 10;
+                    const jitterY = (Math.random() - 0.5) * 10;
+                    ctx.moveTo(pinnedGenome.x, pinnedGenome.y);
+                    ctx.quadraticCurveTo(
+                        (pinnedGenome.x + g.x) / 2 + jitterX,
+                        (pinnedGenome.y + g.y) / 2 + jitterY,
+                        g.x, g.y
+                    );
+                    ctx.stroke();
+                }
+            });
+            ctx.restore();
+        }
+
+        function animate(time) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            updatePositions();
+            
+            drawTethers();
+
+            genomes.forEach(genome => {
+                renderPhenotype(genome, time);
+            });
+
+            checkHover();
+
+            requestAnimationFrame(animate);
+        }
+
+        function checkHover() {
+            let currentlyHovered = null;
+            // Check in reverse order so top-most is selected
+            for (let i = genomes.length - 1; i >= 0; i--) {
+                const g = genomes[i];
+                const dist = Math.sqrt(Math.pow(mouse.x - g.x, 2) + Math.pow(mouse.y - g.y, 2));
+                if (dist < g.renderSize / 1.5) {
+                    currentlyHovered = g;
+                    break;
+                }
+            }
+
+            if (currentlyHovered) {
+                canvas.style.cursor = 'pointer';
+                if (hoveredGenome?.id !== currentlyHovered.id) {
+                    hoveredGenome = currentlyHovered;
+                    if (!pinnedGenome) updateInspector(hoveredGenome);
+                }
+                if (!pinnedGenome) inspector.style.display = 'block';
+            } else {
+                canvas.style.cursor = 'crosshair';
+                hoveredGenome = null;
+                if (!pinnedGenome) {
+                    inspector.style.display = 'none';
+                }
+            }
+        }
+
+        function formatJson(json) {
+            if (json == null) return '';
+            let str = JSON.stringify(json, null, 2);
+            str = str.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+            return str.replace(
+                /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+                function (match) {
+                    let cls = 'json-number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'json-key';
+                        } else {
+                            cls = 'json-string';
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'json-boolean';
+                    }
+                    return '<span class="' + cls + '">' + match + '</span>';
+                }
+            );
+        }
+
+        function updateInspector(genome) {
+            if (!genome) {
+                inspector.style.display = 'none';
+                return;
+            }
+            inspectorId.textContent = `🧬 ${genome.id}`;
+            inspectorCode.textContent = genome.code;
+            inspectorPhenotype.textContent = genome.phenotype_style;
+            inspectorTraits.innerHTML = formatJson(genome.traits);
+            
+            let newX = mouse.x + 20;
+            let newY = mouse.y + 20;
+            if (newX + inspector.offsetWidth > window.innerWidth) {
+                newX = mouse.x - inspector.offsetWidth - 20;
+            }
+            if (newY + inspector.offsetHeight > window.innerHeight) {
+                newY = mouse.y - inspector.offsetHeight - 20;
+            }
+            inspector.style.left = `${newX}px`;
+            inspector.style.top = `${newY}px`;
+            inspector.style.display = 'block';
+        }
+
+        function mutateGenome(id) {
+            const genome = genomes.find(g => g.id === id);
+            if (!genome) return;
+
+            const traitToMutate = ['color', 'behavior', 'mutation_rate'][Math.floor(Math.random() * 3)];
+            
+            switch (traitToMutate) {
+                case 'color':
+                    const otherColors = possibleTraits.color.filter(c => c !== genome.traits.color);
+                    genome.traits.color = otherColors[Math.floor(Math.random() * otherColors.length)];
+                    break;
+                case 'behavior':
+                    genome.traits.behavior = (genome.traits.behavior === 'loop') ? 'static' : 'loop';
+                    break;
+                case 'mutation_rate':
+                    genome.traits.mutation_rate = Math.max(0.01, Math.min(0.2, genome.traits.mutation_rate + (Math.random() - 0.5) * 0.05));
+                    break;
+            }
+
+            genome.expression_seed = Math.floor(Math.random() * 10000000);
+            genome.code = generateGenomeCode(genome.traits);
+            // Reset render size to see mutation "pop"
+            genome.renderSize = 0;
+
+            if (hoveredGenome?.id === id || pinnedGenome?.id === id) {
+                updateInspector(genome);
+            }
+        }
+
+        // Event Listeners
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            if (hoveredGenome && !pinnedGenome) {
+                updateInspector(hoveredGenome);
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (hoveredGenome) {
+                if (pinnedGenome && pinnedGenome.id === hoveredGenome.id) {
+                    pinnedGenome = null;
+                    inspector.classList.remove('pinned');
+                    inspector.style.display = 'none';
+                } else {
+                    pinnedGenome = hoveredGenome;
+                    inspector.classList.add('pinned');
+                    updateInspector(pinnedGenome);
+                }
+            } else {
+                if (e.target.id !== 'mutate-button' && !inspector.contains(e.target)) {
+                    if (pinnedGenome) {
+                        pinnedGenome = null;
+                        inspector.classList.remove('pinned');
+                        inspector.style.display = 'none';
+                    }
+                }
+            }
+        });
+
+        mutateButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const targetGenome = pinnedGenome || hoveredGenome;
+            if (targetGenome) {
+                mutateGenome(targetGenome.id);
+            }
+        });
+
+        // Start the engine
+        init();
+    });
+    </script>
+</body>
+</html>

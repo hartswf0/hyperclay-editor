@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genome-Style Information Navigator</title>
+    <style>
+        /* --- General Setup & Theming --- */
+        :root {
+            --color-bg: #0d1117;
+            --color-strand-bg: #161b22;
+            --color-border: #30363d;
+            --color-text: #c9d1d9;
+            --color-text-dim: #8b949e;
+            --color-highlight: #f0a62d;
+
+            --type-text: #4a90e2; /* Blue */
+            --type-image: #50e3c2; /* Green */
+            --type-link: #f5a623; /* Yellow */
+            --type-code: #d0021b; /* Red */
+            --type-other: #9013fe; /* Purple */
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.9; }
+            50% { opacity: 1; }
+            100% { opacity: 0.9; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            overflow: hidden;
+        }
+
+        /* --- Main Layout & Header --- */
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        header {
+            padding: 15px 25px;
+            background-color: var(--color-strand-bg);
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+        
+        header h1 span {
+            font-weight: 200;
+            color: var(--color-text-dim);
+        }
+
+        .search-box {
+            position: relative;
+        }
+
+        #search-input {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--color-text);
+            font-size: 0.9em;
+            width: 300px;
+        }
+        #search-input:focus {
+            outline: none;
+            border-color: var(--color-highlight);
+        }
+
+        /* --- Genome Container & Strands --- */
+        #genome-container {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            flex-grow: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            background-image: radial-gradient(var(--color-text-dim) 0.5px, transparent 0.5px);
+            background-size: 15px 15px;
+            background-position: -7.5px -7.5px;
+        }
+
+        .strand {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 4px;
+            background-color: rgba(22, 27, 34, 0.8);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            height: 100%;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            width: 60px;
+            flex-shrink: 0;
+        }
+
+        .strand::-webkit-scrollbar { display: none; } /* Hide scrollbar for aesthetics */
+        .strand { -ms-overflow-style: none; scrollbar-width: none; }
+
+
+        /* --- Codons (Data Units) --- */
+        .codon {
+            width: 100%;
+            height: 15px;
+            flex-shrink: 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            animation: pulse 5s infinite ease-in-out;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+
+        .codon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px var(--color-highlight);
+            z-index: 5;
+        }
+
+        .codon.type-text { background-color: var(--type-text); }
+        .codon.type-image { background-color: var(--type-image); }
+        .codon.type-link { background-color: var(--type-link); }
+        .codon.type-code { background-color: var(--type-code); }
+        .codon.type-other { background-color: var(--type-other); }
+
+        .codon.dimmed {
+            opacity: 0.2;
+            transition: opacity 0.3s ease;
+        }
+        .codon.highlight {
+            box-shadow: 0 0 15px var(--color-highlight);
+            border: 2px solid var(--color-highlight);
+            transform: scale(1.05);
+        }
+        
+        /* --- Tooltip for Hover Preview --- */
+        #tooltip {
+            position: fixed;
+            background-color: #21262d;
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            pointer-events: none; /* Important! */
+            z-index: 1000;
+            max-width: 300px;
+            word-wrap: break-word;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            white-space: pre-wrap; /* Show newlines in text */
+        }
+        
+        /* --- Modal for Expanded View --- */
+        #modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            display: none; /* Hidden by default */
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        #modal-content {
+            background-color: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 25px;
+            max-width: 80%;
+            max-height: 80%;
+            width: 700px;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--color-text-dim);
+            font-size: 1.5em;
+            cursor: pointer;
+        }
+        #modal-close:hover { color: var(--color-text); }
+        
+        .modal-body { margin-top: 20px; }
+        .modal-body a { color: var(--type-link); }
+        .modal-body img { max-width: 100%; border-radius: 4px; }
+        .modal-body pre {
+            background-color: var(--color-strand-bg);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #d4d4d4; /* Common VS Code text color */
+        }
+
+        .modal-actions {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .modal-actions label { color: var(--color-text-dim); font-size: 0.9em; }
+
+        .modal-actions select, .modal-actions button {
+            background-color: var(--color-strand-bg);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .modal-actions button:hover { border-color: var(--color-highlight); }
+
+
+        /* --- Minimap --- */
+        #minimap-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(22, 27, 34, 0.9);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 10px;
+            z-index: 50;
+            max-width: 300px;
+            max-height: 200px;
+            overflow: hidden;
+        }
+
+        #minimap-header {
+            font-size: 0.8em;
+            color: var(--color-text-dim);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        #minimap {
+            display: flex;
+            gap: 3px;
+            align-items: flex-start;
+        }
+
+        .minimap-strand {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            width: 8px;
+        }
+
+        .minimap-codon {
+            width: 100%;
+            height: 2px;
+            flex-shrink: 0;
+            border-radius: 1px;
+        }
+        .minimap-codon.type-text { background-color: var(--type-text); }
+        .minimap-codon.type-image { background-color: var(--type-image); }
+        .minimap-codon.type-link { background-color: var(--type-link); }
+        .minimap-codon.type-code { background-color: var(--type-code); }
+        .minimap-codon.type-other { background-color: var(--type-other); }
+
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <header>
+            <h1>🧬 Genome Navigator <span>// A living archive</span></h1>
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search keywords...">
+            </div>
+        </header>
+
+        <div id="genome-container">
+            <!-- Strands and codons will be dynamically generated here -->
+        </div>
+    </div>
+    
+    <!-- Hover Tooltip -->
+    <div id="tooltip"></div>
+
+    <!-- Modal for Expanded View -->
+    <div id="modal-backdrop">
+        <div id="modal-content">
+            <button id="modal-close">×</button>
+            <div id="modal-body" class="modal-body"></div>
+            <div class="modal-actions">
+                <label for="mutate-type">Mutate Type:</label>
+                <select id="mutate-type">
+                    <option value="text">Text</option>
+                    <option value="image">Image</option>
+                    <option value="link">Link</option>
+                    <option value="code">Code</option>
+                    <option value="other">Other</option>
+                </select>
+                <button id="mutate-button">Apply Mutation</button>
+                <button id="recombine-button">Create New Strand</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minimap -->
+    <div id="minimap-container">
+        <div id="minimap-header">Genome Overview</div>
+        <div id="minimap">
+            <!-- Minimap will be dynamically generated here -->
+        </div>
+    </div>
+
+    <script>
+        // --- DATA MODEL ---
+        // Easily add or modify your data here.
+        // `id` should be unique for each codon.
+        // `keywords` are used for searching.
+        let genomeData = [
+            {
+                id: 'strand-1',
+                codons: [
+                    { id: 'c1', type: 'text', content: 'Project Alpha: Initial thoughts on a new visual interface.', keywords: ['project alpha', 'ui', 'concept'] },
+                    { id: 'c2', type: 'link', content: 'https://www.nature.com/scitable/topicpage/dna-sequencing-technologies-690/', keywords: ['dna', 'sequencing', 'research', 'link'] },
+                    { id: 'c3', type: 'image', content: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?ixlib=rb-4.0.3&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=400', keywords: ['microscope', 'lab', 'science', 'image'] },
+                    { id: 'c4', type: 'text', content: 'A key requirement is to make the data feel alive, not static. Ambient animations and responsive feedback are crucial.', keywords: ['animation', 'feedback', 'requirement'] },
+                    { id: 'c5', type: 'code', content: `function animate() {\n  requestAnimationFrame(animate);\n  // ... rendering logic ...\n}`, keywords: ['code', 'javascript', 'animation', 'function'] },
+                ]
+            },
+            {
+                id: 'strand-2',
+                codons: [
+                    { id: 'c6', type: 'text', content: 'Meeting Notes - 2023-10-27\n- Discussed navigation heuristics.\n- Panning and zooming are top priorities.', keywords: ['meeting', 'notes', 'navigation'] },
+                    { id: 'c7', type: 'other', content: 'Audio file: meeting_recap.mp3', keywords: ['audio', 'recap', 'media'] },
+                    { id: 'c8', type: 'link', content: 'https://p5js.org/examples/', keywords: ['p5js', 'creative coding', 'inspiration', 'link'] },
+                    { id: 'c9', type: 'text', content: 'The color scheme should be distinct for each data type to allow for at-a-glance identification.', keywords: ['color', 'ux', 'design'] },
+                ]
+            },
+            {
+                id: 'strand-3',
+                codons: [
+                    { id: 'c10', type: 'code', content: `/* CSS for a subtle glow */\n.glow {\n  box-shadow: 0 0 15px rgba(74, 144, 226, 0.5);\n}`, keywords: ['css', 'style', 'glow', 'code'] },
+                    { id: 'c11', type: 'image', content: 'https://images.unsplash.com/photo-1581093450021-4a7360e9a6b5?ixlib=rb-4.0.3&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=400', keywords: ['robotics', 'lab', 'tech', 'image'] },
+                    { id: 'c12', type: 'text', content: 'Remember to check browser compatibility for flexbox gap and CSS variables.', keywords: ['compatibility', 'css', 'testing'] },
+                    { id: 'c13', type: 'other', content: 'Reference ID: #B47-AX88-Z19', keywords: ['reference', 'id'] },
+                ]
+            }
+        ];
+
+        // --- DOM ELEMENT REFERENCES ---
+        const genomeContainer = document.getElementById('genome-container');
+        const tooltip = document.getElementById('tooltip');
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const modalContent = document.getElementById('modal-content');
+        const modalBody = document.getElementById('modal-body');
+        const modalClose = document.getElementById('modal-close');
+        const mutateTypeSelect = document.getElementById('mutate-type');
+        const mutateButton = document.getElementById('mutate-button');
+        const recombineButton = document.getElementById('recombine-button');
+        const searchInput = document.getElementById('search-input');
+        const minimap = document.getElementById('minimap');
+
+        // --- CORE FUNCTIONS ---
+
+        function renderGenome() {
+            genomeContainer.innerHTML = ''; // Clear existing content
+            genomeData.forEach(strandData => {
+                const strandEl = document.createElement('div');
+                strandEl.className = 'strand';
+                strandEl.id = strandData.id;
+
+                strandData.codons.forEach(codonData => {
+                    const codonEl = document.createElement('div');
+                    codonEl.id = codonData.id;
+                    codonEl.className = `codon type-${codonData.type}`;
+                    
+                    // Store data directly on the element for easy access
+                    codonEl.dataset.strandId = strandData.id;
+                    codonEl.dataset.type = codonData.type;
+                    codonEl.dataset.content = codonData.content;
+                    codonEl.dataset.keywords = codonData.keywords.join(', ');
+
+                    strandEl.appendChild(codonEl);
+                });
+                genomeContainer.appendChild(strandEl);
+            });
+            renderMinimap();
+        }
+
+        function renderMinimap() {
+            minimap.innerHTML = '';
+            genomeData.forEach(strandData => {
+                const minimapStrandEl = document.createElement('div');
+                minimapStrandEl.className = 'minimap-strand';
+                strandData.codons.forEach(codonData => {
+                    const minimapCodonEl = document.createElement('div');
+                    minimapCodonEl.className = `minimap-codon type-${codonData.type}`;
+                    minimapStrandEl.appendChild(minimapCodonEl);
+                });
+                minimap.appendChild(minimapStrandEl);
+            });
+        }
+
+        function openModal(codonEl) {
+            const { type, content, strandId, keywords } = codonEl.dataset;
+            const codonId = codonEl.id;
+
+            // Populate modal content based on type
+            let contentHTML = '';
+            switch (type) {
+                case 'image':
+                    contentHTML = `<img src="${content}" alt="Genome Image">`;
+                    break;
+                case 'link':
+                    contentHTML = `<p>Link: <a href="${content}" target="_blank" rel="noopener noreferrer">${content}</a></p>`;
+                    break;
+                case 'code':
+                    contentHTML = `<pre><code>${content}</code></pre>`;
+                    break;
+                default:
+                    contentHTML = `<p>${content}</p>`;
+            }
+            contentHTML += `<p><br><em><strong>Type:</strong> ${type}<br><strong>Keywords:</strong> ${keywords}</em></p>`;
+            modalBody.innerHTML = contentHTML;
+
+            // Set current type in dropdown
+            mutateTypeSelect.value = type;
+
+            // Store current codon info for actions
+            modalContent.dataset.currentCodonId = codonId;
+            modalContent.dataset.currentStrandId = strandId;
+            
+            modalBackdrop.style.display = 'flex';
+        }
+
+        function closeModal() {
+            modalBackdrop.style.display = 'none';
+        }
+
+        function handleMutation() {
+            const codonId = modalContent.dataset.currentCodonId;
+            const strandId = modalContent.dataset.currentStrandId;
+            const newType = mutateTypeSelect.value;
+
+            // Update data model
+            const strand = genomeData.find(s => s.id === strandId);
+            const codon = strand.codons.find(c => c.id === codonId);
+            codon.type = newType;
+
+            // Update DOM
+            const codonEl = document.getElementById(codonId);
+            codonEl.className = `codon type-${newType}`; // Resets classes and adds the correct one
+            codonEl.dataset.type = newType;
+            
+            renderMinimap();
+            closeModal();
+        }
+
+        function handleRecombination() {
+            const codonId = modalContent.dataset.currentCodonId;
+            const strandId = modalContent.dataset.currentStrandId;
+
+            // Find the codon to copy
+            const strand = genomeData.find(s => s.id === strandId);
+            const codonToCopy = strand.codons.find(c => c.id === codonId);
+
+            // Create a deep copy to avoid reference issues
+            const newCodon = JSON.parse(JSON.stringify(codonToCopy));
+            
+            // Create a new strand
+            const newStrand = {
+                id: `strand-${Date.now()}`, // Unique ID
+                codons: [newCodon]
+            };
+
+            genomeData.push(newStrand);
+            
+            renderGenome(); // Re-render everything
+            closeModal();
+        }
+
+        function handleSearch() {
+            const query = searchInput.value.toLowerCase().trim();
+            const allCodons = document.querySelectorAll('.codon');
+
+            if (query === '') {
+                allCodons.forEach(c => c.classList.remove('dimmed', 'highlight'));
+                return;
+            }
+
+            allCodons.forEach(codonEl => {
+                const content = codonEl.dataset.content.toLowerCase();
+                const keywords = codonEl.dataset.keywords.toLowerCase();
+                
+                if (content.includes(query) || keywords.includes(query)) {
+                    codonEl.classList.remove('dimmed');
+                    codonEl.classList.add('highlight');
+                } else {
+                    codonEl.classList.remove('highlight');
+                    codonEl.classList.add('dimmed');
+                }
+            });
+        }
+        
+        // --- EVENT LISTENERS ---
+
+        // Use event delegation for performance
+        genomeContainer.addEventListener('mouseover', (e) => {
+            if (e.target.classList.contains('codon')) {
+                let previewContent = e.target.dataset.content;
+                if (previewContent.length > 100) {
+                    previewContent = previewContent.substring(0, 100) + '...';
+                }
+                tooltip.innerHTML = `<strong>${e.target.dataset.type}</strong><br>${previewContent}`;
+                tooltip.style.opacity = '1';
+            }
+        });
+
+        genomeContainer.addEventListener('mousemove', (e) => {
+            if (tooltip.style.opacity === '1') {
+                // Position tooltip near the cursor
+                tooltip.style.left = `${e.clientX + 15}px`;
+                tooltip.style.top = `${e.clientY + 15}px`;
+            }
+        });
+
+        genomeContainer.addEventListener('mouseout', (e) => {
+            if (e.target.classList.contains('codon')) {
+                tooltip.style.opacity = '0';
+            }
+        });
+        
+        genomeContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('codon')) {
+                openModal(e.target);
+            }
+        });
+
+        modalClose.addEventListener('click', closeModal);
+        modalBackdrop.addEventListener('click', (e) => {
+            if (e.target === modalBackdrop) {
+                closeModal();
+            }
+        });
+
+        mutateButton.addEventListener('click', handleMutation);
+        recombineButton.addEventListener('click', handleRecombination);
+        searchInput.addEventListener('input', handleSearch);
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGenome();
+        });
+
+    </script>
+</body>
+</html>

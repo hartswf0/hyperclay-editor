@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BUREAU TECH FUSION INTERFACES</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Orbitron:wght@400;700&family=VT323&display=swap');
+
+        :root {
+            --base-bg: #1a1c1d;
+            --tile-bg: #d9d9d9;
+            --tile-bg-dark: #2c2f31;
+            --text-dark: #1a1c1d;
+            --text-light: #e0e0e0;
+            --grid-line: #b0b0b0;
+            --grid-line-dark: #444;
+            --border-color: #999;
+            --accent-green: #00ff6a;
+            --accent-green-glow: 0 0 8px #00ff6a, 0 0 12px #00ff6a;
+            --accent-red: #ff3355;
+            --accent-red-glow: 0 0 8px #ff3355;
+            --accent-blue: #33aaff;
+            --accent-yellow: #ffee33;
+            --font-mono: 'Fira Code', monospace;
+            --font-pixel: 'VT323', monospace;
+            --font-display: 'Orbitron', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--base-bg);
+            font-family: var(--font-mono);
+            color: var(--text-dark);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        #atlas-container {
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        .main-title {
+            font-family: var(--font-display);
+            color: var(--text-light);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        #atlas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            width: 100%;
+        }
+
+        .tile {
+            background-color: var(--tile-bg);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .tile-title {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            text-align: center;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--grid-line);
+            padding-bottom: 0.75rem;
+            margin: -1.5rem -1.5rem 0 -1.5rem;
+            padding: 1rem;
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        .command-bar {
+            background-color: var(--tile-bg-dark);
+            color: var(--text-light);
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .footer {
+            font-family: var(--font-mono);
+            color: var(--grid-line);
+            text-align: center;
+            margin-top: 2rem;
+            font-style: italic;
+        }
+        
+        /* --- Reusable TE-style Components --- */
+        .knob { text-align: center; }
+        .knob-dial {
+            width: 50px; height: 50px; background-color: #333; border: 2px solid #111;
+            border-radius: 50%; position: relative; margin: 0 auto 0.5rem; cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+        .knob-dial:hover { box-shadow: 0 0 10px var(--accent-yellow); }
+        .knob-dial::after {
+            content: ''; position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
+            width: 2px; height: 12px; background-color: var(--text-light);
+        }
+        .knob-label { font-size: 0.75rem; text-transform: uppercase; font-weight: bold; }
+
+        .led {
+            width: 12px; height: 12px; border-radius: 50%; display: inline-block;
+            border: 1px solid rgba(0,0,0,0.3);
+        }
+        .led.green { background-color: var(--accent-green); box-shadow: var(--accent-green-glow); }
+        .led.red { background-color: var(--accent-red); box-shadow: var(--accent-red-glow); }
+        .led.off { background-color: #666; box-shadow: none; }
+        
+        /* --- Panel 1: COMPLIANCE TRACKER --- */
+        #compliance-tracker .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            align-items: center;
+        }
+        .flowchart-list {
+            list-style: none; padding: 0; font-size: 1.2rem;
+            border-right: 1px solid var(--grid-line); padding-right: 1.5rem;
+        }
+        .flowchart-list li { margin-bottom: 1rem; }
+        
+        .te-module-ui { position: relative; }
+        .knob-group { display: flex; justify-content: space-around; margin-bottom: 1rem; }
+        
+        .wire-connectors { position: absolute; top: -20px; left: -30px; width: 100%; height: 100%; pointer-events: none; }
+        
+        .codon-lanes-switches {
+            border: 1px solid var(--grid-line); padding: 0.5rem; background: #c0c0c0;
+            margin-top: 1rem;
+        }
+        .codon-strip { display: flex; align-items: center; margin-bottom: 4px; }
+        .codon-strip .label { width: 40px; font-size: 0.7rem; }
+        .codon-strip .lane { flex-grow: 1; height: 10px; }
+        .toggle-switch { width: 20px; height: 10px; background: #666; border-radius: 5px; position: relative; margin-left: 10px; cursor: pointer; }
+        .toggle-switch::after { content: ''; position: absolute; width: 8px; height: 8px; background: #fff; border-radius: 50%; top: 1px; left: 1px; transition: left 0.2s; }
+        .toggle-switch.on::after { left: 11px; }
+
+        .log-window {
+            background-color: var(--tile-bg-dark); color: var(--accent-green);
+            padding: 0.5rem; text-align: center; font-family: var(--font-pixel);
+            font-size: 1.8rem; text-shadow: var(--accent-green-glow);
+            animation: grain 0.2s infinite steps(2);
+        }
+        @keyframes grain { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-1px, 1px); } }
+
+        /* --- Panel 2: REGULATORY PATCHBOARD --- */
+        #regulatory-patchboard {
+            background-color: var(--tile-bg-dark); color: var(--text-light);
+            background-image: repeating-linear-gradient(var(--grid-line-dark) 0 1px, transparent 1px 100%),
+                              repeating-linear-gradient(90deg, var(--grid-line-dark) 0 1px, transparent 1px 100%);
+            background-size: 80px 60px;
+        }
+        #regulatory-patchboard .tile-title { background: rgba(255,255,255,0.05); border-color: var(--grid-line-dark); }
+        .patchboard-container { flex-grow: 1; position: relative; }
+        .patch-slots, .thumb-slots { display: flex; flex-direction: column; gap: 1rem; position: absolute; top: 0; }
+        .thumb-slots { left: 0; } .patch-slots { right: 0; }
+        .slot { width: 60px; height: 30px; background: #111; border: 1px solid var(--border-color); display: flex; justify-content: center; align-items: center; font-weight: bold; }
+        
+        .patch-cables { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .patch-cables path { fill: none; stroke-width: 4; }
+        
+        .fused-list-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(217, 217, 217, 0.9); color: var(--text-dark);
+            border: 2px solid #333; padding: 1rem; width: 60%;
+        }
+        .fused-list-overlay h4 { margin: 0 0 0.5rem 0; text-align: center; }
+        .fused-list-overlay .redacted { background: #111; color: #111; user-select: none; }
+        .stamp {
+            position: absolute; border: 3px solid; padding: 0.2rem 0.5rem;
+            font-weight: bold; font-family: sans-serif; opacity: 0.8;
+        }
+        .stamp.approved { color: #008000; border-color: #008000; bottom: 10px; right: 10px; transform: rotate(-10deg); }
+        .stamp.void { color: var(--accent-red); border-color: var(--accent-red); top: 10px; right: 20px; transform: rotate(5deg); }
+        
+        .side-rafters { display: flex; flex-direction: column; gap: 1rem; }
+        .side-rafters .knob-dial { width: 30px; height: 30px; }
+        .side-rafters .knob-dial::after { height: 8px; top: 3px; }
+
+        /* --- Panel 3: SOP CONTROL PANEL --- */
+        #sop-control-panel { background-color: #c8c9ca; }
+        #sop-control-panel .main-content { display: grid; grid-template-columns: 1fr 1fr; }
+        .sop-list { list-style-type: none; padding: 0; margin: 0; }
+        .sop-list li { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding: 0.5rem; background: #b0b1b2; border: 1px solid #999; }
+        .sop-list .sop-number { font-size: 1.5rem; font-weight: bold; }
+        .sop-list .sop-name { flex-grow: 1; text-transform: uppercase; }
+        
+        .toggle-lever { width: 20px; height: 40px; background: #666; border: 1px solid #333; position: relative; cursor: pointer; }
+        .toggle-lever-handle { position: absolute; top: 2px; left: 2px; right: 2px; height: 16px; background: #ddd; transition: top 0.2s ease-in-out; }
+        .toggle-lever.on .toggle-lever-handle { top: 20px; }
+        
+        .codon-trays { position: relative; overflow: hidden; background: #b0b1b2; border: 1px solid #999; padding: 0.5rem; }
+        .tray { position: absolute; top: 1rem; right: 1rem; bottom: 1rem; width: 90%; background: #ddd; border: 1px solid #888; padding: 1rem; transition: transform 0.4s ease-out; transform: translateX(110%); }
+        .tray.open { transform: translateX(0); }
+        .tray-label { font-weight: bold; margin-bottom: 0.5rem; }
+        .tray-codons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+        .codon-tile { background: #fafafa; border: 1px solid #aaa; padding: 0.25rem; text-align: center; font-weight: 700; }
+        
+        .sequencer-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 5px; padding: 0.5rem; background: #333; margin-top: auto; }
+        .seq-pad { height: 15px; background: #555; border-radius: 2px; }
+        .seq-pad.active { background-color: var(--accent-yellow); box-shadow: 0 0 5px var(--accent-yellow); }
+
+        /* --- Panel 4: WORKFLOW MODULE --- */
+        #workflow-module { background-color: #2c2f31; color: var(--text-light); }
+        #workflow-module .tile-title { background: rgba(0,0,0,0.2); border-color: var(--grid-line-dark); }
+        #workflow-module .main-content { display: grid; grid-template-columns: 1fr 1fr; }
+        .bureaucratic-form .form-field { margin-bottom: 1rem; }
+        .bureaucratic-form label { display: block; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 0.25rem; color: #aaa; }
+        .bureaucratic-form .input-box { background: #111; border: 1px solid #555; padding: 0.5rem; color: var(--accent-green); }
+        
+        .te-module-block { display: flex; flex-direction: column; gap: 1rem; }
+        .keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+        .keypad-btn {
+            height: 40px; background: #444; border: 1px solid #666; color: #fff;
+            display: flex; justify-content: center; align-items: center; cursor: pointer;
+            transition: all 0.1s;
+        }
+        .keypad-btn:hover { background: #555; }
+        .keypad-btn.exec {
+            grid-column: span 2; background-color: var(--accent-green); color: #111;
+            font-weight: bold;
+        }
+        .keypad-btn.exec:hover { background-color: #fff; }
+        
+        .micro-display {
+            background: #111; border: 1px solid #555; padding: 0.5rem; height: 60px;
+            display: flex; align-items: flex-end; gap: 2px;
+        }
+        .display-lane { width: 4px; background: var(--accent-blue); animation: flicker 1.5s infinite alternate; }
+        @keyframes flicker {
+            from { opacity: 0.4; } to { opacity: 1; }
+        }
+        
+        .dial-container { text-align: center; }
+        .rotary-dial {
+            width: 70px; height: 70px; border: 4px solid #555; background: #333;
+            border-radius: 50%; margin: 0 auto 0.5rem; position: relative; cursor: pointer;
+        }
+        .rotary-dial:hover { border-color: var(--accent-blue); }
+        
+        .led-summary {
+            font-family: var(--font-pixel); font-size: 1.5rem; text-align: center;
+            color: var(--accent-red); text-shadow: var(--accent-red-glow);
+            background: #111; padding: 0.5rem; border: 1px solid #555;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="atlas-container">
+        <h1 class="main-title">BUREAU TECH FUSION INTERFACES</h1>
+        <div id="atlas-grid">
+            
+            <!-- Panel 1: FUSE: COMPLIANCE TRACKER -->
+            <div class="tile" id="compliance-tracker">
+                <h3 class="tile-title">FUSE: COMPLIANCE TRACKER</h3>
+                <div class="command-bar">fuse log:file‑2025‑06‑18 + policy‑update → g‑compliance‑17</div>
+                <div class="main-content">
+                    <ul class="flowchart-list">
+                        <li>☐ Doc‑ID</li>
+                        <li>☑ Audit</li>
+                        <li>☐ Merge</li>
+                    </ul>
+                    <div class="te-module-ui">
+                        <div class="knob-group">
+                            <div class="knob"><div class="knob-dial" style="transform: rotate(45deg);"></div><span class="knob-label">CODON</span></div>
+                            <div class="knob"><div class="knob-dial" style="transform: rotate(-30deg);"></div><span class="knob-label">EXON</span></div>
+                            <div class="knob"><div class="knob-dial" style="transform: rotate(120deg);"></div><span class="knob-label">INTRON</span></div>
+                        </div>
+                        <svg class="wire-connectors" viewBox="0 0 200 100">
+                            <path d="M 0 15 C 50 -10, 50 40, 95 35" stroke="var(--accent-red)" stroke-width="2" fill="none"/>
+                            <path d="M 0 50 C 50 80, 50 80, 165 40" stroke="var(--accent-blue)" stroke-width="2" fill="none"/>
+                        </svg>
+                        <div class="codon-lanes-switches">
+                            <div class="codon-strip"><span class="label">SEC-1</span><div class="lane" style="background:var(--accent-red);"></div><div class="toggle-switch on"></div></div>
+                            <div class="codon-strip"><span class="label">AUD-4</span><div class="lane" style="background:var(--accent-blue);"></div><div class="toggle-switch on"></div></div>
+                            <div class="codon-strip"><span class="label">LEG-2</span><div class="lane" style="background:var(--accent-yellow);"></div><div class="toggle-switch"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="log-window">FUSION COMPLETE</div>
+            </div>
+
+            <!-- Panel 2: FUSE: REGULATORY PATCHBOARD -->
+            <div class="tile" id="regulatory-patchboard">
+                <h3 class="tile-title">FUSE: REGULATORY PATCHBOARD</h3>
+                <div class="command-bar">fuse base‑policy + override‑amend → g‑reg‑028</div>
+                <div class="main-content">
+                    <div class="patchboard-container">
+                        <div class="thumb-slots">
+                            <div class="slot">TXT</div><div class="slot">IMG</div><div class="slot">AUC</div>
+                        </div>
+                        <div class="patch-slots">
+                            <div class="slot">C-01</div><div class="slot">C-02</div><div class="slot">C-03</div><div class="slot">C-04</div>
+                        </div>
+                        <svg class="patch-cables" viewBox="0 0 450 250">
+                            <path d="M 60 16 C 200 16, 250 126, 390 126" stroke="var(--accent-red)"/>
+                            <path d="M 60 76 C 150 76, 300 -24, 390 76" stroke="var(--accent-blue)"/>
+                            <path d="M 60 136 C 100 136, 350 196, 390 196" stroke="var(--accent-yellow)"/>
+                        </svg>
+                        <div class="fused-list-overlay">
+                            <h4>G-REG-028</h4>
+                            <ul>
+                                <li>Codon: TXT-REF-01A</li>
+                                <li class="redacted">xxxxxxxxxxxxxxxxxx</li>
+                                <li>Codon: AUC-REF-04C</li>
+                            </ul>
+                            <div class="stamp approved">APPROVED</div>
+                            <div class="stamp void">VOID</div>
+                        </div>
+                    </div>
+                    <div class="side-rafters">
+                        <div class="knob"><div class="knob-dial"></div><span class="knob-label">Bias</span></div>
+                        <div class="knob"><div class="knob-dial"></div><span class="knob-label">Drift</span></div>
+                        <div class="knob"><div class="knob-dial"></div><span class="knob-label">Merge Wt.</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel 3: FUSE: SOP CONTROL PANEL -->
+            <div class="tile" id="sop-control-panel">
+                <h3 class="tile-title">FUSE: SOP CONTROL PANEL</h3>
+                <div class="command-bar">fuse g‑021 + g‑034 via SOP‑mode</div>
+                <div class="main-content">
+                    <div class="sop-section">
+                        <ol class="sop-list">
+                            <li><span class="sop-number">1.</span><span class="sop-name">Initiate</span><div class="toggle-lever on"> <div class="toggle-lever-handle"></div> </div><div class="led green"></div></li>
+                            <li><span class="sop-number">2.</span><span class="sop-name">Validate</span><div class="toggle-lever on"> <div class="toggle-lever-handle"></div> </div><div class="led green"></div></li>
+                            <li><span class="sop-number">3.</span><span class="sop-name">Merge</span><div class="toggle-lever"> <div class="toggle-lever-handle"></div> </div><div class="led red"></div></li>
+                            <li><span class="sop-number">4.</span><span class="sop-name">Archive</span><div class="toggle-lever"> <div class="toggle-lever-handle"></div> </div><div class="led off"></div></li>
+                        </ol>
+                    </div>
+                    <div class="codon-section">
+                        <div class="codon-trays">
+                            <div class="tray">
+                                <div class="tray-label">TRAY: INTRON</div>
+                            </div>
+                            <div class="tray open">
+                                <div class="tray-label">TRAY: EXON</div>
+                                <div class="tray-codons">
+                                    <div class="codon-tile">CA</div><div class="codon-tile">GT</div><div class="codon-tile">AG</div><div class="codon-tile">TC</div>
+                                    <div class="codon-tile">GC</div><div class="codon-tile">AT</div><div class="codon-tile">GG</div><div class="codon-tile">CC</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sequencer-grid">
+                            <div class="seq-pad active"></div><div class="seq-pad"></div><div class="seq-pad"></div><div class="seq-pad"></div>
+                            <div class="seq-pad active"></div><div class="seq-pad"></div><div class="seq-pad"></div><div class="seq-pad"></div>
+                            <div class="seq-pad"></div><div class="seq-pad"></div><div class="seq-pad"></div><div class="seq-pad"></div>
+                            <div class="seq-pad"></div><div class="seq-pad"></div><div class="seq-pad"></div><div class="seq-pad"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel 4: FUSE: BUREAUCRATIC WORKFLOW + DIGITAL MODULE -->
+            <div class="tile" id="workflow-module">
+                 <h3 class="tile-title">FUSE: WORKFLOW MODULE</h3>
+                <div class="command-bar">FUSE TASK: MergePolicy‑17 to g‑merged‑026</div>
+                <div class="main-content">
+                    <div class="bureaucratic-form">
+                        <div class="form-field">
+                            <label for="task-id">Task ID</label>
+                            <div class="input-box">MP-17-A</div>
+                        </div>
+                        <div class="form-field">
+                            <label for="applicant">Applicant</label>
+                            <div class="input-box">J. NELSON</div>
+                        </div>
+                        <div class="form-field">
+                            <label for="date">Date</label>
+                            <div class="input-box">2025-10-26</div>
+                        </div>
+                        <div class="form-field">
+                            <label for="count">Codon Count</label>
+                            <div class="input-box">34</div>
+                        </div>
+                    </div>
+                    <div class="te-module-block">
+                        <div class="keypad">
+                            <div class="keypad-btn">A</div><div class="keypad-btn">B</div><div class="keypad-btn">C</div><div class="keypad-btn">D</div>
+                            <div class="keypad-btn">◀</div><div class="keypad-btn">▶</div><div class="keypad-btn exec">EXEC</div>
+                        </div>
+                         <div class="micro-display">
+                            <div class="display-lane" style="height: 40%;"></div>
+                            <div class="display-lane" style="height: 60%;"></div>
+                            <div class="display-lane" style="height: 50%;"></div>
+                            <div class="display-lane" style="height: 20%;"></div>
+                            <div class="display-lane" style="height: 80%;"></div>
+                            <div class="display-lane" style="height: 75%;"></div>
+                         </div>
+                        <div class="dial-container">
+                            <div class="rotary-dial"></div>
+                            <span class="knob-label">Merge Ratio</span>
+                        </div>
+                        <div class="led-summary">SUCCESS – 34 codons merged</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            Command syntax: fuse [A] + [B] using:[mode]
+        </div>
+    </div>
+</body>
+</html>

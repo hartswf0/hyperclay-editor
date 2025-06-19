@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genomic Archive Viewer</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --panel-bg: #2a2a2a;
+            --text-color: #e0e0e0;
+            --header-color: #ffffff;
+            --border-color: #444;
+            --highlight-color: #007acc;
+            --error-color: #d9534f;
+            --success-color: #5cb85c;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 1em;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: var(--header-color);
+            text-align: center;
+            margin-bottom: 1em;
+        }
+        #status-banner {
+            padding: 1em;
+            margin-bottom: 1em;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+        }
+        #status-banner.error { background-color: var(--error-color); display: block; }
+        #status-banner.success { background-color: var(--success-color); display: block; }
+        #status-banner.loading { background-color: #4a4a4a; display: block; }
+
+        #main-container {
+            display: flex;
+            flex-grow: 1;
+            gap: 1em;
+            min-height: 0; /* Fix for flexbox overflow */
+        }
+        #karyotype-panel, #codon-spool-panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1em;
+            overflow-y: auto;
+        }
+        #karyotype-panel {
+            flex: 0 0 30%;
+        }
+        #codon-spool-panel {
+            flex: 1 1 70%;
+        }
+        .karyotype-group {
+            margin-bottom: 1.5em;
+        }
+        .karyotype-group h3 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--highlight-color);
+            padding-bottom: 0.3em;
+            font-size: 1.1em;
+        }
+        .band {
+            padding: 0.5em;
+            margin: 0.2em 0;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            border: 1px solid transparent;
+        }
+        .band:hover {
+            border-color: var(--highlight-color);
+        }
+        .band.active {
+            background-color: var(--highlight-color);
+            color: white;
+        }
+        #codon-spool-panel ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #codon-spool-panel li {
+            border-bottom: 1px solid var(--border-color);
+        }
+        #codon-spool-panel li a {
+            display: block;
+            padding: 0.4em;
+            text-decoration: none;
+            color: inherit;
+            transition: background-color 0.2s;
+        }
+        #codon-spool-panel li a:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .codon-title {
+            font-weight: bold;
+        }
+        .codon-note {
+            font-size: 0.9em;
+            color: #aaa;
+            padding-left: 1em;
+            font-style: italic;
+        }
+        #tooltip {
+            position: fixed;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 0.5em 1em;
+            border-radius: 5px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Genomic Archive Viewer</h1>
+
+    <div id="status-banner" role="alert" aria-live="assertive"></div>
+
+    <div id="main-container">
+        <div id="karyotype-panel" role="navigation">
+            <h2>Karyotype</h2>
+            <div id="karyotype-container"></div>
+        </div>
+        <div id="codon-spool-panel" role="main">
+            <h2>Codon Spool</h2>
+            <div id="codon-spool-container">Select a karyotype band to see files.</div>
+        </div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <script>
+        /**
+         * @file ipflex.html
+         * @description Self-contained genomic archive viewer.
+         *
+         * Data Mapping Table:
+         * | JSON path                  | Stored in CORPUS as | Left-panel selector           | Right-panel cell   |
+         * | -------------------------- | --------------------- | ----------------------------- | ------------------ |
+         * | `files[*].macro_structure` | `corpus[ms]`          | .karyotype-group h3           | (Not shown)        |
+         * | `files[*].codon_group`     | `corpus[ms][cg]`      | .band[data-codon-group]       | (Not shown)        |
+         * | `files[*].id` (object key) | `files[].id`         | —                             | li[data-id]        |
+         * | Lookup title               | `files[].title`       | tooltip text                  | .codon-title       |
+         * | `files[*].note`            | `files[].note?`       | (Not shown)                   | .codon-note        |
+         * | `files[*].keywords`        | `files[].keywords?`   | (Not used)                    | (Not used)         |
+         */
+        const GenomicArchive = {
+            ontology: null,
+            titles: null,
+            corpus: {},
+            activeBand: null,
+            // Color mapping for codon groups. Can be externalized to JSON in the future.
+            colorMap: {
+                "GENOMIRE SCOPE (GM-S)": "#4e79a7",
+                "GENOMIRE FIELD (GM-F)": "#f28e2b",
+                "GENOSCOPE / GENOMA (GS/GG)": "#e15759",
+                "FUSE INTERFACES (FU-I)": "#76b7b2",
+                "FUSE CONCEPTS (FU-C)": "#59a14f",
+                "ECD ANALYSIS ENGINES (ECD-A)": "#edc948",
+                "ECD COMPOSITION & TRANSLATION (ECD-C)": "#b07aa1",
+                "ECD ONTOLOGICAL INTERFACES (ECD-O)": "#ff9da7",
+                "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)": "#9c755f",
+                "ECD HARMONIZERS (ECD-H)": "#bab0ac",
+                "SIGMADOS (Operating System)": "#d4a6c8",
+                "SIGMATIC FORGE / OWE (Ontological Weaving Engine)": "#9d7660",
+                "CODONSYNTH (CS)": "#f1ce63",
+                "MIRE (MI)": "#8cd17d",
+            },
+
+            init() {
+                this.updateBanner('Loading genomic data...', 'loading');
+                this.fetchData()
+                    .then(() => {
+                        this.processOntologyData(); // This now includes validation
+                        this.renderKaryotype();
+                        this.updateBanner('Data loaded successfully. Ready to explore.', 'success');
+                    })
+                    .catch(error => {
+                        console.error('⚠️ Initialization failed:', error);
+                        this.updateBanner(error.message, 'error');
+                    });
+            },
+
+            async fetchData() {
+                try {
+                    const [ontologyRes, titlesRes] = await Promise.all([
+                        fetch('project_ontology.json'),
+                        fetch('file_titles.json')
+                    ]);
+                    if (!ontologyRes.ok) throw new Error(`Failed to load project_ontology.json (${ontologyRes.status})`);
+                    if (!titlesRes.ok) throw new Error(`Failed to load file_titles.json (${titlesRes.status})`);
+                    
+                    this.ontology = await ontologyRes.json();
+                    this.titles = await titlesRes.json();
+                } catch (error) {
+                    throw new Error(`Network or fetch error: ${error.message}`);
+                }
+            },
+
+            processOntologyData() {
+                // This function now validates, transforms, and reports on the schema.
+                const { files, macro_structures_order, codon_groups_order } = this.ontology;
+                
+                // 1. Validation
+                if (!files || !macro_structures_order || !codon_groups_order) {
+                    throw new Error('Ontology is missing one of the core keys: files, macro_structures_order, or codon_groups_order.');
+                }
+                if (typeof codon_groups_order !== 'object' || Array.isArray(codon_groups_order)) {
+                    throw new Error('`codon_groups_order` must be an object mapping macro-structures to arrays.');
+                }
+
+                const missingCodonGroups = macro_structures_order.filter(ms => !Array.isArray(codon_groups_order[ms]));
+                if (missingCodonGroups.length > 0) {
+                    throw new Error(`Missing codon group definitions for macro-structures: ${missingCodonGroups.join(', ')}.`);
+                }
+
+                // 2. Transformation & Reporting
+                this.corpus = {};
+                const schemaReport = {
+                    macroStructures: new Set(),
+                    codonGroups: new Set(),
+                    unknownFileFields: new Set()
+                };
+                const knownFileFields = new Set(['macro_structure', 'codon_group', 'note', 'keywords']);
+
+                macro_structures_order.forEach(ms => {
+                    this.corpus[ms] = {};
+                    schemaReport.macroStructures.add(ms);
+                    codon_groups_order[ms].forEach(cg => {
+                        this.corpus[ms][cg] = [];
+                        schemaReport.codonGroups.add(cg);
+                    });
+                });
+
+                for (const fileId in files) {
+                    const fileData = files[fileId];
+                    const { macro_structure, codon_group } = fileData;
+
+                    // Report unknown fields
+                    Object.keys(fileData).forEach(key => {
+                        if (!knownFileFields.has(key)) {
+                            schemaReport.unknownFileFields.add(key);
+                        }
+                    });
+
+                    if (this.corpus[macro_structure] && this.corpus[macro_structure][codon_group]) {
+                        this.corpus[macro_structure][codon_group].push({
+                            id: fileId,
+                            title: this.titles[fileId] || fileId, // Fallback to ID if title is missing
+                            note: fileData.note,
+                            keywords: fileData.keywords || []
+                        });
+                    } else {
+                        console.warn(`⚠️ File "${fileId}" references a structure or group not in the ordered lists. Skipping.`);
+                    }
+                }
+                
+                console.log('Schema Report:', {
+                    macroStructures: [...schemaReport.macroStructures],
+                    codonGroups: [...schemaReport.codonGroups],
+                    unknownFileFields: [...schemaReport.unknownFileFields]
+                });
+            },
+
+            renderKaryotype() {
+                const container = document.getElementById('karyotype-container');
+                container.innerHTML = '';
+                const { macro_structures_order, codon_groups_order } = this.ontology;
+
+                macro_structures_order.forEach(ms => {
+                    const groupEl = document.createElement('div');
+                    groupEl.className = 'karyotype-group';
+                    groupEl.innerHTML = `<h3>${ms}</h3>`;
+
+                    const currentCodonOrder = codon_groups_order[ms] || [];
+                    currentCodonOrder.forEach(cg => {
+                        const files = this.corpus[ms]?.[cg];
+                        if (files && files.length > 0) {
+                            const bandEl = document.createElement('div');
+                            bandEl.className = 'band';
+                            bandEl.textContent = cg;
+                            bandEl.dataset.macroStructure = ms;
+                            bandEl.dataset.codonGroup = cg;
+                            bandEl.setAttribute('role', 'button');
+                            bandEl.setAttribute('tabindex', '0');
+
+                            // Apply color from map
+                            const color = this.colorMap[cg];
+                            if (color) {
+                                bandEl.style.backgroundColor = color;
+                            } else {
+                                console.warn(`⚠️ No color defined for codon group: "${cg}". Defaulting to gray.`);
+                                bandEl.style.backgroundColor = 'var(--border-color)';
+                            }
+                            
+                            bandEl.addEventListener('click', () => this.handleBandClick(bandEl, ms, cg));
+                            bandEl.addEventListener('mouseover', (e) => this.showTooltip(e, `${files.length} file(s)`));
+                            bandEl.addEventListener('mouseout', () => this.hideTooltip());
+                            bandEl.addEventListener('focus', (e) => this.showTooltip(e, `${files.length} file(s)`));
+                            bandEl.addEventListener('blur', () => this.hideTooltip()); // blur covers focusout for this case
+
+                            bandEl.addEventListener('keydown', (e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault(); // Prevent space from scrolling
+                                    this.handleBandClick(bandEl, ms, cg);
+                                }
+                            });
+
+                            groupEl.appendChild(bandEl);
+                        }
+                    });
+                    container.appendChild(groupEl);
+                });
+            },
+
+            handleBandClick(element, ms, cg) {
+                if (this.activeBand) {
+                    this.activeBand.classList.remove('active');
+                }
+                this.activeBand = element;
+                this.activeBand.classList.add('active');
+                this.renderCodonSpool(ms, cg);
+            },
+
+            renderCodonSpool(ms, cg) {
+                const container = document.getElementById('codon-spool-container');
+                const files = this.corpus[ms]?.[cg];
+                if (!files || files.length === 0) {
+                    container.innerHTML = 'No files found for this selection.';
+                    return;
+                }
+
+                const list = document.createElement('ul');
+                files.forEach(file => {
+                    const item = document.createElement('li');
+                    item.dataset.id = file.id;
+
+                    const link = document.createElement('a');
+                    link.href = file.id; // The file ID is the URL
+                    link.target = '_blank'; // Open in a new tab
+                    link.rel = 'noopener noreferrer';
+                    
+                    let innerHTML = `<div class="codon-title">${file.title}</div>`;
+                    if (file.note) {
+                        innerHTML += `<div class="codon-note">${file.note}</div>`;
+                    }
+                    link.innerHTML = innerHTML;
+
+                    // Move tooltip events to the link for better accuracy
+                    link.addEventListener('mouseover', (e) => this.showTooltip(e, `ID: ${file.id}`));
+                    link.addEventListener('mouseout', () => this.hideTooltip());
+
+                    item.appendChild(link);
+                    list.appendChild(item);
+                });
+                container.innerHTML = '';
+                container.appendChild(list);
+            },
+
+            updateBanner(message, type) {
+                const banner = document.getElementById('status-banner');
+                const prefix = type === 'error' ? '⚠️ ' : '';
+                banner.textContent = prefix + message;
+                banner.className = type; // 'loading', 'success', or 'error'
+            },
+
+            showTooltip(event, text) {
+                const tooltip = document.getElementById('tooltip');
+                tooltip.textContent = text;
+                tooltip.style.opacity = '1';
+                // Position tooltip near cursor, but prevent it from going off-screen
+                const x = Math.min(event.clientX + 15, window.innerWidth - tooltip.offsetWidth - 10);
+                const y = Math.min(event.clientY + 15, window.innerHeight - tooltip.offsetHeight - 10);
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${y}px`;
+            },
+
+            hideTooltip() {
+                const tooltip = document.getElementById('tooltip');
+                tooltip.style.opacity = '0';
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            GenomicArchive.init();
+        });
+    </script>
+
+</body>
+</html>

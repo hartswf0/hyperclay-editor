@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3. 🧭 PHORONOMIC ENGINE</title>
+    <style>
+        /* FONT IMPORT - Embedded for single-file portability */
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-color: #0d1117;
+            --main-color: #c9d1d9;
+            --panel-bg: #161b22;
+            --border-color: #30363d;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-red: #f85149;
+            --accent-purple: #bc8cff;
+            --font-family: 'Share Tech Mono', monospace;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--main-color);
+            font-family: var(--font-family);
+            font-size: 14px;
+        }
+
+        #phoronomic-engine {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- CONTROL PANEL (LEFT) --- */
+        #control-panel {
+            width: 350px;
+            height: 100%;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        h1, h2, h3 {
+            margin: 0 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--accent-blue);
+            font-weight: normal;
+        }
+        
+        h1 { font-size: 1.5em; }
+        h1 .icon { font-size: 1.2em; vertical-align: middle; }
+        h2 { font-size: 1.2em; margin-top: 20px; color: var(--main-color); }
+        h3 { font-size: 1.1em; margin-top: 15px; color: var(--main-color); border: none; }
+        
+        #engine-tagline {
+            font-style: italic;
+            color: #8b949e;
+            margin-bottom: 25px;
+        }
+
+        .event-palette .event-chip {
+            background-color: #21262d;
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: grab;
+            transition: background-color 0.2s, border-color 0.2s;
+            user-select: none;
+        }
+        .event-palette .event-chip:hover {
+            background-color: #30363d;
+            border-color: var(--accent-blue);
+        }
+        .event-palette .event-chip:active {
+            cursor: grabbing;
+            background-color: var(--accent-blue);
+            color: var(--bg-color);
+        }
+        .event-palette .event-chip.used {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: #1a1e24;
+        }
+
+        .feedback-panel {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            background-color: #0d1117;
+            border-radius: 6px;
+        }
+        .feedback-panel .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .feedback-panel .metric-label {
+            color: #8b949e;
+        }
+        .feedback-panel .metric-value {
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+        #selected-event-name {
+            color: var(--accent-yellow);
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        #system-status {
+            margin-top: auto; /* Pushes to the bottom */
+            padding-top: 20px;
+        }
+        .warning-box {
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            display: none; /* Hidden by default */
+        }
+        .warning-box.active {
+            display: block;
+        }
+        #tautology-warning {
+            border-color: var(--accent-purple);
+            background-color: rgba(188, 140, 255, 0.1);
+            animation: glitch 1.5s infinite;
+        }
+        #loop-warning {
+            border-color: var(--accent-red);
+            background-color: rgba(248, 81, 73, 0.1);
+            animation: pulse-border 2s infinite;
+        }
+        .warning-title { font-weight: bold; }
+        .warning-title.tautology { color: var(--accent-purple); }
+        .warning-title.loop { color: var(--accent-red); }
+
+        /* --- GUI WORKSPACE (RIGHT) --- */
+        #gui-workspace {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        #spiral-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .spiral-path {
+            stroke: var(--border-color);
+            stroke-width: 1px;
+            stroke-dasharray: 4 4;
+            fill: none;
+        }
+        
+        .event-node {
+            cursor: pointer;
+            transition: r 0.3s ease, filter 0.3s ease;
+        }
+        .event-node-circle {
+            stroke-width: 2px;
+            stroke: var(--accent-blue);
+            fill: var(--bg-color);
+        }
+        .event-node-circle.selected {
+            stroke: var(--accent-yellow);
+            filter: drop-shadow(0 0 8px var(--accent-yellow));
+        }
+        .event-node-circle.loop-threat {
+            stroke: var(--accent-red);
+            animation: pulse-node 2s infinite;
+        }
+        .event-node-circle.tautology-threat {
+            stroke: var(--accent-purple);
+            animation: pulse-node 1.5s infinite alternate;
+        }
+        .event-node-text {
+            fill: var(--main-color);
+            font-size: 12px;
+            font-family: var(--font-family);
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .tension-arc {
+            stroke-width: 2px;
+            fill: none;
+            opacity: 0.7;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .tension-arc.low { stroke: var(--accent-green); }
+        .tension-arc.medium { stroke: var(--accent-yellow); }
+        .tension-arc.high { stroke: var(--accent-red); }
+        
+        #instructions {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            color: #8b949e;
+            font-size: 12px;
+            text-align: right;
+            max-width: 400px;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes pulse-border {
+            0% { border-color: var(--accent-red); box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.4); }
+            70% { box-shadow: 0 0 10px 15px rgba(248, 81, 73, 0); }
+            100% { border-color: var(--accent-red); box-shadow: 0 0 0 0 rgba(248, 81, 73, 0); }
+        }
+        
+        @keyframes pulse-node {
+             0% { r: 10px; filter: drop-shadow(0 0 2px currentColor); }
+             50% { r: 13px; filter: drop-shadow(0 0 10px currentColor); }
+             100% { r: 10px; filter: drop-shadow(0 0 2px currentColor); }
+        }
+
+        @keyframes glitch {
+          2%, 64% { transform: translate(2px, 0) skew(0deg); }
+          4%, 60% { transform: translate(-2px, 0) skew(0deg); }
+          62% { transform: translate(0, 0) skew(5deg); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="phoronomic-engine">
+        
+        <!-- ======================================= -->
+        <!-- ==        CONTROL & FEEDBACK         == -->
+        <!-- ======================================= -->
+        <aside id="control-panel">
+            <h1><span class="icon">🧭</span> PHORONOMIC ENGINE</h1>
+            <p id="engine-tagline">Write time like a sculptor carves stone.</p>
+            
+            <div class="user-guide">
+                <p><strong>Use:</strong> For speculative fiction, game writers, ceremonial planners.</p>
+                <p><strong>Equivalent:</strong> Chrono-symbolic plot designer.</p>
+            </div>
+
+            <section>
+                <h2>EVENT PALETTE</h2>
+                <div id="event-palette" class="event-palette">
+                    <!-- Event chips will be generated by JS -->
+                </div>
+            </section>
+
+            <section class="feedback-panel">
+                <h3>ANALYSIS :: <span id="selected-event-name">[No Event Selected]</span></h3>
+                <div class="metric">
+                    <span class="metric-label">NARRATIVE STRETCH</span>
+                    <span class="metric-value" id="stretch-value">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">MYTH DENSITY</span>
+                    <span class="metric-value" id="density-value">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">REPETITION ECHO</span>
+                    <span class="metric-value" id="echo-value">--</span>
+                </div>
+            </section>
+            
+            <section id="system-status">
+                <h2>SYSTEM STATUS</h2>
+                <div id="tautology-warning" class="warning-box">
+                    <div class="warning-title tautology">!! NARRATIVE TAUTOLOGY</div>
+                    <p>Event is its own cause and effect without progression. The timeline is eating itself.</p>
+                </div>
+                <div id="loop-warning" class="warning-box">
+                    <div class="warning-title loop">!! CAUSAL LOOP THREAT</div>
+                    <p>A closed causal loop has formed. Paradox potential is high. Events are locked in a fatalistic cycle.</p>
+                </div>
+            </section>
+        </aside>
+
+        <!-- ======================================= -->
+        <!-- ==          GUI WORKSPACE            == -->
+        <!-- ======================================= -->
+        <main id="gui-workspace">
+            <svg id="spiral-canvas"></svg>
+            <div id="instructions">
+                <strong>[Drag]</strong> events from the palette onto the spiral.<br/>
+                An event's ring position determines its mythic weight, not chronology.<br/>
+                <strong>[Click]</strong> a placed event to analyze its causal properties.
+            </div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // =======================================
+    // ==         INITIAL DATA            ==
+    // =======================================
+    const POTENTIAL_EVENTS = [
+        { id: 'evt01', name: 'The Anomaly Appears', text: 'Anomaly', causes: ['evt02', 'evt05'], keywords: ['anomaly'] },
+        { id: 'evt02', name: 'First Contact Protocol', text: 'Contact', causes: ['evt03', 'evt04'], keywords: ['contact', 'protocol'] },
+        { id: 'evt03', name: 'The Signal Decoded', text: 'Signal', causes: ['evt06'], keywords: ['signal', 'message'] },
+        { id: 'evt04', name: 'A Ship Vanishes', text: 'Vanish', causes: ['evt07'], keywords: ['ship', 'vanish'] },
+        { id: 'evt05', name: 'Ancient Prophecy Found', text: 'Prophecy', causes: ['evt03'], keywords: ['prophecy', 'ancient'] },
+        { id: 'evt06', name: 'The Gate Opens', text: 'Gate', causes: ['evt08', 'evt10'], keywords: ['gate', 'open'] },
+        { id: 'evt07', name: 'A Hero is Exiled', text: 'Exile', causes: ['evt09'], keywords: ['hero', 'exile'] },
+        { id: 'evt08', name: 'The Timestream Fractures', text: 'Fracture', causes: ['evt01'], keywords: ['time', 'fracture'] }, // This can cause a loop
+        { id: 'evt09', name: 'The Exile Returns', text: 'Return', causes: ['evt06'], keywords: ['hero', 'return'] },
+        { id: 'evt10', name: 'The Last Message Sent', text: 'Message', causes: ['evt10'], keywords: ['message', 'last'] }, // This can cause a tautology
+    ];
+
+    // =======================================
+    // ==        DOM & SVG SETUP          ==
+    // =======================================
+    const palette = document.getElementById('event-palette');
+    const svg = document.getElementById('spiral-canvas');
+    const { width, height } = svg.getBoundingClientRect();
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    const feedbackName = document.getElementById('selected-event-name');
+    const stretchValue = document.getElementById('stretch-value');
+    const densityValue = document.getElementById('density-value');
+    const echoValue = document.getElementById('echo-value');
+    const tautologyWarning = document.getElementById('tautology-warning');
+    const loopWarning = document.getElementById('loop-warning');
+
+    let placedEvents = {}; // { id: { data, x, y, angle, radius, element }, ... }
+    let selectedEventId = null;
+
+    // --- Create SVG Groups for layering
+    const arcGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    svg.appendChild(arcGroup);
+    svg.appendChild(nodeGroup);
+    
+    // =======================================
+    // ==      SPIRAL GENERATION          ==
+    // =======================================
+    const spiral = {
+        points: [],
+        path: document.createElementNS('http://www.w3.org/2000/svg', 'path'),
+        a: 0, // start radius from center
+        b: 35, // distance between arms
+        revolutions: 4,
+    };
+
+    function generateSpiral() {
+        const totalAngle = spiral.revolutions * 2 * Math.PI;
+        let d = `M ${centerX} ${centerY}`;
+        
+        for (let angle = 0; angle <= totalAngle; angle += 0.05) {
+            const radius = spiral.a + spiral.b * angle;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            spiral.points.push({ x, y, angle, radius });
+            d += ` L ${x} ${y}`;
+        }
+        spiral.path.setAttribute('d', d);
+        spiral.path.setAttribute('class', 'spiral-path');
+        svg.insertBefore(spiral.path, arcGroup);
+    }
+    
+    function getClosestSpiralPoint(x, y) {
+        let closest = null;
+        let minDistance = Infinity;
+        for (const point of spiral.points) {
+            const distance = Math.sqrt((point.x - x)**2 + (point.y - y)**2);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closest = point;
+            }
+        }
+        return closest;
+    }
+
+    // =======================================
+    // ==    DRAG & DROP IMPLEMENTATION     ==
+    // =======================================
+    function initializePalette() {
+        palette.innerHTML = '';
+        POTENTIAL_EVENTS.forEach(eventData => {
+            const chip = document.createElement('div');
+            chip.className = 'event-chip';
+            chip.draggable = true;
+            chip.textContent = eventData.name;
+            chip.dataset.eventId = eventData.id;
+            
+            chip.addEventListener('dragstart', (e) => {
+                if (chip.classList.contains('used')) {
+                    e.preventDefault();
+                    return;
+                }
+                e.dataTransfer.setData('text/plain', eventData.id);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            palette.appendChild(chip);
+        });
+    }
+
+    svg.addEventListener('dragover', (e) => e.preventDefault());
+
+    svg.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const eventId = e.dataTransfer.getData('text/plain');
+        if (!eventId || placedEvents[eventId]) return;
+
+        const eventData = POTENTIAL_EVENTS.find(ev => ev.id === eventId);
+        const svgRect = svg.getBoundingClientRect();
+        const dropX = e.clientX - svgRect.left;
+        const dropY = e.clientY - svgRect.top;
+
+        const spiralPoint = getClosestSpiralPoint(dropX, dropY);
+        
+        placeEvent(eventId, eventData, spiralPoint);
+        
+        // Mark chip as used
+        const chip = palette.querySelector(`[data-event-id="${eventId}"]`);
+        if (chip) chip.classList.add('used');
+    });
+
+    // =======================================
+    // ==     RENDERING & STATE MGMT        ==
+    // =======================================
+    function placeEvent(id, data, pos) {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'event-node');
+        g.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+        
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('class', 'event-node-circle');
+        circle.setAttribute('r', 10);
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('class', 'event-node-text');
+        text.setAttribute('y', 20);
+        text.textContent = data.text;
+        
+        g.appendChild(circle);
+        g.appendChild(text);
+        nodeGroup.appendChild(g);
+
+        g.addEventListener('click', () => selectEvent(id));
+
+        placedEvents[id] = { id, data, ...pos, element: g };
+        
+        redrawArcs();
+        checkForAnomalies();
+    }
+    
+    function redrawArcs() {
+        arcGroup.innerHTML = '';
+        for (const sourceId in placedEvents) {
+            const sourceEvent = placedEvents[sourceId];
+            sourceEvent.data.causes.forEach(targetId => {
+                if (placedEvents[targetId]) {
+                    const targetEvent = placedEvents[targetId];
+                    drawTensionArc(sourceEvent, targetEvent);
+                }
+            });
+        }
+    }
+
+    function drawTensionArc(source, target) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const dr = Math.sqrt(dx * dx + dy * dy);
+        
+        // Calculate a control point to make the arc curve away from the center
+        const mx = (source.x + target.x) / 2;
+        const my = (source.y + target.y) / 2;
+        const mcx = mx - centerX;
+        const mcy = my - centerY;
+        const mDist = Math.sqrt(mcx*mcx + mcy*mcy);
+        
+        const controlOffset = 0.3; // How much the arc bulges
+        const cx = mx + controlOffset * -mcy * (dr / mDist);
+        const cy = my + controlOffset * mcx * (dr / mDist);
+
+        const d = `M ${source.x} ${source.y} Q ${cx} ${cy} ${target.x} ${target.y}`;
+        path.setAttribute('d', d);
+        
+        // Determine tension based on "stretch"
+        const stretch = Math.abs(target.radius - source.radius);
+        let tensionClass = 'low';
+        if (stretch > 200) tensionClass = 'high';
+        else if (stretch > 100) tensionClass = 'medium';
+
+        path.setAttribute('class', `tension-arc ${tensionClass}`);
+        arcGroup.appendChild(path);
+    }
+
+    function selectEvent(id) {
+        if (selectedEventId) {
+            placedEvents[selectedEventId]?.element.querySelector('.event-node-circle').classList.remove('selected');
+        }
+        selectedEventId = id;
+        const event = placedEvents[id];
+        if (event) {
+            event.element.querySelector('.event-node-circle').classList.add('selected');
+            updateFeedbackPanel(event);
+        }
+    }
+
+    // =======================================
+    // ==       ANALYSIS & FEEDBACK       ==
+    // =======================================
+    function updateFeedbackPanel(event) {
+        feedbackName.textContent = event.data.name;
+
+        // 1. Narrative Stretch: Avg distance of causal links
+        let totalStretch = 0, linkCount = 0;
+        event.data.causes.forEach(targetId => {
+            if (placedEvents[targetId]) {
+                totalStretch += Math.abs(event.radius - placedEvents[targetId].radius);
+                linkCount++;
+            }
+        });
+        const avgStretch = linkCount > 0 ? totalStretch / linkCount : 0;
+        stretchValue.textContent = Math.round(avgStretch);
+
+        // 2. Myth Density: Number of incoming/outgoing connections
+        let density = linkCount; // outgoing
+        for (const id in placedEvents) {
+            if (placedEvents[id].data.causes.includes(event.id)) {
+                density++;
+            }
+        }
+        densityValue.textContent = density;
+
+        // 3. Repetition Echo: Simple keyword overlap check
+        let echo = 0;
+        const myKeywords = new Set(event.data.keywords);
+        for (const id in placedEvents) {
+            if (id !== event.id) {
+                placedEvents[id].data.keywords.forEach(kw => {
+                    if (myKeywords.has(kw)) echo++;
+                });
+            }
+        }
+        echoValue.textContent = echo;
+    }
+
+    // =======================================
+    // ==        ANOMALY DETECTION        ==
+    // =======================================
+    function checkForAnomalies() {
+        // Reset all warnings first
+        tautologyWarning.classList.remove('active');
+        loopWarning.classList.remove('active');
+        document.querySelectorAll('.event-node-circle').forEach(c => {
+            c.classList.remove('tautology-threat', 'loop-threat');
+        });
+
+        let loopFound = false;
+        const allPlacedIds = Object.keys(placedEvents);
+
+        // --- Tautology Check (Event causes itself directly)
+        for (const id of allPlacedIds) {
+            const event = placedEvents[id];
+            if (event.data.causes.includes(id)) {
+                tautologyWarning.classList.add('active');
+                event.element.querySelector('.event-node-circle').classList.add('tautology-threat');
+            }
+        }
+        
+        // --- Causal Loop Check (A->B->C->A)
+        for (const startId of allPlacedIds) {
+            const path = [startId];
+            const visited = new Set([startId]);
+            if (findLoop(startId, visited, path)) {
+                loopFound = true;
+                loopWarning.classList.add('active');
+                // Highlight all nodes in the detected loop
+                path.forEach(nodeId => {
+                    placedEvents[nodeId]?.element.querySelector('.event-node-circle').classList.add('loop-threat');
+                });
+                break; // Stop after finding the first loop
+            }
+        }
+    }
+
+    function findLoop(currentId, visited, path) {
+        const event = placedEvents[currentId];
+        if (!event) return false;
+        
+        for (const targetId of event.data.causes) {
+            if (!placedEvents[targetId]) continue;
+
+            if (path[0] === targetId) { // We found a loop back to the start
+                path.push(targetId);
+                return true;
+            }
+            if (!visited.has(targetId)) {
+                visited.add(targetId);
+                path.push(targetId);
+                if (findLoop(targetId, visited, path)) {
+                    return true;
+                }
+                path.pop(); // Backtrack
+            }
+        }
+        return false;
+    }
+
+
+    // =======================================
+    // ==         INITIALIZATION          ==
+    // =======================================
+    function init() {
+        console.log("Initializing Phoronomic Engine...");
+        generateSpiral();
+        initializePalette();
+        console.log("Engine online. Awaiting chrono-symbolic input.");
+    }
+
+    init();
+});
+</script>
+</body>
+</html>

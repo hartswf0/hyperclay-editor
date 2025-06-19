@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUSE :: Framework for Universal Symbolic Encoding</title>
+    <style>
+        :root {
+            --font-primary: 'Courier New', Courier, monospace;
+            --font-secondary: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --color-background: #f4f0e8; /* Manila folder light beige */
+            --color-text-primary: #333;
+            --color-text-secondary: #555;
+            --color-border: #d3c0a0; /* Manila folder darker edge */
+            --color-header-bg: #e8e0d0; /* Slightly darker beige for headers */
+            --color-content-bg: #fffef8; /* Lighter beige for content area */
+
+            /* Encoding Schema Colors */
+            --color-ms-gm: #4A90E2;      /* Blue - GENOMIRE */
+            --color-ms-fu: #F5A623;      /* Orange - FUSE */
+            --color-ms-ecd: #7ED321;     /* Green - ECD */
+            --color-ms-holosomes: #BD10E0;/* Purple - HOLOSOMES */
+            --color-ms-incubator: #40826D; /* Viridian Green/Dark Teal - R&D INCUBATOR */
+            --color-ms-default: #4A4A4A; /* Dark Grey */
+
+            /* Symbol Cluster Colors (can be shades/tints of Encoding Schemas or distinct) */
+            /* GENOMIRE */
+            --color-cg-gm-s: #50E3C2;     /* Teal */
+            --color-cg-gm-f: #6CB2E2;     /* Lighter Blue */
+            --color-cg-gs-gg: #B8E986;   /* Light Green */
+            /* FUSE */
+            --color-cg-fu-i: #F8E71C;     /* Yellow */
+            --color-cg-fu-c: #F7B74A;     /* Lighter Orange */
+            /* ECD */
+            --color-cg-ecd-a: #9013FE;    /* Violet */
+            --color-cg-ecd-c: #D0021B;    /* Red */
+            --color-cg-ecd-o: #417505;    /* Dark Green */
+            --color-cg-ecd-r: #E91E63;    /* Pink */
+            --color-cg-ecd-h: #00BCD4;    /* Cyan */
+            /* HOLOSOMES */
+            --color-cg-sigmados: #D06EE0; /* Lighter Purple */
+            --color-cg-owe: #8B572A;      /* Brown */
+            /* ORPHANED */
+            --color-cg-cs: #2F4F4F;       /* Dark Slate Grey */
+            --color-cg-mi: #FF69B4;       /* Hot Pink */
+            --color-cg-g: #A9A9A9;        /* Dark Grey */
+            --color-cg-default: #666;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background-color: var(--color-background);
+            color: var(--color-text-primary);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--color-content-bg);
+            padding: 20px;
+            border: 1px solid var(--color-border);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+            border-radius: 3px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--color-border);
+            position: relative; /* For positioning the icon button */
+        }
+
+        .gfehr-viewer-link {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: inline-block;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        .gfehr-viewer-link:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        .gfehr-viewer-link svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--color-text-secondary);
+            display: block;
+        }
+
+        header h1 {
+            font-family: var(--font-secondary);
+            font-size: 2.2em; /* Slightly reduced for balance */
+            color: #4a4a4a;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+        header .subtitle {
+            font-size: 1.0em;
+            color: var(--color-text-secondary);
+            margin-top: 5px;
+            font-family: var(--font-primary);
+        }
+
+        .legend-container {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: var(--color-header-bg);
+            border: 1px dashed var(--color-border);
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .legend-container h2 {
+            margin-top: 0;
+            font-family: var(--font-secondary);
+            font-size: 1.3em;
+            color: var(--color-text-primary);
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 5px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-color-swatch {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            border: 1px solid var(--color-text-primary);
+            flex-shrink: 0;
+        }
+        
+        .legend-symbol {
+            font-size: 1.1em;
+            min-width: 25px; 
+            text-align: center;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .encoding-schema {
+            margin-bottom: 25px;
+            border: 1px solid var(--color-border);
+            border-radius: 3px;
+            background-color: #fff; /* White background for each macro section */
+        }
+
+        .encoding-schema-header {
+            background-color: var(--color-header-bg);
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--color-border);
+            cursor: pointer;
+            display: flex; /* For alignment of title and toggle */
+            align-items: center;
+            position: relative; /* For the color band */
+        }
+        
+        /* Genome-style band on the left of the Encoding Schema header */
+        .encoding-schema-header::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 10px; /* Width of the color band */
+            background-color: var(--encoding-schema-color, var(--color-ms-default)); /* Set by JS */
+        }
+
+        .encoding-schema-header h2 {
+            margin: 0;
+            font-family: var(--font-secondary);
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            flex-grow: 1; /* Allow title to take space */
+            padding-left: 15px; /* Space for the ::before band */
+        }
+        
+        .encoding-schema-toggle {
+            margin-left: 15px;
+            font-size: 0.9em;
+            font-family: var(--font-primary);
+            color: var(--color-text-secondary);
+            user-select: none;
+        }
+
+        .encoding-schema-content {
+            padding: 0px 15px 15px 15px;
+        }
+
+        .symbol-cluster {
+            margin-top: 15px;
+            padding-left: 10px; 
+            border-left: 3px solid var(--symbol-cluster-color, var(--color-cg-default)); /* Set by JS */
+        }
+
+        .symbol-cluster-header h3 {
+            font-family: var(--font-secondary);
+            font-size: 1.1em;
+            color: var(--color-text-secondary);
+            margin: 10px 0 8px 0;
+            padding-left: 5px;
+            /* display: flex; */ /* Removed to simplify, color band is border-left of parent */
+            /* align-items: center; */
+        }
+
+        /* Removed .codon-group-color-band as it's now part of .codon-group border-left */
+
+        .file-list {
+            list-style-type: none;
+            padding-left: 10px; 
+        }
+
+        .file-item {
+            margin-bottom: 6px;
+            padding: 4px 0;
+            border-bottom: 1px dotted #eee;
+            display: flex;
+            align-items: baseline;
+            font-size: 0.95em;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-item a {
+            text-decoration: none;
+            color: var(--color-text-primary);
+            display: flex;
+            flex-grow: 1;
+        }
+        .file-item a:hover .file-item-name {
+            text-decoration: underline;
+            color: var(--color-ms-fu); /* Example hover color */
+        }
+        .file-item-name {
+            font-weight: bold;
+            min-width: 180px; /* Adjust as needed */
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .file-item-title {
+            font-size: 0.9em;
+            color: var(--color-text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-grow: 1;
+        }
+        
+        .file-item-note {
+            font-size: 0.85em;
+            color: #777;
+            margin-left: 10px;
+            font-style: italic;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Framework for Universal Symbolic Encoding</h1>
+            <p class="subtitle">A foundational project to map and operationalize the symbolic structure of human meaning.<br>To build the symbolic infrastructure necessary for machines to understand, generate, and translate human-level narrative, ritual, memory, and affect—across all media.</p>
+            <a href="./ip-flex-free-10.html" title="Open GFEHR Visual Viewer" class="gfehr-viewer-link">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+            </a>
+        </header>
+
+        <div class="legend-container" id="legend">
+            <h2>Legend :: Encoding Schemas</h2>
+            <!-- Legend will be populated by JavaScript -->
+        </div>
+
+        <div id="directory-listing">
+            <!-- File listing will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const directoryListingElement = document.getElementById('directory-listing');
+            const legendElement = document.getElementById('legend');
+
+            const encodingSchemaStyles = {
+                "The GENOMIRE Project (GM)": { color: 'var(--color-ms-gm)', symbol: '🔬' },
+                "The FUSE Project (FU)": { color: 'var(--color-ms-fu)', symbol: '🔗' },
+                "Esoterica Cybernetics Division (ECD)": { color: 'var(--color-ms-ecd)', symbol: '🔮' },
+                "The HOLOSOMES (Unified Environments)": { color: 'var(--color-ms-holosomes)', symbol: '🏛️' },
+                "R&D INCUBATOR": { color: 'var(--color-ms-incubator)', symbol: '💡' },
+                "default": { color: 'var(--color-ms-default)', symbol: '📁' }
+            };
+
+            const symbolClusterColors = {
+                "GENOMIRE SCOPE (GM-S)": "var(--color-cg-gm-s)",
+                "GENOMIRE FIELD (GM-F)": "var(--color-cg-gm-f)",
+                "GENOSCOPE / GENOMA (GS/GG)": "var(--color-cg-gs-gg)",
+                "FUSE INTERFACES (FU-I)": "var(--color-cg-fu-i)",
+                "FUSE CONCEPTS (FU-C)": "var(--color-cg-fu-c)",
+                "ECD ANALYSIS ENGINES (ECD-A)": "var(--color-cg-ecd-a)",
+                "ECD COMPOSITION & TRANSLATION (ECD-C)": "var(--color-cg-ecd-c)",
+                "ECD ONTOLOGICAL INTERFACES (ECD-O)": "var(--color-cg-ecd-o)",
+                "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)": "var(--color-cg-ecd-r)",
+                "ECD HARMONIZERS (ECD-H)": "var(--color-cg-ecd-h)",
+                "SIGMADOS (Operating System)": "var(--color-cg-sigmados)",
+                "SIGMATIC FORGE / OWE (Ontological Weaving Engine)": "var(--color-cg-owe)",
+                "CODONSYNTH (CS)": "var(--color-cg-cs)",
+                "MIRE (MI)": "var(--color-cg-mi)",
+                "GENERIC / UNTITLED (G)": "var(--color-cg-g)",
+                "default": "var(--color-cg-default)"
+            };
+
+            try {
+                const [titlesResponse, ontologyResponse] = await Promise.all([
+                    fetch('./file_titles.json'),
+                    fetch('./project_ontology.json')
+                ]);
+
+                if (!titlesResponse.ok) throw new Error(`HTTP error! status: ${titlesResponse.status} for file_titles.json`);
+                if (!ontologyResponse.ok) throw new Error(`HTTP error! status: ${ontologyResponse.status} for project_ontology.json`);
+
+                const fileTitles = await titlesResponse.json();
+                const projectOntology = await ontologyResponse.json();
+                
+                const legendFragment = document.createDocumentFragment();
+                projectOntology.macro_structures_order.forEach(msName => {
+                    const style = encodingSchemaStyles[msName] || encodingSchemaStyles["default"];
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    
+                    const swatch = document.createElement('div');
+                    swatch.className = 'legend-color-swatch';
+                    swatch.style.backgroundColor = style.color;
+                    legendItem.appendChild(swatch);
+
+                    const symbolSpan = document.createElement('span');
+                    symbolSpan.className = 'legend-symbol';
+                    symbolSpan.textContent = style.symbol;
+                    legendItem.appendChild(symbolSpan);
+
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = msName;
+                    legendItem.appendChild(nameSpan);
+                    
+                    legendFragment.appendChild(legendItem);
+                });
+                // Clear previous legend items if any, before appending new ones
+                while (legendElement.firstChild && legendElement.firstChild.nodeName !== 'H2') {
+                    legendElement.removeChild(legendElement.firstChild);
+                }
+                const legendTitleH2 = legendElement.querySelector('h2');
+                legendElement.innerHTML = ''; // Clear all including H2
+                if(legendTitleH2) legendElement.appendChild(legendTitleH2); // Re-add H2 if it existed
+                else {
+                    const newH2 = document.createElement('h2');
+                    newH2.textContent = 'Legend :: Encoding Schemas';
+                    legendElement.appendChild(newH2);
+                }
+                legendElement.appendChild(legendFragment);
+
+                const filesByEncodingSchema = {};
+                for (const fileName in projectOntology.files) {
+                    const ontologyData = projectOntology.files[fileName];
+                    if (!ontologyData) continue;
+
+                    const schemaName = ontologyData.macro_structure;
+                    if (!filesByEncodingSchema[schemaName]) {
+                        filesByEncodingSchema[schemaName] = {};
+                    }
+                    const symbolClusterName = ontologyData.codon_group;
+                    if (!filesByEncodingSchema[schemaName][symbolClusterName]) {
+                        filesByEncodingSchema[schemaName][symbolClusterName] = [];
+                    }
+                    filesByEncodingSchema[schemaName][symbolClusterName].push({
+                        name: fileName,
+                        title: fileTitles[fileName] || `Title not found for ${fileName.replace('.html', '')}`,
+                        ontology: ontologyData
+                    });
+                }
+
+                const mainFragment = document.createDocumentFragment();
+
+                projectOntology.macro_structures_order.forEach(schemaName => {
+                    const schemaData = filesByEncodingSchema[schemaName];
+                    if (!schemaData) return;
+
+                    const schemaStyle = encodingSchemaStyles[schemaName] || encodingSchemaStyles["default"];
+
+                    const schemaElement = document.createElement('div');
+                    schemaElement.className = 'encoding-schema';
+                    
+                    const schemaHeader = document.createElement('div');
+                    schemaHeader.className = 'encoding-schema-header';
+                    schemaHeader.style.setProperty('--encoding-schema-color', schemaStyle.color);
+
+                    const schemaHeaderH2 = document.createElement('h2');
+                    
+                    const schemaSymbolSpan = document.createElement('span');
+                    schemaSymbolSpan.className = 'legend-symbol'; 
+                    schemaSymbolSpan.textContent = schemaStyle.symbol + ' ';
+                    schemaHeaderH2.appendChild(schemaSymbolSpan);
+
+                    schemaHeaderH2.appendChild(document.createTextNode(schemaName));
+                                        
+                    schemaHeader.appendChild(schemaHeaderH2);
+                    
+                    const toggleSpan = document.createElement('span');
+                    toggleSpan.className = 'encoding-schema-toggle';
+                    toggleSpan.textContent = '[−]'; 
+                    schemaHeader.appendChild(toggleSpan); // Append toggle to header, not H2
+
+                    schemaElement.appendChild(schemaHeader);
+
+                    const schemaContentElement = document.createElement('div');
+                    schemaContentElement.className = 'encoding-schema-content';
+
+                    const orderedSymbolClusters = projectOntology.codon_groups_order[schemaName] || Object.keys(schemaData).sort();
+
+                    orderedSymbolClusters.forEach(symbolClusterName => {
+                        const clusterFiles = schemaData[symbolClusterName];
+                        if (!clusterFiles || clusterFiles.length === 0) return;
+
+                        const symbolClusterElement = document.createElement('div');
+                        symbolClusterElement.className = 'symbol-cluster';
+                        symbolClusterElement.style.setProperty('--symbol-cluster-color', symbolClusterColors[symbolClusterName] || symbolClusterColors["default"]);
+
+                        const symbolClusterHeader = document.createElement('div');
+                        symbolClusterHeader.className = 'symbol-cluster-header';
+                        const symbolClusterHeaderH3 = document.createElement('h3');
+                        symbolClusterHeaderH3.textContent = symbolClusterName;
+                        symbolClusterHeader.appendChild(symbolClusterHeaderH3);
+                        symbolClusterElement.appendChild(symbolClusterHeader);
+
+                        const ul = document.createElement('ul');
+                        ul.className = 'file-list';
+
+                        clusterFiles.sort((a, b) => a.name.localeCompare(b.name));
+
+                        clusterFiles.forEach(fileData => {
+                            if (fileData.name === 'index.html') return;
+
+                            const listItem = document.createElement('li');
+                            listItem.className = 'file-item';
+
+                            const link = document.createElement('a');
+                            link.href = `./${fileData.name}`;
+                            link.target = '_blank';
+
+                            const fileNameSpan = document.createElement('span');
+                            fileNameSpan.className = 'file-item-name';
+                            fileNameSpan.textContent = fileData.name.replace('.html', '');
+                            link.appendChild(fileNameSpan);
+
+                            const fileTitleSpan = document.createElement('span');
+                            fileTitleSpan.className = 'file-item-title';
+                            fileTitleSpan.textContent = fileData.title;
+                            fileTitleSpan.title = fileData.title; 
+                            link.appendChild(fileTitleSpan);
+
+                            if (fileData.ontology && fileData.ontology.note) {
+                                const noteSpan = document.createElement('span');
+                                noteSpan.className = 'file-item-note';
+                                noteSpan.textContent = `(${fileData.ontology.note})`;
+                                link.appendChild(noteSpan);
+                            }
+
+                            listItem.appendChild(link);
+                            ul.appendChild(listItem);
+                        });
+                        symbolClusterElement.appendChild(ul);
+                        schemaContentElement.appendChild(symbolClusterElement);
+                    });
+                    schemaElement.appendChild(schemaContentElement);
+                    mainFragment.appendChild(schemaElement);
+                    
+                    schemaHeader.addEventListener('click', (e) => {
+                        // Prevent toggle if click was on a link inside header (if any added later)
+                        if (e.target.tagName === 'A') return;
+                        const isHidden = schemaContentElement.style.display === 'none';
+                        schemaContentElement.style.display = isHidden ? '' : 'none';
+                        toggleSpan.textContent = isHidden ? '[−]' : '[+]';
+                    });
+                });
+
+                directoryListingElement.innerHTML = ''; // Clear previous content
+                directoryListingElement.appendChild(mainFragment);
+
+            } catch (error) {
+                console.error('Error loading or processing project data:', error);
+                directoryListingElement.innerHTML = '<li>Error loading file directory. Please check console for details.</li>';
+                const legendTitleH2 = legendElement.querySelector('h2');
+                legendElement.innerHTML = '';
+                if(legendTitleH2) legendElement.appendChild(legendTitleH2);
+                legendElement.appendChild(document.createTextNode('Error loading legend details.'));
+            }
+        });
+    </script>
+
+    <hr>
+    <section id="ip-flex-free-versions">
+        <h2>IP-Flex-Free Viewer Versions</h2>
+        <p>These are various iterations of the 'ip-flex-free' genomic viewer, showcasing different layout and feature experiments.</p>
+        <ul>
+            <li><a href="./ip-flex-free-02.html">ip-flex-free-02.html</a></li>
+            <li><a href="./ip-flex-free-03.html">ip-flex-free-03.html</a></li>
+            <li><a href="./ip-flex-free-04.html">ip-flex-free-04.html</a></li>
+            <li><a href="./ip-flex-free-05.html">ip-flex-free-05.html</a></li>
+            <li><a href="./ip-flex-free-06.html">ip-flex-free-06.html</a></li>
+            <li><a href="./ip-flex-free-07.html">ip-flex-free-07.html</a></li>
+            <li><a href="./ip-flex-free-08.html">ip-flex-free-08.html</a></li>
+            <li><a href="./ip-flex-free-09.html">ip-flex-free-09.html</a></li>
+            <li><a href="./ip-flex-free-10.html">ip-flex-free-10.html</a></li>
+        </ul>
+    </section>
+</body>
+</html>

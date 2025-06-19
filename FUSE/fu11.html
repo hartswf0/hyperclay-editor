@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // NOETIC SYNTHESIZER // 78/B [AUTHORIZED PERSONNEL ONLY]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: NOETIC SYNTHESIZER, CHAMBER-SCOPE 78/B
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   CONCEPT: A deeply integrated, non-obvious interface from a 1978/2070 perspective.
+        *   The entire artifact is a single, cohesive instrument for achieving "Noetic Convergence"
+        *   through tactile, intuitive manipulation of arcane parameters.
+        */
+
+        :root {
+            --ecd-wood: #4d3a2a;
+            --ecd-brushed-metal: #c5c8c6;
+            --ecd-bakelite: #3a2f2f;
+            --ecd-text: #222;
+            --ecd-screen-bg: #101210;
+            --ecd-phosphor: #ff9933;
+            --ecd-phosphor-glow: rgba(255, 153, 51, 0.7);
+            --font-main: 'Share Tech Mono', monospace;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes pulse-stable {
+            0%, 100% { stroke: var(--ecd-phosphor); filter: drop-shadow(0 0 4px var(--ecd-phosphor-glow)); }
+            50% { stroke: #fff; filter: drop-shadow(0 0 12px var(--ecd-phosphor-glow)); }
+        }
+        @keyframes text-flicker {
+            0%, 100% { opacity: 0.95; }
+            50% { opacity: 1; }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: var(--font-main);
+            color: var(--ecd-text);
+            user-select: none;
+        }
+
+        #synthesizer-chassis {
+            width: 1200px;
+            height: 800px;
+            background-color: var(--ecd-wood);
+            border: 3px solid #000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.5);
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+        }
+        
+        .main-instrument-panel {
+            grid-column: 1 / 2;
+            grid-row: 1 / 3;
+            background-color: var(--ecd-brushed-metal);
+            border: 2px solid #555;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.4);
+            display: grid;
+            grid-template-rows: 600px 1fr;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .telemetry-panel {
+            grid-column: 2 / 3;
+            grid-row: 1 / 3;
+            background-color: var(--ecd-bakelite);
+            padding: 15px;
+            box-shadow: inset 0 0 10px #000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- CHAMBER-SCOPE (Center Display & Controls) --- */
+        #chamber-scope-unit {
+            position: relative;
+            display: grid;
+            place-items: center;
+        }
+        #scope-display {
+            width: 550px;
+            height: 550px;
+            background-color: var(--ecd-screen-bg);
+            border-radius: 50%;
+            border: 15px solid #282828;
+            box-shadow: inset 0 0 30px #000, 0 0 10px rgba(0,0,0,0.5);
+        }
+        #scope-svg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .knider-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 10px;
+            width: 80px; /* Width of the control area */
+        }
+        .knider-label {
+            font-size: 0.7em;
+            color: #88aaff;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .knider-track {
+            width: 12px; /* Width of the slider track */
+            height: 150px; /* Height of the slider track */
+            background-color: #1a1a2e; /* Darker track background */
+            border-radius: 6px;
+            position: relative;
+            cursor: pointer;
+            border: 1px solid #303050;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.4);
+        }
+        .knider-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, #4a00e0, #8e2de2, #c96dd8);
+            border-radius: 6px;
+            box-shadow: 0 0 8px #8e2de2;
+            transition: height 0.05s ease-out;
+        }
+        .knider-thumb {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 36px; /* Thumb diameter */
+            height: 36px;
+            background-color: #e0e0ff;
+            border-radius: 50%;
+            border: 2px solid #303050;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3), 0 0 10px rgba(150,150,255,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            color: #1a1a2e;
+            font-weight: bold;
+            cursor: grab;
+            user-select: none;
+            transition: bottom 0.05s ease-out;
+        }
+
+        /* --- SIGNATURE SELECTOR (Bottom Panel) --- */
+        #signature-selector {
+            background-color: #222;
+            padding: 15px;
+            border: 2px solid #555;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .toggle-switch-unit { text-align: center; }
+        .toggle-switch {
+            width: 30px;
+            height: 60px;
+            background-color: var(--ecd-brushed-metal);
+            border: 2px solid #111;
+            border-radius: 3px;
+            padding: 5px;
+            cursor: pointer;
+        }
+        .toggle-flick {
+            width: 100%;
+            height: 50%;
+            background-color: #585858;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            transition: transform 0.1s ease-in-out;
+        }
+        .toggle-switch.active .toggle-flick {
+            transform: translateY(100%);
+            background-color: var(--ecd-phosphor);
+        }
+        .toggle-switch-unit label { display: block; margin-top: 5px; color: var(--ecd-brushed-metal); }
+
+        /* --- TELEMETRY PANEL --- */
+        .panel-label {
+            text-align: center;
+            color: var(--ecd-brushed-metal);
+            margin-bottom: 10px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+            font-size: 1.2rem;
+        }
+        #telemetry-printout {
+            flex-grow: 1;
+            background-color: #c2bba8; /* Thermal paper color */
+            color: #333;
+            padding: 10px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            animation: text-flicker 3s infinite;
+        }
+        .log-entry.system { color: #00552b; }
+        .log-entry.warning { color: #880000; }
+        .log-entry.converged {
+            font-weight: bold;
+            color: #000;
+            background-color: var(--ecd-phosphor);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="synthesizer-chassis">
+        <div class="main-instrument-panel">
+            <div id="chamber-scope-unit">
+                <div id="scope-display"></div>
+                <svg id="scope-svg" viewbox="0 0 600 600">
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="3.5" result="coloredBlur"></feGaussianBlur>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"></feMergeNode>
+                                <feMergeNode in="SourceGraphic"></feMergeNode>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <path id="waveform" d="" stroke-width="1.5" stroke-linecap="round" fill="none" stroke="var(--ecd-phosphor)" filter="url(#glow)"></path>
+                    <g id="convergence-symbol" visibility="hidden">
+                        <circle cx="300" cy="300" r="150" stroke-width="4" fill="none" />
+                        <polygon points="300,150 429.9,375 170.1,375" stroke-width="4" fill="none" />
+                        <circle cx="300" cy="300" r="10" fill="currentColor" />
+                    </g>
+                </svg>
+                
+                <div class="knider-control" id="knider-coherence">
+                    <label class="knider-label" for="knider-coherence-track">COHERENCE</label>
+                    <div class="knider-track" id="knider-coherence-track">
+                        <div class="knider-fill"></div>
+                        <div class="knider-thumb">50%</div>
+                    </div>
+                </div>
+                <div class="knider-control" id="knider-stability">
+                    <label class="knider-label" for="knider-stability-track">STABILITY</label>
+                    <div class="knider-track" id="knider-stability-track">
+                        <div class="knider-fill"></div>
+                        <div class="knider-thumb">75%</div>
+                    </div>
+                </div>
+            </div>
+            <div id="signature-selector">
+                <!-- Toggles will be generated here -->
+            </div>
+        </div>
+
+        <div class="telemetry-panel">
+            <h2 class="panel-label">TELEMETRY PRINTOUT</h2>
+            <div id="telemetry-printout"></div>
+        </div>
+    </div>
+
+<script>
+const Synthesizer = {
+    // --- DOM Elements ---
+    elems: {
+        waveform: document.getElementById('waveform'),
+        convergenceSymbol: document.getElementById('convergence-symbol'),
+        selectorContainer: document.getElementById('signature-selector'),
+        telemetry: document.getElementById('telemetry-printout'),
+        kniderCoherenceTrack: document.getElementById('knider-coherence-track'),
+        kniderCoherenceThumb: document.getElementById('knider-coherence-track').querySelector('.knider-thumb'),
+        kniderCoherenceFill: document.getElementById('knider-coherence-track').querySelector('.knider-fill'),
+        kniderStabilityTrack: document.getElementById('knider-stability-track'),
+        kniderStabilityThumb: document.getElementById('knider-stability-track').querySelector('.knider-thumb'),
+        kniderStabilityFill: document.getElementById('knider-stability-track').querySelector('.knider-fill')
+    },
+    
+    // --- State ---
+    state: {
+        signatures: [],
+        selected: [],
+        controls: { alpha: 0.5, delta: 0.5, lambda: 0.5, zeta: 0.5 },
+        targetState: {}, // The "solution"
+        isEnergized: false,
+        isConverged: false,
+        time: 0,
+        animationFrame: null,
+        audio: { ctx: null, osc: null, gain: null },
+        activeKniderParam: null, // 'coherence' or 'stability'
+        kniderDragStartY: null, // For calculating drag delta
+        kniderInitialValue: null, // Value at mousedown
+        coherence: 50, // % 
+        stability: 75, // % 
+    },
+    
+    // --- Initialization ---
+    init() {
+        this.log("SYSTEM BOOT: ECD-78/B ONLINE.");
+        this.generateSignatures();
+        this.renderSelectorSwitches();
+        this.log("AWAITING EIGEN-SIGNATURE SELECTION (SELECT 2).");
+        
+        // Initialize Kniders
+        this.updateKniderVisuals('coherence', this.state.coherence);
+        this.updateKniderVisuals('stability', this.state.stability);
+
+        this.elems.kniderCoherenceTrack.addEventListener('mousedown', (e) => this._handleKniderMouseDown(e, 'coherence'));
+        this.elems.kniderStabilityTrack.addEventListener('mousedown', (e) => this._handleKniderMouseDown(e, 'stability'));
+    },
+    
+    generateSignatures() {
+        for (let i = 0; i < 8; i++) {
+            this.state.signatures.push({
+                id: i,
+                name: `SIG-0${i+1}`,
+                // Each signature has its own "correct" settings
+                targetState: {
+                    alpha: 0.1 + Math.random() * 0.8,
+                    delta: 0.1 + Math.random() * 0.8,
+                    lambda: 0.1 + Math.random() * 0.8,
+                    zeta: 0.45 + Math.random() * 0.1, // Damping is always tricky
+                }
+            });
+        }
+    },
+
+    renderSelectorSwitches() {
+        this.state.signatures.forEach(sig => {
+            const unit = document.createElement('div');
+            unit.className = 'toggle-switch-unit';
+            unit.innerHTML = `
+                <div class="toggle-switch" data-id="${sig.id}">
+                    <div class="toggle-flick"></div>
+                </div>
+                <label>${sig.name}</label>
+            `;
+            this.elems.selectorContainer.appendChild(unit);
+            unit.querySelector('.toggle-switch').addEventListener('click', () => this.toggleSignature(sig.id));
+        });
+    },
+
+    // --- Core Logic ---
+    toggleSignature(id) {
+        if (this.state.isConverged) return;
+
+        const switchEl = document.querySelector(`.toggle-switch[data-id="${id}"]`);
+        const index = this.state.selected.indexOf(id);
+
+        if (index > -1) {
+            this.state.selected.splice(index, 1);
+            switchEl.classList.remove('active');
+        } else {
+            if (this.state.selected.length < 2) {
+                this.state.selected.push(id);
+                switchEl.classList.add('active');
+            }
+        }
+        this.checkChamberState();
+    },
+
+    checkChamberState() {
+        if (this.state.selected.length === 2) {
+            if (!this.state.isEnergized) {
+                this.energizeChamber();
+            }
+        } else {
+            if (this.state.isEnergized) {
+                this.deEnergizeChamber();
+            }
+        }
+    },
+    
+    energizeChamber() {
+        this.log("CHAMBER ENERGIZED. RESONANCE FIELD ACTIVE.");
+        this.state.isEnergized = true;
+        
+        // Average the target states of the two selected signatures to create a new unique solution
+        const sig1 = this.state.signatures[this.state.selected[0]];
+        const sig2 = this.state.signatures[this.state.selected[1]];
+        this.state.targetState = {
+            alpha: (sig1.targetState.alpha + sig2.targetState.alpha) / 2,
+            delta: (sig1.targetState.delta + sig2.targetState.delta) / 2,
+            lambda: (sig1.targetState.lambda + sig2.targetState.lambda) / 2,
+            zeta: (sig1.targetState.zeta + sig2.targetState.zeta) / 2,
+        };
+
+        this.startAudio();
+        this.drawLoop();
+    },
+
+    deEnergizeChamber() {
+        this.log("FIELD COLLAPSED. AWAITING 2 SIGNATURES.", "warning");
+        this.state.isEnergized = false;
+        cancelAnimationFrame(this.state.animationFrame);
+        
+        // Hide chaotic path, show stable symbol
+        this.elems.waveform.setAttribute('d', '');
+        this.elems.convergenceSymbol.style.visibility = 'hidden';
+        this.elems.convergenceSymbol.style.color = '';
+        this.elems.convergenceSymbol.style.animation = '';
+        
+        // Set audio to a pure, stable tone
+        if (this.state.audio.ctx) {
+            this.state.audio.osc.frequency.setValueAtTime(220, this.state.audio.ctx.currentTime); // A4
+            this.state.audio.gain.gain.setValueAtTime(0.2, this.state.audio.ctx.currentTime);
+        }
+    },
+
+    // --- Drawing & Audio ---
+    drawLoop() {
+        if (!this.state.isEnergized) return;
+        
+        // Calculate deltas from target
+        let coherence = 0;
+        let stability = 0;
+        const c_alpha = 1 - Math.abs(this.state.controls.alpha - this.state.targetState.alpha);
+        const c_delta = 1 - Math.abs(this.state.controls.delta - this.state.targetState.delta);
+        const c_lambda = 1 - Math.abs(this.state.controls.lambda - this.state.targetState.lambda);
+        
+        coherence = ((c_alpha + c_delta + c_lambda) / 3) * 100;
+        stability = (1 - Math.abs(this.state.controls.zeta - this.state.targetState.zeta)) * 100;
+        
+        this.updateTelemetry(coherence, stability);
+
+        if (coherence > 98 && stability > 98 && !this.state.isConverged) {
+            this.achieveConvergence();
+        }
+
+        if (this.state.isConverged) return; // Stop drawing chaotic path if converged
+
+        // The math for the chaotic waveform
+        const c = this.state.controls;
+        const t = this.state.time;
+        let path = "M";
+        for (let i = 0; i < 200; i++) {
+            const p = i / 199;
+            const angle = p * Math.PI * 2 * (3 + c.alpha * 5);
+            const drift = 1 + c.lambda * 0.2 * Math.sin(t * 0.1);
+            
+            let r = Math.sin(angle * (2 + c.delta * 3)) * 250 * drift;
+            r += Math.cos(t + angle) * 50 * c.zeta;
+
+            const x = 300 + Math.cos(angle) * r;
+            const y = 300 + Math.sin(angle) * r;
+            path += `${x.toFixed(2)},${y.toFixed(2)} `;
+        }
+        this.elems.waveform.setAttribute('d', path);
+        
+        this.state.time += 0.02;
+        this.updateAudio(coherence, stability);
+        this.state.animationFrame = requestAnimationFrame(() => this.drawLoop());
+    },
+    
+    achieveConvergence() {
+        this.log("!! NOETIC CONVERGENCE ACHIEVED !!", "converged");
+        this.state.isConverged = true;
+        cancelAnimationFrame(this.state.animationFrame);
+        
+        // Lock controls visually
+        Object.values(this.elems.encoders).forEach(el => el.classList.add('disabled'));
+
+        // Hide chaotic path, show stable symbol
+        this.elems.waveform.setAttribute('d', '');
+        this.elems.convergenceSymbol.style.visibility = 'visible';
+        this.elems.convergenceSymbol.style.color = 'var(--ecd-phosphor)';
+        this.elems.convergenceSymbol.style.animation = 'pulse-stable 1.5s infinite';
+        
+        // Set audio to a pure, stable tone
+        if (this.state.audio.ctx) {
+            this.state.audio.osc.frequency.setValueAtTime(220, this.state.audio.ctx.currentTime); // A4
+            this.state.audio.gain.gain.setValueAtTime(0.2, this.state.audio.ctx.currentTime);
+        }
+    },
+    
+    startAudio() {
+        if (!this.state.audio.ctx) {
+            this.state.audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.state.audio.osc = this.state.audio.ctx.createOscillator();
+            this.state.audio.gain = this.state.audio.ctx.createGain();
+            this.state.audio.osc.type = 'sine';
+            this.state.audio.osc.connect(this.state.audio.gain);
+            this.state.audio.gain.connect(this.state.audio.ctx.destination);
+            this.state.audio.osc.start();
+        }
+    },
+    
+    stopAudio() {
+        if (this.state.audio.ctx) {
+            this.state.audio.ctx.close().then(() => {
+                this.state.audio.ctx = null;
+                this.state.audio.osc = null;
+                this.state.audio.gain = null;
+            });
+        }
+    },
+    
+    updateAudio(coherence, stability) {
+        if (this.state.audio.ctx) {
+            const baseFreq = 80;
+            const freq = baseFreq + (coherence * 2) + (Math.random() * (100 - coherence));
+            const vol = 0.05 + (stability / 100) * 0.1;
+            this.state.audio.osc.frequency.setTargetAtTime(freq, this.state.audio.ctx.currentTime, 0.05);
+            this.state.audio.gain.gain.setTargetAtTime(vol, this.state.audio.ctx.currentTime, 0.05);
+        }
+    },
+
+    // --- Utility ---
+    log(message, type = 'system') {
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = message;
+        this.elems.telemetry.appendChild(entry);
+        this.elems.telemetry.scrollTop = this.elems.telemetry.scrollHeight;
+    },
+    
+    updateTelemetry(coherence, stability) {
+        const lastEntry = this.elems.telemetry.lastChild;
+        const msg = `FIELD COHERENCE: ${coherence.toFixed(1)}%\n DAMPING STABILITY: ${stability.toFixed(1)}%`;
+        if (lastEntry && lastEntry.classList.contains('telemetry-data')) {
+            lastEntry.textContent = msg;
+        } else {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry telemetry-data';
+            entry.textContent = msg;
+            this.elems.telemetry.appendChild(entry);
+        }
+        this.elems.telemetry.scrollTop = this.elems.telemetry.scrollHeight;
+    }
+};
+
+Synthesizer.init();
+</script>
+</body>
+</html>

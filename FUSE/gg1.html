@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 GENOMA: Functional Genomic Interface</title>
+    <style>
+        /* --- CSS STYLING --- */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;700&display=swap');
+
+        :root {
+            --bg-color: #0a0a10;
+            --main-text-color: #e0e0e0;
+            --border-color: #2a2a3a;
+            --accent-color: #00faff;
+            --accent-glow: rgba(0, 250, 255, 0.3);
+            --mutation-color: #ff0055;
+            --mutation-glow: rgba(255, 0, 85, 0.3);
+            --intron-color: #444;
+            --font-family: 'Roboto Mono', monospace;
+            
+            /* Codon Colors */
+            --color-txt: #4caf50; /* Green */
+            --color-hpl: #2196f3; /* Blue */
+            --color-img: #ff9800; /* Orange */
+            --color-auc: #9c27b0; /* Purple */
+            --color-vid: #f44336; /* Red */
+            --color-cmt: #795548; /* Brown */
+            --color-sty: #607d8b; /* Blue Grey */
+            --color-cde: #cddc39; /* Lime */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--main-text-color);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        header {
+            padding: 15px 25px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-size: 1.5em;
+            color: var(--accent-color);
+            text-shadow: 0 0 8px var(--accent-glow);
+            font-weight: 400;
+        }
+
+        #controls {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button, select {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--main-text-color);
+            padding: 8px 15px;
+            font-family: var(--font-family);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover, select:hover {
+            background-color: var(--border-color);
+            color: #fff;
+        }
+        
+        #express-btn {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+        #express-btn:hover {
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        #mutate-btn {
+            border-color: var(--mutation-color);
+            color: var(--mutation-color);
+        }
+        #mutate-btn:hover {
+            background-color: var(--mutation-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 10px var(--mutation-glow);
+        }
+
+        #main-container {
+            display: flex;
+            flex-grow: 1;
+            height: calc(100% - 70px); /* Adjust based on header height */
+        }
+
+        .panel {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        .panel:first-child {
+            border-left: none;
+        }
+
+        .panel-title {
+            font-size: 1.1em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #genome-editor {
+             /* Custom scrollbar for webkit browsers */
+            &::-webkit-scrollbar { width: 8px; }
+            &::-webkit-scrollbar-track { background: var(--bg-color); }
+            &::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px;}
+            &::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+        }
+
+        #genome-strand {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .codon {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent;
+            font-weight: 700;
+        }
+
+        .codon:hover {
+            transform: translateX(5px);
+            border-color: var(--main-text-color);
+        }
+        
+        .codon.exon { opacity: 1; }
+        .codon.intron { opacity: 0.4; }
+        .codon.intron .codon-type { background-color: var(--intron-color) !important; text-decoration: line-through;}
+        
+        .codon-type {
+            padding: 3px 6px;
+            border-radius: 2px;
+            color: #000;
+            margin-right: 15px;
+            font-size: 0.9em;
+            min-width: 45px;
+            text-align: center;
+        }
+        
+        /* Dynamic colors are applied via JS */
+        .codon-payload {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 300;
+        }
+        
+        .transcribing {
+            animation: transcription-pulse 0.2s 1;
+        }
+
+        @keyframes transcription-pulse {
+            0% { box-shadow: 0 0 0px var(--accent-glow); }
+            50% { box-shadow: 0 0 15px 5px var(--accent-glow); }
+            100% { box-shadow: 0 0 0px var(--accent-glow); }
+        }
+        
+        /* Expression Engine Styling */
+        #expression-engine .output-wrapper {
+            flex-grow: 1;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            border: 1px dashed var(--border-color);
+        }
+        
+        #expression-output {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .phenotype {
+            padding: 15px;
+            border-left: 3px solid;
+            background-color: rgba(0,0,0,0.2);
+        }
+        
+        .phenotype-txt { border-color: var(--color-txt); }
+        .phenotype-hpl { border-color: var(--color-hpl); word-wrap: break-word; }
+        .phenotype-img { border-color: var(--color-img); padding: 5px;}
+        .phenotype-auc { border-color: var(--color-auc); }
+        .phenotype-vid { border-color: var(--color-vid); padding: 5px; }
+        .phenotype-cmt { border-color: var(--color-cmt); font-style: italic; opacity: 0.7;}
+        .phenotype-sty { border-color: var(--color-sty); }
+        .phenotype-cde { border-color: var(--color-cde); }
+
+        .phenotype-img img, .phenotype-vid video {
+            max-width: 100%;
+            height: auto;
+            border-radius: 2px;
+        }
+
+        .phenotype-cde pre {
+            background: #000;
+            padding: 10px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.9em;
+        }
+
+        .phenotype-auc audio {
+            width: 100%;
+        }
+
+        .phenotype-hpl a {
+            color: var(--color-hpl);
+            text-decoration: none;
+        }
+        .phenotype-hpl a:hover {
+            text-decoration: underline;
+        }
+        
+        #tooltip {
+            position: fixed;
+            background-color: #1a1a2a;
+            color: #f0f0f0;
+            padding: 10px 15px;
+            border-radius: 4px;
+            border: 1px solid var(--accent-color);
+            pointer-events: none;
+            display: none;
+            font-size: 0.9em;
+            z-index: 1000;
+            max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🧬 GENOMA 🧫</h1>
+        <div id="controls">
+            <select id="genome-selector">
+                <option value="gX-404a">gX-404a: Multimodal Poem</option>
+                <option value="gX-99b">gX-99b: Technical Document</option>
+                <option value="gX-art-v1">gX-art-v1: Glitch Art Seed</option>
+            </select>
+            <button id="mutate-btn">Mutate Strand</button>
+            <button id="express-btn">Transcribe & Express</button>
+        </div>
+    </header>
+
+    <main id="main-container">
+        <div class="panel" id="genome-editor">
+            <h2 class="panel-title">Genome Editor: <span id="genome-id-display"></span></h2>
+            <div id="genome-strand">
+                <!-- Codons will be dynamically inserted here -->
+            </div>
+        </div>
+        <div class="panel" id="expression-engine">
+            <h2 class="panel-title">Expression Engine (Phenotype)</h2>
+            <div class="output-wrapper">
+                 <div id="expression-output">
+                    <!-- Expressed media will be rendered here -->
+                 </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="tooltip"></div>
+
+    <script>
+    // --- JAVASCRIPT LOGIC --- //
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- DATA MODEL & STATE --- //
+
+        const CODON_TYPES = {
+            'TXT': { color: 'var(--color-txt)', name: 'Text Block' },
+            'HPL': { color: 'var(--color-hpl)', name: 'Hyperlink' },
+            'IMG': { color: 'var(--color-img)', name: 'Image' },
+            'AUC': { color: 'var(--color-auc)', name: 'Audio Clip' },
+            'VID': { color: 'var(--color-vid)', name: 'Video' },
+            'CMT': { color: 'var(--color-cmt)', name: 'Commentary' },
+            'STY': { color: 'var(--color-sty)', name: 'Style Block' },
+            'CDE': { color: 'var(--color-cde)', name: 'Code Snippet' },
+        };
+        const ALL_CODONS = Object.keys(CODON_TYPES);
+
+        const genomes = {
+            "gX-404a": {
+                genome_id: "gX-404a",
+                description: "A short, multimodal poem about digital existence.",
+                sequence: [
+                    { type: "STY", payload: "font-style: italic; color: #a0c4ff;", is_intron: false, origin: "manual_entry" },
+                    { type: "TXT", payload: "The future is layered.", is_intron: false, origin: "manual_entry" },
+                    { type: "IMG", payload: "https://picsum.photos/seed/future/400/200", is_intron: false, origin: "synthesis_v1" },
+                    { type: "CMT", payload: "This image is procedurally generated, reflecting the theme.", is_intron: true, origin: "annotation" },
+                    { type: "HPL", payload: "https://en.wikipedia.org/wiki/Information_theory", is_intron: false, origin: "cross_reference" },
+                    { type: "AUC", payload: "https://cdn.pixabay.com/download/audio/2022/03/10/audio_2c87b71a48.mp3", is_intron: true, origin: "field_recording" }
+                ],
+                mutation_rate: 0.02,
+            },
+            "gX-99b": {
+                genome_id: "gX-99b",
+                description: "A technical specification for a fictional device.",
+                sequence: [
+                    { type: "TXT", payload: "## Spec: Quantum Entanglement Comms Unit", is_intron: false, origin: "tech_doc_v2" },
+                    { type: "CDE", payload: "const pair = new EntangledPair('BellState');\nfunction transmit(bit) {\n  pair.A.measure(bit);\n  // Receiver at B gets instantaneous correlated state.\n}", is_intron: false, origin: "code_sample_A" },
+                    { type: "CMT", payload: "Initial proof-of-concept code. Do not use in production.", is_intron: false, origin: "dev_note" },
+                    { type: "IMG", payload: "https://picsum.photos/seed/circuit/400/150", is_intron: false, origin: "diagram_v1.2" },
+                    { type: "HPL", payload: "https://en.wikipedia.org/wiki/Quantum_entanglement", is_intron: true, origin: "background_reading" },
+                    { type: "TXT", payload: "Security considerations are paramount...", is_intron: false, origin: "tech_doc_v2" },
+                ],
+                mutation_rate: 0.01,
+            },
+             "gX-art-v1": {
+                genome_id: "gX-art-v1",
+                description: "An experimental strand for generating glitch art.",
+                sequence: [
+                    { type: "IMG", payload: "https://picsum.photos/seed/glitch1/200/200", is_intron: false, origin: "seed_image" },
+                    { type: "IMG", payload: "https://picsum.photos/seed/glitch2/200/200", is_intron: false, origin: "seed_image" },
+                    { type: "STY", payload: "filter: hue-rotate(90deg) contrast(200%);", is_intron: false, origin: "filter_gene" },
+                    { type: "IMG", payload: "https://picsum.photos/seed/glitch3/200/200", is_intron: false, origin: "seed_image" },
+                    { type: "CMT", payload: "High mutation rate is key here.", is_intron: true, origin: "artist_note" },
+                    { type: "STY", payload: "mix-blend-mode: difference;", is_intron: false, origin: "filter_gene" },
+                    { type: "IMG", payload: "https://picsum.photos/seed/glitch4/200/200", is_intron: false, origin: "seed_image" },
+                ],
+                mutation_rate: 0.15,
+            }
+        };
+
+        let activeGenome = JSON.parse(JSON.stringify(genomes["gX-404a"])); // Deep copy to allow mutation
+
+        // --- DOM ELEMENTS --- //
+        const genomeStrandEl = document.getElementById('genome-strand');
+        const expressionOutputEl = document.getElementById('expression-output');
+        const tooltipEl = document.getElementById('tooltip');
+        const expressBtn = document.getElementById('express-btn');
+        const mutateBtn = document.getElementById('mutate-btn');
+        const genomeSelector = document.getElementById('genome-selector');
+        const genomeIdDisplay = document.getElementById('genome-id-display');
+
+        // --- CORE FUNCTIONS --- //
+
+        function renderGenome() {
+            genomeStrandEl.innerHTML = '';
+            genomeIdDisplay.textContent = activeGenome.genome_id;
+            
+            activeGenome.sequence.forEach((codon, index) => {
+                const codonEl = document.createElement('div');
+                codonEl.classList.add('codon', codon.is_intron ? 'intron' : 'exon');
+                codonEl.dataset.index = index;
+
+                const typeInfo = CODON_TYPES[codon.type] || { color: '#ccc', name: 'Unknown' };
+
+                codonEl.innerHTML = `
+                    <span class="codon-type" style="background-color: ${typeInfo.color};">${codon.type}</span>
+                    <span class="codon-payload">${codon.payload}</span>
+                `;
+                
+                // Event Listeners for interactivity
+                codonEl.addEventListener('click', () => toggleIntron(index));
+                codonEl.addEventListener('mouseenter', (e) => showTooltip(e, codon));
+                codonEl.addEventListener('mousemove', moveTooltip);
+                codonEl.addEventListener('mouseleave', hideTooltip);
+
+                genomeStrandEl.appendChild(codonEl);
+            });
+        }
+        
+        // GENOMIC MECHANISM: Splicing (filtering out introns)
+        function splice(sequence) {
+            return sequence.filter(codon => !codon.is_intron);
+        }
+
+        // GENOMIC MECHANISM: Translation (rendering to media phenotype)
+        function translate(splicedSequence) {
+            expressionOutputEl.innerHTML = '';
+            let activeStyles = '';
+
+            splicedSequence.forEach(codon => {
+                const phenotypeEl = document.createElement('div');
+                phenotypeEl.classList.add('phenotype', `phenotype-${codon.type.toLowerCase()}`);
+                
+                // Apply persistent styles
+                if (activeStyles) {
+                    phenotypeEl.style.cssText += activeStyles;
+                }
+
+                switch(codon.type) {
+                    case 'TXT':
+                        phenotypeEl.textContent = codon.payload;
+                        break;
+                    case 'HPL':
+                        phenotypeEl.innerHTML = `<a href="${codon.payload}" target="_blank">${codon.payload}</a>`;
+                        break;
+                    case 'IMG':
+                        phenotypeEl.innerHTML = `<img src="${codon.payload}" alt="Genomic Image Expression">`;
+                        break;
+                    case 'AUC':
+                        phenotypeEl.innerHTML = `<audio controls src="${codon.payload}"></audio>`;
+                        break;
+                    case 'VID':
+                        phenotypeEl.innerHTML = `<video controls src="${codon.payload}"></video>`;
+                        break;
+                    case 'CMT':
+                        phenotypeEl.textContent = `// ${codon.payload}`;
+                        break;
+                    case 'STY':
+                        // STY codon affects subsequent elements but doesn't render itself
+                        activeStyles += codon.payload; 
+                        return; // Don't append a visible element for STY
+                    case 'CDE':
+                        phenotypeEl.innerHTML = `<pre><code>${codon.payload}</code></pre>`;
+                        break;
+                    default:
+                        phenotypeEl.textContent = `[UNRECOGNIZED CODON: ${codon.type}]`;
+                }
+                expressionOutputEl.appendChild(phenotypeEl);
+            });
+        }
+        
+        // GENOMIC MECHANISM: Transcription (reading the strand)
+        async function transcribeAndTranslate() {
+            const codonElements = Array.from(genomeStrandEl.children);
+            
+            // Transcription animation
+            for (let i = 0; i < codonElements.length; i++) {
+                if (!activeGenome.sequence[i].is_intron) {
+                    codonElements[i].classList.add('transcribing');
+                    await new Promise(resolve => setTimeout(resolve, 50)); // Transcription speed
+                    codonElements[i].classList.remove('transcribing');
+                }
+            }
+            
+            const splicedGenome = splice(activeGenome.sequence);
+            translate(splicedGenome);
+        }
+
+        // GENOMIC MECHANISM: Mutation
+        function mutate() {
+            const seq = activeGenome.sequence;
+            if (seq.length === 0) return;
+            
+            const mutationType = Math.random();
+            const randomIndex = Math.floor(Math.random() * seq.length);
+            
+            if (mutationType < 0.6) { // 60% chance: Point Mutation
+                const originalType = seq[randomIndex].type;
+                let newType;
+                do {
+                    newType = ALL_CODONS[Math.floor(Math.random() * ALL_CODONS.length)];
+                } while (newType === originalType);
+                seq[randomIndex].type = newType;
+                console.log(`Point Mutation at index ${randomIndex}: ${originalType} -> ${newType}`);
+
+            } else if (mutationType < 0.85) { // 25% chance: Insertion
+                const newCodonType = ALL_CODONS[Math.floor(Math.random() * ALL_CODONS.length)];
+                const newCodon = {
+                    type: newCodonType,
+                    payload: "[MUTATED INSERTION]",
+                    is_intron: Math.random() < 0.5,
+                    origin: "mutation_event"
+                };
+                seq.splice(randomIndex, 0, newCodon);
+                 console.log(`Insertion at index ${randomIndex}: New codon ${newCodonType}`);
+
+            } else { // 15% chance: Deletion
+                const deleted = seq.splice(randomIndex, 1);
+                console.log(`Deletion at index ${randomIndex}: Removed codon ${deleted[0].type}`);
+            }
+
+            renderGenome();
+            transcribeAndTranslate();
+        }
+
+
+        // --- UI INTERACTIVITY --- //
+        
+        function toggleIntron(index) {
+            activeGenome.sequence[index].is_intron = !activeGenome.sequence[index].is_intron;
+            const codonEl = genomeStrandEl.querySelector(`[data-index='${index}']`);
+            codonEl.classList.toggle('intron');
+            codonEl.classList.toggle('exon');
+            // Automatically re-express on splice change
+            transcribeAndTranslate();
+        }
+
+        function showTooltip(event, codon) {
+            const typeInfo = CODON_TYPES[codon.type] || { name: 'Unknown' };
+            tooltipEl.innerHTML = `
+                <strong>TYPE:</strong> ${codon.type} (${typeInfo.name})<br>
+                <strong>PAYLOAD:</strong> ${codon.payload}<br>
+                <strong>STATE:</strong> ${codon.is_intron ? 'Intron (Inactive)' : 'Exon (Active)'}<br>
+                <strong>ORIGIN:</strong> ${codon.origin}
+            `;
+            tooltipEl.style.display = 'block';
+            moveTooltip(event);
+        }
+
+        function moveTooltip(event) {
+            // Position tooltip near cursor, but prevent it from going off-screen
+            const x = Math.min(event.clientX + 15, window.innerWidth - tooltipEl.offsetWidth - 20);
+            const y = Math.min(event.clientY + 15, window.innerHeight - tooltipEl.offsetHeight - 20);
+            tooltipEl.style.left = `${x}px`;
+            tooltipEl.style.top = `${y}px`;
+        }
+
+        function hideTooltip() {
+            tooltipEl.style.display = 'none';
+        }
+
+        function loadGenome(genomeId) {
+            activeGenome = JSON.parse(JSON.stringify(genomes[genomeId])); // Deep copy
+            renderGenome();
+            transcribeAndTranslate();
+        }
+
+        // --- EVENT BINDINGS --- //
+        expressBtn.addEventListener('click', transcribeAndTranslate);
+        mutateBtn.addEventListener('click', mutate);
+        genomeSelector.addEventListener('change', (e) => loadGenome(e.target.value));
+
+
+        // --- INITIALIZATION --- //
+        loadGenome(genomeSelector.value);
+    });
+    </script>
+</body>
+</html>

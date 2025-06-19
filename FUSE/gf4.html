@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENOMIRE SCOPE // Synthesis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Source+Serif+Pro:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <style>
+        :root {
+            --color-background: #0a0c10;
+            --color-text: #c9d1d9;
+            --color-glow: hsla(190, 100%, 75%, 0.4);
+            --color-focus: hsla(210, 100%, 80%, 0.1);
+            --color-grid: rgba(40, 50, 70, 0.2);
+            --font-mono: 'Fira Code', monospace;
+            --font-serif: 'Source Serif Pro', serif;
+
+            --width-col-edge: 60px;
+            --width-col-center: 90px;
+            --height-codon: 48px;
+            --anim-fast: 150ms;
+            --anim-smooth: 350ms;
+        }
+
+        /* HSL values for programmatic use */
+        .type-txt { --codon-color-val: 210, 50%, 50%; }
+        .type-img { --codon-color-val: 120, 50%, 50%; }
+        .type-aud { --codon-color-val: 280, 50%, 50%; }
+        .type-cmd { --codon-color-val: 30, 80%, 55%; }
+
+        /* --- 1. CORE LAYOUT & BACKGROUND ECOLOGY --- */
+        html, body {
+            height: 100%; margin: 0; background-color: var(--color-background);
+            color: var(--color-text); font-family: var(--font-mono); overflow: hidden;
+        }
+        #app-container {
+            position: relative; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+        }
+        #resonance-field-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+            pointer-events: none;
+        }
+        #genome-field-container {
+            flex-grow: 1; display: flex; align-items: center;
+            overflow-x: auto; overflow-y: hidden; z-index: 5;
+            scroll-behavior: smooth;
+            -ms-overflow-style: none; scrollbar-width: none;
+        }
+        #genome-field-container::-webkit-scrollbar { display: none; }
+        #genome-field {
+            position: relative; display: flex; align-items: center;
+            gap: 4px; padding: 0 5vw; height: 100%;
+        }
+        #gesture-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
+            background: rgba(10,12,16,0.8); backdrop-filter: blur(5px);
+            display: none; cursor: crosshair;
+            align-items: center; justify-content: center;
+            color: var(--color-glow); font-size: 1.2rem;
+        }
+        #gesture-overlay.active { display: flex; }
+        #gesture-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%;}
+
+        /* --- 2. GENOME COLUMN & STATES (RESTORED USABILITY) --- */
+        .genome-column {
+            position: relative; flex-shrink: 0; display: flex; flex-direction: column;
+            gap: 4px; height: 95%; width: var(--width-col-edge);
+            padding: 10px 0; border-radius: 6px; cursor: pointer;
+            transition: all var(--anim-smooth) ease;
+        }
+        .genome-column.in-gaze-zone { width: var(--width-col-center); }
+        .genome-column.is-focused {
+            background-color: var(--color-focus);
+            box-shadow: 0 0 20px 4px var(--color-glow);
+        }
+        .genome-column.is-expressed {
+            min-width: 350px; width: auto; background-color: rgba(10,12,16,0.85);
+            padding: 10px 15px; align-items: flex-start; cursor: default;
+        }
+        .genome-column.is-grown { border: 1px dashed hsla(190, 100%, 75%, 0.3); }
+
+        /* --- 3. CODON BANDS WITH LABELS (RESTORED) --- */
+        .codon-band {
+            width: 100%; height: var(--height-codon); min-height: 48px;
+            flex-shrink: 0; display: flex; justify-content: center; align-items: center;
+            font-size: 0.9rem; font-weight: 500; border-radius: 4px;
+            background-color: hsla(var(--codon-color-val), 0.5);
+            transition: transform var(--anim-fast), box-shadow var(--anim-fast);
+            user-select: none;
+        }
+        .genome-column:not(.is-expressed) .codon-band:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px 2px hsla(var(--codon-color-val), 0.7);
+        }
+
+        /* Expressed Content Styles */
+        .expressed-content {
+            display: flex; align-items: center; width: 100%; min-height: var(--height-codon);
+            padding: 5px; margin-bottom: 2px;
+            border-left: 2px solid hsla(var(--codon-color-val), 1);
+        }
+        .expressed-content.txt-content { font-family: var(--font-serif); font-size: 0.9rem; }
+        .expressed-content.img-content img { width: 48px; height: 48px; object-fit: cover; margin-right: 10px; }
+        .expressed-content.aud-content svg { stroke: hsla(var(--codon-color-val), 1); height: 24px; width: 100%; }
+
+        /* --- MIRROR PREVIEW (KEPT AS AUGMENTATION) --- */
+        .mirror-phenotype {
+            position: absolute; left: 110%; top: 0; width: 200px;
+            height: 95%; padding: 10px; z-index: 20;
+            background: rgba(10, 12, 16, 0.7); backdrop-filter: blur(4px);
+            border-left: 1px solid var(--color-glow); border-radius: 4px;
+            opacity: 0; pointer-events: none; transform: translateX(-20px);
+            transition: opacity var(--anim-fast), transform var(--anim-fast);
+            font-size: 0.8rem; overflow: hidden;
+        }
+        .genome-column.is-focused .mirror-phenotype { opacity: 1; pointer-events: auto; transform: translateX(0); }
+        .mirror-codon { opacity: 0.8; margin-bottom: 5px; border-left: 2px solid; padding-left: 5px;}
+        .mirror-codon img { width: 100%; filter: grayscale(1) opacity(0.6) blur(1px); }
+
+        /* --- BOTTOM UI: SYNTHESIS OF CONSOLE, COMPOSITOR, GLYPHS --- */
+        #bottom-bar {
+            position: relative; z-index: 15;
+            display: flex; align-items: flex-end; justify-content: space-between;
+            padding: 10px 2vw; background: linear-gradient(transparent, var(--color-background) 70%);
+        }
+        #console-container { flex-grow: 1; max-width: 50%; }
+        #console-input {
+            width: 100%; background: transparent; border: 1px solid var(--color-grid);
+            border-radius: 4px; color: var(--color-text); font-family: var(--font-mono);
+            font-size: 1rem; padding: 10px 15px; outline: none;
+        }
+        #console-input:focus { border-color: var(--color-glow); }
+
+        .ui-module > label { font-size: 0.7rem; color: #888; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        #compositor-track {
+            display: flex; gap: 5px; height: 50px; padding: 5px;
+            min-width: 200px; border: 1px dashed var(--color-grid); border-radius: 4px;
+        }
+        #compositor-track.drag-over { border-color: var(--color-glow); border-style: solid; }
+        #compositor-track .codon-band { width: 24px; height: 40px; }
+        #compositor-track .codon-band:hover { transform: none; box-shadow: none; }
+
+        #action-palette { display: flex; height: 50px; align-items: center; }
+        .glyph {
+            font-size: 1.5rem; cursor: pointer; padding: 0 10px;
+            transition: color var(--anim-fast);
+        }
+        .glyph:hover { color: var(--color-glow); }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <canvas id="resonance-field-canvas"></canvas>
+        <div id="genome-field-container">
+            <div id="genome-field"></div>
+        </div>
+        <div id="gesture-overlay">
+            <span>Draw a vertical line to grow a new genome... (ESC to exit)</span>
+            <canvas id="gesture-canvas"></canvas>
+        </div>
+    </div>
+
+    <div id="bottom-bar">
+        <div id="console-container" class="ui-module">
+            <label for="console-input">Console</label>
+            <input id="console-input" type="text" placeholder="> select a genome or enter a command...">
+        </div>
+        <div style="display: flex; gap: 20px;">
+            <div id="compositor-module" class="ui-module">
+                <label>Compositor</label>
+                <div id="compositor-track"></div>
+            </div>
+            <div id="actions-module" class="ui-module">
+                <label>Actions</label>
+                <div id="action-palette">
+                    <div class="glyph" data-action="grow" title="Grow New Genome (Alt+G)">⨀</div>
+                    <div class="glyph" data-action="express" title="Express Selected (Enter)">⟁</div>
+                    <div class="glyph" data-action="collapse" title="Collapse All (Esc)">◎</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const app = {
+            fieldContainer: document.getElementById('genome-field-container'),
+            field: document.getElementById('genome-field'),
+            consoleInput: document.getElementById('console-input'),
+            compositorTrack: document.getElementById('compositor-track'),
+            actionPalette: document.getElementById('action-palette'),
+            gestureOverlay: document.getElementById('gesture-overlay'),
+            gestureCanvas: document.getElementById('gesture-canvas'),
+            resonanceCanvas: document.getElementById('resonance-field-canvas'),
+        };
+
+        // --- State ---
+        let genomes = [];
+        let compositorCodons = [];
+        let focusedIndex = -1;
+        let expressedIndex = -1;
+        let gestureData = null;
+        const simplex = new SimplexNoise();
+        let time = 0;
+
+        // --- Mock Data Generation ---
+        const CODON_TYPES = ['TXT', 'IMG', 'AUD', 'CMD'];
+        const MOCK_CONTENT = {
+            TXT: "Excerpt from archival log K-281. Data integrity nominal.",
+            IMG: (seed) => `https://picsum.photos/seed/${seed}/60/60`,
+            AUD: (seed) => { let p = 'M2,10 '; for (let i=0;i<10;i++){ p += `q${Math.random()*5},${(Math.random()-0.5)*10},${Math.random()*10},0 `}; return p; },
+            CMD: "EXECUTE:ALIGN_SEQUENCE(BETA-7)"
+        };
+        const generateGenome = (id, isGrown = false) => {
+            const numCodons = 5 + Math.floor(Math.random() * 5);
+            return {
+                id: id,
+                isGrown,
+                codons: Array.from({ length: numCodons }, () => {
+                    const type = CODON_TYPES[Math.floor(Math.random() * CODON_TYPES.length)];
+                    return { type, label: type, content: MOCK_CONTENT[type](Math.random()) };
+                })
+            };
+        };
+
+        // --- 1. RENDERING & LAYOUT ---
+        function renderField() {
+            app.field.innerHTML = '';
+            genomes.forEach((genome, index) => {
+                const columnEl = document.createElement('div');
+                columnEl.className = 'genome-column';
+                columnEl.dataset.index = index;
+                if (genome.isGrown) columnEl.classList.add('is-grown');
+
+                if (index === expressedIndex) {
+                    columnEl.classList.add('is-expressed');
+                    renderExpressedContent(columnEl, genome);
+                } else {
+                    renderCodonBands(columnEl, genome);
+                }
+                
+                // Add Mirror Phenotype Preview
+                const mirrorEl = createMirrorPreview(genome);
+                columnEl.appendChild(mirrorEl);
+                
+                app.field.appendChild(columnEl);
+            });
+            updateGazeAndFocus();
+        }
+
+        function renderCodonBands(container, genome) {
+            genome.codons.forEach((codon, codonIndex) => {
+                const bandEl = document.createElement('div');
+                bandEl.className = `codon-band type-${codon.type.toLowerCase()}`;
+                bandEl.textContent = codon.label;
+                bandEl.draggable = true;
+                bandEl.dataset.genomeIndex = container.dataset.index;
+                bandEl.dataset.codonIndex = codonIndex;
+                container.appendChild(bandEl);
+            });
+        }
+        
+        function renderExpressedContent(container, genome) {
+            genome.codons.forEach(codon => {
+                const contentEl = document.createElement('div');
+                contentEl.className = `expressed-content type-${codon.type.toLowerCase()}-content`;
+                let innerHTML = '';
+                switch (codon.type) {
+                    case 'TXT': innerHTML = `<span>${codon.content}</span>`; break;
+                    case 'IMG': innerHTML = `<img src="${codon.content}" alt="IMG Codon"><span>Image Data</span>`; break;
+                    case 'AUD': innerHTML = `<svg viewBox="0 0 100 20" preserveAspectRatio="none"><path d="${codon.content}" fill="none" stroke-width="2"/></svg>`; break;
+                    case 'CMD': innerHTML = `<span>§ ${codon.content}</span>`; break;
+                }
+                contentEl.innerHTML = innerHTML;
+                container.appendChild(contentEl);
+            });
+        }
+
+        // --- 2. INTERACTION & STATE MANAGEMENT ---
+        function setFocus(index) {
+            focusedIndex = index;
+            updateGazeAndFocus();
+        }
+
+        function expressGenome(index) {
+            expressedIndex = index;
+            setFocus(index);
+            renderField();
+            centerOnColumn(index);
+            app.consoleInput.value = `> express ${genomes[index].id}`;
+        }
+
+        function collapseAll() {
+            expressedIndex = -1;
+            renderField();
+        }
+        
+        function centerOnColumn(index) {
+            const columnEl = app.field.children[index];
+            if (!columnEl) return;
+            const containerRect = app.fieldContainer.getBoundingClientRect();
+            const colRect = columnEl.getBoundingClientRect();
+            const scrollOffset = colRect.left - containerRect.left - (containerRect.width / 2) + (colRect.width / 2);
+            app.fieldContainer.scrollBy({ left: scrollOffset, behavior: 'smooth' });
+        }
+        
+        function updateGazeAndFocus() {
+            const containerRect = app.fieldContainer.getBoundingClientRect();
+            const containerCenter = containerRect.left + containerRect.width / 2;
+            
+            Array.from(app.field.children).forEach((col, i) => {
+                const colRect = col.getBoundingClientRect();
+                const colCenter = colRect.left + colRect.width / 2;
+                const distFromCenter = Math.abs(containerCenter - colCenter);
+                
+                col.classList.toggle('in-gaze-zone', distFromCenter < containerRect.width / 3);
+                col.classList.toggle('is-focused', i === focusedIndex);
+            });
+        }
+
+        // --- 3. AUGMENTED FEATURES: MIRROR, GESTURE, COMPOSITOR ---
+        function createMirrorPreview(genome) {
+            const mirrorEl = document.createElement('div');
+            mirrorEl.className = 'mirror-phenotype';
+            let content = '';
+            genome.codons.slice(0, 4).forEach(codon => {
+                const colorVal = getComputedStyle(document.documentElement).getPropertyValue(`--codon-color-val`);
+                let html = `[${codon.type}] Dithered data projection...`;
+                if(codon.type === 'IMG') html = `<img src="${MOCK_CONTENT.IMG(Math.random())}">`;
+                content += `<div class="mirror-codon" style="border-color:hsl(${colorVal})">${html}</div>`;
+            });
+            mirrorEl.innerHTML = content;
+            return mirrorEl;
+        }
+        
+        function toggleGrowMode(active) {
+            if (active) {
+                app.gestureOverlay.classList.add('active');
+                [app.gestureCanvas.width, app.gestureCanvas.height] = [window.innerWidth, window.innerHeight];
+            } else {
+                app.gestureOverlay.classList.remove('active');
+            }
+        }
+        
+        function handleGestureDrawing(e) {
+            if (!gestureData) return;
+            gestureData.points.push({x: e.clientX, y: e.clientY});
+            const ctx = app.gestureCanvas.getContext('2d');
+            ctx.lineTo(e.clientX, e.clientY);
+            ctx.stroke();
+        }
+
+        function finishGesture() {
+            if (!gestureData || gestureData.points.length < 5) {
+                gestureData = null; return;
+            }
+            const startPt = gestureData.points[0];
+            const endPt = gestureData.points[gestureData.points.length - 1];
+            const height = Math.abs(endPt.y - startPt.y);
+
+            if (height > 100) { // Threshold for valid genome gesture
+                const newId = `ζ-${String(genomes.length).padStart(3, '0')}`;
+                genomes.push(generateGenome(newId, true));
+                renderField();
+                centerOnColumn(genomes.length - 1);
+            }
+            gestureData = null;
+            app.gestureCanvas.getContext('2d').clearRect(0,0,app.gestureCanvas.width, app.gestureCanvas.height);
+            toggleGrowMode(false);
+        }
+
+        // --- 4. BACKGROUND ECOLOGY ---
+        function renderEcology() {
+            const ctx = app.resonanceCanvas.getContext('2d');
+            ctx.clearRect(0, 0, app.resonanceCanvas.width, app.resonanceCanvas.height);
+            const imageData = ctx.createImageData(app.resonanceCanvas.width, app.resonanceCanvas.height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const x = (i / 4) % app.resonanceCanvas.width;
+                const y = Math.floor((i / 4) / app.resonanceCanvas.width);
+                const noise = simplex.noise3D(x / 300, y / 300, time * 0.1);
+                if (noise > 0.4) {
+                    data[i] = 40; data[i+1] = 50; data[i+2] = 70; data[i+3] = noise * 100;
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // --- 5. EVENT LISTENERS ---
+        app.fieldContainer.addEventListener('scroll', updateGazeAndFocus, { passive: true });
+        
+        app.field.addEventListener('click', e => {
+            const column = e.target.closest('.genome-column');
+            if (column) {
+                const index = +column.dataset.index;
+                if (expressedIndex === index) {
+                    collapseAll();
+                } else {
+                    expressGenome(index);
+                }
+            }
+        });
+        
+        app.actionPalette.addEventListener('click', e => {
+            const actionEl = e.target.closest('.glyph');
+            if(!actionEl) return;
+            switch(actionEl.dataset.action) {
+                case 'grow': toggleGrowMode(true); break;
+                case 'express': if(focusedIndex !== -1) expressGenome(focusedIndex); break;
+                case 'collapse': collapseAll(); break;
+            }
+        });
+
+        // Drag and Drop for Compositor
+        app.field.addEventListener('dragstart', e => {
+            const band = e.target.closest('.codon-band');
+            if(band) {
+                e.dataTransfer.setData('text/genome-index', band.dataset.genomeIndex);
+                e.dataTransfer.setData('text/codon-index', band.dataset.codonIndex);
+            }
+        });
+        app.compositorTrack.addEventListener('dragover', e => { e.preventDefault(); app.compositorTrack.classList.add('drag-over'); });
+        app.compositorTrack.addEventListener('dragleave', () => app.compositorTrack.classList.remove('drag-over'));
+        app.compositorTrack.addEventListener('drop', e => {
+            e.preventDefault();
+            app.compositorTrack.classList.remove('drag-over');
+            const gIndex = +e.dataTransfer.getData('text/genome-index');
+            const cIndex = +e.dataTransfer.getData('text/codon-index');
+            if(!isNaN(gIndex) && !isNaN(cIndex)){
+                compositorCodons.push(genomes[gIndex].codons[cIndex]);
+                renderCompositor();
+            }
+        });
+        
+        function renderCompositor() {
+            app.compositorTrack.innerHTML = '';
+            compositorCodons.forEach(codon => {
+                const bandEl = document.createElement('div');
+                bandEl.className = `codon-band type-${codon.type.toLowerCase()}`;
+                app.compositorTrack.appendChild(bandEl);
+            });
+        }
+        
+        // Keyboard and Gesture listeners
+        document.addEventListener('keydown', e => {
+            if(e.key === 'Escape') {
+                if(app.gestureOverlay.classList.contains('active')) {
+                    toggleGrowMode(false);
+                } else {
+                    collapseAll();
+                    setFocus(-1);
+                }
+            }
+            if(e.altKey && e.key === 'g') { toggleGrowMode(true); }
+        });
+        
+        app.gestureOverlay.addEventListener('mousedown', e => {
+            gestureData = { points: [{x: e.clientX, y: e.clientY}]};
+            const ctx = app.gestureCanvas.getContext('2d');
+            ctx.clearRect(0,0,app.gestureCanvas.width,app.gestureCanvas.height);
+            ctx.strokeStyle = 'hsla(190, 100%, 75%, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(e.clientX, e.clientY);
+        });
+        app.gestureOverlay.addEventListener('mousemove', handleGestureDrawing);
+        app.gestureOverlay.addEventListener('mouseup', finishGesture);
+
+        // --- MAIN LOOP & INITIALIZATION ---
+        function mainLoop(timestamp) {
+            time = timestamp / 1000;
+            renderEcology();
+            requestAnimationFrame(mainLoop);
+        }
+
+        function init() {
+            [app.resonanceCanvas.width, app.resonanceCanvas.height] = [window.innerWidth, window.innerHeight];
+            genomes = Array.from({ length: 25 }, (_, i) => generateGenome(`g-${String(i+1).padStart(3, '0')}`));
+            renderField();
+            setFocus(Math.floor(genomes.length / 2));
+            centerOnColumn(focusedIndex);
+            requestAnimationFrame(mainLoop);
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>

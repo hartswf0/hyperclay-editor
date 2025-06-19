@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // ONTOLOGICAL WEAVING ENGINE // UNIFIED SYSTEM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --owe-bg: #0d1018;
+            --owe-text: #c0c8d8;
+            --owe-hud-bg: rgba(26, 30, 40, 0.9);
+            --owe-border: #3c4250;
+            --owe-accent: #8be9fd;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+        /* ... styles for a complex, multi-modal interface ... */
+        html, body {
+            background-color: #000; margin: 0; overflow: hidden;
+            font-family: var(--font-main); color: var(--owe-text);
+            user-select: none;
+        }
+        #owe-container {
+            width: 100vw; height: 100vh;
+            background-color: var(--owe-bg);
+            position: relative;
+        }
+
+        /* --- CHAMBERS & TRANSITIONS --- */
+        .chamber {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.8s ease-in-out;
+            display: grid; place-items: center;
+        }
+        .chamber.active { opacity: 1; pointer-events: all; }
+
+        /* --- NEXUS (Main Hub) --- */
+        #nexus-chamber .portal {
+            position: absolute; border: 1px solid var(--owe-border);
+            border-radius: 50%; display: grid; place-items: center;
+            font-family: var(--font-display); font-size: 1.5rem;
+            transition: all 0.3s;
+        }
+        #nexus-chamber .portal:hover { background: var(--owe-accent); color: #000; border-color: var(--owe-accent); }
+        #seed-node {
+            width: 150px; height: 150px; background: var(--owe-hud-bg);
+            border: 2px solid var(--owe-accent); border-radius: 50%;
+            display: grid; place-items: center; cursor: grab; z-index: 100;
+        }
+        #seed-node:active { cursor: grabbing; }
+
+        /* --- CHRONOSCRIPTOR (Time) --- */
+        #chronoscriptor-chamber { background-image: radial-gradient(circle, rgba(139, 233, 253, 0.05) 10%, transparent 70%); }
+        .chrono-ring {
+            position: absolute; border: 1px dashed var(--owe-border); border-radius: 50%;
+            transform-origin: center center;
+        }
+        .moment-glyph {
+            position: absolute; width: 80px; height: 80px;
+            background: var(--owe-hud-bg); border-radius: 8px;
+            border: 1px solid var(--owe-accent); display: grid; place-items: center;
+            padding: 5px; text-align: center; font-size: 0.8rem;
+        }
+
+        /* --- ALEMBIC (Alchemy) --- */
+        #alembic-chamber { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 50px; }
+        .alembic-vessel { background: rgba(0,0,0,0.2); border: 1px solid var(--owe-border); padding: 20px; }
+        .alembic-vessel h2 { text-align: center; font-family: var(--font-display); font-size: 2rem; }
+        .transmute-btn { width: 100%; padding: 10px; background: var(--owe-accent); color: #000; border: none; font-size: 1.2rem; margin-top: 10px; cursor: pointer; }
+
+        /* --- LATTICE (Geometry) --- */
+        #lattice-chamber { perspective: 1500px; }
+        #lattice-field { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
+        .lattice-node {
+            position: absolute; padding: 20px; background: var(--owe-hud-bg);
+            border: 1px solid var(--owe-text);
+        }
+
+        /* --- IMBUER (Emotion) --- */
+        #imbuer-chamber .emotion-dial {
+            width: 200px; height: 200px; border-radius: 50%; background: #000;
+            display: grid; place-items: center; cursor: grab;
+            border: 5px solid;
+        }
+        
+        /* --- SHARED HUD --- */
+        .hud-panel {
+            position: absolute; background: var(--owe-hud-bg);
+            border: 1px solid var(--owe-border); padding: 15px;
+        }
+        #oracle-panel { bottom: 20px; left: 20px; width: 400px; }
+        #crystallize-panel { bottom: 20px; right: 20px; }
+        #crystallize-panel button { padding: 15px 25px; font-size: 1.2rem; background: var(--owe-text); color: #000; border: none; cursor: pointer; }
+
+        /* --- OUTPUT MODAL --- */
+        #output-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+            z-index: 1000; display: none; justify-content: center; align-items: center;
+        }
+        #output-content { width: 80%; height: 80%; background: var(--owe-bg); display: flex; flex-direction: column; }
+        #output-content h1 { text-align: center; }
+        #output-display { flex-grow: 1; display: grid; grid-template-columns: 1fr 1fr; }
+        #output-display canvas, #output-display .artifact-preview { width: 100%; height: 100%; background: #000; }
+    </style>
+</head>
+<body>
+    <div id="owe-container">
+        <!-- The Nexus Chamber -->
+        <div class="chamber active" id="nexus-chamber">
+            <div id="seed-node">PLANT SEED</div>
+            <!-- Portals to other chambers -->
+            <div class="portal" style="top:50px; left:50%; transform:translateX(-50%); width:200px; height:100px;">CHRONOSCRIPTOR</div>
+            <div class="portal" style="top:50%; right:50px; transform:translateY(-50%); width:100px; height:200px;">ALEMBIC</div>
+            <div class="portal" style="bottom:50px; left:50%; transform:translateX(-50%); width:200px; height:100px;">LATTICE</div>
+            <div class="portal" style="top:50%; left:50px; transform:translateY(-50%); width:100px; height:200px;">IMBUER</div>
+        </div>
+
+        <!-- The Other Chambers (initially hidden) -->
+        <div class="chamber" id="chronoscriptor-chamber">
+            <div class="chrono-ring" style="width:80%; height:80%;"></div>
+            <div class="chrono-ring" style="width:60%; height:60%;"></div>
+            <div class="chrono-ring" style="width:40%; height:40%;"></div>
+        </div>
+        <div class="chamber" id="alembic-chamber">
+            <div class="alembic-vessel" id="alembic-input"><h2>SOURCE</h2><div class="content"></div></div>
+            <div class="alembic-vessel" id="alembic-output"><h2>TRANSMUTATION</h2><div class="content"></div></div>
+        </div>
+        <div class="chamber" id="lattice-chamber"><div id="lattice-field"></div></div>
+        <div class="chamber" id="imbuer-chamber">
+            <div id="emotion-dial" class="emotion-dial" style="border-color: #fff;">EMOTIONAL CORE</div>
+        </div>
+
+        <!-- Shared HUD elements -->
+        <div class="hud-panel" id="oracle-panel"><b>ORACLE:</b> <span id="oracle-text">Define a seed concept to begin the weaving.</span></div>
+        <div class="hud-panel" id="crystallize-panel">
+            <button id="crystallize-btn">CRYSTALLIZE ARTIFACT</button>
+        </div>
+    </div>
+    
+    <div id="output-modal">
+        <div id="output-content">
+            <h1 id="output-title">CRYSTALLIZED ARTIFACT</h1>
+            <div id="output-display">
+                <div class="output-pane">
+                    <h2>COGNITIVE DIAGRAM</h2>
+                    <canvas id="output-diagram"></canvas>
+                </div>
+                 <div class="output-pane">
+                    <h2>SYMBOLIC ARTIFACT</h2>
+                    <div class="artifact-preview" id="output-artifact"></div>
+                </div>
+            </div>
+            <button id="close-modal-btn" style="padding:10px; margin-top:10px;">CLOSE</button>
+        </div>
+    </div>
+
+<script>
+// A greatly simplified, single-file simulation of the OWE
+const OWE = {
+    // --- STATE ---
+    state: {
+        currentChamber: 'nexus',
+        seed: null, // { text, moments: [], sigils: [], lattice: {}, emotion: 'neutral' }
+        drag: { active: false, target: null, startX: 0, startY: 0 },
+    },
+    
+    // --- DOM ELEMENTS ---
+    elems: {
+        chambers: document.querySelectorAll('.chamber'),
+        seedNode: document.getElementById('seed-node'),
+        portals: document.querySelectorAll('#nexus-chamber .portal'),
+        oracleText: document.getElementById('oracle-text'),
+        crystallizeBtn: document.getElementById('crystallize-btn'),
+        outputModal: document.getElementById('output-modal'),
+        closeModalBtn: document.getElementById('close-modal-btn'),
+        // Chamber-specific elements
+        alembicInput: document.querySelector('#alembic-input .content'),
+        alembicOutput: document.querySelector('#alembic-output .content'),
+        latticeField: document.getElementById('lattice-field'),
+    },
+
+    // --- INITIALIZATION ---
+    init() {
+        this.addEventListeners();
+    },
+    
+    addEventListeners() {
+        this.elems.seedNode.onmousedown = (e) => this.startDrag(e);
+        document.onmousemove = (e) => this.handleDrag(e);
+        document.onmouseup = (e) => this.endDrag(e);
+
+        this.elems.crystallizeBtn.onclick = () => this.crystallize();
+        this.elems.closeModalBtn.onclick = () => this.elems.outputModal.style.display = 'none';
+    },
+
+    // --- CORE LOGIC: Seeding and Dragging ---
+    plantSeed() {
+        const text = prompt("Enter a seed concept, phrase, or memory fragment:", "The bell tolls for the city beneath the waves.");
+        if (!text || text.trim() === '') return;
+
+        this.state.seed = {
+            text: text,
+            moments: text.match(/[^.!?]+[.!?]+/g) || [text], // Simple sentence split
+            sigils: {}, // text -> svg path
+            lattice: {}, // node positions
+            emotion: 'neutral',
+            analysis: { tension: 0.2, structure: 0.5, density: 0.1 }
+        };
+        this.elems.seedNode.textContent = `[ ${text.split(' ')[0]}... ]`;
+        this.updateOracle("Seed planted. Drag it to a chamber to begin transformation.");
+    },
+    
+    startDrag(e) {
+        if (!this.state.seed) {
+            this.plantSeed();
+            return;
+        }
+        this.state.drag.active = true;
+        this.state.drag.target = this.elems.seedNode;
+        this.state.drag.target.style.transition = 'none';
+        this.elems.seedNode.style.cursor = 'grabbing';
+    },
+    
+    handleDrag(e) {
+        if (!this.state.drag.active) return;
+        this.state.drag.target.style.left = `${e.clientX - 75}px`;
+        this.state.drag.target.style.top = `${e.clientY - 75}px`;
+    },
+
+    endDrag(e) {
+        if (!this.state.drag.active) return;
+        this.state.drag.active = false;
+        this.state.drag.target.style.transition = 'all 0.3s';
+        this.state.drag.target.style.left = '';
+        this.state.drag.target.style.top = '';
+        this.elems.seedNode.style.cursor = 'grab';
+
+        const droppedOn = document.elementFromPoint(e.clientX, e.clientY);
+        if (droppedOn && droppedOn.classList.contains('portal')) {
+            const chamberName = droppedOn.textContent.toLowerCase();
+            this.enterChamber(chamberName);
+        }
+    },
+    
+    // --- CHAMBER MANAGEMENT ---
+    enterChamber(chamberName) {
+        this.state.currentChamber = chamberName;
+        this.elems.chambers.forEach(c => c.classList.remove('active'));
+        const chamberEl = document.getElementById(`${chamberName}-chamber`);
+        if (chamberEl) {
+            chamberEl.classList.add('active');
+            this.updateOracle(`Entered the ${chamberName.toUpperCase()}. The ontological properties of the seed can now be shaped.`);
+            this.renderChamber(chamberName);
+        }
+
+        // Add a back button (or gesture)
+        const backBtn = document.createElement('button');
+        backBtn.textContent = 'RETURN TO NEXUS';
+        backBtn.style = "position:absolute; top:20px; left:20px; padding:10px; background:var(--owe-hud-bg); border:1px solid var(--owe-border); color:var(--owe-text); cursor:pointer;";
+        backBtn.onclick = () => this.enterChamber('nexus');
+        chamberEl.appendChild(backBtn);
+    },
+
+    renderChamber(chamberName) {
+        // This is where the specific UI for each chamber would be built
+        switch(chamberName) {
+            case 'alembic':
+                this.renderAlembic();
+                break;
+            case 'lattice':
+                this.renderLattice();
+                break;
+            // Other cases would go here
+        }
+    },
+
+    // --- SIMPLIFIED CHAMBER LOGIC ---
+    renderAlembic() {
+        this.elems.alembicInput.innerHTML = this.state.seed.moments.map(m => `<p>${m}</p>`).join('');
+        const transmuteBtn = document.createElement('button');
+        transmuteBtn.className = 'transmute-btn';
+        transmuteBtn.textContent = 'TRANSMUTE TO SIGIL';
+        transmuteBtn.onclick = () => this.transmuteToSigil(this.state.seed.moments[0]);
+        this.elems.alembicInput.appendChild(transmuteBtn);
+    },
+    
+    transmuteToSigil(text) {
+        // Very simple "alchemy": generate an SVG path based on text length and character codes
+        if(this.state.seed.sigils[text]) return; // Don't re-transmute
+        let path = "M 50 50 ";
+        for (let i = 0; i < text.length; i++) {
+            const angle = (i / text.length) * Math.PI * 2;
+            const radius = 20 + (text.charCodeAt(i) % 20);
+            path += `L ${50 + Math.cos(angle) * radius} ${50 + Math.sin(angle) * radius} `;
+        }
+        this.state.seed.sigils[text] = path;
+        this.elems.alembicOutput.innerHTML = `<svg viewBox="0 0 100 100"><path d="${path}" stroke="var(--owe-accent)" fill="none" /></svg><p>Sigil generated for: "${text}"</p>`;
+        this.updateOracle("Transmutation complete. A new symbolic form has been crystallized.");
+        this.state.seed.analysis.density += 0.2; // Alchemy increases symbolic density
+    },
+    
+    renderLattice() {
+        this.elems.latticeField.innerHTML = '';
+        const sigilKeys = Object.keys(this.state.seed.sigils);
+        if (sigilKeys.length === 0) {
+            this.elems.latticeField.innerHTML = "No sigils yet. Transmute text in the Alembic first.";
+            return;
+        }
+        
+        sigilKeys.forEach((key, i) => {
+            const node = document.createElement('div');
+            node.className = 'lattice-node';
+            const x = Math.sin(i * 1.5) * 200;
+            const y = Math.cos(i * 0.8) * 150;
+            const z = Math.sin(i * 0.5) * 250;
+            node.style.transform = `translate3D(${x}px, ${y}px, ${z}px)`;
+            node.innerHTML = `<svg viewBox="0 0 100 100" width="50" height="50"><path d="${this.state.seed.sigils[key]}" stroke="var(--owe-accent)" fill="none" /></svg>`;
+            this.elems.latticeField.appendChild(node);
+        });
+        this.updateOracle("Sigils arranged in Lattice formation. Their structural relationship is now apparent.");
+        this.state.seed.analysis.structure += 0.3;
+    },
+
+    // --- OUTPUT ---
+    crystallize() {
+        if (!this.state.seed) {
+            this.updateOracle("Cannot crystallize. No seed has been planted.");
+            return;
+        }
+        this.elems.outputModal.style.display = 'flex';
+        this.renderCognitiveDiagram();
+        this.renderSymbolicArtifact();
+    },
+    
+    renderCognitiveDiagram() {
+        const canvas = document.getElementById('output-diagram');
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = "16px 'Share Tech Mono'";
+        
+        const { tension, structure, density } = this.state.seed.analysis;
+        
+        // Draw axes
+        ctx.strokeStyle = '#555';
+        ctx.beginPath(); ctx.moveTo(50, 50); ctx.lineTo(50, h-50); ctx.lineTo(w-50, h-50); ctx.stroke();
+        
+        // Draw point
+        const x = 50 + (structure * (w - 100));
+        const y = h - 50 - (tension * (h - 100));
+        const r = 10 + (density * 20);
+
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(139, 233, 253, 0.7)`;
+        ctx.fill();
+        ctx.strokeStyle = `rgba(139, 233, 253, 1)`;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.fillText('STRUCTURE', w/2, h-20);
+        ctx.save(); ctx.rotate(-Math.PI/2); ctx.fillText('TENSION', -h/2, 20); ctx.restore();
+    },
+
+    renderSymbolicArtifact() {
+        const preview = document.getElementById('output-artifact');
+        preview.innerHTML = '';
+        const sigilKeys = Object.keys(this.state.seed.sigils);
+        if (sigilKeys.length > 0) {
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i >= sigilKeys.length) { clearInterval(interval); return; }
+                const key = sigilKeys[i];
+                preview.innerHTML = `<svg viewBox="0 0 100 100" width="80%" height="80%"><path d="${this.state.seed.sigils[key]}" stroke="var(--owe-accent)" stroke-width="2" fill="none" /></svg>`;
+                i++;
+            }, 1000);
+        } else {
+            preview.innerHTML = `<p style="font-size:2rem; padding: 20px;">${this.state.seed.text}</p>`;
+        }
+    },
+
+    // --- UTILITY ---
+    updateOracle(text) {
+        this.elems.oracleText.textContent = text;
+    },
+};
+
+OWE.init();
+</script>
+</body>
+</html>

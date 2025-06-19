@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 ECHO-GENESIS PROTOCOL</title>
+    <style>
+        /* --- CORE SETUP & AESTHETICS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300;400&display=swap');
+
+        :root {
+            --bg-color: #05020a;
+            --field-noise-color: #1a1a2a;
+            --primary-glow: #00ffff;
+            --secondary-glow: #ff00ff;
+            --child-glow: #aaff00;
+            --text-color: #e0e0ff;
+            --interface-bg: rgba(10, 10, 30, 0.6);
+            --border-color: rgba(0, 255, 255, 0.3);
+            --font-display: 'Orbitron', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: var(--font-mono);
+            color: var(--text-color);
+        }
+
+        /* --- THE RESONANCE FIELD --- */
+        #resonance-field {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+        }
+        
+        #resonance-field::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                radial-gradient(var(--field-noise-color) 1px, transparent 1px),
+                radial-gradient(var(--field-noise-color) 1px, transparent 1px);
+            background-size: 20px 20px, 20px 20px;
+            background-position: 0 0, 10px 10px;
+            animation: field-shimmer 20s linear infinite;
+            opacity: 0.2;
+        }
+        
+        @keyframes field-shimmer {
+            0% { background-position: 0 0, 10px 10px; }
+            100% { background-position: 100vh 100vh, calc(100vh + 10px) calc(100vh + 10px); }
+        }
+
+        #lineage-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .lineage-trail {
+            stroke-width: 1.5px;
+            stroke-dasharray: 4 4;
+            animation: flow 1s linear infinite;
+        }
+        
+        @keyframes flow {
+            to { stroke-dashoffset: -8; }
+        }
+
+        /* --- GENOME STRANDS --- */
+        .g-strand {
+            position: absolute;
+            width: 150px;
+            height: 250px;
+            border: 1px solid var(--border-color);
+            background: rgba(0, 255, 255, 0.02);
+            backdrop-filter: blur(2px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        
+        .g-strand .handle {
+            width: 100%;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            text-align: center;
+            font-family: var(--font-display);
+            font-weight: 700;
+            cursor: grab;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .g-strand .handle:active {
+            cursor: grabbing;
+        }
+
+        .g-strand .codons {
+            flex-grow: 1;
+            width: 100%;
+            padding-top: 10px;
+            font-size: 12px;
+            line-height: 1.6;
+            overflow: hidden;
+            text-align: center;
+            opacity: 0.7;
+            word-break: break-all;
+        }
+
+        #g-alpha { 
+            top: 20%; left: 15%;
+            box-shadow: 0 0 10px var(--primary-glow), 0 0 20px var(--primary-glow) inset;
+        }
+        #g-beta {
+            top: 40%; left: 75%;
+            box-shadow: 0 0 10px var(--secondary-glow), 0 0 20px var(--secondary-glow) inset;
+        }
+        #g-alpha .handle { border-color: var(--primary-glow); }
+        #g-beta .handle { border-color: var(--secondary-glow); }
+
+        /* Child/Fused Strand */
+        .fused {
+            box-shadow: 0 0 15px var(--child-glow), 0 0 30px var(--child-glow) inset;
+        }
+        .fused .handle { border-color: var(--child-glow); }
+
+        /* Instability/Drift Animation */
+        .unstable .codons {
+            animation: flicker 0.2s infinite alternate, drift-color 5s linear infinite;
+        }
+        
+        @keyframes flicker {
+            0% { opacity: 0.5; transform: skewX(-1deg); }
+            25% { opacity: 0.8; }
+            50% { opacity: 0.4; filter: blur(0.5px); }
+            100% { opacity: 0.7; transform: skewX(1deg); }
+        }
+        @keyframes drift-color {
+            0% { color: var(--primary-glow); }
+            50% { color: var(--secondary-glow); }
+            100% { color: var(--primary-glow); }
+        }
+
+        /* --- LIMINAL MIRROR (PREVIEW) --- */
+        #liminal-mirror {
+            display: none;
+            opacity: 0;
+            border-style: dashed;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            box-shadow: 0 0 15px white;
+        }
+        
+        #liminal-mirror.active {
+            display: flex;
+            opacity: 1;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        /* --- WEAVER'S INTERFACE (CONTROLS) --- */
+        #weaver-interface {
+            position: absolute;
+            display: none;
+            opacity: 0;
+            flex-direction: column;
+            gap: 15px;
+            width: 250px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            background: var(--interface-bg);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            transition: opacity 0.5s ease;
+            z-index: 100;
+        }
+
+        #weaver-interface.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .control-group label {
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            font-family: var(--font-display);
+        }
+        
+        .control-group .bias-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 3px;
+            background: rgba(255,255,255,0.2);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: var(--text-color);
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 0 5px white;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-group input {
+            margin-right: 10px;
+            accent-color: var(--primary-glow);
+        }
+
+        #fuse-button {
+            padding: 12px;
+            background: var(--child-glow);
+            color: var(--bg-color);
+            border: none;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #fuse-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--child-glow);
+        }
+
+        /* --- INFO & GLYPHIC INTERFACE --- */
+        #top-left-info, #bottom-right-glyphic {
+            position: absolute;
+            padding: 20px;
+            background: var(--interface-bg);
+            backdrop-filter: blur(3px);
+            border: 1px solid var(--border-color);
+            max-width: 300px;
+            z-index: 200;
+        }
+
+        #top-left-info {
+            top: 20px; left: 20px;
+        }
+
+        #top-left-info h1 {
+            font-family: var(--font-display);
+            margin: 0 0 10px 0;
+            color: var(--primary-glow);
+        }
+        
+        #top-left-info p {
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0;
+        }
+        
+        #bottom-right-glyphic {
+            bottom: 20px; right: 20px;
+        }
+        #glyphic-input {
+            width: 150px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--secondary-glow);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            padding: 8px;
+            margin-right: 10px;
+        }
+        
+        #glyphic-invoke {
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px solid var(--secondary-glow);
+            color: var(--secondary-glow);
+            font-family: var(--font-display);
+            cursor: pointer;
+        }
+        
+    </style>
+</head>
+<body>
+
+    <div id="resonance-field">
+        <svg id="lineage-svg"></svg>
+
+        <!-- Initial Genome Strands -->
+        <div class="g-strand" id="g-alpha" style="top: 20%; left: 15%;">
+            <div class="handle">g-alpha</div>
+            <div class="codons">AAT GCT TCG ... GCA TTA CCT ... GGG ATC</div>
+        </div>
+        <div class="g-strand" id="g-beta" style="top: 40%; left: 75%;">
+            <div class="handle">g-beta</div>
+            <div class="codons">CGC TAT AAG ... TTT ACG GAT ... CTA GAC</div>
+        </div>
+
+        <!-- Fusion Preview -->
+        <div id="liminal-mirror" class="g-strand">
+            <div class="handle">liminal-preview</div>
+            <div class="codons">probabilistic ... expression ... field ...</div>
+        </div>
+
+        <!-- Fusion Controls -->
+        <div id="weaver-interface">
+            <div class="control-group">
+                <label for="bias-slider">Fusion Bias</label>
+                <input type="range" id="bias-slider" min="0" max="1" value="0.5" step="0.01">
+                <div class="bias-labels">
+                    <span id="bias-label-alpha">g-alpha</span>
+                    <span id="bias-label-beta">g-beta</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Temporal Drift</label>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="drift-checkbox">
+                    <label for="drift-checkbox">Induce Instability</label>
+                </div>
+            </div>
+            <button id="fuse-button">FUSE</button>
+        </div>
+    </div>
+    
+    <div id="top-left-info">
+        <h1>ECHO-GENESIS PROTOCOL</h1>
+        <p>Drag genome strands g-alpha and g-beta. When they converge, the liminal mirror will appear, offering a probabilistic preview of the fusion event. Use the Weaver's Interface to control the outcome and FUSE a new strand.</p>
+    </div>
+
+    <div id="bottom-right-glyphic">
+         <label for="glyphic-input">Glyphic Invocation</label><br>
+         <input type="text" id="glyphic-input" placeholder="[∿ ⟁ ⫸]">
+         <button id="glyphic-invoke">Invoke</button>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const field = document.getElementById('resonance-field');
+        const svg = document.getElementById('lineage-svg');
+
+        let strands = [];
+        let activeDrag = null;
+        let fusionState = {
+            active: false,
+            parents: [],
+            proximity: 350 // pixels
+        };
+        let nextGenomeId = 1;
+
+        const liminalMirror = document.getElementById('liminal-mirror');
+        const weaverInterface = document.getElementById('weaver-interface');
+        const biasSlider = document.getElementById('bias-slider');
+        const driftCheckbox = document.getElementById('drift-checkbox');
+        const fuseButton = document.getElementById('fuse-button');
+        const glyphicInput = document.getElementById('glyphic-input');
+        const glyphicInvoke = document.getElementById('glyphic-invoke');
+
+        function initializeStrands() {
+            document.querySelectorAll('.g-strand:not(#liminal-mirror)').forEach(el => {
+                const strand = {
+                    el: el,
+                    id: el.id,
+                    parents: [],
+                    children: [],
+                    x: el.offsetLeft,
+                    y: el.offsetTop
+                };
+                strands.push(strand);
+                makeDraggable(strand);
+            });
+        }
+
+        function makeDraggable(strand) {
+            const handle = strand.el.querySelector('.handle');
+            
+            handle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                activeDrag = {
+                    strand,
+                    offsetX: e.clientX - strand.el.offsetLeft,
+                    offsetY: e.clientY - strand.el.offsetTop,
+                };
+            });
+        }
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!activeDrag) return;
+            e.preventDefault();
+
+            let newX = e.clientX - activeDrag.offsetX;
+            let newY = e.clientY - activeDrag.offsetY;
+
+            // Constrain to field
+            const fieldRect = field.getBoundingClientRect();
+            newX = Math.max(0, Math.min(newX, fieldRect.width - activeDrag.strand.el.offsetWidth));
+            newY = Math.max(0, Math.min(newY, fieldRect.height - activeDrag.strand.el.offsetHeight));
+
+            activeDrag.strand.el.style.left = `${newX}px`;
+            activeDrag.strand.el.style.top = `${newY}px`;
+            activeDrag.strand.x = newX;
+            activeDrag.strand.y = newY;
+
+            checkProximity();
+            updateAllLineageTrails();
+        });
+
+        document.addEventListener('mouseup', () => {
+            activeDrag = null;
+        });
+
+        function getCenter(el) {
+            return {
+                x: el.offsetLeft + el.offsetWidth / 2,
+                y: el.offsetTop + el.offsetHeight / 2,
+            };
+        }
+
+        function checkProximity() {
+            let potentialParents = strands.filter(s => !s.parents.length && !s.children.length);
+            if (potentialParents.length < 2) return;
+
+            const [p1, p2] = potentialParents;
+            const center1 = getCenter(p1.el);
+            const center2 = getCenter(p2.el);
+            const distance = Math.sqrt(Math.pow(center1.x - center2.x, 2) + Math.pow(center1.y - center2.y, 2));
+
+            if (distance < fusionState.proximity && !fusionState.active) {
+                // Activate Fusion UI
+                fusionState.active = true;
+                fusionState.parents = [p1, p2];
+                activateFusionUI(p1, p2);
+            } else if (distance >= fusionState.proximity && fusionState.active) {
+                // Deactivate
+                fusionState.active = false;
+                fusionState.parents = [];
+                deactivateFusionUI();
+            }
+            
+            if (fusionState.active) {
+                // Keep UI positioned
+                positionFusionUI(p1, p2);
+            }
+        }
+        
+        function activateFusionUI(p1, p2) {
+            liminalMirror.classList.add('active');
+            weaverInterface.classList.add('active');
+            weaverInterface.querySelector('#bias-label-alpha').textContent = p1.id;
+            weaverInterface.querySelector('#bias-label-beta').textContent = p2.id;
+            positionFusionUI(p1, p2);
+        }
+
+        function deactivateFusionUI() {
+            liminalMirror.classList.remove('active');
+            weaverInterface.classList.remove('active');
+        }
+
+        function positionFusionUI(p1, p2) {
+            const center1 = getCenter(p1.el);
+            const center2 = getCenter(p2.el);
+            const midX = (center1.x + center2.x) / 2;
+            const midY = (center1.y + center2.y) / 2;
+            
+            liminalMirror.style.left = `${midX - liminalMirror.offsetWidth / 2}px`;
+            liminalMirror.style.top = `${midY - liminalMirror.offsetHeight / 2}px`;
+
+            weaverInterface.style.left = `${midX - weaverInterface.offsetWidth / 2}px`;
+            weaverInterface.style.top = `${midY + liminalMirror.offsetHeight / 2 + 20}px`;
+        }
+        
+        biasSlider.addEventListener('input', (e) => {
+            const bias = parseFloat(e.target.value);
+            const color1 = getComputedStyle(document.documentElement).getPropertyValue('--primary-glow').trim();
+            const color2 = getComputedStyle(document.documentElement).getPropertyValue('--secondary-glow').trim();
+
+            const mixColor = (c1, c2, weight) => {
+                let p = weight;
+                let w = p * 2 - 1;
+                let w1 = (w/1+1) / 2;
+                let w2 = 1 - w1;
+                let rgb1 = c1.match(/\d+/g).map(Number);
+                let rgb2 = c2.match(/\d+/g).map(Number);
+                let rgb = [
+                    Math.round(rgb1[0] * w1 + rgb2[0] * w2),
+                    Math.round(rgb1[1] * w1 + rgb2[1] * w2),
+                    Math.round(rgb1[2] * w1 + rgb2[2] * w2)
+                ];
+                return `rgb(${rgb.join(',')})`;
+            };
+            
+            // This is a simple visual representation of bias
+            const finalColor = `rgb(${
+                Math.round( (1-bias) * 0 + bias * 255)
+            }, ${
+                Math.round( ( (1-bias)*255 + bias*255 )/2 )
+            }, ${
+                Math.round( (1-bias)*255 + bias*0 )
+            })`;
+
+            liminalMirror.style.boxShadow = `0 0 15px ${finalColor}`;
+        });
+
+        function executeFusion() {
+            if (!fusionState.active) return;
+            
+            const [p1, p2] = fusionState.parents;
+            const isUnstable = driftCheckbox.checked;
+
+            // Create new strand element
+            const newId = `g-gamma-${nextGenomeId++}`;
+            const newStrandEl = liminalMirror.cloneNode(true);
+            newStrandEl.id = newId;
+            newStrandEl.classList.remove('active');
+            newStrandEl.classList.add('fused');
+            newStrandEl.style.boxShadow = ''; // Reset biased shadow
+            if (isUnstable) {
+                newStrandEl.classList.add('unstable');
+            }
+            newStrandEl.querySelector('.handle').textContent = newId;
+            newStrandEl.querySelector('.codons').textContent = "fused ... temporal drift ... stable";
+
+            field.appendChild(newStrandEl);
+
+            const newStrandObj = {
+                el: newStrandEl,
+                id: newId,
+                parents: [p1.id, p2.id],
+                children: [],
+                x: newStrandEl.offsetLeft,
+                y: newStrandEl.offsetTop,
+            };
+            
+            strands.push(newStrandObj);
+            p1.children.push(newId);
+            p2.children.push(newId);
+
+            makeDraggable(newStrandObj);
+            updateAllLineageTrails();
+            deactivateFusionUI();
+            
+            // Fade out parents
+            p1.el.style.opacity = '0.3';
+            p1.el.style.pointerEvents = 'none';
+            p2.el.style.opacity = '0.3';
+            p2.el.style.pointerEvents = 'none';
+
+            // Reset fusion state
+            fusionState.active = false;
+            fusionState.parents = [];
+        }
+
+        fuseButton.addEventListener('click', executeFusion);
+        
+        glyphicInvoke.addEventListener('click', () => {
+             // A simplified proof-of-concept for the glyphic command
+            const potentialParents = strands.filter(s => !s.parents.length && !s.children.length);
+            if (potentialParents.length >= 2) {
+                const [p1, p2] = potentialParents;
+                
+                // Force proximity and fusion
+                fusionState.active = true;
+                fusionState.parents = [p1, p2];
+                driftCheckbox.checked = glyphicInput.value.includes('⎅') || glyphicInput.value.includes('drift');
+                biasSlider.value = 0.5; // default
+                
+                // Position UI temporarily
+                positionFusionUI(p1,p2);
+                executeFusion();
+                
+                // Show a quick flash to signify command execution
+                const invokedFlash = document.createElement('div');
+                invokedFlash.style.cssText = `
+                    position: absolute;
+                    top: 50%; left: 50%;
+                    transform: translate(-50%, -50%);
+                    padding: 30px;
+                    font-size: 2em;
+                    font-family: var(--font-display);
+                    color: var(--secondary-glow);
+                    border: 2px solid var(--secondary-glow);
+                    background: var(--interface-bg);
+                    opacity: 1;
+                    transition: all 0.5s ease-out;
+                    z-index: 500;
+                `;
+                invokedFlash.textContent = "INVOKED";
+                field.appendChild(invokedFlash);
+                setTimeout(() => {
+                    invokedFlash.style.opacity = '0';
+                    invokedFlash.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                    setTimeout(() => invokedFlash.remove(), 500);
+                }, 500);
+            } else {
+                alert("Not enough parent strands available for invocation.");
+            }
+        });
+
+
+        function updateAllLineageTrails() {
+            svg.innerHTML = ''; // Clear old trails
+            strands.forEach(strand => {
+                if (strand.parents.length > 0) {
+                    const childCenter = getCenter(strand.el);
+                    strand.parents.forEach(parentId => {
+                        const parentStrand = strands.find(s => s.id === parentId);
+                        if (parentStrand) {
+                            const parentCenter = getCenter(parentStrand.el);
+                            createLineageTrail(parentCenter, childCenter, parentStrand.el.id);
+                        }
+                    });
+                }
+            });
+        }
+        
+        function createLineageTrail(start, end, parentId) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', start.x);
+            line.setAttribute('y1', start.y);
+            line.setAttribute('x2', end.x);
+            line.setAttribute('y2', end.y);
+            line.classList.add('lineage-trail');
+            
+            // Color based on parent
+            if (parentId === 'g-alpha') {
+                line.style.stroke = 'var(--primary-glow)';
+            } else if (parentId === 'g-beta') {
+                line.style.stroke = 'var(--secondary-glow)';
+            } else {
+                 line.style.stroke = 'var(--child-glow)';
+            }
+            
+            svg.appendChild(line);
+        }
+
+        initializeStrands();
+    });
+    </script>
+
+</body>
+</html>

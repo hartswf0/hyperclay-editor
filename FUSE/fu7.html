@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VISUAL ATLAS // RADAR FUSE INTERFACES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: RADAR FUSE INTERFACES - VISUAL ATLAS
+        *   ID: EXP-M-A-03
+        *   CONCEPT: A 1x3 horizontal atlas of FUSE radar variations, blending 1970s
+        *   technocratic UI, Teenage Engineering-inspired hardware design, and
+        *   bureaucratic data visualization.
+        */
+
+        :root {
+            --panel-bg: #1a1c1d;
+            --panel-border: #333;
+            --screen-bg: #0d120d;
+            --grid-color: rgba(68, 153, 68, 0.2);
+            --neon-green: #4f4;
+            --neon-green-glow: rgba(80, 255, 80, 0.7);
+            --amber: #ffb400;
+            --amber-glow: rgba(255, 180, 0, 0.6);
+            --text-color: #e0e0e0;
+            --font-tech: 'Share Tech Mono', monospace;
+            --font-pixel: 'VT323', monospace;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes blink {
+            0%, 100% { background-color: var(--neon-green); box-shadow: 0 0 10px 2px var(--neon-green-glow); }
+            50% { background-color: #3a503a; box-shadow: none; }
+        }
+        @keyframes progress-flicker {
+            0% { opacity: 0.9; }
+            50% { opacity: 1; }
+            100% { opacity: 0.9; }
+        }
+        @keyframes ghost-trail {
+            0% { opacity: 0.5; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.8); }
+        }
+        @keyframes gauge-flicker {
+            0%, 100% { transform: rotate(-35deg); }
+            50% { transform: rotate(-40deg); }
+        }
+
+        /* --- BASE & ATLAS LAYOUT --- */
+        body {
+            background-color: #080808;
+            color: var(--text-color);
+            font-family: var(--font-tech);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+            margin: 0;
+        }
+        #atlas-header {
+            width: 100%;
+            max-width: 1600px;
+            text-align: center;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 1rem;
+        }
+        #atlas-header h1 {
+            font-size: 1.5rem;
+            font-weight: normal;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--neon-green);
+        }
+        #atlas-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 1600px;
+        }
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            aspect-ratio: 3 / 4; /* Maintain a consistent panel shape */
+        }
+        .panel-title {
+            font-family: var(--font-pixel);
+            font-size: 1.8rem;
+            text-align: center;
+            color: var(--text-color);
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 5px;
+        }
+        .command-bar {
+            background-color: #000;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 15px;
+            border: 1px solid #222;
+        }
+        .command-bar span { color: var(--neon-green); }
+        .footer-log {
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid var(--panel-border);
+            font-family: var(--font-pixel);
+            font-size: 1.5rem;
+            text-align: center;
+            color: var(--amber);
+        }
+
+        /* --- SHARED COMPONENT STYLES (TE-inspired) --- */
+        .knob-group { display: flex; justify-content: space-around; padding: 10px 0; }
+        .knob { text-align: center; }
+        .knob .dial {
+            width: 50px; height: 50px;
+            background-color: #333;
+            border: 2px solid #222;
+            border-radius: 50%;
+            position: relative;
+            margin: 0 auto 5px;
+        }
+        .knob .dial::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 12px;
+            background-color: var(--text-color);
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .knob label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        .knob .dial.sensitivity { transform: rotate(120deg); }
+        .knob .dial.bias { transform: rotate(-45deg); }
+
+        .toggle-group { display: flex; justify-content: space-around; padding: 15px 0; }
+        .toggle-switch { text-align: center; }
+        .toggle-switch .switch-body {
+            width: 50px; height: 25px;
+            background-color: #222;
+            border-radius: 15px;
+            position: relative;
+            margin: 0 auto 5px;
+            border: 1px solid #444;
+        }
+        .toggle-switch .flick {
+            width: 19px; height: 19px;
+            background-color: #e0e0e0;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            transition: all 0.3s ease;
+        }
+        .toggle-switch .flick.on { left: 27px; background-color: var(--neon-green); }
+        .toggle-switch .flick.off { left: 4px; }
+        .toggle-switch label { font-size: 0.8rem; text-transform: uppercase; }
+
+        /* --- PANEL 1: ECHO SCAN CONTROL --- */
+        #panel-1 .content { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; flex-grow: 1;}
+        #panel-1 .radar-display {
+            background-color: var(--screen-bg);
+            border: 1px solid #333;
+            position: relative;
+            border-radius: 50%;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle, transparent 32.8%, var(--grid-color) 33%, transparent 33.2%),
+                radial-gradient(circle, transparent 65.8%, var(--grid-color) 66%, transparent 66.2%),
+                repeating-conic-gradient(from 0deg, var(--grid-color) 0deg 0.5deg, transparent 0.5deg 45deg);
+        }
+        #panel-1 .sweep-line {
+            position: absolute; width: 1px; height: 50%;
+            background: linear-gradient(to top, var(--neon-green-glow), transparent);
+            top: 0; left: 50%;
+            transform-origin: bottom center;
+            animation: sweep 5s linear infinite;
+        }
+        #panel-1 .blip {
+            position: absolute; width: 10px; height: 10px;
+            background-color: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px 3px var(--neon-green-glow);
+        }
+        #panel-1 .blip-1 { top: 25%; left: 35%; }
+        #panel-1 .blip-2 { top: 60%; left: 70%; }
+        #panel-1 .crosshair {
+            position: absolute; top: 25%; left: 35%; width: 10px; height: 10px;
+            opacity: 0;
+        }
+        #panel-1 .crosshair::before, #panel-1 .crosshair::after {
+            content: ''; position: absolute; background-color: var(--amber);
+        }
+        #panel-1 .crosshair::before { width: 20px; height: 2px; top: 4px; left: -5px; }
+        #panel-1 .crosshair::after { height: 20px; width: 2px; left: 4px; top: -5px; }
+        #panel-1 .sweep-line { animation-delay: -1.2s; /* Align sweep with blip for demo */ }
+        #panel-1 .radar-display:hover .crosshair { opacity: 1; }
+
+        #panel-1 .control-panel { display: flex; flex-direction: column; justify-content: space-between; }
+        #panel-1 .led-group { display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid var(--panel-border); border-bottom: 1px solid var(--panel-border); }
+        #panel-1 .led-indicator { text-align: center; }
+        #panel-1 .led { width: 12px; height: 12px; background-color: #3a503a; border-radius: 50%; margin: 0 auto 5px; border: 1px solid #222; }
+        #panel-1 .led.active { background-color: var(--neon-green); }
+        #panel-1 .led.locked { animation: blink 1s infinite; background-color: var(--amber); }
+        #panel-1 .led-indicator label { font-size: 0.8rem; }
+        #panel-1 .footer-log .codon-preview { font-size: 1.2rem; color: #ccc; letter-spacing: 4px; }
+
+
+        /* --- PANEL 2: FIELD INTERCEPT MODE --- */
+        #panel-2 .content { flex-grow: 1; display: flex; flex-direction: column; gap: 15px; }
+        #panel-2 .radar-map {
+            flex-grow: 1;
+            background-color: var(--screen-bg);
+            border: 1px solid #333;
+            position: relative;
+            background-image:
+                repeating-linear-gradient(0deg, transparent, transparent 19px, var(--grid-color) 20px),
+                repeating-linear-gradient(90deg, transparent, transparent 19px, var(--grid-color) 20px);
+            /* Faux topographic contours */
+            background-size: 20px 20px, 20px 20px;
+        }
+        #panel-2 .blip {
+            position: absolute; width: 12px; height: 12px;
+            background-color: var(--amber);
+            border-radius: 50%;
+            box-shadow: 0 0 10px 3px var(--amber-glow);
+        }
+        #panel-2 .blip::after { /* Ghost trail */
+            content: '';
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: var(--amber);
+            border-radius: 50%;
+            animation: ghost-trail 1.5s ease-out infinite;
+        }
+        #panel-2 .blip-1 { top: 30%; left: 20%; animation-delay: -0.75s; }
+        #panel-2 .blip-2 { top: 50%; left: 60%; }
+
+        #panel-2 .analog-readouts {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+        }
+        #panel-2 .gauge {
+            position: relative;
+            width: 100%; aspect-ratio: 2/1;
+            overflow: hidden; text-align: center;
+        }
+        #panel-2 .gauge::before { /* Gauge background */
+            content: '';
+            position: absolute; top: 0; left: 0;
+            width: 200%; height: 200%;
+            background-color: #222;
+            border: 20px solid #333;
+            border-bottom-color: var(--neon-green);
+            border-radius: 50%;
+            transform: translateX(-25%);
+        }
+        #panel-2 .gauge .needle {
+            position: absolute;
+            width: 2px; height: 90%;
+            background-color: var(--amber);
+            bottom: -40%; left: 50%;
+            transform-origin: bottom center;
+        }
+        #panel-2 .gauge .needle.p1 { transform: rotate(-45deg); }
+        #panel-2 .gauge .needle.p2 { transform: rotate(15deg); animation: gauge-flicker 2s infinite ease-in-out; }
+        #panel-2 .gauge .needle.p3 { transform: rotate(30deg); }
+        #panel-2 .gauge label { position: absolute; bottom: 5px; width: 100%; left: 0; font-size: 0.8rem; text-transform: uppercase; }
+
+        #panel-2 .button-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        #panel-2 .te-button {
+            background-color: #2a2a2a; border: 1px solid #444;
+            padding: 10px; text-align: center; font-size: 0.9rem;
+            text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 0 5px 1px #000 inset;
+        }
+        #panel-2 .te-button.active { color: var(--neon-green); background-color: #333; box-shadow: 0 0 8px 2px var(--neon-green-glow) inset; }
+
+
+        /* --- PANEL 3: SYNTHESIS RANGE MODE --- */
+        #panel-3 .content { display: grid; grid-template-columns: 40% 60%; gap: 15px; flex-grow: 1; }
+        #panel-3 .radar-display {
+            background-color: var(--screen-bg); border: 1px solid #333;
+            position: relative;
+            background-image:
+                radial-gradient(circle, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(circle, var(--amber, 0.3) 60%, transparent 60.5%); /* Range Ring */
+            background-size: 20px 20px, 100% 100%;
+        }
+        #panel-3 .blip { position: absolute; }
+        #panel-3 .codon-viz { display: flex; gap: 1px; padding: 2px; background-color: #333; border: 1px solid #555; }
+        #panel-3 .codon-viz span { width: 3px; height: 10px; }
+        #panel-3 .blip-1 { top: 45%; left: 25%; }
+        #panel-3 .blip-2 { top: 65%; left: 60%; }
+        
+        #panel-3 .synthesis-table { font-size: 0.9rem; }
+        #panel-3 .synthesis-table table { width: 100%; border-collapse: collapse; }
+        #panel-3 .synthesis-table th, #panel-3 .synthesis-table td {
+            border: 1px solid var(--panel-border); padding: 5px;
+            text-align: center;
+        }
+        #panel-3 .synthesis-table th { color: var(--amber); }
+        #panel-3 .fused-row {
+            background-color: rgba(79, 244, 79, 0.1);
+            box-shadow: 0 0 10px 2px rgba(79, 244, 79, 0.2) inset;
+            color: var(--neon-green);
+            font-weight: bold;
+        }
+        .c1 { background-color: #4CAF50; } /* Green */
+        .c2 { background-color: #F44336; } /* Red */
+        .c3 { background-color: #2196F3; } /* Blue */
+        .c4 { background-color: #FFC107; } /* Amber */
+
+        #panel-3 .dial-container { text-align: center; margin-top: 15px; }
+        #panel-3 .dial-container .dial { transform: rotate(80deg); }
+        #panel-3 .status-bar {
+            width: 100%; background-color: #222; border: 1px solid #444; padding: 2px; margin-top: auto;
+        }
+        #panel-3 .progress {
+            width: 87%; background-color: var(--neon-green);
+            height: 15px; text-align: right;
+            padding-right: 5px; color: #000;
+            font-size: 0.8rem; line-height: 15px;
+            animation: progress-flicker 0.5s infinite;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header id="atlas-header">
+        <h1>RADAR FUSE INTERFACES</h1>
+    </header>
+
+    <div id="atlas-container">
+
+        <!-- PANEL 1: ECHO SCAN CONTROL -->
+        <div class="panel" id="panel-1">
+            <div class="panel-title">ECHO SCAN CONTROL</div>
+            <div class="command-bar">> fuse g-021+g-034 using:<span>radar-scan</span></div>
+            <div class="content">
+                <div class="radar-display">
+                    <div class="sweep-line"></div>
+                    <div class="blip blip-1"></div>
+                    <div class="blip blip-2"></div>
+                    <div class="crosshair"></div>
+                </div>
+                <div class="control-panel">
+                    <div class="knob-group">
+                        <div class="knob"><div class="dial"></div><label>SCAN SPEED</label></div>
+                        <div class="knob"><div class="dial sensitivity"></div><label>SENSITIVITY</label></div>
+                        <div class="knob"><div class="dial bias"></div><label>FUSION-BIAS</label></div>
+                    </div>
+                    <div class="toggle-group">
+                        <div class="toggle-switch"><div class="switch-body"><div class="flick on"></div></div><label>LOCK-ON</label></div>
+                        <div class="toggle-switch"><div class="switch-body"><div class="flick off"></div></div><label>AUTO-MERGE</label></div>
+                    </div>
+                    <div class="led-group">
+                        <div class="led-indicator"><div class="led active"></div><label>BLIP 1</label></div>
+                        <div class="led-indicator"><div class="led active"></div><label>BLIP 2</label></div>
+                        <div class="led-indicator"><div class="led locked"></div><label>LOCKED</label></div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-log">
+                fusion confirmed – generating g-072
+                <div class="codon-preview">CA | GT | AG | CT | TT</div>
+            </div>
+        </div>
+
+        <!-- PANEL 2: FIELD INTERCEPT MODE -->
+        <div class="panel" id="panel-2">
+            <div class="panel-title">FIELD INTERCEPT MODE</div>
+            <div class="command-bar">> fuse g-055+g-089 using:<span>radar-intercept</span></div>
+            <div class="content">
+                <div class="radar-map">
+                    <div class="blip blip-1"></div>
+                    <div class="blip blip-2"></div>
+                </div>
+                <div class="analog-readouts">
+                    <div class="gauge">
+                        <div class="needle p1"></div>
+                        <label>MERGE-POTENTIAL</label>
+                    </div>
+                    <div class="gauge">
+                        <div class="needle p2"></div>
+                        <label>DOPPLER SHIFT</label>
+                    </div>
+                    <div class="gauge">
+                        <div class="needle p3"></div>
+                        <label>PHASE ALIGNMENT</label>
+                    </div>
+                </div>
+                <div class="button-row">
+                    <div class="te-button">PING</div>
+                    <div class="te-button">ZOOM</div>
+                    <div class="te-button active">CAPTURE FUSE</div>
+                </div>
+            </div>
+            <div class="footer-log">Command: fuse A+B using:radar-intercept</div>
+        </div>
+
+        <!-- PANEL 3: SYNTHESIS RANGE MODE -->
+        <div class="panel" id="panel-3">
+            <div class="panel-title">SYNTHESIS RANGE</div>
+            <div class="command-bar">> fuse ... using:<span>radar-synthesis</span> – 87% complete</div>
+            <div class="content">
+                <div class="radar-display">
+                    <div class="blip blip-1">
+                        <div class="codon-viz">
+                            <span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c1"></span>
+                        </div>
+                    </div>
+                    <div class="blip blip-2">
+                        <div class="codon-viz">
+                            <span class="c4"></span><span class="c3"></span><span class="c3"></span><span class="c2"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="synthesis-table">
+                    <table>
+                        <thead>
+                            <tr><th>ID</th><th>CODON SPECTRA</th><th>μ-RATE</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>g-118</td>
+                                <td><div class="codon-viz" style="margin: auto;">
+                                    <span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c1"></span>
+                                </div></td>
+                                <td>0.14%</td>
+                            </tr>
+                            <tr>
+                                <td>g-204</td>
+                                <td><div class="codon-viz" style="margin: auto;">
+                                    <span class="c4"></span><span class="c3"></span><span class="c3"></span><span class="c2"></span>
+                                </div></td>
+                                <td>0.31%</td>
+                            </tr>
+                            <tr class="fused-row">
+                                <td>g-351</td>
+                                <td><div class="codon-viz" style="margin: auto;">
+                                    <span class="c1"></span><span class="c4"></span><span class="c3"></span><span class="c2"></span>
+                                </div></td>
+                                <td>0.22%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                     <div class="dial-container">
+                        <div class="knob">
+                            <div class="dial"></div>
+                            <label>MERGE INTENSITY</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-log">Command: fuse A+B using:radar-synthesis</div>
+        </div>
+
+    </div>
+
+</body>
+</html>

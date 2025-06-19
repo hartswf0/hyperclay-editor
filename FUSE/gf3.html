@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENOMIRE SCOPE // Memory Ecology</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Source+Serif+Pro:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <style>
+        /* --- 0. THEME & CONFIGURATION --- */
+        :root {
+            --color-background: #06070a;
+            --color-text: #b0c4de;
+            --color-glow: hsla(190, 100%, 75%, 0.5);
+            --color-focus: hsla(210, 100%, 80%, 0.08);
+            --color-grid: rgba(40, 50, 70, 0.2);
+            --font-mono: 'Fira Code', monospace;
+            --font-serif: 'Source Serif Pro', serif;
+            --width-col: 40px;
+            --height-codon: 24px;
+            --anim-fast: 150ms;
+            --anim-smooth: 500ms;
+            --anim-drift: 2000ms;
+        }
+        .type-txt { --codon-color: hsl(210, 60%, 60%); }
+        .type-img { --codon-color: hsl(120, 60%, 60%); }
+        .type-aud { --codon-color: hsl(280, 60%, 60%); }
+        .type-cmd { --codon-color: hsl(30, 80%, 65%); }
+        .type-bin { --codon-color: hsl(0, 0%, 70%); }
+        .type-exo { --codon-color: hsl(180, 50%, 40%); }
+        .type-int { --codon-color: hsl(340, 50%, 40%); }
+
+        /* --- 1. CORE LAYOUT & ECOLOGY CANVAS --- */
+        html, body {
+            height: 100%; margin: 0; background-color: var(--color-background);
+            color: var(--color-text); font-family: var(--font-mono);
+            overflow: hidden;
+        }
+        #app-container {
+            position: relative; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        #resonance-field-canvas, #gesture-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+        }
+        #gesture-canvas { pointer-events: auto; z-index: 10; cursor: crosshair;}
+
+        #genome-field {
+            position: relative; z-index: 5;
+            width: 100%; height: 80%;
+            display: flex; align-items: center; gap: 8px;
+            padding: 0 5vw;
+            perspective: 1000px;
+        }
+
+        /* --- 2. GENOME COLUMN & STATES --- */
+        .genome-column {
+            position: relative;
+            flex-shrink: 0; display: flex; flex-direction: column;
+            width: var(--width-col); padding: 5px 0; border-radius: 4px;
+            transform-style: preserve-3d;
+            transition:
+                transform var(--anim-drift) ease-in-out,
+                opacity var(--anim-smooth),
+                box-shadow var(--anim-smooth),
+                background-color var(--anim-smooth);
+        }
+        .genome-column.is-grown {
+            opacity: 0.7; border: 1px dashed hsla(190, 100%, 75%, 0.3);
+        }
+        .genome-column.is-focused {
+            background-color: var(--color-focus);
+            box-shadow: 0 0 20px 4px var(--color-glow);
+        }
+        .genome-column.is-selected-for-op {
+            box-shadow: 0 0 1px 2px var(--color-glow);
+        }
+
+        .codon-band {
+            width: 100%; height: var(--height-codon);
+            flex-shrink: 0; border-radius: 3px;
+            background-color: var(--codon-color);
+            cursor: pointer;
+            transition: transform var(--anim-fast);
+        }
+        .codon-band:hover { transform: scale(1.2); }
+
+        /* Mirror Phenotype Preview */
+        .mirror-phenotype {
+            position: absolute;
+            left: 110%; top: 0;
+            width: 150px; height: 100%;
+            background: rgba(10, 12, 16, 0.7);
+            backdrop-filter: blur(4px);
+            border-left: 1px solid var(--color-glow);
+            border-radius: 4px; padding: 10px;
+            pointer-events: none; opacity: 0;
+            transform: translateX(-20px);
+            transition: opacity var(--anim-fast), transform var(--anim-fast);
+            z-index: 20;
+        }
+        .genome-column.is-focused .mirror-phenotype {
+            pointer-events: auto; opacity: 1; transform: translateX(0);
+        }
+        .mirror-codon {
+            font-size: 0.7rem; line-height: 1.2; margin-bottom: 4px;
+            opacity: 0.8; border-left: 2px solid var(--codon-color); padding-left: 5px;
+        }
+        .mirror-codon img { width: 100%; filter: grayscale(1) opacity(0.6) blur(1px); }
+        .mirror-codon svg { stroke: var(--codon-color); height: 12px; opacity: 0.7; }
+        .mirror-actions button {
+            background: var(--color-grid); border: 1px solid var(--color-focus);
+            color: var(--color-text); cursor: pointer; font-size: 0.7rem; padding: 2px 6px;
+        }
+
+        /* --- 3. UI: COMPOSITOR & GLYPHS --- */
+        #ui-bottom {
+            position: absolute; bottom: 0; left: 0; width: 100%; z-index: 15;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 2vw; background: linear-gradient(transparent, var(--color-background) 70%);
+        }
+        #compositor-track {
+            display: flex; gap: 5px; align-items: center;
+            height: 50px; padding: 5px 10px;
+            border: 1px dashed var(--color-grid); border-radius: 4px;
+            background: rgba(0,0,0,0.2); min-width: 50%;
+        }
+        #compositor-track.drag-over { border-style: solid; border-color: var(--color-glow); }
+        #compositor-track .codon-band { width: 20px; height: 40px; }
+
+        #glyph-palette { display: flex; gap: 10px; }
+        .glyph-phoneme {
+            font-size: 1.8rem; cursor: pointer;
+            transition: transform var(--anim-fast), color var(--anim-fast);
+        }
+        .glyph-phoneme:hover { transform: scale(1.2); color: var(--color-glow); }
+        #glyph-chain-display { font-size: 1rem; color: #666; margin-left: 20px; }
+
+        /* --- 4. EXPRESSION VIEW & TOOLTIPS --- */
+        #expression-view {
+            position: absolute; top: 10%; left: 50%;
+            transform: translateX(-50%); width: 80%; max-width: 600px;
+            height: 80%; background: rgba(10, 12, 16, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--color-grid); border-radius: 8px;
+            padding: 20px; z-index: 50;
+            display: none; /* Controlled by JS */
+            flex-direction: column; overflow-y: auto;
+            animation: flicker-in 0.5s;
+        }
+        #expression-view.visible { display: flex; }
+        .expressed-codon-view {
+            padding: 10px; margin-bottom: 10px; border-left: 3px solid var(--codon-color);
+            background: var(--color-focus);
+        }
+        .expressed-codon-view.unstable { animation: pulse-glitch 1.5s infinite; }
+        @keyframes flicker-in { 0% { opacity: 0; } 100% { opacity: 1; }}
+        @keyframes pulse-glitch {
+            0%, 100% { background: var(--color-focus); }
+            50% { background: hsla(0, 80%, 50%, 0.2); }
+        }
+        
+        #tooltip {
+            position: fixed; background: #000; color: var(--color-glow);
+            padding: 5px 10px; border-radius: 4px; font-size: 0.8rem;
+            pointer-events: none; opacity: 0; transition: opacity var(--anim-fast);
+            z-index: 100;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <canvas id="resonance-field-canvas"></canvas>
+        <div id="genome-field"></div>
+        <canvas id="gesture-canvas"></canvas>
+        <div id="expression-view"></div>
+    </div>
+    
+    <div id="ui-bottom">
+        <div id="compositor-track">Drop codons here to compose...</div>
+        <div style="display: flex; align-items: center;">
+            <div id="glyph-palette">
+                <div class="glyph-phoneme" data-glyph="express" title="Express (⟁)">⟁</div>
+                <div class="glyph-phoneme" data-glyph="fuse" title="Fuse (∿)">∿</div>
+                <div class="glyph-phoneme" data-glyph="echo" title="Echo (⫸)">⫸</div>
+            </div>
+            <div id="glyph-chain-display"></div>
+        </div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const appContainer = document.getElementById('app-container');
+        const genomeField = document.getElementById('genome-field');
+        const resonanceCanvas = document.getElementById('resonance-field-canvas');
+        const gestureCanvas = document.getElementById('gesture-canvas');
+        const compositorTrack = document.getElementById('compositor-track');
+        const expressionView = document.getElementById('expression-view');
+        const glyphPalette = document.getElementById('glyph-palette');
+        const glyphChainDisplay = document.getElementById('glyph-chain-display');
+        const tooltip = document.getElementById('tooltip');
+        
+        // --- State & Config ---
+        const GREEK_LETTERS = ['α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ', 'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ', 'φ', 'χ', 'ψ', 'ω'];
+        let genomes = [];
+        let spores = [];
+        let compositorCodons = [];
+        let selectedIndices = [];
+        let glyphChain = [];
+        let gestureData = null;
+        let time = 0;
+        const simplex = new SimplexNoise();
+
+        // --- 1. MEMORY ECOLOGY & RESONANCE FIELD ---
+        function setupCanvases() {
+            [resonanceCanvas, gestureCanvas].forEach(c => {
+                c.width = window.innerWidth;
+                c.height = window.innerHeight;
+            });
+        }
+
+        function generateSpores(count) {
+            for (let i = 0; i < count; i++) {
+                spores.push({
+                    x: Math.random() * resonanceCanvas.width,
+                    y: Math.random() * resonanceCanvas.height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    radius: 2 + Math.random() * 3,
+                    fragment: `forgotten fragment #${Math.floor(Math.random()*1000)}`
+                });
+            }
+        }
+
+        function updateAndRenderEcology() {
+            const ctx = resonanceCanvas.getContext('2d');
+            ctx.clearRect(0, 0, resonanceCanvas.width, resonanceCanvas.height);
+            
+            // Render resonance field (valleys/peaks)
+            const imageData = ctx.createImageData(resonanceCanvas.width, resonanceCanvas.height);
+            const data = imageData.data;
+            for (let x = 0; x < resonanceCanvas.width; x += 5) {
+                for (let y = 0; y < resonanceCanvas.height; y += 5) {
+                    const noise = simplex.noise3D(x / 500, y / 500, time / 1000);
+                    if (noise > 0.4) { // Peaks
+                        ctx.fillStyle = `hsla(210, 50%, 80%, ${noise * 0.1})`;
+                        ctx.fillRect(x, y, 5, 5);
+                    }
+                }
+            }
+            
+            // Update and draw spores
+            ctx.fillStyle = varToHSL(getCSSVar('--color-glow'));
+            spores.forEach(spore => {
+                spore.x += spore.vx;
+                spore.y += spore.vy;
+                if (spore.x < 0 || spore.x > resonanceCanvas.width) spore.vx *= -1;
+                if (spore.y < 0 || spore.y > resonanceCanvas.height) spore.vy *= -1;
+
+                ctx.beginPath();
+                ctx.arc(spore.x, spore.y, spore.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+        
+        // --- 2. GESTURE-GROWN GENOMES ---
+        gestureCanvas.addEventListener('mousedown', e => {
+            gestureData = {
+                points: [{x: e.clientX, y: e.clientY, t: Date.now()}],
+                pathLength: 0,
+                startTime: Date.now()
+            };
+            const ctx = gestureCanvas.getContext('2d');
+            ctx.clearRect(0, 0, gestureCanvas.width, gestureCanvas.height);
+            ctx.strokeStyle = varToHSL(getCSSVar('--color-glow'), 0.8);
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(e.clientX, e.clientY);
+        });
+
+        gestureCanvas.addEventListener('mousemove', e => {
+            if (!gestureData) return;
+            const lastPoint = gestureData.points[gestureData.points.length - 1];
+            const newPoint = {x: e.clientX, y: e.clientY, t: Date.now()};
+            const dist = Math.hypot(newPoint.x - lastPoint.x, newPoint.y - lastPoint.y);
+            gestureData.pathLength += dist;
+            gestureData.points.push(newPoint);
+            
+            const ctx = gestureCanvas.getContext('2d');
+            ctx.lineTo(e.clientX, e.clientY);
+            ctx.stroke();
+        });
+
+        gestureCanvas.addEventListener('mouseup', e => {
+            if (!gestureData || gestureData.pathLength < 20) {
+                gestureData = null;
+                return; // Ignore small gestures/clicks
+            }
+            // Analyze gesture
+            const duration = (Date.now() - gestureData.startTime) / 1000;
+            const avgSpeed = gestureData.pathLength / duration;
+            const startPt = gestureData.points[0];
+            const endPt = gestureData.points[gestureData.points.length-1];
+            const straightDist = Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y);
+            const curvature = gestureData.pathLength / (straightDist + 1); // Avoid div by zero
+
+            // Generate genome
+            const numCodons = Math.max(5, Math.min(20, Math.floor(gestureData.pathLength / 20)));
+            const mutationRate = Math.min(1, avgSpeed / 1000);
+            const balance = Math.min(1, (curvature - 1) / 2); // 0 = straight, 1 = very curved
+            
+            const newGenome = {
+                id: `${GREEK_LETTERS[Math.floor(Math.random() * GREEK_LETTERS.length)]}-${String(genomes.length).padStart(3, '0')}`,
+                codons: [],
+                age: time,
+                mutation: mutationRate,
+                isGrown: true
+            };
+            for (let i = 0; i < numCodons; i++) {
+                const type = Math.random() < balance ? 'int' : 'exo';
+                newGenome.codons.push({ type, label: type.toUpperCase() });
+            }
+            genomes.push(newGenome);
+            renderField();
+            
+            gestureData = null;
+            setTimeout(() => {
+                const ctx = gestureCanvas.getContext('2d');
+                ctx.clearRect(0,0,gestureCanvas.width, gestureCanvas.height);
+            }, 500);
+        });
+
+        // --- 3. FIELD RENDERING & SEMANTIC DRIFT ---
+        function renderField() {
+            // Sort genomes for semantic drift
+            genomes.sort((a, b) => {
+                const aPos = Math.sin(a.age * 0.1 + time * 0.01);
+                const bPos = Math.sin(b.age * 0.1 + time * 0.01);
+                return aPos - bPos; // Simple wave-like drift
+            });
+
+            genomeField.innerHTML = '';
+            genomes.forEach((genome, index) => {
+                const colEl = document.createElement('div');
+                colEl.className = 'genome-column';
+                colEl.dataset.id = genome.id;
+                if (genome.isGrown) colEl.classList.add('is-grown');
+                
+                // Semantic drift transform
+                const driftX = (index - genomes.length / 2) * (varToPx(getCSSVar('--width-col')) + 8);
+                const driftY = simplex.noise2D(index * 0.5, time / 100) * 50;
+                const driftZ = simplex.noise2D(time / 100, index * 0.5) * 200;
+                colEl.style.transform = `translateX(${driftX}px) translateY(${driftY}px) translateZ(${driftZ}px)`;
+
+                // Codons
+                genome.codons.forEach((codon, cIndex) => {
+                    const bandEl = document.createElement('div');
+                    bandEl.className = `codon-band type-${codon.type}`;
+                    bandEl.dataset.genomeId = genome.id;
+                    bandEl.dataset.codonIndex = cIndex;
+                    bandEl.draggable = true;
+                    colEl.appendChild(bandEl);
+                });
+
+                // Mirror Phenotype Preview
+                const mirrorEl = createMirrorPreview(genome);
+                colEl.appendChild(mirrorEl);
+                
+                genomeField.appendChild(colEl);
+            });
+            updateSelections();
+        }
+        
+        // --- 4. MIRROR PREVIEW & EXPRESSION ---
+        function createMirrorPreview(genome) {
+            const mirrorEl = document.createElement('div');
+            mirrorEl.className = 'mirror-phenotype';
+            
+            let content = '';
+            genome.codons.slice(0, 5).forEach(codon => {
+                const { mutated, html } = getMutatedCodonHTML(codon);
+                content += `<div class="mirror-codon type-${codon.type}">${html}</div>`;
+            });
+            mirrorEl.innerHTML = content + 
+                `<div class="mirror-actions">
+                    <button data-action="accept" data-id="${genome.id}">Accept</button>
+                    <button data-action="distort" data-id="${genome.id}">Distort</button>
+                </div>`;
+            return mirrorEl;
+        }
+        
+        function getMutatedCodonHTML(codon, isUnstable=false) {
+            let html = '';
+            switch(codon.type) {
+                case 'txt': case 'exo':
+                    html = 'Slightly mutated text...'; break;
+                case 'img': case 'int':
+                    html = `<img src="https://picsum.photos/seed/${Math.random()}/100/100">`; break;
+                case 'aud':
+                    html = `<svg viewBox="0 0 100 20"><path d="${generateRandomWaveform()}" fill="none" stroke-width="1.5"/></svg>`; break;
+                default:
+                    html = 'Dithered data...';
+            }
+            return { mutated: true, html };
+        }
+        
+        function express(content, isStable) {
+            expressionView.innerHTML = '';
+            content.forEach(codon => {
+                const { html } = getMutatedCodonHTML(codon);
+                const el = document.createElement('div');
+                el.className = `expressed-codon-view type-${codon.type}`;
+                if (!isStable) el.classList.add('unstable');
+                el.innerHTML = `<strong>${codon.label}:</strong><br>${html}`;
+                expressionView.appendChild(el);
+            });
+            expressionView.classList.add('visible');
+        }
+
+        // --- 5. COMPOSITOR & GLYPHS ---
+        compositorTrack.addEventListener('dragover', e => { e.preventDefault(); compositorTrack.classList.add('drag-over'); });
+        compositorTrack.addEventListener('dragleave', () => compositorTrack.classList.remove('drag-over'));
+        compositorTrack.addEventListener('drop', e => {
+            e.preventDefault();
+            compositorTrack.classList.remove('drag-over');
+            const genomeId = e.dataTransfer.getData('text/genome-id');
+            const codonIndex = +e.dataTransfer.getData('text/codon-index');
+            const genome = genomes.find(g => g.id === genomeId);
+            if (genome) {
+                compositorCodons.push(genome.codons[codonIndex]);
+                renderCompositor();
+            }
+        });
+        
+        function renderCompositor() {
+            compositorTrack.innerHTML = '';
+            compositorCodons.forEach(codon => {
+                const bandEl = document.createElement('div');
+                bandEl.className = `codon-band type-${codon.type}`;
+                compositorTrack.appendChild(bandEl);
+            });
+            if (compositorCodons.length > 1) {
+                express(compositorCodons, false); // Compositions are always unstable
+            }
+        }
+        
+        glyphPalette.addEventListener('click', e => {
+            const glyphEl = e.target.closest('.glyph-phoneme');
+            if (!glyphEl) return;
+            const glyphAction = glyphEl.dataset.glyph;
+            
+            // This is a simplified state machine for glyphs
+            switch(glyphAction) {
+                case 'express':
+                    if (selectedIndices.length > 0) express(selectedIndices.flatMap(id => genomes.find(g=>g.id===id).codons), true);
+                    break;
+                case 'fuse':
+                    if(selectedIndices.length > 1) {
+                        const fusedCodons = selectedIndices.flatMap(id => genomes.find(g=>g.id===id).codons.slice(0,3));
+                        express(fusedCodons, false);
+                    } else {
+                        tooltip.textContent = "Select 2+ genomes to fuse.";
+                        tooltip.style.opacity = 1;
+                        setTimeout(() => tooltip.style.opacity = 0, 2000);
+                    }
+                    break;
+                case 'echo':
+                     if (selectedIndices.length > 0) {
+                        const sourceGenome = genomes.find(g=>g.id === selectedIndices[0]);
+                        spores.push({ // Create a new spore from the genome
+                            x: Math.random() * resonanceCanvas.width, y: Math.random() * resonanceCanvas.height,
+                            vx: (Math.random() - 0.5), vy: (Math.random() - 0.5), radius: 5,
+                            fragment: `echo of ${sourceGenome.id}`
+                        });
+                     }
+                    break;
+            }
+            clearSelections();
+        });
+
+        // --- 6. EVENT BINDING & UTILS ---
+        function updateSelections() {
+            document.querySelectorAll('.genome-column').forEach(col => {
+                col.classList.toggle('is-selected-for-op', selectedIndices.includes(col.dataset.id));
+                col.classList.remove('is-focused');
+            });
+            const lastSelected = document.querySelector(`.genome-column[data-id="${selectedIndices[selectedIndices.length - 1]}"]`);
+            if (lastSelected) lastSelected.classList.add('is-focused');
+        }
+        function clearSelections() {
+             selectedIndices = [];
+             updateSelections();
+        }
+        
+        appContainer.addEventListener('click', e => {
+            const column = e.target.closest('.genome-column');
+            const mirrorBtn = e.target.closest('.mirror-actions button');
+            
+            if (mirrorBtn) {
+                const action = mirrorBtn.dataset.action;
+                const id = mirrorBtn.dataset.id;
+                const genome = genomes.find(g => g.id === id);
+                if (action === 'accept') express(genome.codons, true);
+                else if (action === 'distort') {
+                    // Re-render just this mirror with new mutated data
+                    const colEl = document.querySelector(`.genome-column[data-id="${id}"]`);
+                    colEl.querySelector('.mirror-phenotype').replaceWith(createMirrorPreview(genome));
+                }
+                return;
+            }
+
+            if (column) {
+                const id = column.dataset.id;
+                if (e.shiftKey) { // Multi-select
+                    if (selectedIndices.includes(id)) selectedIndices = selectedIndices.filter(sid => sid !== id);
+                    else selectedIndices.push(id);
+                } else {
+                    selectedIndices = [id];
+                }
+                updateSelections();
+            } else if (!e.target.closest('#ui-bottom') && !e.target.closest('#expression-view')) {
+                // Click on background
+                expressionView.classList.remove('visible');
+                clearSelections();
+            }
+        });
+        
+        appContainer.addEventListener('dragstart', e => {
+            const band = e.target.closest('.codon-band');
+            if(band) {
+                e.dataTransfer.setData('text/genome-id', band.dataset.genomeId);
+                e.dataTransfer.setData('text/codon-index', band.dataset.codonIndex);
+            }
+        });
+        
+        let hoverTimeout;
+        appContainer.addEventListener('mousemove', e => {
+            clearTimeout(hoverTimeout);
+            const col = e.target.closest('.genome-column');
+            document.querySelectorAll('.genome-column.is-focused').forEach(c => c.classList.remove('is-focused'));
+            if(col) col.classList.add('is-focused');
+            
+            // Tooltip for spores
+            let overSpore = false;
+            for (const spore of spores) {
+                if (Math.hypot(e.clientX - spore.x, e.clientY - spore.y) < spore.radius + 5) {
+                    tooltip.textContent = spore.fragment;
+                    tooltip.style.left = `${e.clientX + 15}px`;
+                    tooltip.style.top = `${e.clientY}px`;
+                    tooltip.style.opacity = 1;
+                    overSpore = true;
+                    break;
+                }
+            }
+            if(!overSpore) {
+                hoverTimeout = setTimeout(() => tooltip.style.opacity = 0, 200);
+            }
+        });
+        
+        // --- Helper Functions ---
+        function generateRandomWaveform() {
+            let path = 'M2,10 ';
+            for (let i = 0; i < 10; i++) {
+                path += `q${Math.random()*5},${(Math.random()-0.5)*10},${Math.random()*10},0 `;
+            }
+            return path;
+        }
+        const getCSSVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name);
+        const varToPx = (v) => parseFloat(v);
+        const varToHSL = (v, a = 1) => v.trim().replace('hsl', 'hsla').replace(')', `, ${a})`);
+        
+        // --- MAIN ANIMATION LOOP ---
+        function mainLoop(timestamp) {
+            time = timestamp / 1000;
+            updateAndRenderEcology();
+            renderField(); // This re-calculates drift transforms
+            requestAnimationFrame(mainLoop);
+        }
+
+        // --- INITIALIZATION ---
+        function init() {
+            setupCanvases();
+            genomes = Array.from({length: 10}, (_, i) => ({ 
+                id: `g-${String(i+1).padStart(3,'0')}`,
+                codons: Array.from({length: 8 + Math.floor(Math.random()*8)}, () => ({type: ['txt','img','aud'][Math.floor(Math.random()*3)], label: '...'})),
+                age: i, mutation: Math.random()
+            }));
+            generateSpores(30);
+            renderField();
+            requestAnimationFrame(mainLoop);
+        }
+        
+        window.addEventListener('resize', setupCanvases);
+        init();
+    });
+    </script>
+</body>
+</html>

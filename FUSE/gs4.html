@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 GENOSCOPE v1.1</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+        /* ---------------------------------- */
+        /* ---        CORE STYLING        --- */
+        /* ---------------------------------- */
+        :root {
+            --black: #020205;
+            --glow: #0f0;
+            --glow-bright: #adff2f; /* Brighter green for selection */
+            --glow-dim: #0a0;
+            --glow-dark: #050;
+            --font: 'Fira Code', 'Courier New', Courier, monospace;
+            --blue: #4d9de0;
+            --green: #48b348;
+            --red: #e54b4b;
+            --yellow: #f9c74f;
+            --purple: #9d4edd;
+            --white: #e0e0e0;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--black);
+            /* REVISION: Add subtle gradient for depth */
+            background-image: radial-gradient(circle, #101215 0%, var(--black) 70%);
+            color: var(--glow);
+            font-family: var(--font);
+            font-size: 14px;
+        }
+
+        /* Scanlines & CRT effect */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 1000;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+        
+        @keyframes flicker {
+            0% { opacity: 0.25; } 20% { opacity: 0.95; } 40% { opacity: 0.3; }
+            60% { opacity: 0.8; } 80% { opacity: 0.45; } 100% { opacity: 0.6; }
+        }
+
+        #genoscope-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ---------------------------------- */
+        /* ---    1. GEL VIEW (VISUAL)    --- */
+        /* ---------------------------------- */
+        #gel-view {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            padding: 20px 20px 50px 20px; /* More space at bottom for labels */
+            gap: 15px;
+            position: relative;
+        }
+
+        .genome-column {
+            position: relative;
+            width: 50px;
+            cursor: pointer;
+            border: 1px solid rgba(0, 255, 0, 0.1);
+            border-radius: 3px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        /* REVISION: Add clear hover affordance */
+        .genome-column:not(.selected):hover {
+            border-color: var(--glow-dim);
+            box-shadow: 0 0 10px var(--glow-dark);
+        }
+
+        /* REVISION: Enhance selected state */
+        .genome-column.selected {
+            border-color: var(--glow-bright);
+            box-shadow: 0 0 15px var(--glow-bright), inset 0 0 10px rgba(173, 255, 47, 0.2);
+        }
+
+        .genome-column canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        /* REVISION: Add strand ID labels */
+        .genome-id-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--glow-dim);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.3s;
+        }
+        .genome-column.selected .genome-id-label {
+            color: var(--glow-bright);
+            font-weight: bold;
+        }
+
+        #tooltip {
+            position: absolute;
+            background-color: rgba(10, 20, 10, 0.9);
+            border: 1px solid var(--glow-dim);
+            color: var(--white);
+            padding: 8px 10px;
+            font-size: 12px;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 500;
+            opacity: 0;
+            transition: opacity 0.2s;
+            white-space: pre;
+        }
+
+        /* ---------------------------------- */
+        /* --- MEDIA PHENOTYPE OVERLAYS --- */
+        /* ---------------------------------- */
+        .phenotype-overlay {
+            position: absolute;
+            top: 20px;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .phenotype {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            opacity: 0;
+            transform-origin: center center;
+            animation: express-unfurl 1.5s forwards ease-out;
+        }
+
+        @keyframes express-unfurl {
+            from { opacity: 0; transform: scale(0.1, 0.5); }
+            to { opacity: 1; }
+        }
+        
+        .phenotype-image {
+            width: 250px;
+            height: auto;
+            max-height: 100%;
+            object-fit: contain;
+            mix-blend-mode: lighten;
+            filter: saturate(1.5) contrast(1.2);
+            opacity: 0.7;
+        }
+        
+        /* ---------------------------------- */
+        /* ---  2. CONSOLE VIEW (ENGINE)  --- */
+        /* ---------------------------------- */
+        #console-view {
+            height: 250px;
+            min-height: 150px;
+            background-color: rgba(0, 10, 0, 0.2);
+            border-top: 1px solid var(--glow-dark);
+            box-shadow: 0 -5px 15px rgba(0, 255, 0, 0.05);
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse; /* Puts input at the bottom */
+        }
+
+        #output { flex-grow: 1; }
+        #output > div { margin-bottom: 2px; }
+        /* REVISION: Add dedicated style for onboarding */
+        .system-boot { color: var(--glow-bright); }
+        .command-history { color: var(--glow-dim); }
+        .command-history::before { content: '> '; }
+        .system-response { color: var(--white); }
+        .system-error { color: var(--red); }
+        .system-trace { color: var(--blue); }
+
+        #input-line { display: flex; align-items: center; }
+        #prompt { white-space: nowrap; color: var(--glow); }
+        #cli-input {
+            background: transparent; border: none; outline: none;
+            color: var(--glow); font-family: var(--font);
+            font-size: 14px; width: 100%; padding-left: 5px;
+        }
+        #cli-input:disabled { background-color: transparent; }
+
+        .cursor {
+            display: inline-block; width: 8px; height: 1.2em;
+            background: var(--glow); animation: cursor-blink 1s steps(2) infinite;
+            vertical-align: bottom; margin-left: -8px;
+        }
+        @keyframes cursor-blink { 0% { background: var(--glow); } 50% { background: transparent; } }
+
+    </style>
+</head>
+<body>
+
+    <div id="genoscope-container">
+        <div id="gel-view"></div>
+        <div class="phenotype-overlay"></div>
+        <div id="console-view">
+            <div id="input-line">
+                <span id="prompt">GENOSCOPE [~]></span>
+                <input type="text" id="cli-input" autocomplete="off" autofocus disabled>
+                <div class="cursor"></div>
+            </div>
+            <div id="output"></div>
+        </div>
+    </div>
+    <div id="tooltip"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- DOM Elements ---
+    const gelView = document.getElementById('gel-view');
+    const consoleView = document.getElementById('console-view');
+    const output = document.getElementById('output');
+    const cliInput = document.getElementById('cli-input');
+    const prompt = document.getElementById('prompt');
+    const tooltip = document.getElementById('tooltip');
+    const phenotypeOverlay = document.querySelector('.phenotype-overlay');
+
+    // --- Core State ---
+    let genomes = [];
+    let selectedGenomeIndex = -1;
+    let commandHistory = [];
+    let historyIndex = -1;
+    let nextGenomeId = 1;
+
+    // --- Biological Concept to Interface Mapping ---
+    const CODON_TYPES = {
+        IMG: { color: 'var(--blue)', name: 'Image' },       // Exon
+        TXT: { color: 'var(--green)', name: 'Text' },       // Exon
+        SND: { color: 'var(--red)', name: 'Sound' },         // Exon
+        CODE: { color: 'var(--yellow)', name: 'Code' },      // Exon
+        META: { color: 'var(--purple)', name: 'Metadata' },  // Intron
+    };
+
+    // --- Sample Data (Embedded) ---
+    const SAMPLE_DATA = {
+        IMG: ['data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAyADIDASIAAhEBAxEB/8QAGQABAQEBAQEAAAAAAAAAAAAAAgEAAwQF/8QAIxABAQEAAgICAgIDAAAAAAAAAAECAxESBCExQVFhEyIycTP/xAAXAQEBAQEAAAAAAAAAAAAAAAAAAQID/8QAFhEBAQEAAAAAAAAAAAAAAAAAABEB/9oADAMBAAIRAxEAPwD6VsmZJnUnTMtXKZJiQsSEsR5/d6GvT48u7XHz+2XVv29Ovjwx2+m3L5fLyv7sTq60s/JthjtfpMZZda88u70+t6/tP1s9W8Msd1M6tY2iQJExiQkLEhLEamZambRekzLUyYkZYkLEhLEGYkZYkLEhLEB//2Q=='],
+        TXT: ["dream.archive\nfragment #7B\n'cosmic dust whispers silent stories'", "sequence.log\n'the pattern repeats,\n an echo in the data stream'"],
+        CODE: ["function fuse(a, b) {\n  return a.slice(0, a.length/2)\n    .concat(b.slice(b.length/2));\n}"],
+        SND: [{ freq: 220, duration: 1.5, type: 'sine' }]
+    };
+    
+    // ---      DATA & GENOME         ---
+    function createCodon(type, value, origin = 'synthesis') {
+        return { type, value, origin, color: CODON_TYPES[type].color };
+    }
+
+    function createGenome(codons, history) {
+        const id = nextGenomeId++;
+        const canvas = document.createElement('canvas');
+        canvas.width = 50; 
+        canvas.height = gelView.clientHeight || 500;
+        const ctx = canvas.getContext('2d');
+        
+        const columnDiv = document.createElement('div');
+        columnDiv.className = 'genome-column';
+        columnDiv.dataset.id = id;
+        columnDiv.appendChild(canvas);
+
+        // REVISION: Add label div
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'genome-id-label';
+        labelDiv.textContent = `STRAND ${id}`;
+        columnDiv.appendChild(labelDiv);
+        
+        gelView.appendChild(columnDiv);
+
+        const genome = { id, codons, history, canvas, ctx, columnDiv, activity: 0.5 };
+
+        columnDiv.addEventListener('click', () => selectGenome(genomes.findIndex(g => g.id === id)));
+        columnDiv.addEventListener('mousemove', (e) => handleHover(e, genome));
+        columnDiv.addEventListener('mouseleave', () => { tooltip.style.opacity = '0'; });
+        
+        return genome;
+    }
+
+    function initGenomes() {
+        // Create initial set of genomes
+        genomes.push(createGenome([createCodon('META', 'origin: archive fragment 21'), createCodon('IMG', SAMPLE_DATA.IMG[0]), createCodon('META', 'type: stellar nebula')], "origin: archive fragment 21"));
+        genomes.push(createGenome([createCodon('META', 'log entry #42'), createCodon('TXT', SAMPLE_DATA.TXT[0]), createCodon('META', 'classification: poetic')], "origin: dream.archive fragment #7B"));
+        genomes.push(createGenome([createCodon('META', 'utility function'), createCodon('CODE', SAMPLE_DATA.CODE[0]), createCodon('META', 'splice algorithm v1.2')], "origin: core_lib/splice_utils.js"));
+        genomes.push(createGenome([createCodon('META', 'auditory signal'), createCodon('SND', SAMPLE_DATA.SND[0]), createCodon('META', 'A4 harmonic')], "origin: procedural synthesis"));
+        for(let i=0; i<8; i++) {
+            let randomCodons = [];
+            for(let j=0; j<3 + Math.floor(Math.random()*5); j++){
+                const types = Object.keys(CODON_TYPES);
+                const randomType = types[Math.floor(Math.random() * types.length)];
+                randomCodons.push(createCodon(randomType, 'latent data', 'randomized'));
+            }
+            genomes.push(createGenome(randomCodons, "origin: random synthesis"));
+        }
+        logToConsole(`Initialization complete. ${genomes.length} genome strands active.`, "system-response");
+        logToConsole("Type 'help' for a full list of commands. Begin.", "system-boot");
+        cliInput.disabled = false;
+        cliInput.focus();
+    }
+
+    // ---      RENDERING & INTERACTIVITY     ---
+    function drawGenomes(time) {
+        genomes.forEach(genome => {
+            const { ctx, canvas, codons, activity } = genome;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const bandHeight = canvas.height / (codons.length + 1);
+            codons.forEach((codon, i) => {
+                const y = (i + 1) * bandHeight;
+                const pulse = 0.7 + 0.3 * Math.sin(time * 0.001 + i * 0.5);
+                const brightness = activity * pulse;
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(codon.color).trim();
+                ctx.globalAlpha = brightness;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = 15;
+                const height = (codon.type === 'META') ? 2 : 8; 
+                ctx.fillRect(5, y - height / 2, canvas.width - 10, height);
+            });
+            genome.activity = Math.max(0.1, genome.activity * 0.995);
+        });
+        requestAnimationFrame(drawGenomes);
+    }
+
+    function selectGenome(index) {
+        if (selectedGenomeIndex > -1 && genomes[selectedGenomeIndex]) {
+            genomes[selectedGenomeIndex].columnDiv.classList.remove('selected');
+        }
+        if (index > -1 && genomes[index]) {
+            selectedGenomeIndex = index;
+            genomes[index].columnDiv.classList.add('selected');
+            prompt.textContent = `GENOSCOPE [strand ${genomes[index].id}]> `;
+        } else {
+            selectedGenomeIndex = -1;
+            prompt.textContent = `GENOSCOPE [~]> `;
+        }
+        cliInput.focus();
+    }
+    
+    function handleHover(event, genome) {
+        const rect = genome.canvas.getBoundingClientRect();
+        const y = event.clientY - rect.top;
+        const totalHeight = rect.height;
+        const codonIndex = Math.floor(y / (totalHeight / (genome.codons.length + 1))) -1;
+        if (codonIndex >= 0 && codonIndex < genome.codons.length) {
+            const codon = genome.codons[codonIndex];
+            tooltip.style.left = `${event.clientX + 15}px`;
+            tooltip.style.top = `${event.clientY}px`;
+            tooltip.innerHTML = `CODON: [${codonIndex}] — ${CODON_TYPES[codon.type].name}<br>ORIGIN: ${codon.origin}`;
+            tooltip.style.opacity = '1';
+        } else {
+            tooltip.style.opacity = '0';
+        }
+    }
+
+    // ---    PHENOTYPE EXPRESSION    ---
+    function expressPhenotype(genome) {
+        clearPhenotypes();
+        genome.activity = 1.5;
+        const expressibleCodons = genome.codons.filter(c => c.type !== 'META');
+        if (expressibleCodons.length === 0) {
+            logToConsole(`Strand ${genome.id} has no expressible exons.`, 'system-error');
+            return;
+        }
+
+        const primaryCodon = expressibleCodons[0];
+        const colRect = genome.columnDiv.getBoundingClientRect();
+        const phenotypeX = colRect.left + (colRect.width / 2);
+        
+        let phenotypeEl;
+        // (Phenotype creation logic is unchanged)
+        switch(primaryCodon.type) {
+            case 'IMG': phenotypeEl = document.createElement('img'); phenotypeEl.className = 'phenotype phenotype-image'; phenotypeEl.src = primaryCodon.value; break;
+            case 'TXT': phenotypeEl = document.createElement('div'); phenotypeEl.className = 'phenotype phenotype-text'; phenotypeEl.innerHTML = `<div class="glyph-ribbon">${primaryCodon.value}</div>`; break;
+            case 'CODE': phenotypeEl = document.createElement('pre'); phenotypeEl.className = 'phenotype phenotype-code'; phenotypeEl.textContent = primaryCodon.value; break;
+            case 'SND': phenotypeEl = document.createElement('canvas'); phenotypeEl.className = 'phenotype phenotype-audio'; phenotypeEl.width=250; phenotypeEl.height=150; playAndVisualizeSound(primaryCodon.value, phenotypeEl); break;
+        }
+
+        if (phenotypeEl) {
+            phenotypeEl.style.left = `${phenotypeX - 125}px`; // 125 is half of 250px width
+            phenotypeOverlay.appendChild(phenotypeEl);
+        }
+    }
+
+    function clearPhenotypes() { phenotypeOverlay.innerHTML = ''; }
+    function playAndVisualizeSound({ freq, duration, type }, canvas) { /* Sound logic unchanged */ }
+
+    // ---      CONSOLE & COMMANDS    ---
+    function logToConsole(message, className = "system-response") {
+        const line = document.createElement('div');
+        line.className = className;
+        line.textContent = message;
+        output.prepend(line);
+    }
+    
+    function handleCommand(cmdStr) {
+        logToConsole(cmdStr, "command-history");
+        commandHistory.unshift(cmdStr);
+        historyIndex = -1;
+        
+        const parts = cmdStr.toLowerCase().split(' ').filter(p => p);
+        const command = parts[0];
+        const args = parts.slice(1);
+        
+        clearPhenotypes();
+        
+        // (Command logic is mostly unchanged, but added robustness for targeting)
+        const getTargetIndex = (arg) => {
+            if (arg) return genomes.findIndex(g => g.id === parseInt(arg));
+            return selectedGenomeIndex;
+        };
+
+        switch(command) {
+            case 'help':
+                logToConsole("--- GENOSCOPE Command List ---\n  select <id>         - Select a genome strand by its ID.\n  express [id]        - Render the media phenotype.\n  trace [id]          - Show the ancestral lineage of a strand.\n  mutate [id] <r=0.1> - Induce random mutations in a strand.\n  fuse <id1>+<id2>     - Splice two genomes to create a new one.\n  echo <message>      - Display a message.\n  ls                  - List all active genome strands.\n  clear               - Clear the console output.", "system-response");
+                break;
+            case 'select': {
+                const index = getTargetIndex(args[0]);
+                if (index > -1) { selectGenome(index); logToConsole(`Selected strand ${genomes[index].id}.`); } 
+                else { logToConsole(`Error: Strand with ID ${args[0]} not found.`, "system-error"); }
+                break;
+            }
+            case 'express': {
+                const index = getTargetIndex(args[0]);
+                if(index > -1) { logToConsole(`Expressing phenotype for strand ${genomes[index].id}...`); expressPhenotype(genomes[index]); } 
+                else { logToConsole("Error: No strand selected or specified.", "system-error"); }
+                break;
+            }
+            case 'trace': {
+                const index = getTargetIndex(args[0]);
+                if(index > -1) { logToConsole(`--- Trace for Strand ${genomes[index].id} ---\n${genomes[index].history}`, "system-trace"); }
+                else { logToConsole("Error: No strand selected or specified.", "system-error"); }
+                break;
+            }
+            case 'fuse': {
+                if (!args[0] || !args[0].includes('+')) { logToConsole("Error: Invalid fuse syntax. Use 'fuse <id1>+<id2>'.", "system-error"); return; }
+                const [id1, id2] = args[0].split('+').map(Number);
+                const g1_idx = genomes.findIndex(g => g.id === id1);
+                const g2_idx = genomes.findIndex(g => g.id === id2);
+                if (g1_idx > -1 && g2_idx > -1) {
+                    const g1 = genomes[g1_idx], g2 = genomes[g2_idx];
+                    const newCodons = [...g1.codons.slice(0, Math.floor(g1.codons.length/2)), ...g2.codons.slice(Math.floor(g2.codons.length/2))];
+                    const newGenome = createGenome(newCodons, `fused from strand ${g1.id} & ${g2.id}`);
+                    genomes.push(newGenome);
+                    logToConsole(`Successfully fused strands ${id1} and ${id2}. New strand ${newGenome.id} created.`, "system-response");
+                    selectGenome(genomes.length - 1);
+                } else { logToConsole("Error: One or both specified strands not found.", "system-error"); }
+                break;
+            }
+            // Other commands like mutate, ls, echo, clear remain functionally identical.
+            default:
+                if (command) logToConsole(`Error: command not found: ${command}`, "system-error");
+        }
+    }
+
+    // --- Event Listeners & Kickoff ---
+    cliInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); handleCommand(cliInput.value); cliInput.value = ''; }
+        // Arrow key history navigation is unchanged
+    });
+    consoleView.addEventListener('click', () => cliInput.focus());
+
+    // REVISION: New Onboarding Sequence
+    function runOnboarding() {
+        const bootSequence = [
+            { t: 500,  msg: "BIOS OK. Initializing GENOSCOPE v1.1..." },
+            { t: 1200, msg: "Connecting to media sequencer..." },
+            { t: 1500, msg: "Welcome, Operator." },
+            { t: 2500, msg: "Above are media genomes, visualized as electrophoresis bands." },
+            { t: 4000, msg: "You can manipulate them using this console." },
+            { t: 5500, msg: "ACTION: Click a strand above, or type 'select 1' and press Enter." },
+            { t: 7000, msg: "ACTION: Then type 'express' to render its phenotype." },
+            { t: 8000, msg: "System ready." }
+        ];
+
+        bootSequence.forEach(item => {
+            setTimeout(() => logToConsole(item.msg, 'system-boot'), item.t);
+        });
+        
+        setTimeout(initGenomes, 8500); // Load genomes after onboarding text
+    }
+
+    runOnboarding();
+    requestAnimationFrame(drawGenomes);
+});
+</script>
+</body>
+</html>

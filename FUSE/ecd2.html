@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // ICONOTEXT CONVERTER // ITC-X78</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: ICONOTEXT CONVERTER (ITC-X78)
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: Converts raw ideogram streams (from punch-runes) into
+        *   projectable instructional frames using selectable template matrices.
+        */
+
+        :root {
+            --itc-metal: #b0b8c0;
+            --itc-metal-dark: #646c73;
+            --itc-bakelite: #2a2a2a;
+            --itc-text: #1a1a1a;
+            --itc-glow-amber: #ff9d00;
+            --itc-glow-green: #33ff88;
+            --itc-projection-bg: #d8d0c0;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Orbitron', sans-serif;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes blink-processing {
+            0%, 100% { background-color: #5a2d00; box-shadow: none; }
+            50% { background-color: var(--itc-glow-amber); box-shadow: 0 0 10px 2px var(--itc-glow-amber); }
+        }
+        @keyframes energize-bed {
+            0% { box-shadow: inset 0 0 10px #000; }
+            100% { box-shadow: inset 0 0 40px 10px var(--itc-glow-amber); }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #3d4247; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--itc-text); user-select: none;
+        }
+        #converter-chassis {
+            width: 1400px; height: 800px; background-color: var(--itc-metal);
+            border: 2px solid #000; box-shadow: 0 5px 30px rgba(0,0,0,0.5);
+            padding: 20px; display: grid; grid-template-columns: 350px 1fr;
+            grid-template-rows: 1fr; gap: 20px;
+        }
+        
+        /* --- LEFT PANEL: INPUT & CONTROL --- */
+        .control-panel {
+            background-color: var(--itc-metal-dark); padding: 15px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 15px;
+        }
+        .module {
+            background-color: var(--itc-bakelite); padding: 15px; border: 2px solid #111;
+        }
+        .module-label {
+            color: var(--itc-metal); font-size: 1.2rem; margin: 0 0 15px 0; text-align: center;
+            border-bottom: 1px solid var(--itc-metal-dark); padding-bottom: 5px;
+        }
+        
+        #rune-deck {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+        }
+        .rune-card {
+            background-color: var(--itc-projection-bg); border: 2px solid #111;
+            aspect-ratio: 2/3; cursor: pointer; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 5px; transition: all 0.1s ease;
+        }
+        .rune-card:hover { transform: scale(1.05); background-color: #fff; }
+        .rune-card.selected { outline: 3px solid var(--itc-glow-green); outline-offset: 2px; }
+        .rune-card svg { width: 60%; fill: #333; }
+
+        #status-module .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        #status-module .status-light {
+            width: 10px; height: 10px; background: #1a1a1a;
+            border-radius: 50%; border: 1px solid #000; margin-right: 8px;
+        }
+        #status-module .status-light.on { background: var(--itc-glow-green); }
+        .nixie-display {
+            font-family: var(--font-display); font-size: 2rem;
+            color: var(--itc-glow-amber); background: #111; text-align: center;
+            padding: 5px; text-shadow: 0 0 8px var(--itc-glow-amber);
+        }
+        #status-module label { color: var(--itc-metal); display: flex; align-items: center; }
+
+        #matrix-selector .button-grid { display: grid; gap: 10px; }
+        .matrix-button {
+            background-color: #444; color: var(--itc-metal); font-size: 1.1rem;
+            padding: 10px; border: 2px solid #111; display: flex; align-items: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .matrix-button:hover { background-color: #555; }
+        .matrix-button.active { background-color: var(--itc-glow-amber); color: #000; }
+        .matrix-button .indicator {
+            width: 15px; height: 15px; border-radius: 3px; background: #222; margin-right: 15px;
+        }
+        .matrix-button.active .indicator { background: #fff; }
+
+        #action-panel { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .action-button {
+            padding: 15px; font-size: 1.2rem; border: 2px solid #111; cursor: pointer;
+            text-align: center;
+        }
+        #generate-btn { background-color: #203d2b; color: var(--itc-glow-green); }
+        #generate-btn:not(:disabled):hover { background-color: #33ff88; color: #000; }
+        #clear-btn { background-color: #5a2d00; color: var(--itc-glow-amber); }
+        #clear-btn:hover { background-color: #ff9d00; color: #000; }
+        #generate-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        #generate-btn.processing { animation: blink-processing 0.5s infinite; }
+
+        /* --- RIGHT PANEL: PROJECTION BED --- */
+        .projection-panel {
+            background-color: #000; padding: 20px; display: grid; place-items: center;
+        }
+        #projection-bed {
+            width: 100%; height: 100%;
+            background-color: var(--itc-projection-bg);
+            box-shadow: inset 0 0 10px #000;
+            position: relative;
+        }
+        #projection-bed.processing { animation: energize-bed 0.5s forwards; }
+        #frame-svg { width: 100%; height: 100%; position: absolute; }
+    </style>
+</head>
+<body>
+    <div id="converter-chassis">
+        <div class="control-panel">
+            <div class="module" id="rune-module">
+                <h2 class="module-label">RUNE DECK (INPUT STREAM)</h2>
+                <div id="rune-deck"></div>
+            </div>
+            <div class="module" id="status-module">
+                <h2 class="module-label">CALIBRATION & STATUS</h2>
+                <div class="status-grid">
+                    <label for="rune-count"><div class="status-light" id="light-buffer"></div>BUFFER</label>
+                    <div class="nixie-display" id="rune-count">0/6</div>
+                    <label for="matrix-status"><div class="status-light" id="light-matrix"></div>MATRIX</label>
+                    <div class="nixie-display" id="matrix-status">---</div>
+                </div>
+            </div>
+            <div class="module" id="matrix-selector">
+                <h2 class="module-label">TEMPLATE MATRIX</h2>
+                <div class="button-grid">
+                    <div class="matrix-button" data-template="grid"><div class="indicator"></div>GRID</div>
+                    <div class="matrix-button" data-template="spiral"><div class="indicator"></div>SPIRAL</div>
+                    <div class="matrix-button" data-template="threshold"><div class="indicator"></div>THRESHOLD</div>
+                </div>
+            </div>
+            <div id="action-panel">
+                <button class="action-button" id="clear-btn">CLEAR BUFFER</button>
+                <button class="action-button" id="generate-btn" disabled>GENERATE FRAME</button>
+            </div>
+        </div>
+        <div class="projection-panel">
+            <div id="projection-bed">
+                <svg id="frame-svg"></svg>
+            </div>
+        </div>
+    </div>
+
+<script>
+const Converter = {
+    // --- Data ---
+    RUNE_DECK_DATA: [
+        { id: 0, text: "UNITY", symbol: "M50 10 L50 90 M10 50 L90 50" }, // Plus
+        { id: 1, text: "CYCLE", symbol: "M50 10 A40 40 0 1 1 49.9 10 M50 20 L50 0 M40 10 L60 10" }, // Circle with arrow
+        { id: 2, text: "GROWTH", symbol: "M50 90 L50 10 L70 30 M50 10 L30 30" }, // Arrow up
+        { id: 3, text: "SYSTEM", symbol: "M10 10 L90 10 L90 90 L10 90 Z" }, // Square
+        { id: 4, text: "FOCUS", symbol: "M50 50 L10 10 M50 50 L90 10 M50 50 L10 90 M50 50 L90 90" }, // Radiating lines
+        { id: 5, text: "THRESHOLD", symbol: "M10 50 L90 50" }, // Horizontal line
+        { id: 6, text: "COMMUNICATION", symbol: "M20 20 L80 80 M80 20 L20 80" }, // X
+        { id: 7, text: "HIERARCHY", symbol: "M50 10 L10 90 L90 90 Z" }, // Triangle
+        { id: 8, text: "FLOW", symbol: "M10 20 C 40 0, 60 40, 90 20 M10 50 C 40 30, 60 70, 90 50 M10 80 C 40 60, 60 100, 90 80" } // Waves
+    ],
+    MAX_RUNES: 6,
+
+    // --- DOM Elements ---
+    elems: {
+        runeDeck: document.getElementById('rune-deck'),
+        runeCount: document.getElementById('rune-count'),
+        matrixStatus: document.getElementById('matrix-status'),
+        lightBuffer: document.getElementById('light-buffer'),
+        lightMatrix: document.getElementById('light-matrix'),
+        matrixButtons: document.querySelectorAll('.matrix-button'),
+        generateBtn: document.getElementById('generate-btn'),
+        clearBtn: document.getElementById('clear-btn'),
+        projectionBed: document.getElementById('projection-bed'),
+        frameSvg: document.getElementById('frame-svg')
+    },
+    
+    // --- State ---
+    state: {
+        selectedRunes: [],
+        activeTemplate: null,
+        isProcessing: false,
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null,
+        load: null,
+        generate: null,
+        clear: null,
+        init() {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.load = this.createSound(100, 0.1, 'square');
+            this.generate = this.createSound(50, 0.5, 'sawtooth');
+            this.clear = this.createSound(200, 0.2, 'triangle', true);
+        },
+        createSound(freq, duration, type, isDescending = false) {
+            return () => {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                if (isDescending) {
+                    osc.frequency.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                }
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.renderRuneDeck();
+        this.addEventListeners();
+        this.audio.init();
+    },
+
+    renderRuneDeck() {
+        this.RUNE_DECK_DATA.forEach(rune => {
+            const card = document.createElement('div');
+            card.className = 'rune-card';
+            card.dataset.id = rune.id;
+            card.innerHTML = `<svg viewbox="0 0 100 100"><path d="${rune.symbol}" stroke="${this.root.style.getPropertyValue('--itc-text') || '#1a1a1a'}" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg>`;
+            card.title = rune.text;
+            this.elems.runeDeck.appendChild(card);
+        });
+    },
+
+    addEventListeners() {
+        this.elems.runeDeck.addEventListener('click', (e) => {
+            const card = e.target.closest('.rune-card');
+            if (card) this.toggleRune(parseInt(card.dataset.id));
+        });
+        this.elems.matrixButtons.forEach(btn => {
+            btn.addEventListener('click', () => this.selectTemplate(btn.dataset.template));
+        });
+        this.elems.generateBtn.addEventListener('click', () => this.generateFrame());
+        this.elems.clearBtn.addEventListener('click', () => this.clearAll());
+    },
+
+    // --- Core Logic ---
+    toggleRune(id) {
+        if (this.state.isProcessing) return;
+        this.audio.load();
+        const index = this.state.selectedRunes.indexOf(id);
+        if (index > -1) {
+            this.state.selectedRunes.splice(index, 1);
+        } else if (this.state.selectedRunes.length < this.MAX_RUNES) {
+            this.state.selectedRunes.push(id);
+        }
+        this.updateUI();
+    },
+
+    selectTemplate(templateName) {
+        if (this.state.isProcessing) return;
+        this.audio.load();
+        this.state.activeTemplate = templateName;
+        this.updateUI();
+    },
+
+    clearAll() {
+        if (this.state.isProcessing) return;
+        this.audio.clear();
+        this.state.selectedRunes = [];
+        this.state.activeTemplate = null;
+        this.elems.frameSvg.innerHTML = '';
+        this.updateUI();
+    },
+    
+    generateFrame() {
+        if (!this.canGenerate()) return;
+        this.state.isProcessing = true;
+        this.audio.generate();
+        this.updateUI(); // To show processing state
+
+        setTimeout(() => {
+            this.elems.frameSvg.innerHTML = ''; // Clear previous frame
+            const layoutFunc = this.getLayoutFunction(this.state.activeTemplate);
+            layoutFunc();
+            this.state.isProcessing = false;
+            this.updateUI();
+        }, 1500); // Simulate processing time
+    },
+
+    getLayoutFunction(template) {
+        switch(template) {
+            case 'grid': return () => this.renderGrid();
+            case 'spiral': return () => this.renderSpiral();
+            case 'threshold': return () => this.renderThreshold();
+            default: return () => {};
+        }
+    },
+    
+    canGenerate() {
+        return this.state.selectedRunes.length > 0 && this.state.activeTemplate && !this.state.isProcessing;
+    },
+
+    // --- UI Update & Rendering ---
+    updateUI() {
+        // Rune selection
+        document.querySelectorAll('.rune-card').forEach(card => {
+            card.classList.toggle('selected', this.state.selectedRunes.includes(parseInt(card.dataset.id)));
+        });
+        // Status displays
+        this.elems.runeCount.textContent = `${this.state.selectedRunes.length}/${this.MAX_RUNES}`;
+        this.elems.lightBuffer.classList.toggle('on', this.state.selectedRunes.length > 0);
+        this.elems.matrixStatus.textContent = this.state.activeTemplate ? this.state.activeTemplate.toUpperCase().slice(0, 3) : '---';
+        this.elems.lightMatrix.classList.toggle('on', !!this.state.activeTemplate);
+        // Template buttons
+        this.elems.matrixButtons.forEach(btn => {
+            btn.classList.toggle('active', this.state.activeTemplate === btn.dataset.template);
+        });
+        // Action buttons
+        this.elems.generateBtn.disabled = !this.canGenerate();
+        this.elems.generateBtn.classList.toggle('processing', this.state.isProcessing);
+        this.elems.projectionBed.classList.toggle('processing', this.state.isProcessing);
+    },
+    
+    renderItem(x, y, size, runeData, opacity = 1) {
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('transform', `translate(${x}, ${y})`);
+        group.style.opacity = opacity;
+        
+        const symbol = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        symbol.setAttribute('d', runeData.symbol);
+        symbol.setAttribute('transform', `scale(${size/100}) translate(${-50}, ${-50})`);
+        symbol.setAttribute('stroke', '#1a1a1a');
+        symbol.setAttribute('stroke-width', '8');
+        symbol.setAttribute('fill', 'none');
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.textContent = runeData.text;
+        text.setAttribute('x', '0');
+        text.setAttribute('y', size / 2 + 20);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-family', '"Share Tech Mono", monospace');
+        text.setAttribute('font-size', '16px');
+        text.setAttribute('fill', '#1a1a1a');
+        
+        group.appendChild(symbol);
+        group.appendChild(text);
+        this.elems.frameSvg.appendChild(group);
+    },
+
+    renderGrid() {
+        const runes = this.state.selectedRunes;
+        const num = runes.length;
+        const cols = Math.ceil(Math.sqrt(num));
+        const rows = Math.ceil(num / cols);
+        const { width, height } = this.elems.frameSvg.getBoundingClientRect();
+        const padding = 80;
+        const cellW = (width - padding * 2) / cols;
+        const cellH = (height - padding * 2) / rows;
+
+        runes.forEach((id, i) => {
+            const rune = this.RUNE_DECK_DATA.find(r => r.id === id);
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const x = padding + cellW * (col + 0.5);
+            const y = padding + cellH * (row + 0.5);
+            this.renderItem(x, y, Math.min(cellW, cellH) * 0.5, rune);
+        });
+    },
+
+    renderSpiral() {
+        const runes = this.state.selectedRunes;
+        const num = runes.length;
+        const { width, height } = this.elems.frameSvg.getBoundingClientRect();
+        const cx = width / 2;
+        const cy = height / 2;
+        const maxRadius = Math.min(cx, cy) - 80;
+
+        runes.forEach((id, i) => {
+            const rune = this.RUNE_DECK_DATA.find(r => r.id === id);
+            const ratio = i / (num - 1 || 1);
+            const angle = ratio * Math.PI * 4; // 2 full rotations
+            const radius = ratio * maxRadius;
+            const x = cx + Math.cos(angle) * radius;
+            const y = cy + Math.sin(angle) * radius;
+            this.renderItem(x, y, 60 - (ratio * 20), rune);
+        });
+    },
+
+    renderThreshold() {
+        const runes = this.state.selectedRunes;
+        const num = runes.length;
+        const { width, height } = this.elems.frameSvg.getBoundingClientRect();
+        const padding = 80;
+
+        runes.forEach((id, i) => {
+            const rune = this.RUNE_DECK_DATA.find(r => r.id === id);
+            const ratio = i / (num -1 || 1);
+            const x = padding + ratio * (width - padding * 2);
+            const y = height / 2;
+            const size = 30 + (1 - ratio) * 50;
+            const opacity = 0.5 + (1 - ratio) * 0.5;
+            this.renderItem(x, y, size, rune, opacity);
+        });
+    }
+};
+
+Converter.root = document.documentElement;
+Converter.init();
+</script>
+</body>
+</html>

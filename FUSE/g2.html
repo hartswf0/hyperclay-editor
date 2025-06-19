@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthetic Genomic Field</title>
+    <style>
+        /* No Text, Pure Code-as-Organism: CSS to create the immersive environment */
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #555;
+            font-family: monospace;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+        }
+        #start-prompt {
+            cursor: pointer;
+        }
+    </style>
+    <!-- Libraries that embody natural/generative systems -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+</head>
+<body>
+    <div id="start-prompt">Click to begin synthesis.</div>
+    <script>
+        // --- CONFIGURATION ---
+        const SEQ_LENGTH = 100;         // How many base pairs per strand
+        const BASE_WIDTH = 12;          // The width of each base pair bar
+        const STRAND_PADDING = 6;       // The space between strands
+        const MUTATION_RATE = 0.005;    // Chance of mutation per strand per frame
+
+        // Expressive Color Logic: HSB color mapping for bases
+        const BASE_COLORS = {
+            'A': { h: 120, s: 90, b: 80 }, // Green
+            'T': { h: 0, s: 90, b: 95 },   // Red
+            'C': { h: 210, s: 90, b: 95 }, // Blue
+            'G': { h: 55, s: 90, b: 95 }   // Yellow
+        };
+
+        // Sonification: Map bases to musical notes
+        const BASE_NOTES = {
+            'A': 'C4',
+            'T': 'E4',
+            'C': 'G4',
+            'G': 'A4'
+        };
+
+        const BASES = Object.keys(BASE_COLORS);
+        
+        // --- GLOBAL STATE ---
+        let strands = [];
+        let synth;
+        let audioEnabled = false;
+        let numStrands;
+
+        // The Strand class represents a single synthetic DNA sequence
+        class Strand {
+            constructor(x) {
+                this.x = x;
+                this.sequence = [];
+                this.mutationGlows = []; // Tracks the "recent mutation" effect
+
+                // Initialize with a random sequence
+                for (let i = 0; i < SEQ_LENGTH; i++) {
+                    this.sequence.push(random(BASES));
+                    this.mutationGlows.push(0);
+                }
+            }
+
+            // Generative Mutation Engine
+            update() {
+                // Decay all existing glows for a pulsing effect
+                for (let i = 0; i < SEQ_LENGTH; i++) {
+                    this.mutationGlows[i] *= 0.95; // Exponential decay
+                }
+
+                // Emergent Motion: Apply a slow, random mutation
+                if (random() < MUTATION_RATE) {
+                    const mutationIndex = floor(random(SEQ_LENGTH));
+                    const currentBase = this.sequence[mutationIndex];
+                    let newBase = random(BASES);
+                    // Ensure the mutation actually changes the base
+                    while (newBase === currentBase) {
+                        newBase = random(BASES);
+                    }
+                    this.sequence[mutationIndex] = newBase;
+                    this.mutationGlows[mutationIndex] = 1.0; // Set glow to max
+
+                    // Sonify the change
+                    if (audioEnabled && synth) {
+                        synth.triggerAttackRelease(BASE_NOTES[newBase], "16n");
+                    }
+                }
+            }
+
+            // Display the strand on the canvas
+            display() {
+                const baseHeight = height / SEQ_LENGTH;
+                for (let i = 0; i < SEQ_LENGTH; i++) {
+                    const base = this.sequence[i];
+                    const c = BASE_COLORS[base];
+
+                    const y = i * baseHeight;
+                    let currentBaseWidth = BASE_WIDTH;
+                    let currentBaseHeight = baseHeight;
+
+                    // Interactivity as Genetic Influence: Hover effect
+                    let interactionGlow = 0;
+                    if (mouseX > this.x && mouseX < this.x + BASE_WIDTH &&
+                        mouseY > y && mouseY < y + baseHeight) {
+                        
+                        // Magnification
+                        currentBaseWidth *= 1.8;
+                        currentBaseHeight *= 1.2;
+
+                        // "Mutation Pulse" - a temporary visual glow
+                        interactionGlow = 0.5;
+                    }
+
+                    // Brightness reflects recent mutation or interaction
+                    const glow = max(this.mutationGlows[i], interactionGlow);
+                    const finalBrightness = c.b + glow * 50; // Add glow to base brightness
+                    const finalSaturation = c.s - glow * 30;
+
+                    fill(c.h, finalSaturation, finalBrightness);
+                    
+                    // Center the magnified rectangle
+                    const xOffset = (currentBaseWidth - BASE_WIDTH) / 2;
+                    rect(this.x - xOffset, y, currentBaseWidth, currentBaseHeight);
+                }
+            }
+        }
+
+        // p5.js setup function - runs once at the beginning
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            colorMode(HSB, 360, 100, 100);
+            noStroke();
+
+            // Calculate how many strands can fit on screen
+            numStrands = floor(width / (BASE_WIDTH + STRAND_PADDING));
+            const totalWidth = numStrands * (BASE_WIDTH + STRAND_PADDING);
+            const startX = (width - totalWidth) / 2;
+
+            // Initialize all strands
+            for (let i = 0; i < numStrands; i++) {
+                const x = startX + i * (BASE_WIDTH + STRAND_PADDING);
+                strands.push(new Strand(x));
+            }
+
+            // Set up audio synth
+            synth = new Tone.FMSynth({
+                harmonicity: 1.5,
+                modulationIndex: 3,
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
+                modulationEnvelope: { attack: 0.01, decay: 0.1, release: 0.2 }
+            }).toDestination();
+            
+            // Heuristic Metaphor: Handle audio start on first interaction
+            document.getElementById('start-prompt').addEventListener('click', () => {
+                Tone.start();
+                audioEnabled = true;
+                document.getElementById('start-prompt').style.display = 'none';
+            });
+        }
+
+        // p5.js draw function - runs in a loop
+        function draw() {
+            background(0, 0, 5); // A deep, dark blue-black
+
+            // Heuristic Metaphor: The genome as a rhythmic signal
+            // Ambient Mode: If untouched, this loop is the silent evolution
+            for (const strand of strands) {
+                strand.update();
+                strand.display();
+            }
+        }
+        
+        // Make the visualization responsive
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            strands = []; // Reset and re-initialize
+            setup();
+            // Re-hide the prompt if audio is already on
+            if(audioEnabled) {
+                 document.getElementById('start-prompt').style.display = 'none';
+            }
+        }
+
+    </script>
+</body>
+</html>

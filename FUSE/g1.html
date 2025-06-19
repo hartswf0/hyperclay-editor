@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Resonance Interface</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #020207;
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+            color: #e0e0ff;
+        }
+        canvas {
+            display: block;
+        }
+        #info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
+            border-radius: 8px;
+            font-size: 0.9em;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="resonance-canvas"></canvas>
+    <div id="info-panel">
+        <strong>Universal Resonance Interface</strong><br>
+        Hover over a cell to inspect. <br>
+        Click a cell to mutate.
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('resonance-canvas');
+            const ctx = canvas.getContext('2d');
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            // --- DATA SOURCE: Can be any string, array, or stream ---
+            const sourceData = "Design as if the interface is a living entity expressing data instead of displaying it.".split('');
+
+            let dataCells = [];
+            let mouse = { x: null, y: null, hoverIndex: -1 };
+
+            // --- DATA CELL CLASS ---
+            class DataCell {
+                constructor(value, index) {
+                    this.value = value;
+                    this.index = index;
+                    this.charCode = value.charCodeAt(0);
+                    this.x = (width / sourceData.length) * (index + 0.5);
+                    this.y = height / 2;
+                    this.hue = (this.charCode * 2) % 360;
+                    this.saturation = 50 + (this.charCode % 50);
+                    this.lightness = 50;
+                    this.baseWidth = width / sourceData.length;
+                    this.height = 50 + (this.charCode % 100);
+                    this.alpha = 0.7;
+                    this.glow = 0;
+                    this.life = 0; // for animation
+                }
+
+                update() {
+                    this.life += 0.05;
+                    // Ambient breathing effect
+                    this.y = height / 2 + Math.sin(this.life + this.index * 0.5) * 10;
+
+                    // Hover effect
+                    if (this.index === mouse.hoverIndex) {
+                        this.glow = Math.min(1, this.glow + 0.1);
+                    } else {
+                        this.glow = Math.max(0, this.glow - 0.05);
+                    }
+                }
+
+                draw() {
+                    ctx.globalAlpha = this.alpha;
+                    
+                    // Main cell body
+                    ctx.fillStyle = `hsl(${this.hue}, ${this.saturation}%, ${this.lightness}%)`;
+                    ctx.fillRect(this.x - this.baseWidth / 2, this.y - this.height / 2, this.baseWidth, this.height);
+
+                    // Glow effect
+                    if (this.glow > 0) {
+                        ctx.shadowColor = `hsl(${this.hue}, 90%, 70%)`;
+                        ctx.shadowBlur = this.glow * 20;
+                        ctx.globalAlpha = this.glow * 0.5;
+                        ctx.fillStyle = `hsl(${this.hue}, 90%, 70%)`;
+                        ctx.fillRect(this.x - this.baseWidth / 2, this.y - this.height / 2, this.baseWidth, this.height);
+                        ctx.shadowBlur = 0;
+                    }
+                    ctx.globalAlpha = 1.0;
+                }
+
+                mutate() {
+                    const newChar = String.fromCharCode(32 + Math.floor(Math.random() * 94));
+                    this.value = newChar;
+                    this.charCode = newChar.charCodeAt(0);
+                    this.hue = (this.charCode * 2) % 360;
+                    this.saturation = 50 + (this.charCode % 50);
+                    this.height = 50 + (this.charCode % 100);
+                }
+            }
+
+            // --- INITIALIZATION ---
+            function init() {
+                dataCells = sourceData.map((val, i) => new DataCell(val, i));
+            }
+
+            // --- ANIMATION LOOP ---
+            function animate() {
+                ctx.clearRect(0, 0, width, height);
+
+                // Ambient mutation
+                if (Math.random() < 0.005) {
+                    const randomIndex = Math.floor(Math.random() * dataCells.length);
+                    dataCells[randomIndex].mutate();
+                }
+
+                dataCells.forEach(cell => {
+                    cell.update();
+                    cell.draw();
+                });
+
+                // Draw hover text
+                if (mouse.hoverIndex !== -1) {
+                    const cell = dataCells[mouse.hoverIndex];
+                    ctx.fillStyle = 'white';
+                    ctx.font = '24px ' + getComputedStyle(document.body).fontFamily;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`'${cell.value}'`, cell.x, cell.y - cell.height / 2 - 20);
+                }
+
+                requestAnimationFrame(animate);
+            }
+
+            // --- EVENT LISTENERS ---
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                init(); // Re-initialize on resize
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+                const cellWidth = width / dataCells.length;
+                const index = Math.floor(mouse.x / cellWidth);
+                
+                if (index >= 0 && index < dataCells.length) {
+                    mouse.hoverIndex = index;
+                } else {
+                    mouse.hoverIndex = -1;
+                }
+            });
+
+            canvas.addEventListener('click', () => {
+                if (mouse.hoverIndex !== -1) {
+                    dataCells[mouse.hoverIndex].mutate();
+                }
+            });
+
+            // --- START ---
+            init();
+            animate();
+        });
+    </script>
+</body>
+</html>

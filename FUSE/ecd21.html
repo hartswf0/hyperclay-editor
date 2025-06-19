@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // REFLECTION STACK // v.78e</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Reflection Stack - GUI for Recursive Cognition Modeling
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: A tool for visualizing and analyzing nested internal dialogues
+        *   and thought layers to identify cognitive dissonance.
+        */
+
+        :root {
+            --rs-bg: #1a1c20;
+            --rs-panel-bg: rgba(44, 49, 56, 0.5);
+            --rs-panel-border: #3c4250;
+            --rs-text: #e0e5e9;
+            --rs-text-dim: #8c96a8;
+            --rs-accent: #8be9fd; /* Cyan */
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+
+            /* Heatmap Colors */
+            --dissonance-hot: rgba(255, 85, 85, 0.3);
+            --dissonance-warm: rgba(241, 250, 140, 0.2);
+            --dissonance-cool: rgba(80, 250, 123, 0.15);
+        }
+        
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--rs-text); user-select: none;
+        }
+        #reflection-chassis {
+            width: 1400px; height: 800px; background-color: var(--rs-bg);
+            border: 1px solid #555; box-shadow: 0 0 30px rgba(139, 233, 253, 0.1);
+            padding: 20px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center;
+        }
+
+        /* --- COGNITIVE PANE STACK --- */
+        #cognitive-stack {
+            width: 80%;
+            height: 80%;
+            position: relative;
+            perspective: 2000px;
+        }
+        .cognitive-pane {
+            position: absolute; width: 100%; height: 100%;
+            background: var(--rs-panel-bg);
+            border: 1px solid var(--rs-panel-border);
+            backdrop-filter: blur(10px);
+            display: flex; flex-direction: column;
+            transition: transform 0.5s ease-out, box-shadow 0.5s;
+        }
+        /* Stacking the panes in 3D */
+        #pane-0 { transform: translateZ(0px); z-index: 3; }
+        #pane-1 { transform: translateZ(-150px) translateY(-50px) scale(0.95); z-index: 2; }
+        #pane-2 { transform: translateZ(-300px) translateY(-100px) scale(0.9); z-index: 1; }
+
+        .pane-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 15px; background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--rs-panel-border);
+        }
+        .pane-label { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 1px; }
+        .thread-selector {
+            background: transparent; border: 1px solid var(--rs-text-dim);
+            color: var(--rs-text); font-family: inherit;
+        }
+        .pane-content {
+            flex-grow: 1; padding: 15px; font-size: 1.3rem; line-height: 1.8;
+            background: transparent; color: inherit; border: none; resize: none;
+            outline: none;
+        }
+        /* Dissonance Heatmap */
+        .dissonance-heatmap {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; transition: background-color 0.5s;
+            z-index: -1;
+        }
+        .dissonance-heatmap.hot { background-color: var(--dissonance-hot); }
+        .dissonance-heatmap.warm { background-color: var(--dissonance-warm); }
+        .dissonance-heatmap.cool { background-color: var(--dissonance-cool); }
+
+        /* --- METAREFLEX CONTROL --- */
+        #metareflex-control {
+            margin-top: 30px; text-align: center;
+        }
+        .metareflex-toggle {
+            width: 100px; height: 50px; background: var(--rs-panel-dark);
+            border: 2px solid var(--rs-panel-border); border-radius: 25px;
+            position: relative; cursor: pointer;
+        }
+        .metareflex-flick {
+            width: 42px; height: 42px; background: var(--rs-text);
+            border-radius: 50%; position: absolute; top: 2px; left: 3px;
+            transition: all 0.3s ease-in-out;
+        }
+        .metareflex-toggle.active .metareflex-flick {
+            transform: translateX(48px);
+            background: var(--rs-accent);
+        }
+        .metareflex-label { margin-top: 10px; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    <div id="reflection-chassis">
+        <div id="cognitive-stack">
+            <div class="cognitive-pane" id="pane-0">
+                <div class="pane-header">
+                    <div class="pane-label">[L0] OBSERVATION</div>
+                    <select class="thread-selector" data-pane-id="0">
+                        <option value="raw_input">Raw Input</option>
+                    </select>
+                </div>
+                <textarea class="pane-content" data-pane-id="0" placeholder="Record an event or observation..."></textarea>
+                <div class="dissonance-heatmap"></div>
+            </div>
+             <div class="cognitive-pane" id="pane-1">
+                <div class="pane-header">
+                    <div class="pane-label">[L1] INTERPRETATION</div>
+                    <select class="thread-selector" data-pane-id="1">
+                        <option value="dialogue_sim">Dialogue Sim</option>
+                        <option value="memory_audit">Memory Audit</option>
+                    </select>
+                </div>
+                <textarea class="pane-content" data-pane-id="1" placeholder="Interpret the observation..."></textarea>
+                <div class="dissonance-heatmap"></div>
+            </div>
+             <div class="cognitive-pane" id="pane-2">
+                <div class="pane-header">
+                    <div class="pane-label">[L2] META-ANALYSIS</div>
+                    <select class="thread-selector" data-pane-id="2">
+                        <option value="ethical_review">Ethical Review</option>
+                        <option value="root_cause">Root Cause Analysis</option>
+                    </select>
+                </div>
+                <textarea class="pane-content" data-pane-id="2" placeholder="Analyze the interpretation..."></textarea>
+                <div class="dissonance-heatmap"></div>
+            </div>
+        </div>
+
+        <div id="metareflex-control">
+            <div class="metareflex-toggle">
+                <div class="metareflex-flick"></div>
+            </div>
+            <div class="metareflex-label">METAREFLEX ANALYSIS</div>
+        </div>
+    </div>
+
+<script>
+const ReflectionStack = {
+    // --- Data: Simplified NLP Keywords for dissonance analysis ---
+    KEYWORDS: {
+        ethical_review: {
+            positive: ['fair', 'just', 'right', 'moral', 'honest', 'kind'],
+            negative: ['unfair', 'unjust', 'wrong', 'harm', 'deceit', 'cruel'],
+        },
+        memory_audit: {
+            positive: ['remember', 'exactly', 'clear', 'vivid'],
+            negative: ['forget', 'unsure', 'hazy', 'maybe', 'confused'],
+        },
+        dialogue_sim: {
+            positive: ['understand', 'agree', 'listen', 'connect'],
+            negative: ['argue', 'ignore', 'misunderstand', 'fight'],
+        }
+    },
+
+    // --- DOM Elements ---
+    elems: {
+        panes: document.querySelectorAll('.cognitive-pane'),
+        textAreas: document.querySelectorAll('.pane-content'),
+        toggle: document.querySelector('.metareflex-toggle'),
+    },
+    
+    // --- State ---
+    state: {
+        metareflexActive: false,
+        paneData: [
+            { text: "The team member missed the deadline.", thread: 'raw_input', dissonance: 0 },
+            { text: "They are unreliable and don't respect my time.", thread: 'dialogue_sim', dissonance: 0 },
+            { text: "My judgment is unfair. I should have offered help instead of getting angry.", thread: 'ethical_review', dissonance: 0 },
+        ]
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, focus: null, unfocus: null, drop: null, metaOn: null, metaOff: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.focus = this.createSound(1200, 0.05, 0.1);
+            this.unfocus = this.createSound(800, 0.08, 0.05);
+            this.drop = this.createSound(440, 0.1, 0.2, true);
+            this.metaOn = this.createSound(220, 0.3, 0.1, true);
+            this.metaOff = this.createSound(220, 0.3, 0.1);
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sine'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*1.5,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        document.body.addEventListener('mousedown', () => { if (!this.audio.ctx) this.audio.init(); }, { once: true });
+        this.addEventListeners();
+        this.renderPanes(); // Initial render from state
+    },
+    
+    addEventListeners() {
+        this.elems.panes.forEach(pane => {
+            pane.addEventListener('mousedown', () => this.focusPane(pane.id));
+            
+            const content = pane.querySelector('.pane-content');
+            content.addEventListener('input', e => {
+                const id = parseInt(e.target.dataset.paneId);
+                this.state.paneData[id].text = e.target.value;
+                if (this.state.metareflexActive) this.runAnalysis();
+            });
+            content.addEventListener('dragover', e => e.preventDefault());
+            content.addEventListener('drop', e => {
+                e.preventDefault();
+                const id = parseInt(e.target.dataset.paneId);
+                const draggedText = e.dataTransfer.getData('text/plain');
+                this.dropThought(id, draggedText);
+            });
+
+            const selector = pane.querySelector('.thread-selector');
+            selector.onchange = e => {
+                 const id = parseInt(e.target.dataset.paneId);
+                 this.state.paneData[id].thread = e.target.value;
+                 if (this.state.metareflexActive) this.runAnalysis();
+            };
+        });
+
+        document.addEventListener('dragstart', e => {
+            const selection = window.getSelection().toString();
+            if (selection) {
+                e.dataTransfer.setData('text/plain', selection);
+            }
+        });
+        
+        this.elems.toggle.onclick = () => this.toggleMetareflex();
+    },
+
+    // --- Core Logic ---
+    focusPane(paneId) {
+        this.audio.focus();
+        this.elems.panes.forEach((p, i) => {
+            const offset = parseInt(p.id.split('-')[1]);
+            const targetOffset = parseInt(paneId.split('-')[1]);
+            const diff = offset - targetOffset;
+            
+            p.style.transform = `translateZ(${diff * 150}px) translateY(${diff * 50}px) scale(${1 - Math.abs(diff) * 0.05})`;
+            p.style.zIndex = 3 - Math.abs(diff);
+        });
+    },
+    
+    dropThought(targetPaneId, text) {
+        this.audio.drop();
+        const targetTextArea = document.querySelector(`.pane-content[data-pane-id="${targetPaneId}"]`);
+        targetTextArea.value += ` (Ref: "${text}")`;
+        this.state.paneData[targetPaneId].text = targetTextArea.value;
+        if (this.state.metareflexActive) this.runAnalysis();
+    },
+
+    toggleMetareflex() {
+        this.state.metareflexActive = !this.state.metareflexActive;
+        this.elems.toggle.classList.toggle('active');
+        
+        if(this.state.metareflexActive) {
+            this.audio.metaOn();
+            this.runAnalysis();
+        } else {
+            this.audio.metaOff();
+            this.clearAnalysis();
+        }
+    },
+
+    runAnalysis() {
+        const [l0, l1, l2] = this.state.paneData;
+        
+        // L1 Dissonance (vs L0)
+        l1.dissonance = this.calculateDissonance(l1, l0);
+        // L2 Dissonance (vs L1)
+        l2.dissonance = this.calculateDissonance(l2, l1);
+        // L0 has no dissonance by definition (it's the ground truth)
+        l0.dissonance = 0;
+
+        this.renderHeatmaps();
+    },
+    
+    calculateDissonance(currentLayer, baseLayer) {
+        const thread = currentLayer.thread;
+        const keywords = this.KEYWORDS[thread];
+        if (!keywords) return 0; // No rules for this thread type
+
+        const baseWords = baseLayer.text.toLowerCase().split(/\s+/);
+        const currentWords = currentLayer.text.toLowerCase().split(/\s+/);
+        
+        let baseScore = 0;
+        baseWords.forEach(w => {
+            if (keywords.positive.includes(w)) baseScore++;
+            if (keywords.negative.includes(w)) baseScore--;
+        });
+        
+        let currentScore = 0;
+        currentWords.forEach(w => {
+            if (keywords.positive.includes(w)) currentScore++;
+            if (keywords.negative.includes(w)) currentScore--;
+        });
+
+        // Dissonance is high if the emotional valence is opposite
+        // e.g., base is negative, current is positive
+        if ((baseScore < 0 && currentScore > 0) || (baseScore > 0 && currentScore < 0)) {
+            return 1.0; // Max dissonance
+        }
+        
+        // Milder dissonance for differing intensity
+        const maxPossibleScore = Math.max(baseWords.length, currentWords.length) || 1;
+        const diff = Math.abs(baseScore - currentScore);
+        
+        return Math.min(1.0, (diff / maxPossibleScore) * 2);
+    },
+
+    clearAnalysis() {
+        this.state.paneData.forEach(p => p.dissonance = 0);
+        this.renderHeatmaps();
+    },
+    
+    // --- Rendering ---
+    renderPanes() {
+        this.state.paneData.forEach((data, i) => {
+            const pane = document.getElementById(`pane-${i}`);
+            pane.querySelector('.pane-content').value = data.text;
+            pane.querySelector('.thread-selector').value = data.thread;
+        });
+    },
+    
+    renderHeatmaps() {
+        this.state.paneData.forEach((data, i) => {
+            const heatmap = document.querySelector(`#pane-${i} .dissonance-heatmap`);
+            heatmap.className = 'dissonance-heatmap'; // Clear previous classes
+            if (data.dissonance > 0.7) {
+                heatmap.classList.add('hot');
+            } else if (data.dissonance > 0.3) {
+                heatmap.classList.add('warm');
+            } else if (this.state.metareflexActive) {
+                heatmap.classList.add('cool');
+            }
+        });
+    }
+};
+
+ReflectionStack.init();
+</script>
+</body>
+</html>

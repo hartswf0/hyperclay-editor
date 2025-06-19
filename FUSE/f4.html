@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CodonSynth - Biome Navigator</title>
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <style>
+        :root {
+            --bg-color: #0d0f15;
+            --panel-bg: #11141d;
+            --border-color: #2c3144;
+            --text-color: #b0c4ff;
+            --accent-color: #61dafb;
+            --frozen-color: #ffffff;
+            --tap-highlight: rgba(255, 255, 255, 0.2);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        #start-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+
+        #start-button {
+            padding: 1.2rem 2rem;
+            font-size: 1.2rem;
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(97, 218, 251, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(97, 218, 251, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(97, 218, 251, 0); }
+        }
+
+        #ecosystem {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            touch-action: none; /* Disables browser gestures like pull-to-refresh */
+        }
+        
+        #biome-background {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            transition: background 2s ease-in-out;
+        }
+
+        .codon-orb {
+            position: absolute;
+            border-radius: 50%;
+            will-change: transform, filter, width, height, opacity;
+            transition: transform 1s ease-out, filter 0.5s, width 0.5s, height 0.5s, opacity 0.5s;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .codon-orb.frozen::after {
+            content: '';
+            position: absolute;
+            top: -5px; left: -5px; right: -5px; bottom: -5px;
+            border: 2px solid var(--frozen-color);
+            border-radius: 50%;
+            animation: spin 4s linear infinite;
+        }
+        
+        .codon-info-popup {
+            position: absolute;
+            background: rgba(0,0,0,0.7);
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        #control-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--panel-bg);
+            border-top: 1px solid var(--border-color);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        #tab-bar {
+            display: flex;
+            justify-content: space-around;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-button {
+            flex-grow: 1;
+            padding: 12px 0;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 0.8rem;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        .tab-button.active {
+            color: var(--accent-color);
+            background-color: rgba(97, 218, 251, 0.1);
+            opacity: 1;
+        }
+
+        .tab-pane {
+            display: none;
+            padding: 15px;
+            max-height: 25vh;
+            overflow-y: auto;
+        }
+        .tab-pane.active { display: block; }
+        .tab-pane h4 { margin: 0 0 10px; color: var(--accent-color); }
+        .tab-pane p { font-size: 0.8rem; margin: 5px 0; }
+        
+        #shifter-panel { display: flex; justify-content: space-around; gap: 10px; }
+        .biome-button {
+            flex-grow: 1;
+            padding: 15px 5px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+        }
+        .biome-button.active { border-color: var(--accent-color); }
+        
+        .param-grid label { display: block; font-size: 0.8rem; margin-bottom: 5px; }
+        .param-grid input[type="range"] { width: 100%; margin-bottom: 10px; }
+        #alpha-lineage { word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="start-overlay">
+            <button id="start-button">AWAKEN ECOSYSTEM</button>
+        </div>
+        <div id="ecosystem">
+            <div id="biome-background"></div>
+        </div>
+        <div id="control-panel">
+            <div id="tab-bar">
+                <button class="tab-button active" data-tab="shifter-panel">Biomes</button>
+                <button class="tab-button" data-tab="matrix-panel">Matrix</button>
+                <button class="tab-button" data-tab="genome-panel">Genome</button>
+                <button class="tab-button" data-tab="timeline-panel">Timeline</button>
+            </div>
+            <div id="tab-content">
+                <div class="tab-pane active" id="shifter-panel">
+                    <button class="biome-button active" data-biome="jungle">Harmonic Jungle</button>
+                    <button class="biome-button" data-biome="desert">Rhythmic Desert</button>
+                    <button class="biome-button" data-biome="ocean">Ambient Ocean</button>
+                </div>
+                <div class="tab-pane param-grid" id="matrix-panel">
+                    <label for="harmony-weight">Harmony Bias</label>
+                    <input type="range" id="harmony-weight" min="0" max="1" step="0.1">
+                    <label for="rhythm-weight">Rhythmic Cohesion</label>
+                    <input type="range" id="rhythm-weight" min="0" max="1" step="0.1">
+                </div>
+                <div class="tab-pane" id="genome-panel">
+                    <h4>Alpha Lineage</h4>
+                    <p id="alpha-lineage">Awaiting fittest codon...</p>
+                </div>
+                <div class="tab-pane" id="timeline-panel">
+                    <h4>Ecosystem Stats</h4>
+                    <p>Generation: <span id="generation-count">0</span></p>
+                    <p>Population: <span id="population-count">0</span></p>
+                    <p>Last Major Event: <span id="last-event">System Initialized</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENTS ---
+            const startOverlay = document.getElementById('start-overlay');
+            const startButton = document.getElementById('start-button');
+            const ecosystemEl = document.getElementById('ecosystem');
+            const biomeBgEl = document.getElementById('biome-background');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            const biomeButtons = document.querySelectorAll('.biome-button');
+            const harmonySlider = document.getElementById('harmony-weight');
+            const rhythmSlider = document.getElementById('rhythm-weight');
+            const generationCountEl = document.getElementById('generation-count');
+            const populationCountEl = document.getElementById('population-count');
+            const lastEventEl = document.getElementById('last-event');
+            const alphaLineageEl = document.getElementById('alpha-lineage');
+
+            // --- GLOBAL STATE ---
+            let population = new Map(); // Use Map for efficient add/delete
+            let generation = 0;
+            let nextCodonId = 0;
+            let mutationRate = 0.5;
+            let holdTimeout;
+            let lastPinchDist = 0;
+
+            const synth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 },
+            }).toDestination();
+            const reverb = new Tone.Reverb({ decay: 5, wet: 0.4 }).toDestination();
+            synth.connect(reverb);
+            
+            // --- PRESETS & DEFINITIONS ---
+            const scales = {
+                'jungle': ['C', 'D', 'E', 'F#', 'G', 'A', 'B'], // C Lydian
+                'desert': ['G', 'A#', 'C', 'D', 'F'], // G Minor Pentatonic
+                'ocean': ['D', 'E', 'F', 'G', 'A', 'B', 'C'] // D Dorian
+            };
+            const rhythms = ['16n', '8n', '8t', '4n', '2n'];
+            const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const biomePresets = {
+                jungle: { harmony: 1.0, rhythm: 0.3, background: 'radial-gradient(circle, #2a5a3e, #0d1a12)', name: 'Harmonic Jungle' },
+                desert: { harmony: 0.2, rhythm: 1.0, background: 'radial-gradient(circle, #7d5e40, #2b1f11)', name: 'Rhythmic Desert' },
+                ocean:  { harmony: 0.6, rhythm: 0.1, background: 'radial-gradient(circle, #2c4c85, #0a1122)', name: 'Ambient Ocean' }
+            };
+            let currentEnvironment = {
+                harmonyWeight: biomePresets.jungle.harmony,
+                rhythmWeight: biomePresets.jungle.rhythm,
+                scale: scales.jungle,
+                survivalThreshold: 0.5,
+            };
+            
+            // --- ENGINE FUNCTIONS ---
+            const createCodon = (parentId = null, x, y) => ({
+                id: `c-${nextCodonId++}`, parentId, x, y, frozen: false,
+                pitch: 'C4', rhythm: '8n', age: 0, fitness: 0,
+                domElement: null,
+            });
+
+            const mutate = (parent) => {
+                const child = createCodon(parent.id, parent.x, parent.y);
+                child.x += (Math.random() - 0.5) * 50;
+                child.y += (Math.random() - 0.5) * 50;
+
+                if (Math.random() < mutationRate) {
+                    const newNote = currentEnvironment.scale[Math.floor(Math.random() * currentEnvironment.scale.length)];
+                    child.pitch = `${newNote}${3 + Math.floor(Math.random() * 3)}`;
+                } else { child.pitch = parent.pitch; }
+                
+                if (Math.random() < mutationRate) {
+                    child.rhythm = rhythms[Math.floor(Math.random() * rhythms.length)];
+                } else { child.rhythm = parent.rhythm; }
+                return child;
+            };
+
+            const evaluateFitness = (codon) => {
+                if(codon.frozen) return 1.0;
+                const harmonyScore = currentEnvironment.scale.includes(codon.pitch.slice(0, -1)) ? 1.0 : 0.0;
+                const rhythmScore = ['8n', '4n'].includes(codon.rhythm) ? 1.0 : 0.5; // Favor simpler rhythms
+                const totalScore = (harmonyScore * currentEnvironment.harmonyWeight) + (rhythmScore * currentEnvironment.rhythmWeight);
+                const totalWeight = currentEnvironment.harmonyWeight + currentEnvironment.rhythmWeight;
+                return totalWeight > 0 ? totalScore / totalWeight : 0;
+            };
+            
+            const runGeneration = () => {
+                generation++;
+                const newPopulation = new Map();
+                
+                // Reproduction
+                if(population.size === 0) { // Re-seed if extinct
+                    for(let i = 0; i < 5; i++) {
+                        const seed = createCodon(null, Math.random() * ecosystemEl.clientWidth, Math.random() * ecosystemEl.clientHeight);
+                        newPopulation.set(seed.id, seed);
+                    }
+                } else {
+                    population.forEach(parent => {
+                        if(parent.frozen || parent.fitness > currentEnvironment.survivalThreshold) {
+                           newPopulation.set(parent.id, parent); // Survivor
+                           if(!parent.frozen) parent.age++;
+                           const child = mutate(parent);
+                           newPopulation.set(child.id, child);
+                        }
+                    });
+                }
+                
+                // Evaluation & Expression
+                newPopulation.forEach(codon => {
+                    codon.fitness = evaluateFitness(codon);
+                    if(codon.fitness > 0.1) {
+                         synth.triggerAttackRelease(codon.pitch, codon.rhythm, Tone.now() + Math.random() * 0.2, Math.max(0.1, codon.fitness));
+                    }
+                });
+
+                population = newPopulation;
+                updateDashboard();
+            };
+
+            // --- UI & VISUALS ---
+            const updateDashboard = () => {
+                generationCountEl.textContent = generation;
+                populationCountEl.textContent = population.size;
+                
+                let alphaCodon = null;
+                population.forEach(codon => {
+                    if(!alphaCodon || codon.fitness > alphaCodon.fitness) {
+                        alphaCodon = codon;
+                    }
+                });
+
+                if(alphaCodon) {
+                    let lineage = `[${alphaCodon.id}]`;
+                    let current = alphaCodon;
+                    while(current.parentId && population.has(current.parentId)) {
+                        current = population.get(current.parentId);
+                        lineage = `[${current.id}] -> ${lineage}`;
+                    }
+                    alphaLineageEl.textContent = lineage;
+                }
+            };
+            
+            const updateVisuals = () => {
+                const domIds = new Set(Array.from(ecosystemEl.children).filter(el => el.classList.contains('codon-orb')).map(el => el.dataset.id));
+                const populationIds = new Set(population.keys());
+
+                // Remove dead codons
+                domIds.forEach(id => {
+                    if (!populationIds.has(id)) {
+                        const el = ecosystemEl.querySelector(`[data-id="${id}"]`);
+                        if(el) {
+                            el.style.opacity = '0';
+                            setTimeout(() => el.remove(), 500);
+                        }
+                    }
+                });
+
+                // Add/Update live codons
+                population.forEach(codon => {
+                    let el = codon.domElement;
+                    if (!el) {
+                        el = document.createElement('div');
+                        el.className = 'codon-orb';
+                        el.dataset.id = codon.id;
+                        ecosystemEl.appendChild(el);
+                        codon.domElement = el;
+                    }
+                    
+                    const noteValue = notes.indexOf(codon.pitch.slice(0, -1));
+                    const hue = (noteValue / 12) * 360;
+                    const size = 10 + Math.min(codon.age * 2, 30) + (codon.fitness * 20);
+                    
+                    el.style.transform = `translate(${codon.x}px, ${codon.y}px)`;
+                    el.style.width = `${size}px`;
+                    el.style.height = `${size}px`;
+                    el.style.backgroundColor = `hsl(${hue}, 80%, 60%)`;
+                    el.style.filter = `brightness(${0.5 + codon.fitness * 1.5})`;
+                    el.style.opacity = '0.9';
+                    el.classList.toggle('frozen', codon.frozen);
+                });
+                
+                requestAnimationFrame(updateVisuals);
+            };
+            
+            const showInfoPopup = (codon, x, y) => {
+                let popup = document.getElementById('info-popup');
+                if(!popup) {
+                    popup = document.createElement('div');
+                    popup.id = 'info-popup';
+                    popup.className = 'codon-info-popup';
+                    ecosystemEl.appendChild(popup);
+                }
+                popup.textContent = `P: ${codon.pitch} | F: ${codon.fitness.toFixed(2)}`;
+                popup.style.left = `${x}px`;
+                popup.style.top = `${y - 30}px`;
+                popup.style.opacity = '1';
+                setTimeout(() => { popup.style.opacity = '0'; }, 1500);
+            };
+
+            // --- EVENT LISTENERS ---
+            const switchTab = (tabId) => {
+                tabPanes.forEach(p => p.classList.toggle('active', p.id === tabId));
+                tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+            };
+
+            tabButtons.forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+            const switchBiome = (biomeName) => {
+                const preset = biomePresets[biomeName];
+                currentEnvironment.harmonyWeight = preset.harmony;
+                currentEnvironment.rhythmWeight = preset.rhythm;
+                currentEnvironment.scale = scales[biomeName];
+                biomeBgEl.style.background = preset.background;
+                lastEventEl.textContent = `Switched to ${preset.name}`;
+                // Update sliders
+                harmonySlider.value = preset.harmony;
+                rhythmSlider.value = preset.rhythm;
+                // Update active button
+                biomeButtons.forEach(b => b.classList.toggle('active', b.dataset.biome === biomeName));
+            };
+
+            biomeButtons.forEach(b => b.addEventListener('click', () => switchBiome(b.dataset.biome)));
+
+            harmonySlider.addEventListener('input', (e) => currentEnvironment.harmonyWeight = parseFloat(e.target.value));
+            rhythmSlider.addEventListener('input', (e) => currentEnvironment.rhythmWeight = parseFloat(e.target.value));
+
+            // --- GESTURE HANDLING ---
+            const findCodonAt = (x, y) => {
+                let closestCodon = null;
+                let min_dist_sq = 100*100; // max radius
+                population.forEach(c => {
+                    const dist_sq = (c.x-x)*(c.x-x) + (c.y-y)*(c.y-y);
+                    if(dist_sq < min_dist_sq) {
+                        min_dist_sq = dist_sq;
+                        closestCodon = c;
+                    }
+                });
+                return closestCodon;
+            };
+
+            ecosystemEl.addEventListener('pointerdown', (e) => {
+                if(e.touches && e.touches.length > 1) return; // Ignore if multi-touch starts
+                const targetCodon = findCodonAt(e.clientX, e.clientY);
+                holdTimeout = setTimeout(() => {
+                    if(targetCodon) {
+                        targetCodon.frozen = !targetCodon.frozen;
+                        lastEventEl.textContent = `Codon ${targetCodon.id} ${targetCodon.frozen ? 'frozen' : 'unfrozen'}`;
+                    }
+                }, 500);
+            });
+            
+            ecosystemEl.addEventListener('pointerup', (e) => {
+                if(e.touches && e.touches.length > 0) return;
+                const wasHold = !holdTimeout;
+                clearTimeout(holdTimeout);
+                holdTimeout = null;
+                
+                if (!wasHold) { // It was a tap
+                     const targetCodon = findCodonAt(e.clientX, e.clientY);
+                     if(targetCodon) showInfoPopup(targetCodon, e.clientX, e.clientY);
+                }
+            });
+            
+            ecosystemEl.addEventListener('pointermove', (e) => {
+                 clearTimeout(holdTimeout);
+            });
+            
+            ecosystemEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                }
+            }, {passive: true});
+            
+            ecosystemEl.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2) {
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const delta = dist - lastPinchDist;
+                    mutationRate = Math.max(0.05, Math.min(1.0, mutationRate + delta * 0.005));
+                    lastPinchDist = dist;
+                    lastEventEl.textContent = `Entropy set to ${mutationRate.toFixed(2)}`;
+                }
+            }, {passive: true});
+
+            startButton.addEventListener('click', async () => {
+                await Tone.start();
+                startOverlay.style.opacity = '0';
+                setTimeout(() => startOverlay.style.display = 'none', 500);
+                
+                switchBiome('jungle'); // Initialize
+                setInterval(runGeneration, 2000);
+                requestAnimationFrame(updateVisuals);
+            });
+        });
+    </script>
+</body>
+</html>

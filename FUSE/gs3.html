@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENOSCOPE: Tufteform Edition</title>
+    
+    <style>
+        /* --- Tufte-Inspired CSS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Roboto+Mono:wght@400&family=Source+Serif+Pro:wght@400&display=swap');
+
+        :root {
+            --bg-color: #fdfdfd;
+            --text-color: #333333;
+            --rule-color: #d0d0d0;
+            --console-input-bg: #f0f0f0;
+            --console-output-color: #555555;
+            --accent-color-user: #005fcc;
+
+            /* Sparing Codon Colors */
+            --color-txt: #2E7D32; /* Soft Green */
+            --color-img: #AF6C00; /* Ochre */
+            --color-auc: #303F9F; /* Muted Blue */
+            --color-cde: #6A1B9A; /* Muted Purple */
+            --color-cmd: #B71C1C; /* Soft Red */
+            
+            --font-serif: 'Source Serif Pro', serif;
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #genoscope {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Strand Visualization --- */
+        #strand-viewer {
+            flex-grow: 1;
+            padding: 40px 20px;
+            overflow: auto;
+        }
+        #strand-svg {
+            display: block;
+            min-width: 100%;
+            height: 100%;
+        }
+        .genome-rule {
+            stroke: var(--rule-color);
+            stroke-width: 1px;
+        }
+        .genome-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            fill: var(--text-color);
+            text-anchor: middle;
+        }
+        .codon-glyph {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            cursor: default;
+            user-select: none;
+        }
+        .codon-annotation {
+            font-family: var(--font-sans);
+            font-size: 11px;
+            fill: #000;
+            text-anchor: start;
+            pointer-events: none;
+            /* Tufte-style side note */
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* --- Console --- */
+        #console-container {
+            flex-shrink: 0;
+            height: 200px; /* Adjust height as needed */
+            border-top: 1px solid var(--rule-color);
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+        }
+        #console-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--console-output-color);
+        }
+        #console-output > div {
+            margin-bottom: 0.5em;
+        }
+        .log-input {
+            color: var(--accent-color-user);
+        }
+        .log-input::before {
+            content: '› ';
+        }
+        .log-error {
+            color: var(--color-cmd);
+        }
+        .log-system {
+            color: #777;
+        }
+
+        #command-input-wrapper {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            background-color: var(--console-input-bg);
+            border-top: 1px solid var(--rule-color);
+        }
+        #command-input-wrapper span {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            margin-right: 8px;
+            color: var(--text-color);
+        }
+        #command-input {
+            flex-grow: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            color: var(--text-color);
+        }
+
+        /* --- Inline Phenotype Rendering --- */
+        .phenotype-wrapper {
+            font-family: var(--font-sans);
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-left: 1em;
+            padding: 5px 0;
+        }
+        .phenotype-label {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #999;
+            width: 40px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .phenotype-content {
+            flex-grow: 1;
+        }
+        .phenotype-txt {
+            font-family: var(--font-serif);
+            font-size: 15px;
+            line-height: 1.5;
+            max-width: 60ch;
+            color: #222;
+        }
+        .phenotype-img img {
+            max-width: 80px;
+            max-height: 80px;
+            display: block;
+            filter: grayscale(100%);
+            opacity: 0.9;
+        }
+        .phenotype-auc .sparkline {
+            stroke: var(--color-auc);
+            stroke-width: 1.5px;
+            fill: none;
+        }
+        .phenotype-cde pre {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            background-color: #f4f4f4;
+            padding: 0.2em 0.5em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div id="genoscope">
+        <div id="strand-viewer">
+            <svg id="strand-svg" width="100%" height="100%"></svg>
+        </div>
+        <div id="console-container">
+            <div id="console-output"></div>
+            <div id="command-input-wrapper">
+                <span>❯</span>
+                <input type="text" id="command-input" autofocus autocomplete="off">
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    // --- GENOSCOPE: Tufteform Edition (Embedded JavaScript) ---
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- DATA MODEL ---
+        const CODON_MAP = {
+            'TXT': { glyph: '≡', color: 'var(--color-txt)', name: 'Text' },
+            'IMG': { glyph: '•', color: 'var(--color-img)', name: 'Image' },
+            'AUC': { glyph: ':', color: 'var(--color-auc)', name: 'Audio' },
+            'CDE': { glyph: '⊥', color: 'var(--color-cde)', name: 'Code' },
+            'CMD': { glyph: '›', color: 'var(--color-cmd)', name: 'Command' },
+        };
+        
+        const state = {
+            genomes: {
+                "G7": {
+                    genome_id: "G7", mutability: 0.02, origin: "field.study.α3",
+                    sequence: [
+                        { "codon": "TXT", "payload": "On the riverbank stood an old tree, its bark a cartography of seasons." },
+                        { "codon": "IMG", "payload": "https://picsum.photos/seed/tree/200" },
+                        { "codon": "AUC", "payload": "river.flac" },
+                        { "codon": "CMD", "payload": "lineage: archive.99β" }
+                    ]
+                },
+                "E4": {
+                    genome_id: "E4", mutability: 0.05, origin: "synthesis.lab.δ1",
+                    sequence: [
+                        { "codon": "CDE", "payload": "function drift(rate) {\n  return Math.random() < rate;\n}" },
+                        { "codon": "TXT", "payload": "The logic gate flickered. A choice, made in silicon." },
+                        { "codon": "AUC", "payload": "static.wav" },
+                    ]
+                },
+                "S2": {
+                    genome_id: "S2", mutability: 0.01, origin: "archive.echo.zeta",
+                    sequence: [
+                        { "codon": "TXT", "payload": "A single note, held in suspension." },
+                        { "codon": "AUC", "payload": "drone.mp3" },
+                        { "codon": "TXT", "payload": "And another, answering from the silence." },
+                    ]
+                }
+            }
+        };
+
+        // --- DOM ELEMENTS ---
+        const dom = {
+            svg: document.getElementById('strand-svg'),
+            consoleOutput: document.getElementById('console-output'),
+            commandInput: document.getElementById('command-input')
+        };
+        const SVG_NS = "http://www.w3.org/2000/svg";
+
+        // --- RENDERING LOGIC ---
+        function renderStrands() {
+            dom.svg.innerHTML = '';
+            const genomes = Object.values(state.genomes);
+            const viewerWidth = dom.svg.parentElement.clientWidth;
+            const viewerHeight = dom.svg.parentElement.clientHeight;
+            const laneSpacing = Math.max(80, viewerWidth / (genomes.length + 1));
+
+            genomes.forEach((genome, i) => {
+                const x = (i + 1) * laneSpacing;
+
+                // Rule line
+                const rule = document.createElementNS(SVG_NS, 'line');
+                rule.setAttribute('x1', x); rule.setAttribute('y1', 20);
+                rule.setAttribute('x2', x); rule.setAttribute('y2', viewerHeight - 20);
+                rule.classList.add('genome-rule');
+                dom.svg.appendChild(rule);
+                
+                // Label
+                const label = document.createElementNS(SVG_NS, 'text');
+                label.setAttribute('x', x); label.setAttribute('y', 15);
+                label.classList.add('genome-label');
+                label.textContent = genome.genome_id;
+                dom.svg.appendChild(label);
+
+                // Codons
+                genome.sequence.forEach((codon, j) => {
+                    const y = 40 + j * 18;
+                    const map = CODON_MAP[codon.codon] || { glyph: '?', color: '#888' };
+                    
+                    const glyph = document.createElementNS(SVG_NS, 'text');
+                    glyph.setAttribute('x', x); glyph.setAttribute('y', y);
+                    glyph.setAttribute('fill', map.color);
+                    glyph.classList.add('codon-glyph');
+                    glyph.textContent = map.glyph;
+                    glyph.style.textAnchor = 'middle';
+                    
+                    // Hover annotation
+                    glyph.addEventListener('mouseover', () => showAnnotation(codon, x, y));
+                    glyph.addEventListener('mouseout', hideAnnotation);
+                    
+                    dom.svg.appendChild(glyph);
+                });
+            });
+        }
+
+        function showAnnotation(codon, x, y) {
+            hideAnnotation(); // Clear previous
+            const map = CODON_MAP[codon.codon];
+            const text = `${map.name}: ${codon.payload.substring(0, 40)}...`;
+            
+            const annotation = document.createElementNS(SVG_NS, 'text');
+            annotation.setAttribute('id', 'codon-annotation-text');
+            annotation.setAttribute('x', x + 15);
+            annotation.setAttribute('y', y + 4);
+            annotation.classList.add('codon-annotation');
+            annotation.textContent = text;
+            dom.svg.appendChild(annotation);
+        }
+
+        function hideAnnotation() {
+            const existing = document.getElementById('codon-annotation-text');
+            if (existing) existing.remove();
+        }
+
+        function renderPhenotypeFragment(codon) {
+            const map = CODON_MAP[codon.codon];
+            const wrapper = document.createElement('div');
+            wrapper.className = 'phenotype-wrapper';
+            
+            let contentHtml = '';
+            switch(codon.codon) {
+                case 'TXT':
+                    contentHtml = `<div class="phenotype-txt">${codon.payload}</div>`;
+                    break;
+                case 'IMG':
+                    contentHtml = `<div class="phenotype-img"><img src="${codon.payload}" alt="phenotype image"></div>`;
+                    break;
+                case 'AUC':
+                    // Generate a random sparkline for visual representation
+                    let points = '0,10 ';
+                    for (let i = 1; i < 50; i++) {
+                        points += `${i*2},${10 - Math.random() * 10} `;
+                    }
+                    points += '100,10';
+                    contentHtml = `<div class="phenotype-auc">
+                        <svg width="100" height="20" viewBox="0 0 100 20">
+                            <polyline class="sparkline" points="${points}" />
+                        </svg>
+                    </div>`;
+                    break;
+                case 'CDE':
+                    contentHtml = `<div class="phenotype-cde"><pre>${codon.payload.replace(/</g, "<")}</pre></div>`;
+                    break;
+                default:
+                    contentHtml = `<div>[${map.name} content hidden]</div>`;
+            }
+
+            wrapper.innerHTML = `
+                <div class="phenotype-label" style="color: ${map.color}">${codon.codon}</div>
+                <div class="phenotype-content">${contentHtml}</div>
+            `;
+            return wrapper;
+        }
+
+
+        // --- CONSOLE LOGIC ---
+        function logToConsole(message, type = 'system') {
+            const logEntry = document.createElement('div');
+            if(typeof message === 'object') {
+                logEntry.appendChild(message);
+            } else {
+                logEntry.textContent = message;
+            }
+            logEntry.classList.add(`log-${type}`);
+            dom.consoleOutput.appendChild(logEntry);
+            dom.consoleOutput.scrollTop = dom.consoleOutput.scrollHeight;
+        }
+
+        function parseCommand(input) {
+            logToConsole(input, 'input');
+            const [command, ...args] = input.trim().split(/\s+/);
+            
+            switch (command.toLowerCase()) {
+                case 'express':
+                    if (!args[0]) { logToConsole("Error: 'express' requires a genome ID.", 'error'); break; }
+                    const genomeToExp = state.genomes[args[0].toUpperCase()];
+                    if (!genomeToExp) { logToConsole(`Error: Genome ID "${args[0]}" not found.`, 'error'); break; }
+                    
+                    logToConsole(`Expressing phenotype for ${genomeToExp.genome_id}:`);
+                    genomeToExp.sequence.forEach(codon => {
+                        logToConsole(renderPhenotypeFragment(codon));
+                    });
+                    break;
+
+                case 'trace':
+                    if (!args[0]) { logToConsole("Error: 'trace' requires a genome ID.", 'error'); break; }
+                    const genomeToTrace = state.genomes[args[0].toUpperCase()];
+                    if (!genomeToTrace) { logToConsole(`Error: Genome ID "${args[0]}" not found.`, 'error'); break; }
+                    logToConsole(`Lineage trace for ${genomeToTrace.genome_id}:`);
+                    logToConsole(`  origin: ${genomeToTrace.origin}`);
+                    logToConsole(`  mutability: ${genomeToTrace.mutability}`);
+                    logToConsole(`  length: ${genomeToTrace.sequence.length} codons`);
+                    break;
+
+                case 'fuse':
+                    const [id_a, id_b] = args[0] ? args[0].split('+') : [null, null];
+                    if (!id_a || !id_b) { logToConsole("Error: 'fuse' requires format [ID_A]+[ID_B].", 'error'); break; }
+                    const gA = state.genomes[id_a.toUpperCase()];
+                    const gB = state.genomes[id_b.toUpperCase()];
+                    if (!gA || !gB) { logToConsole("Error: One or both genome IDs not found.", 'error'); break; }
+
+                    const newId = `${gA.genome_id.charAt(0)}${gB.genome_id.charAt(0)}${Object.keys(state.genomes).length + 1}`;
+                    const midA = Math.floor(gA.sequence.length / 2);
+                    const midB = Math.floor(gB.sequence.length / 2);
+                    
+                    const newSequence = [...gA.sequence.slice(0, midA), ...gB.sequence.slice(midB)];
+                    state.genomes[newId] = {
+                        genome_id: newId, mutability: (gA.mutability + gB.mutability) / 2,
+                        origin: `fusion(${gA.genome_id}+${gB.genome_id})`, sequence: newSequence
+                    };
+                    logToConsole(`Fusion complete. New genome created: ${newId}`);
+                    renderStrands();
+                    break;
+                
+                case 'drift':
+                    const genomeIds = Object.keys(state.genomes);
+                    const targetId = genomeIds[Math.floor(Math.random() * genomeIds.length)];
+                    const targetGenome = state.genomes[targetId];
+                    let mutations = 0;
+                    targetGenome.sequence.forEach((codon, i) => {
+                        if (Math.random() < targetGenome.mutability) {
+                            mutations++;
+                            // Point mutation: change codon type
+                            const newType = Object.keys(CODON_MAP)[Math.floor(Math.random() * Object.keys(CODON_MAP).length)];
+                            targetGenome.sequence[i].codon = newType;
+                        }
+                    });
+                    if (mutations > 0) {
+                        logToConsole(`Drift event on ${targetId}: ${mutations} point mutation(s) occurred.`);
+                        renderStrands();
+                    } else {
+                        logToConsole(`Drift event on ${targetId}: no mutations occurred.`);
+                    }
+                    break;
+
+                case 'list':
+                case 'ls':
+                    logToConsole("Available genomes:");
+                    Object.keys(state.genomes).forEach(id => logToConsole(`  ${id}`));
+                    break;
+                
+                case 'help':
+                    logToConsole("GENOSCOPE Commands:");
+                    logToConsole("  express [id]      - Renders the phenotype of a genome.");
+                    logToConsole("  trace [id]        - Shows metadata for a genome.");
+                    logToConsole("  fuse [id_a]+[id_b] - Creates a new genome from two others.");
+                    logToConsole("  drift             - Induces random mutation in one genome.");
+                    logToConsole("  list / ls         - Lists all available genome IDs.");
+                    logToConsole("  clear             - Clears the console output.");
+                    logToConsole("  help              - Shows this help message.");
+                    break;
+
+                case 'clear':
+                    dom.consoleOutput.innerHTML = '';
+                    break;
+                    
+                case 'echo':
+                    logToConsole(args.join(' '));
+                    break;
+
+                default:
+                    logToConsole(`Error: Unknown command "${command}". Type 'help' for commands.`, 'error');
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        dom.commandInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && dom.commandInput.value.trim() !== '') {
+                parseCommand(dom.commandInput.value);
+                dom.commandInput.value = '';
+            }
+        });
+
+        window.addEventListener('resize', renderStrands);
+
+
+        // --- INITIALIZATION ---
+        renderStrands();
+        logToConsole("GENOSCOPE: Tufteform Edition. Type 'help' for a list of commands.");
+    });
+    </script>
+</body>
+</html>

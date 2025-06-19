@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGMATIC FORGE :: ECD-78</title>
+    <style>
+        :root {
+            --glow-color: #00ffc3;
+            --text-color: #c0fded;
+            --bg-color: #030504;
+            --border-color: rgba(0, 255, 195, 0.2);
+            --module-bg: rgba(0, 255, 195, 0.03);
+            --font-family: 'Courier New', Courier, monospace;
+        }
+
+        @keyframes subtle-glow {
+            0% { box-shadow: 0 0 5px -2px var(--glow-color), inset 0 0 5px -3px var(--glow-color); }
+            50% { box-shadow: 0 0 8px -2px var(--glow-color), inset 0 0 8px -3px var(--glow-color); }
+            100% { box-shadow: 0 0 5px -2px var(--glow-color), inset 0 0 5px -3px var(--glow-color); }
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+        
+        @keyframes furnace-active {
+            0% { background-color: var(--module-bg); border-color: var(--border-color); }
+            50% { background-color: rgba(255, 153, 0, 0.1); border-color: rgba(255, 153, 0, 0.5); }
+            100% { background-color: var(--module-bg); border-color: var(--border-color); }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            user-select: none;
+        }
+
+        #forge-surface {
+            width: 98vw;
+            height: 95vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto 1fr 1fr;
+            grid-template-areas:
+                "status status"
+                "chantwell aletheon"
+                "strata crucible"
+                "furnace furnace";
+            gap: 10px;
+            position: relative;
+        }
+
+        .module {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            position: relative;
+            background: var(--module-bg);
+            box-shadow: 0 0 5px -2px var(--glow-color), inset 0 0 5px -3px var(--glow-color);
+            animation: subtle-glow 8s infinite ease-in-out;
+            transition: all 0.5s ease;
+        }
+
+        .module h2 {
+            margin: 0 0 10px 0;
+            font-size: 1em;
+            color: var(--glow-color);
+            text-shadow: 0 0 5px var(--glow-color);
+            font-weight: normal;
+        }
+        
+        #status-display { grid-area: status; text-align: center; height: 60px; padding-top: 10px; border-bottom: 1px solid var(--border-color); }
+        #chantwell { grid-area: chantwell; }
+        #aletheon-lattices { grid-area: aletheon; }
+        #modulonic-crucible { grid-area: crucible; background-image: radial-gradient(circle, rgba(0, 255, 195, 0.1) 1px, transparent 1px); background-size: 20px 20px; }
+        #sigma-strata { grid-area: strata; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><path d="M50,50 m-40,0 a40,40 0 1,0 80,0 a40,40 0 1,0 -80,0 M50,50 m-30,0 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0 M50,50 m-20,0 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0" stroke="rgba(0, 255, 195, 0.1)" fill="none"/></svg>'); background-position: center; background-repeat: no-repeat; }
+        #temporal-furnace { grid-area: furnace; height: 80px; text-align: center; }
+
+        #chantwell-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--glow-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            width: 90%;
+            font-size: 1em;
+            outline: none;
+            padding: 5px;
+        }
+
+        .prompt-fragment, .aletheon-cube, .transmuted-fragment, .strata-node {
+            position: absolute;
+            padding: 10px 15px;
+            border: 1px solid var(--glow-color);
+            background-color: var(--bg-color);
+            cursor: grab;
+            animation: breathe 5s infinite ease-in-out;
+            white-space: nowrap;
+        }
+
+        .aletheon-cube {
+            border-style: double;
+            padding: 20px;
+        }
+        
+        .strata-node {
+             border-radius: 50%;
+        }
+
+        .dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        #causal-loom-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        #causal-loom-svg line {
+            stroke: var(--glow-color);
+            stroke-width: 1;
+            filter: drop-shadow(0 0 2px var(--glow-color));
+        }
+        
+        .label {
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            font-size: 0.8em;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="forge-surface">
+        <div id="status-display">
+            <p id="status-text">SYSTEM AWAKE. AWAITING INVOCATION.</p>
+        </div>
+        
+        <div id="chantwell" class="module">
+            <h2>CHANTWELL :: Recursive Invoker</h2>
+            <input type="text" id="chantwell-input" placeholder="Enter Seed Phrase, press Enter...">
+            <div id="chantwell-dropzone" class="dropzone"></div>
+        </div>
+
+        <div id="aletheon-lattices" class="module dropzone">
+            <h2>ALETHEON LATTICES :: Conceptual Geometry</h2>
+            <div class="label">Drop fragment to form cube. Click cubes to link.</div>
+        </div>
+
+        <div id="modulonic-crucible" class="module dropzone">
+            <h2>MODULONIC CRUCIBLE :: Media Transmutation</h2>
+            <div class="label">Drop cube. Press [S]ound, [I]mage, or [T]ext.</div>
+        </div>
+
+        <div id="sigma-strata" class="module dropzone">
+            <h2>SIGMA STRATA :: Causal Loom</h2>
+            <div class="label">Drop transmuted media to anchor in the loom.</div>
+        </div>
+        
+        <div id="temporal-furnace" class="module dropzone">
+            <h2>TEMPORAL FURNACE :: Ontological Crystallizer</h2>
+            <div class="label">Drop all strata nodes to begin finalization. HOLD STILL.</div>
+        </div>
+    </div>
+    <svg id="causal-loom-svg"></svg>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const forge = {
+                elements: {
+                    statusText: document.getElementById('status-text'),
+                    chantwellInput: document.getElementById('chantwell-input'),
+                    chantwellZone: document.getElementById('chantwell'),
+                    aletheonZone: document.getElementById('aletheon-lattices'),
+                    crucibleZone: document.getElementById('modulonic-crucible'),
+                    strataZone: document.getElementById('sigma-strata'),
+                    furnaceZone: document.getElementById('temporal-furnace'),
+                    svgLoom: document.getElementById('causal-loom-svg'),
+                },
+                state: {
+                    draggedElement: null,
+                    elementCounter: 0,
+                    linkingCube: null,
+                    causalLinks: [],
+                    originalSeed: '',
+                    furnaceTimer: null,
+                },
+
+                init() {
+                    this.updateStatus('AWAITING SEED PHRASE IN CHANTWELL.');
+                    this.elements.chantwellInput.addEventListener('keyup', this.handleChant.bind(this));
+                    this.setupDragAndDrop();
+                    this.elements.aletheonZone.addEventListener('click', this.handleLatticeClick.bind(this));
+                    window.addEventListener('keydown', this.handleCrucibleKey.bind(this));
+                },
+
+                updateStatus(text) {
+                    this.elements.statusText.textContent = `[SIGMATIC FORGE] :: ${text}`;
+                },
+
+                handleChant(e) {
+                    if (e.key === 'Enter' && e.target.value.trim() !== '') {
+                        const phrase = e.target.value.trim();
+                        if(this.state.originalSeed === '') this.state.originalSeed = phrase;
+                        
+                        const fragment = this.createElement('prompt-fragment', phrase);
+                        this.elements.chantwellZone.appendChild(fragment);
+                        this.updateStatus(`RESONANCE [${phrase}] CAPTURED. DRAG TO ALETHEON LATTICES.`);
+                        e.target.value = '';
+                    }
+                },
+
+                createElement(type, content) {
+                    const el = document.createElement('div');
+                    el.id = `el-${this.state.elementCounter++}`;
+                    el.className = type;
+                    el.textContent = content;
+                    el.draggable = true;
+                    el.style.left = `${Math.random() * 40 + 20}%`;
+                    el.style.top = `${Math.random() * 40 + 30}%`;
+                    return el;
+                },
+
+                setupDragAndDrop() {
+                    document.addEventListener('dragstart', e => {
+                        this.state.draggedElement = e.target;
+                        e.target.classList.add('dragging');
+                    });
+
+                    document.addEventListener('dragend', e => {
+                        e.target.classList.remove('dragging');
+                        this.state.draggedElement = null;
+                    });
+
+                    document.querySelectorAll('.dropzone').forEach(zone => {
+                        zone.addEventListener('dragover', e => e.preventDefault());
+                        zone.addEventListener('drop', e => {
+                            e.preventDefault();
+                            if (!this.state.draggedElement) return;
+
+                            const dropZoneId = e.currentTarget.id;
+                            this.handleDrop(dropZoneId, this.state.draggedElement, e.clientX, e.clientY);
+                        });
+                    });
+                },
+
+                handleDrop(zoneId, element, clientX, clientY) {
+                    const targetRect = document.getElementById(zoneId).getBoundingClientRect();
+                    element.style.left = `${clientX - targetRect.left}px`;
+                    element.style.top = `${clientY - targetRect.top}px`;
+                    document.getElementById(zoneId).appendChild(element);
+
+                    switch(zoneId) {
+                        case 'aletheon-lattices':
+                            if(element.classList.contains('prompt-fragment')) {
+                                this.transformToCube(element);
+                            }
+                            break;
+                        case 'modulonic-crucible':
+                             if(element.classList.contains('aletheon-cube')) {
+                                this.updateStatus(`CUBE [${element.textContent}] IN CRUCIBLE. CHOOSE TRANSMUTATION VECTOR: [S]ound, [I]mage, [T]ext.`);
+                            }
+                            break;
+                        case 'sigma-strata':
+                            if(element.classList.contains('transmuted-fragment')) {
+                                this.transformToStrataNode(element);
+                            }
+                            break;
+                        case 'temporal-furnace':
+                            if(element.classList.contains('strata-node')) {
+                                this.checkFurnaceState();
+                            }
+                            break;
+                    }
+                },
+                
+                transformToCube(element) {
+                    element.className = 'aletheon-cube';
+                    element.innerHTML = `⧄ ${element.textContent} ⧄`;
+                    this.updateStatus(`FRAGMENT CRYSTALLIZED INTO CUBE. CLICK CUBES TO FORGE TENSION LATTICE.`);
+                },
+                
+                transformToStrataNode(element) {
+                    element.className = 'strata-node';
+                    this.updateStatus(`MEDIA [${element.textContent}] ANCHORED TO CAUSAL LOOM.`);
+                },
+                
+                handleLatticeClick(e) {
+                    if (e.target.classList.contains('aletheon-cube')) {
+                        if (!this.state.linkingCube) {
+                            this.state.linkingCube = e.target;
+                            e.target.style.borderColor = '#ff9900'; // Highlight color
+                            this.updateStatus(`CUBE [${e.target.textContent}] SELECTED. CLICK ANOTHER TO LINK.`);
+                        } else if (this.state.linkingCube !== e.target) {
+                            this.drawCausalLine(this.state.linkingCube, e.target);
+                            this.state.linkingCube.style.borderColor = 'var(--glow-color)';
+                            this.state.linkingCube = null;
+                            this.updateStatus('TENSION LATTICE FORGED.');
+                        }
+                    }
+                },
+                
+                handleCrucibleKey(e) {
+                    const crucible = this.elements.crucibleZone;
+                    const cube = crucible.querySelector('.aletheon-cube');
+                    if (!cube) return;
+
+                    let vector = '';
+                    let outputContent = '';
+                    switch(e.key.toLowerCase()) {
+                        case 's': vector = 'SOUND'; outputContent = `[SONIC-SIGIL: ${cube.textContent}]`; break;
+                        case 'i': vector = 'IMAGE'; outputContent = `[VISUAL-GLYPH: ${cube.textContent}]`; break;
+                        case 't': vector = 'TEXT'; outputContent = `[RITUAL-SCRIPT: ${cube.textContent}]`; break;
+                        default: return;
+                    }
+                    
+                    this.updateStatus(`TRANSMUTING VIA [${vector}] VECTOR...`);
+                    const transmuted = this.createElement('transmuted-fragment', outputContent);
+                    crucible.appendChild(transmuted);
+                    cube.remove();
+                    this.updateStatus(`TRANSMUTATION COMPLETE. DRAG [${outputContent}] TO SIGMA STRATA.`);
+                },
+
+                drawCausalLine(el1, el2) {
+                    const rect1 = el1.getBoundingClientRect();
+                    const rect2 = el2.getBoundingClientRect();
+                    const loomRect = this.elements.svgLoom.getBoundingClientRect();
+
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', rect1.left + rect1.width / 2 - loomRect.left);
+                    line.setAttribute('y1', rect1.top + rect1.height / 2 - loomRect.top);
+                    line.setAttribute('x2', rect2.left + rect2.width / 2 - loomRect.left);
+                    line.setAttribute('y2', rect2.top + rect2.height / 2 - loomRect.top);
+                    
+                    this.elements.svgLoom.appendChild(line);
+                    this.state.causalLinks.push({ from: el1.id, to: el2.id });
+                },
+
+                checkFurnaceState() {
+                    const strataNodes = this.elements.strataZone.querySelectorAll('.strata-node').length;
+                    if(strataNodes === 0) {
+                        this.beginFinalization();
+                    }
+                },
+                
+                beginFinalization() {
+                    this.updateStatus('ALL NODES RECEIVED. HOLD STILL. CEASE ALL INPUT. CRYSTALLIZATION IN 5 SECONDS...');
+                    this.elements.furnaceZone.style.animation = 'furnace-active 2s infinite ease-in-out';
+                    
+                    window.addEventListener('mousemove', this.resetFurnaceTimer.bind(this), { once: true });
+                    this.state.furnaceTimer = setTimeout(this.crystallize.bind(this), 5000);
+                },
+
+                resetFurnaceTimer() {
+                    clearTimeout(this.state.furnaceTimer);
+                    this.updateStatus('MOTION DETECTED. RITUAL INTERRUPTED. HOLD STILL...');
+                    window.addEventListener('mousemove', this.resetFurnaceTimer.bind(this), { once: true });
+                    this.state.furnaceTimer = setTimeout(this.crystallize.bind(this), 5000);
+                },
+                
+                crystallize() {
+                    this.updateStatus('...STABILITY ACHIEVED. CRYSTALLIZING ONTOLOGICAL CONSTELLATION...');
+                    
+                    const furnaceNodes = this.elements.furnaceZone.querySelectorAll('.strata-node');
+                    let artifactSummary = `ARTIFACT: From seed "${this.state.originalSeed}", a constellation of ${furnaceNodes.length} nodes and ${this.state.causalLinks.length} causal links has been forged.`;
+                    
+                    setTimeout(() => {
+                        this.updateStatus('CRYSTALLIZATION COMPLETE. A NEW ARTIFACT IS BORN. THE CYCLE BEGINS ANEW.');
+                        this.elements.furnaceZone.style.animation = 'none';
+                        this.resetForge(artifactSummary);
+                    }, 3000);
+                },
+
+                resetForge(artifactName) {
+                    // Clear all dynamic elements
+                    document.querySelectorAll('.prompt-fragment, .aletheon-cube, .transmuted-fragment, .strata-node').forEach(el => el.remove());
+                    this.elements.svgLoom.innerHTML = '';
+                    
+                    // Reset state
+                    this.state.causalLinks = [];
+                    this.state.linkingCube = null;
+                    this.state.originalSeed = artifactName; // The recursion
+                    
+                    // Feed the new artifact back into the system
+                    this.elements.chantwellInput.value = `RECURSION: ${this.state.originalSeed}`;
+                    this.updateStatus('ARTIFACT HAS BECOME SEED. INVOKE THE NEXT CYCLE.');
+                }
+            };
+
+            forge.init();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Resonance Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #030303;
+            color: #ccc;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #333;
+        }
+        #controls label, #controls select, #controls button {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        #tooltip {
+            position: absolute;
+            display: none;
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 14px;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <label for="data-select">🧬 DATA ORGANISM:</label>
+        <select id="data-select">
+            <option value="genome">Genome Snippet (String)</option>
+            <option value="poetry">Poetry (Array of Words)</option>
+            <option value="weather">Weather Stream (Numbers)</option>
+            <option value="code">JavaScript Code (String)</option>
+            <option value="dreams">Dream Log (Array of Words)</option>
+        </select>
+
+        <label for="viz-select">👁️ VISUALIZATION:</label>
+        <select id="viz-select">
+            <option value="strand">Vertical Strand</option>
+            <option value="radial">Radial Node</option>
+            <option value="helix">Swirling Helix</option>
+        </select>
+        
+        <label for="mutation-rate">🔀 MUTATION RATE:</label>
+        <input type="range" id="mutation-rate" min="0" max="0.01" step="0.0001" value="0.001">
+    </div>
+    <div id="tooltip"></div>
+
+<script>
+// --- DATASETS ---
+// These are injected inline as per the requirements.
+const datasets = {
+    genome: "AGCTTCATTGATTGACAGATTACAATTCGATTACAGATACAGATTAGACATTA",
+    poetry: ["the", "luminous", "and", "incommunicable", "dream", "drifts", "through", "the", "ether"],
+    weather: [12, 13, 15, 14, 16, 18, 22, 21, 19, 17, 15, 14, 13, 12, 11, 14, 16, 19, 23, 25, 24, 22],
+    code: "function(x){return x*x;}",
+    dreams: ["silver", "towers", "humming", "in", "a", "violet", "fog", "a", "clock", "with", "no", "hands"]
+};
+
+// --- GLOBAL VARIABLES ---
+let dataCells = [];
+let vizMode = 'strand';
+let mutationRate = 0.001;
+let lastInteractionTime;
+const IDLE_TIMEOUT = 5000; // 5 seconds
+
+let draggedCell = null;
+let audioInitialized = false;
+let osc, envelope;
+
+// A simple hashing function to convert a string to a number for color mapping
+function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+}
+
+// --- DATA CELL CLASS ---
+// Represents a single unit of data as a living entity.
+class DataCell {
+    constructor(originalValue, index) {
+        this.originalValue = originalValue;
+        this.currentValue = originalValue;
+        this.index = index;
+
+        // Visual properties
+        this.pos = createVector(random(width), random(height));
+        this.targetPos = createVector(0, 0);
+        this.color = this.mapValueToColor(this.currentValue);
+        this.size = this.mapValueToSize(this.currentValue);
+        this.targetSize = this.size;
+        
+        // Generative/Interaction properties
+        this.lifespan = 255; // For decay effects
+        this.interactionEnergy = 0; // Increases on hover/click
+        this.vibration = 0;
+    }
+
+    mapValueToColor(value) {
+        let hue;
+        if (typeof value === 'number') {
+            hue = map(value, 0, 30, 180, 360) % 360; // Blue to Red for weather
+        } else { // string
+            hue = hashString(value) % 360;
+        }
+        return color(hue, 90, 85, 0.8);
+    }
+    
+    mapValueToSize(value) {
+        if (typeof value === 'number') {
+            return map(value, 0, 30, 5, 25);
+        } else { // string
+            return map(value.length, 1, 15, 5, 25);
+        }
+    }
+
+    // 🔀 Generativity Heuristic: Data evolves over time
+    mutate() {
+        if (typeof this.currentValue === 'number') {
+            this.currentValue += random(-1, 1);
+        } else if (typeof this.currentValue === 'string' && this.currentValue.length > 0) {
+            const i = floor(random(this.currentValue.length));
+            const newChar = String.fromCharCode(this.currentValue.charCodeAt(i) + floor(random(-5, 5)));
+            this.currentValue = this.currentValue.substring(0, i) + newChar + this.currentValue.substring(i + 1);
+        }
+        // Update visuals based on new value
+        this.color = this.mapValueToColor(this.currentValue);
+        this.targetSize = this.mapValueToSize(this.currentValue);
+        this.interactionEnergy += 50; // Mutation adds energy
+    }
+
+    update(layout) {
+        // Update target position based on layout
+        this.targetPos = layout(this.index, dataCells.length);
+
+        // Animate position (lerp for smooth movement)
+        this.pos.lerp(this.targetPos, 0.05);
+        
+        // Animate size
+        this.size = lerp(this.size, this.targetSize, 0.1);
+
+        // 🔀 Generativity Heuristic: Interface learns
+        // Higher energy = more vivid changes
+        const currentMutationRate = mutationRate + (this.interactionEnergy / 50000);
+        if (random(1) < currentMutationRate) {
+            this.mutate();
+        }
+        
+        // Ambient behavior
+        this.interactionEnergy *= 0.99; // Energy decays
+        this.vibration *= 0.9;
+        this.lifespan = min(255, this.lifespan + 1);
+    }
+
+    // 🎨 Visual Metaphor Heuristic: Render data as a dynamic cell
+    display(isHovered) {
+        let displaySize = this.size;
+        let c = this.color;
+        
+        // 🧬 Interaction Heuristic: Hover = magnify + reveal
+        if (isHovered) {
+            displaySize = this.size * 2;
+            c = color(hue(c), saturation(c) - 20, brightness(c) + 20);
+            this.interactionEnergy += 5; // Add energy on hover
+            this.vibration = 5;
+        }
+        
+        // Vibrate on interaction
+        let displayPos = this.pos.copy();
+        if(this.vibration > 0.1) {
+            displayPos.add(p5.Vector.random2D().mult(this.vibration));
+        }
+
+        // 🎨 Visual Metaphor Heuristic: Glow for frequently touched regions
+        const glowAmount = map(this.interactionEnergy, 0, 255, 0, 15);
+        if (glowAmount > 1) {
+            noStroke();
+            fill(hue(c), saturation(c), brightness(c) + 15, 0.1 * 255);
+            ellipse(displayPos.x, displayPos.y, displaySize + glowAmount * 2, displaySize + glowAmount * 2);
+            ellipse(displayPos.x, displayPos.y, displaySize + glowAmount, displaySize + glowAmount);
+        }
+
+        stroke(255, this.lifespan * 0.5);
+        strokeWeight(1);
+        fill(c);
+        ellipse(displayPos.x, displayPos.y, displaySize, displaySize);
+    }
+}
+
+// --- P5.JS SETUP & DRAW ---
+
+function setup() {
+    createCanvas(windowWidth, windowHeight);
+    colorMode(HSB, 360, 100, 100, 1);
+    
+    // UI Event Listeners
+    document.getElementById('data-select').addEventListener('change', (e) => loadData(e.target.value));
+    document.getElementById('viz-select').addEventListener('change', (e) => vizMode = e.target.value);
+    document.getElementById('mutation-rate').addEventListener('input', (e) => mutationRate = parseFloat(e.target.value));
+    
+    // Initial data load
+    loadData('genome');
+    lastInteractionTime = millis();
+}
+
+function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+}
+
+// ⚙️ System Requirement: Data is injected inline
+function loadData(name) {
+    const rawData = datasets[name];
+    dataCells = [];
+    for (let i = 0; i < rawData.length; i++) {
+        dataCells.push(new DataCell(rawData[i], i));
+    }
+}
+
+// 💡 Optional Audio Synthesis
+function setupAudio() {
+    if (audioInitialized) return;
+    envelope = new p5.Envelope();
+    envelope.setADSR(0.01, 0.1, 0.2, 0.5); // Attack, Decay, Sustain, Release
+    envelope.setRange(0.5, 0); // Attack Level, Release Level
+
+    osc = new p5.Oscillator('sine');
+    osc.start();
+    osc.amp(envelope);
+    audioInitialized = true;
+    console.log("Audio Initialized.");
+}
+
+function playNote(value) {
+    if (!audioInitialized) return;
+    let freq;
+    if (typeof value === 'number') {
+        freq = map(value, 0, 30, 150, 800);
+    } else { // string
+        freq = map(hashString(value) % 1000, 0, 1000, 150, 800);
+    }
+    osc.freq(freq);
+    envelope.play();
+}
+
+
+function draw() {
+    // Fading background for motion trails
+    background(3, 3, 3, 0.1);
+
+    // Get current layout function
+    let layoutFunction = getLayout(vizMode);
+    
+    // 🧬 Interaction Heuristic: Idle = ambient generative behavior
+    if (millis() - lastInteractionTime > IDLE_TIMEOUT) {
+        // Slow drift
+        const randomIndex = floor(random(dataCells.length));
+        dataCells[randomIndex].mutate();
+    }
+
+    let hoveredCell = null;
+    for (let i = dataCells.length - 1; i >= 0; i--) {
+        const cell = dataCells[i];
+        
+        // Update cell logic
+        cell.update(layoutFunction);
+
+        // Check for hover
+        if (!hoveredCell && dist(mouseX, mouseY, cell.pos.x, cell.pos.y) < cell.size) {
+            hoveredCell = cell;
+        }
+    }
+    
+    // Draw all cells
+    for (const cell of dataCells) {
+        cell.display(cell === hoveredCell);
+    }
+    
+    // 💡 Interpretation Heuristic: Reveal hidden properties on hover
+    const tooltip = document.getElementById('tooltip');
+    if (hoveredCell) {
+        tooltip.style.display = 'block';
+        tooltip.style.left = mouseX + 15 + 'px';
+        tooltip.style.top = mouseY + 15 + 'px';
+        tooltip.textContent = `[${hoveredCell.originalValue}] -> [${hoveredCell.currentValue}]`;
+    } else {
+        tooltip.style.display = 'none';
+    }
+}
+
+// --- VISUALIZATION LAYOUTS ---
+// 🎨 Visual Metaphor Heuristic: Multiple visualizations at once
+function getLayout(mode) {
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const margin = 100;
+    
+    switch (mode) {
+        case 'radial':
+            return (i, total) => {
+                const radius = min(width, height) / 3;
+                const angle = map(i, 0, total, 0, TWO_PI);
+                return createVector(centerX + radius * cos(angle), centerY + radius * sin(angle));
+            };
+        case 'helix':
+            return (i, total) => {
+                const radius = min(width, height) / 5;
+                const angle = map(i, 0, total, 0, TWO_PI * 3); // More turns
+                const yPos = map(i, 0, total - 1, margin, height - margin);
+                return createVector(centerX + radius * cos(angle), yPos, radius * sin(angle)); // Z can be used for size/brightness in more complex renders
+            };
+        case 'strand':
+        default:
+            return (i, total) => {
+                const yPos = map(i, 0, total - 1, margin, height - margin);
+                return createVector(centerX, yPos);
+            };
+    }
+}
+
+// --- INTERACTION HANDLERS ---
+function recordInteraction() {
+    lastInteractionTime = millis();
+}
+
+function mouseMoved() {
+    recordInteraction();
+}
+
+function mousePressed() {
+    // This first user gesture is required by browsers to start audio.
+    if (!audioInitialized) {
+        setupAudio();
+    }
+    recordInteraction();
+    
+    for (let i = 0; i < dataCells.length; i++) {
+        if (dist(mouseX, mouseY, dataCells[i].pos.x, dataCells[i].pos.y) < dataCells[i].size * 2) {
+            // 🧬 Interaction Heuristic: Click = mutate / fork
+            dataCells[i].mutate();
+            dataCells[i].interactionEnergy = 255; // Max out energy on click
+            dataCells[i].lifespan = 0; // Flash effect
+            playNote(dataCells[i].currentValue);
+            
+            // For dragging
+            draggedCell = {cell: dataCells[i], offset: createVector(dataCells[i].pos.x - mouseX, dataCells[i].pos.y - mouseY)};
+            break;
+        }
+    }
+}
+
+function mouseDragged() {
+    recordInteraction();
+    // 🧬 Interaction Heuristic: Drag = recombine sequences
+    if (draggedCell) {
+        // Simple positional drag - a more complex implementation would reorder the array
+        draggedCell.cell.pos.x = mouseX + draggedCell.offset.x;
+        draggedCell.cell.pos.y = mouseY + draggedCell.offset.y;
+        
+        // Find cell to swap with
+        for(let i=0; i < dataCells.length; i++) {
+            if (dataCells[i] !== draggedCell.cell && dist(mouseX, mouseY, dataCells[i].pos.x, dataCells[i].pos.y) < dataCells[i].size) {
+                 // Swap positions in the array
+                 const otherIndex = dataCells.indexOf(dataCells[i]);
+                 const draggedIndex = dataCells.indexOf(draggedCell.cell);
+                 if (otherIndex !== -1 && draggedIndex !== -1) {
+                     [dataCells[otherIndex], dataCells[draggedIndex]] = [dataCells[draggedIndex], dataCells[otherIndex]];
+                     // Update indices
+                     dataCells[otherIndex].index = otherIndex;
+                     dataCells[draggedIndex].index = draggedIndex;
+                     draggedCell = null; // End drag after swap
+                     break;
+                 }
+            }
+        }
+    }
+}
+
+function mouseReleased() {
+    draggedCell = null;
+}
+
+</script>
+</body>
+</html>

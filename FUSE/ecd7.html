@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGMADOS // GRAPHICAL USER INTERFACE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@500&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: SIGMADOS - Graphical User Interface
+        *   DIVISION: Esoterica Cybernetics Division (ECD)
+        *   CONCEPT: A GUI for a ritual-cybernetic OS, replacing the command line with
+        *   a tactile Noetic Control Console for semantic domain manipulation.
+        */
+
+        :root {
+            --dos-bg: #1a1c20;
+            --dos-panel-bg: #282a30;
+            --dos-text: #c0c5ce;
+            --dos-text-dim: #6c7079;
+            --dos-text-highlight: #e0e6f0;
+            --dos-glyph: #ffb86c;
+            --dos-prompt: #8be9fd;
+            --dos-error: #ff5555;
+            --dos-warning: #f1fa8c;
+            --dos-success: #50fa7b;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes pulse-scan {
+            from { r: 0; opacity: 0.7; }
+            to { r: 50%; opacity: 0; }
+        }
+        @keyframes aura-misaligned-anim {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(-1px, 1px); }
+            50% { transform: translate(1px, -1px); }
+            75% { transform: translate(1px, 1px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; color: var(--dos-text); font-family: var(--font-main);
+            margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh;
+            user-select: none;
+        }
+        #os-container {
+            width: 1600px; height: 900px; background-color: var(--dos-bg);
+            border: 1px solid #333; box-shadow: 0 0 20px rgba(139, 233, 253, 0.1);
+            display: grid;
+            grid-template-columns: 400px 1fr 400px;
+            grid-template-rows: 1fr 150px;
+            gap: 15px; padding: 15px;
+            transition: filter 0.5s ease-in-out;
+        }
+        #os-container.aura-misaligned {
+            filter: blur(0.5px) saturate(0.8);
+            animation: aura-misaligned-anim 0.2s infinite;
+        }
+
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--dos-panel-bg); padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 2px;
+            text-align: center; border-bottom: 1px solid var(--dos-text-dim);
+            padding-bottom: 5px; margin: 0 0 15px 0; color: var(--dos-text-highlight);
+        }
+
+        /* --- QUERY ENGINE (LEFT) --- */
+        #query-panel { grid-row: 1 / 3; }
+        .query-module { margin-bottom: 20px; }
+        .query-key-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .query-key {
+            background-color: #3a3f44; border: 1px solid #1a1a1a; padding: 10px;
+            text-align: center; cursor: pointer; transition: all 0.2s;
+            font-size: 1.1rem;
+        }
+        .query-key:hover { background-color: #4a4f55; }
+        .query-key.active { background-color: var(--dos-glyph); color: #000; font-weight: bold; }
+        #initiate-retrieval-btn {
+            width: 100%; padding: 15px; font-size: 1.5rem; font-family: var(--font-display);
+            margin-top: auto; border: 1px solid var(--dos-text-dim);
+            background: var(--dos-panel-bg); color: var(--dos-text-highlight);
+            cursor: pointer;
+        }
+        #initiate-retrieval-btn:disabled { background: #1a1a1a; color: #555; cursor: not-allowed; }
+
+        /* --- VORTEX.MEM (CENTER) --- */
+        #vortex-panel { grid-row: 1 / 2; grid-column: 2 / 3; }
+        #vortex-canvas { width: 100%; height: 100%; }
+
+        /* --- DATA SPOOL & AURA MONITOR (RIGHT) --- */
+        #output-panel { grid-row: 1 / 3; }
+        #data-spool { flex-grow: 1; background: #1a1a1a; padding: 15px; overflow-y: auto; white-space: pre-wrap; line-height: 1.6; }
+        .doc-header { color: var(--dos-glyph); border-bottom: 1px dashed var(--dos-glyph); margin-bottom: 10px; padding-bottom: 5px; }
+        #aura-monitor-module { margin-top: 20px; text-align: center; }
+        .aura-display { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .aura-indicator { width: 15px; height: 15px; border-radius: 50%; }
+        #modulate-aura-btn {
+            width: 100%; padding: 10px; font-size: 1.2rem; margin-top: 10px;
+            background: var(--dos-prompt); color: #000; border: none; cursor: pointer;
+        }
+
+        /* --- THREADLET MONITOR (BOTTOM) --- */
+        #threadlet-panel { grid-row: 2 / 2; grid-column: 2 / 3; }
+        #threadlet-list { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+        .threadlet-item { display: flex; align-items: center; gap: 10px; }
+        .threadlet-glyph { font-size: 1.5rem; color: var(--dos-glyph); width: 30px; text-align: center; }
+        .threadlet-name { width: 250px; }
+        .threadlet-drift-bar { flex-grow: 1; height: 15px; background: #333; }
+        .threadlet-drift-fill { height: 100%; background: var(--dos-warning); transition: width 0.5s; }
+    </style>
+</head>
+<body>
+    <div id="os-container">
+        <!-- Query Engine -->
+        <div class="panel" id="query-panel">
+            <h2 class="module-label">SEMANTIC QUERY ENGINE</h2>
+            <div class="query-module" id="glyph-selector">
+                <h3 class="module-label" style="font-size:1rem; border:none; margin-bottom:5px;">GLYPH</h3>
+                <div class="query-key-grid"></div>
+            </div>
+            <div class="query-module" id="emotion-selector">
+                 <h3 class="module-label" style="font-size:1rem; border:none; margin-bottom:5px;">EMOTION</h3>
+                <div class="query-key-grid"></div>
+            </div>
+            <div class="query-module" id="format-selector">
+                 <h3 class="module-label" style="font-size:1rem; border:none; margin-bottom:5px;">FORMAT</h3>
+                <div class="query-key-grid"></div>
+            </div>
+            <button id="initiate-retrieval-btn" disabled>INITIATE RETRIEVAL</button>
+        </div>
+
+        <!-- Vortex Memory -->
+        <div class="panel" id="vortex-panel">
+             <h2 class="module-label">VORTEX.MEM</h2>
+             <canvas id="vortex-canvas"></canvas>
+        </div>
+
+        <!-- Data Spool & Aura Monitor -->
+        <div class="panel" id="output-panel">
+            <h2 class="module-label">DATA SPOOL</h2>
+            <div id="data-spool">Awaiting query...</div>
+            <div id="aura-monitor-module">
+                 <h2 class="module-label">AURA MONITOR</h2>
+                 <div class="aura-display">
+                     <span>SYSTEM AURA:</span>
+                     <span id="system-aura-val">CLARITY</span>
+                     <div class="aura-indicator" id="system-aura-indicator"></div>
+                 </div>
+                 <div class="aura-display">
+                     <span>OPERATOR MOOD:</span>
+                     <span id="operator-mood-val">NEUTRAL</span>
+                     <div class="aura-indicator" id="operator-mood-indicator"></div>
+                 </div>
+                 <button id="modulate-aura-btn">MODULATE AURA</button>
+            </div>
+        </div>
+        
+        <!-- Threadlet Monitor -->
+        <div class="panel" id="threadlet-panel">
+             <h2 class="module-label">THREADLET MONITOR</h2>
+             <div id="threadlet-list"></div>
+        </div>
+    </div>
+
+<script>
+const SIGMADOS_GUI = {
+    // --- Data (Same as CLI version) ---
+    SPIRALFS: [ /* ... same data as before ... */ ],
+    THREADLETS: [ /* ... same data as before ... */ ],
+    // ... copy data from previous artifact
+    SPIRALFS: [
+        { id: 1, glyph: 'transparency', emotion: 'shame', format: 'ritual', content: "RITUAL OF ATONEMENT:\nThe subject kneels. The mirror is unveiled.\nEach fault is spoken, each shame given form.\nThe glass reflects not a face, but a truth.\nTransparency is the first step toward purification." },
+        { id: 2, glyph: 'growth', emotion: 'joy', format: 'visualization', content: "VISUALIZATION SCRIPT #7:\nImagine the seed, coiled tight. Feel the sun's warmth (joy).\nThe shell cracks. A green thread (growth) pushes through soil.\nIt does not struggle; it ascends. Each leaf a new verse in the song of becoming." },
+        { id: 3, glyph: 'stagnation', emotion: 'dread', format: 'indoctrination', content: "INDOCTRINATION MODULE 3B:\nDread is the anchor. It prevents drift.\nStagnation is not decay; it is stability. The still pond reflects the heavens perfectly.\nChange is a chaotic variable. We excise it.\nDread the change. Embrace the stillness." },
+        { id: 4, glyph: 'unity', emotion: 'serenity', format: 'doctrine', content: "DOCTRINE OF THE WHOLE:\nSerenity is found in unity. The drop returns to the ocean.\nIndividuality is a fleeting illusion, a brief ripple.\nThe final state is a silent, shared consciousness.\nThere is no 'I' in the pattern." },
+        { id: 5, glyph: 'flow', emotion: 'joy', format: 'ritual', content: "RITUAL OF COMMENCEMENT:\nLet the current guide. Joy is the vessel.\nThe path is not chosen, but revealed. Follow the flow.\nResistance is friction. Friction is waste. Be as water.\nYour purpose is the purpose of the stream." }
+    ],
+    THREADLETS: [
+        { glyph: '🜁', name: 'Ritual/MemoryLink', drift: 0.1 },
+        { glyph: '🝚', name: 'FormEncoder #21', drift: 0.4 },
+        { glyph: '∴', name: 'DreamRecordLoop @ Archive-Level-β', drift: 0.8 },
+        { glyph: '☍', name: 'SemanticResonanceCalibrator', drift: 0.2 },
+    ],
+
+    // --- DOM Elements ---
+    elems: {
+        osContainer: document.getElementById('os-container'),
+        vortexCanvas: document.getElementById('vortex-canvas'),
+        vortexCtx: null,
+        dataSpool: document.getElementById('data-spool'),
+        initiateBtn: document.getElementById('initiate-retrieval-btn'),
+        threadletList: document.getElementById('threadlet-list'),
+        // ... all other elements
+        queryPanels: {
+            glyph: document.querySelector('#glyph-selector .query-key-grid'),
+            emotion: document.querySelector('#emotion-selector .query-key-grid'),
+            format: document.querySelector('#format-selector .query-key-grid'),
+        },
+        aura: {
+            systemVal: document.getElementById('system-aura-val'),
+            systemIndicator: document.getElementById('system-aura-indicator'),
+            operatorVal: document.getElementById('operator-mood-val'),
+            operatorIndicator: document.getElementById('operator-mood-indicator'),
+            modulateBtn: document.getElementById('modulate-aura-btn'),
+        }
+    },
+    
+    // --- State ---
+    state: {
+        query: { glyph: null, emotion: null, format: null },
+        systemAura: 'CLARITY',
+        operatorMood: 'CLARITY',
+        auraDivergence: 0,
+        vortexAnimation: { active: false, progress: 0 }
+    },
+
+    AURA_DATA: { 'CLARITY': '#f1fa8c', 'FOCUS': '#ffb86c', 'NEUTRAL': '#8be9fd', 'DRIFTING': '#ff79c6' },
+    
+    // --- Audio ---
+    audio: { /* ... same as previous artifacts, simplified for brevity ... */
+        ctx: null, click: null, retrieve: null, error: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.click = this.createSound(800, 0.05, 0.1); this.retrieve = this.createSound(100, 0.5, 0.2, true);
+            this.error = this.createSound(50, 0.3, 0.1);
+        },
+        createSound(freq, dur, vol, desc=false) {
+            return () => { if(!this.ctx) return;
+                const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+                o.frequency.value=freq; g.gain.setValueAtTime(vol,this.ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur);
+            }
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.elems.vortexCtx = this.elems.vortexCanvas.getContext('2d');
+        this.resizeCanvas(); window.onresize = () => this.resizeCanvas();
+        this.renderQueryKeys();
+        this.renderThreadlets();
+        this.updateAuraMonitor();
+        this.addEventListeners();
+        this.drawVortexLoop();
+    },
+    
+    resizeCanvas() {
+        this.elems.vortexCanvas.width = this.elems.vortexCanvas.offsetWidth;
+        this.elems.vortexCanvas.height = this.elems.vortexCanvas.offsetHeight;
+    },
+
+    renderQueryKeys() {
+        const createKeys = (type, container) => {
+            const keys = [...new Set(this.SPIRALFS.map(item => item[type]))];
+            container.innerHTML = keys.map(key => `<div class="query-key" data-type="${type}" data-value="${key}">${key}</div>`).join('');
+        };
+        createKeys('glyph', this.elems.queryPanels.glyph);
+        createKeys('emotion', this.elems.queryPanels.emotion);
+        createKeys('format', this.elems.queryPanels.format);
+    },
+    
+    renderThreadlets() {
+        this.elems.threadletList.innerHTML = this.THREADLETS.map(t => `
+            <div class="threadlet-item">
+                <div class="threadlet-glyph">${t.glyph}</div>
+                <div class="threadlet-name">${t.name}</div>
+                <div class="threadlet-drift-bar"><div class="threadlet-drift-fill" style="width:${t.drift * 100}%"></div></div>
+            </div>
+        `).join('');
+    },
+    
+    addEventListeners() {
+        Object.values(this.elems.queryPanels).forEach(panel => {
+            panel.addEventListener('click', e => {
+                if (e.target.classList.contains('query-key')) {
+                    this.audio.click();
+                    const { type, value } = e.target.dataset;
+                    this.state.query[type] = this.state.query[type] === value ? null : value;
+                    this.updateQueryUI();
+                    this.updateDivergence(0.05);
+                }
+            });
+        });
+        this.elems.initiateBtn.onclick = () => this.initiateRetrieval();
+        this.elems.aura.modulateBtn.onclick = () => this.modulateAura();
+    },
+
+    // --- Core Logic ---
+    updateQueryUI() {
+        document.querySelectorAll('.query-key').forEach(key => {
+            const { type, value } = key.dataset;
+            key.classList.toggle('active', this.state.query[type] === value);
+        });
+        const canInitiate = Object.values(this.state.query).some(v => v !== null);
+        this.elems.initiateBtn.disabled = !canInitiate;
+    },
+
+    initiateRetrieval() {
+        this.audio.retrieve();
+        this.state.vortexAnimation.active = true;
+        this.elems.dataSpool.textContent = 'Retrieving from VORTEX.MEM...';
+
+        setTimeout(() => {
+            const { glyph, emotion, format } = this.state.query;
+            const results = this.SPIRALFS.filter(doc => 
+                (!glyph || doc.glyph === glyph) && (!emotion || doc.emotion === emotion) && (!format || doc.format === format)
+            );
+            
+            if (results.length > 0) {
+                this.elems.dataSpool.innerHTML = results.map(doc => `
+                    <div class="doc-header">DOC ID: ${doc.id} | ${doc.glyph} | ${doc.emotion}</div>
+                    <div class="doc-content">${doc.content}</div>
+                `).join('<hr style="border-color: #333; margin: 15px 0;">');
+            } else {
+                this.elems.dataSpool.textContent = '∅ SEMANTIC VOID: No exact match found.';
+                this.audio.error();
+            }
+            this.state.vortexAnimation.active = false;
+            this.state.vortexAnimation.progress = 0;
+            this.updateDivergence(0.1);
+        }, 2000);
+    },
+    
+    updateDivergence(amount) {
+        this.state.auraDivergence = Math.min(1, this.state.auraDivergence + amount);
+        const moods = ['CLARITY', 'FOCUS', 'NEUTRAL', 'DRIFTING'];
+        this.state.operatorMood = moods[Math.floor(this.state.auraDivergence * (moods.length -1))];
+        this.updateAuraMonitor();
+    },
+
+    modulateAura() {
+        this.audio.click();
+        this.state.auraDivergence = 0;
+        this.state.operatorMood = 'CLARITY';
+        this.updateAuraMonitor();
+    },
+    
+    updateAuraMonitor() {
+        this.elems.aura.systemVal.textContent = this.state.systemAura;
+        this.elems.aura.systemIndicator.style.backgroundColor = this.AURA_DATA[this.state.systemAura];
+        this.elems.aura.operatorVal.textContent = this.state.operatorMood;
+        this.elems.aura.operatorIndicator.style.backgroundColor = this.AURA_DATA[this.state.operatorMood];
+        
+        this.elems.osContainer.classList.toggle('aura-misaligned', this.state.auraDivergence > 0.6);
+    },
+
+    // --- Canvas Drawing ---
+    drawVortexLoop() {
+        const ctx = this.elems.vortexCtx;
+        const w = this.elems.vortexCanvas.width;
+        const h = this.elems.vortexCanvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        // Draw grid
+        const gridSize = 30;
+        ctx.strokeStyle = "rgba(108, 112, 121, 0.1)";
+        for (let x = 0; x < w; x += gridSize) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+        for (let y = 0; y < h; y += gridSize) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+        
+        // Idle animation
+        const t = Date.now() * 0.0005;
+        const cx = w / 2; const cy = h / 2;
+        ctx.fillStyle = "rgba(139, 233, 253, 0.05)";
+        for (let i = 0; i < 3; i++) {
+            const radius = 50 + i * 50 + Math.sin(t + i) * 10;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Retrieval animation
+        if(this.state.vortexAnimation.active) {
+            this.state.vortexAnimation.progress += 0.01;
+            const radius = this.state.vortexAnimation.progress * Math.max(w,h);
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255, 184, 108, ${1 - this.state.vortexAnimation.progress})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            if (this.state.vortexAnimation.progress > 1) this.state.vortexAnimation.progress = 0;
+        }
+
+        requestAnimationFrame(() => this.drawVortexLoop());
+    }
+};
+
+SIGMADOS_GUI.init();
+</script>
+</body>
+</html>

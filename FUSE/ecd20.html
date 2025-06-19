@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // ICONOSPHERIC FIELD // v.78d</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Iconospheric Field - GUI for Visual Ritual Composition
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: A full-screen visual editor for composing reality through the
+        *   layering, charging, and weaving of semiotic glyphs.
+        */
+
+        :root {
+            --if-bg: #0d1018;
+            --if-text: #c0c8d8;
+            --if-hud-bg: rgba(26, 30, 40, 0.85);
+            --if-border: #3c4250;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+
+            /* Field Intensities */
+            --field-grief: radial-gradient(circle, rgba(0, 100, 150, 0.2) 0%, transparent 60%);
+            --field-obedience: radial-gradient(circle, rgba(150, 150, 100, 0.15) 0%, transparent 60%);
+            --field-lust: radial-gradient(circle, rgba(150, 0, 50, 0.2) 0%, transparent 60%);
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes field-pan { from { background-position: 0% 0%; } to { background-position: 100% 100%; } }
+        @keyframes charge-pulse {
+            0%, 100% { filter: drop-shadow(0 0 5px var(--color)) brightness(1); }
+            50% { filter: drop-shadow(0 0 20px var(--color)) brightness(1.5); }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; margin: 0; overflow: hidden;
+            font-family: var(--font-main); color: var(--if-text);
+        }
+        #field-container {
+            width: 100vw; height: 100vh;
+            background-color: var(--if-bg);
+            background-image: var(--field-grief), var(--field-obedience), var(--field-lust);
+            background-size: 200% 200%, 150% 150%, 250% 250%;
+            animation: field-pan 120s linear infinite;
+            position: relative;
+        }
+
+        /* --- GLYPHS & CONNECTIONS --- */
+        #glyph-stage { width: 100%; height: 100%; position: relative; }
+        .glyph-instance {
+            position: absolute; width: 80px; height: 80px;
+            cursor: grab; display: grid; place-items: center;
+            transition: transform 0.1s, filter 0.5s;
+        }
+        .glyph-instance:active { cursor: grabbing; }
+        .glyph-instance.selected { filter: drop-shadow(0 0 15px #fff); }
+        .glyph-instance .glyph-svg {
+            width: 100%; height: 100%; transition: transform 0.1s;
+        }
+        .glyph-instance.charged .glyph-svg { animation: charge-pulse 1.5s infinite; }
+        
+        #connection-svg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+        }
+        .connection-path {
+            stroke-width: 2px; fill: none;
+            stroke-dasharray: 10 5;
+        }
+        .connection-path.sacrificial { stroke: #ff5555; }
+        .connection-path.aspirational { stroke: #ffee00; stroke-dasharray: none; }
+        .connection-path.repulsive { stroke: #8be9fd; stroke-dasharray: 2 8; }
+        
+        .weave-path { stroke: #fff; stroke-width: 1px; fill: none; stroke-dasharray: 3 3; }
+        .weave-node { fill: #fff; }
+        .weave-label { font-size: 14px; fill: #fff; text-anchor: middle; }
+
+        /* --- HUD --- */
+        #hud {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 20px; box-sizing: border-box;
+            display: grid; grid-template-columns: 250px 1fr 350px;
+            grid-template-rows: 1fr; gap: 20px;
+            pointer-events: none;
+        }
+        .hud-panel {
+            background: var(--if-hud-bg); backdrop-filter: blur(5px);
+            border: 1px solid var(--if-border); padding: 15px;
+            pointer-events: all; display: flex; flex-direction: column;
+        }
+        .hud-label {
+            font-size: 1.5rem; border-bottom: 1px solid var(--if-border);
+            padding-bottom: 8px; margin: 0 0 15px 0; color: #fff;
+            text-align: center; font-family: 'Teko', sans-serif;
+        }
+        
+        /* Left Panel */
+        #glyph-conductor { flex-grow: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; overflow-y: auto; }
+        .conductor-item {
+            background: rgba(0,0,0,0.3); border: 1px solid var(--if-border);
+            padding: 5px; cursor: pointer; text-align: center;
+        }
+        .conductor-item svg { width: 40px; height: 40px; }
+        
+        /* Right Panel */
+        #inspector-panel { display: flex; flex-direction: column; }
+        #inspector-content, #weave-mode-panel { flex-grow: 1; }
+        .inspector-field { margin-bottom: 15px; }
+        .inspector-label { color: var(--if-text-dim); }
+        .inspector-value { font-size: 1.2rem; }
+        .charge-bar { width: 100%; height: 10px; background: #111; border: 1px solid var(--if-border); margin-top: 5px; }
+        .charge-bar-fill { height: 100%; background: #fff; transition: width 0.2s; }
+        
+        .profile-list button {
+            width: 100%; background: #3c4250; color: #fff; border: none;
+            padding: 5px; margin-top: 5px; cursor: pointer;
+        }
+        .profile-list button.active { background: #8be9fd; color: #000; }
+        
+        /* Weave Mode Toggle */
+        #weave-toggle {
+            width: 100%; padding: 10px; font-size: 1.2rem; margin-top: auto;
+            border: 1px solid #fff; background: transparent; color: #fff; cursor: pointer;
+        }
+        #weave-toggle.active { background: #fff; color: #000; }
+
+        /* Binding Modal */
+        #binding-modal {
+            position: absolute; background: var(--if-hud-bg); border: 1px solid #fff;
+            padding: 10px; display: none; flex-direction: column; gap: 5px;
+        }
+        #binding-modal button { background: #3c4250; color: #fff; border: none; padding: 8px; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+    <div id="field-container">
+        <div id="glyph-stage"></div>
+        <svg id="connection-svg"></svg>
+    </div>
+
+    <div id="hud">
+        <div class="hud-panel" id="left-panel">
+            <h2 class="hud-label">GLYPH CONDUCTOR</h2>
+            <div id="glyph-conductor"></div>
+        </div>
+        <div></div> <!-- Empty middle column for spacer -->
+        <div class="hud-panel" id="right-panel">
+            <div id="inspector-panel">
+                <h2 class="hud-label">CULTURAL CHARGE</h2>
+                <div id="inspector-content">
+                    <div style="text-align:center; color:var(--if-text-dim);">Select a glyph...</div>
+                </div>
+            </div>
+            <div id="weave-mode-panel">
+                <button id="weave-toggle">WEAVING MODE: OFF</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="binding-modal">
+        <button data-type="sacrificial">SACRIFICIAL</button>
+        <button data-type="aspirational">ASPIRATIONAL</button>
+        <button data-type="repulsive">REPULSIVE</button>
+    </div>
+
+<script>
+const IconosphericField = {
+    // --- Data ---
+    GLYPH_DATA: {
+        'CROWN': { symbol: 'M10 70 L20 30 L50 50 L80 30 L90 70', profiles: { 'DYNASTIC': 'Represents inherited authority, divine right.', 'CORPORATE': 'Symbol of market dominance, executive power.', 'THEOCRATIC': 'A direct conduit to the divine will.' } },
+        'EYE': { symbol: 'M50 50m-40 0a40 20 0 1 0 80 0a40 20 0 1 0-80 0 M50 50m-15 0a15 15 0 1 0 30 0a15 15 0 1 0-30 0', profiles: { 'PANOPTIC': 'Constant, impersonal surveillance.', 'ILLUMINATION': 'Represents insight, clarity, gnosis.', 'PROVIDENCE': 'A benevolent, watching-over presence.' } },
+        'SPEAR': { symbol: 'M50 10 L50 90 M40 80 L50 90 L60 80', profiles: { 'MARTIAL': 'Represents direct aggression, conflict.', 'PIONEERING': 'A tool for breaking new ground, exploration.', 'SACRIFICIAL': 'An object of ritual termination, a necessary end.' } },
+        'HAND': { symbol: 'M20 90 V40 A10 10 0 0 1 30 30 H70 A10 10 0 0 1 80 40 V90', profiles: { 'LABOR': 'The means of production, the worker.', 'GENEROSITY': 'An open hand, giving aid or amnesty.', 'CONTROL': 'A closed fist, asserting dominance.' } },
+        'GATE': { symbol: 'M20 20 V80 H80 V20 H20 Z M45 20 V80 M55 20 V80', profiles: { 'THRESHOLD': 'A point of no return, a liminal space.', 'OPPORTUNITY': 'An entrance to a new state or place.', 'BARRIER': 'An obstacle, something that denies access.' } },
+        'SERPENT': { symbol: 'M10 50 C 30 20, 40 80, 50 50 C 60 20, 70 80, 90 50', profiles: { 'DECEIT': 'Represents lies, hidden danger, betrayal.', 'REBIRTH': 'Shedding of skin, cyclical renewal.', 'KNOWLEDGE': 'Forbidden or secret wisdom.' } },
+    },
+
+    // --- DOM Elements ---
+    elems: {
+        conductor: document.getElementById('glyph-conductor'),
+        stage: document.getElementById('glyph-stage'),
+        svg: document.getElementById('connection-svg'),
+        inspector: document.getElementById('inspector-content'),
+        bindingModal: document.getElementById('binding-modal'),
+        weaveToggle: document.getElementById('weave-toggle'),
+    },
+    
+    // --- State ---
+    state: {
+        glyphs: [], nextId: 0, selectedId: null,
+        dragging: { active: false, id: null, lastX: 0, lastY: 0, rotation: 0 },
+        binding: { active: false, sourceId: null },
+        weaving: { active: false, path: [] },
+    },
+    
+    // --- Audio (simplified) ---
+    audio: {
+        ctx: null, summon: null, charge: null, bind: null, weave: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.summon = this.createSound(220, 0.2, 0.1, true);
+            this.charge = this.createSound(880, 0.5, 0.05);
+            this.bind = this.createSound(440, 0.1, 0.2);
+            this.weave = this.createSound(1200, 0.05, 0.15);
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='triangle'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*2,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        document.body.addEventListener('mousedown', () => { if (!this.audio.ctx) this.audio.init(); }, { once: true });
+        this.renderConductor();
+        this.addEventListeners();
+    },
+
+    renderConductor() {
+        this.elems.conductor.innerHTML = Object.keys(this.GLYPH_DATA).map(type => `
+            <div class="conductor-item" data-type="${type}" title="Summon ${type}">
+                <svg viewBox="0 0 100 100">
+                    <path d="${this.GLYPH_DATA[type].symbol}" stroke="#c0c8d8" stroke-width="5" fill="none" />
+                </svg>
+            </div>
+        `).join('');
+    },
+    
+    addEventListeners() {
+        this.elems.conductor.addEventListener('click', e => {
+            const item = e.target.closest('.conductor-item');
+            if (item) this.summonGlyph(item.dataset.type);
+        });
+        
+        document.addEventListener('mousedown', e => {
+            const glyphEl = e.target.closest('.glyph-instance');
+            if (glyphEl) {
+                e.preventDefault();
+                const id = parseInt(glyphEl.dataset.id);
+                this.state.dragging.active = true;
+                this.state.dragging.id = id;
+                this.state.dragging.lastX = e.clientX;
+                this.state.dragging.lastY = e.clientY;
+                if (e.shiftKey) this.state.dragging.isRotating = true;
+                this.setSelected(id);
+
+                if (this.state.weaving.active) {
+                    this.audio.weave();
+                    const glyph = this.state.glyphs.find(g => g.id === id);
+                    if (!this.state.weaving.path.includes(glyph)) {
+                        this.state.weaving.path.push(glyph);
+                    }
+                    this.drawConnections();
+                }
+            }
+        });
+
+        document.addEventListener('mousemove', e => {
+            if (!this.state.dragging.active) return;
+            const dx = e.clientX - this.state.dragging.lastX;
+            const dy = e.clientY - this.state.dragging.lastY;
+            this.state.dragging.lastX = e.clientX;
+            this.state.dragging.lastY = e.clientY;
+
+            const glyph = this.state.glyphs.find(g => g.id === this.state.dragging.id);
+            if (!glyph) return;
+
+            if (this.state.dragging.isRotating) {
+                glyph.rotation = (glyph.rotation + dx) % 360;
+                glyph.charge = Math.min(1, glyph.charge + Math.abs(dx) * 0.01);
+                if(glyph.charge > 0.9 && !glyph.el.classList.contains('charged')) {
+                    this.audio.charge();
+                    glyph.el.classList.add('charged');
+                }
+            } else {
+                glyph.x += dx;
+                glyph.y += dy;
+            }
+            this.updateGlyphElement(glyph);
+            this.drawConnections();
+        });
+
+        document.addEventListener('mouseup', () => {
+            this.state.dragging.active = false;
+            this.state.dragging.isRotating = false;
+        });
+        
+        document.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            const glyphEl = e.target.closest('.glyph-instance');
+            if (this.state.selectedId !== null && glyphEl) {
+                this.state.binding.sourceId = this.state.selectedId;
+                const targetId = parseInt(glyphEl.dataset.id);
+                if (this.state.binding.sourceId !== targetId) {
+                    this.showBindingModal(e.clientX, e.clientY, targetId);
+                }
+            }
+        });
+        
+        this.elems.bindingModal.addEventListener('click', e => {
+            if (e.target.matches('button')) {
+                const type = e.target.dataset.type;
+                const targetId = parseInt(this.elems.bindingModal.dataset.targetId);
+                this.createBinding(this.state.binding.sourceId, targetId, type);
+                this.elems.bindingModal.style.display = 'none';
+            }
+        });
+
+        this.elems.weaveToggle.onclick = () => {
+            this.state.weaving.active = !this.state.weaving.active;
+            this.elems.weaveToggle.textContent = `WEAVING MODE: ${this.state.weaving.active ? 'ON' : 'OFF'}`;
+            this.elems.weaveToggle.classList.toggle('active');
+            if (!this.state.weaving.active) {
+                this.state.weaving.path = [];
+            }
+            this.drawConnections();
+        };
+    },
+
+    // --- Core Logic ---
+    summonGlyph(type) {
+        this.audio.summon();
+        const data = this.GLYPH_DATA[type];
+        const newGlyph = {
+            id: this.state.nextId++,
+            type: type,
+            symbol: data.symbol,
+            profiles: data.profiles,
+            activeProfile: Object.keys(data.profiles)[0],
+            x: window.innerWidth / 2 + (Math.random() - 0.5) * 200,
+            y: window.innerHeight / 2 + (Math.random() - 0.5) * 200,
+            rotation: 0,
+            charge: 0,
+            bindings: [], // { targetId, type }
+        };
+        this.state.glyphs.push(newGlyph);
+        
+        const el = document.createElement('div');
+        el.className = 'glyph-instance';
+        el.dataset.id = newGlyph.id;
+        el.innerHTML = `<svg class="glyph-svg" viewBox="0 0 100 100"><path d="${newGlyph.symbol}" stroke="#fff" stroke-width="5" fill="none" style="--color:#fff;"/></svg>`;
+        newGlyph.el = el;
+        this.elems.stage.appendChild(el);
+        this.updateGlyphElement(newGlyph);
+    },
+    
+    setSelected(id) {
+        this.state.selectedId = id;
+        document.querySelectorAll('.glyph-instance').forEach(el => el.classList.remove('selected'));
+        if (id !== null) {
+            this.state.glyphs.find(g => g.id === id).el.classList.add('selected');
+        }
+        this.renderInspector();
+    },
+    
+    showBindingModal(x, y, targetId) {
+        const modal = this.elems.bindingModal;
+        modal.style.left = `${x}px`;
+        modal.style.top = `${y}px`;
+        modal.style.display = 'flex';
+        modal.dataset.targetId = targetId;
+    },
+
+    createBinding(sourceId, targetId, type) {
+        this.audio.bind();
+        const sourceGlyph = this.state.glyphs.find(g => g.id === sourceId);
+        // Avoid duplicate bindings
+        if (!sourceGlyph.bindings.some(b => b.targetId === targetId)) {
+            sourceGlyph.bindings.push({ targetId, type });
+        }
+        this.drawConnections();
+    },
+
+    // --- Rendering ---
+    updateGlyphElement(glyph) {
+        glyph.el.style.transform = `translate(${glyph.x - 40}px, ${glyph.y - 40}px)`;
+        glyph.el.querySelector('.glyph-svg').style.transform = `rotate(${glyph.rotation}deg)`;
+        glyph.el.style.opacity = 0.5 + glyph.charge * 0.5;
+        if(this.state.selectedId === glyph.id) this.renderInspector();
+    },
+    
+    drawConnections() {
+        let svgHTML = '';
+        // Draw bindings
+        this.state.glyphs.forEach(g1 => {
+            g1.bindings.forEach(binding => {
+                const g2 = this.state.glyphs.find(g => g.id === binding.targetId);
+                if (g2) {
+                    svgHTML += `<path class="connection-path ${binding.type}" d="M ${g1.x} ${g1.y} L ${g2.x} ${g2.y}" />`;
+                }
+            });
+        });
+        // Draw weaving path
+        if (this.state.weaving.active && this.state.weaving.path.length > 0) {
+            const pathData = this.state.weaving.path.map(p => `${p.x},${p.y}`).join(' L ');
+            svgHTML += `<path class="weave-path" d="M ${pathData}" />`;
+            this.state.weaving.path.forEach((p, i) => {
+                svgHTML += `<circle class="weave-node" cx="${p.x}" cy="${p.y}" r="5" />`;
+                svgHTML += `<text class="weave-label" x="${p.x}" y="${p.y - 15}">${i+1}</text>`;
+            });
+        }
+        this.elems.svg.innerHTML = svgHTML;
+    },
+    
+    renderInspector() {
+        const glyph = this.state.glyphs.find(g => g.id === this.state.selectedId);
+        if (!glyph) {
+            this.elems.inspector.innerHTML = `<div style="text-align:center; color:var(--if-text-dim);">Select a glyph...</div>`;
+            return;
+        }
+
+        const profileButtons = Object.keys(glyph.profiles).map(p => 
+            `<button class="${p === glyph.activeProfile ? 'active' : ''}" data-glyph-id="${glyph.id}" data-profile="${p}">${p}</button>`
+        ).join('');
+
+        this.elems.inspector.innerHTML = `
+            <div class="inspector-field">
+                <div class="inspector-label">GLYPH</div>
+                <div class="inspector-value">${glyph.type}</div>
+            </div>
+            <div class="inspector-field">
+                <div class="inspector-label">SEMIOTIC CHARGE</div>
+                <div class="charge-bar"><div class="charge-bar-fill" style="background:${glyph.el.classList.contains('charged') ? '#ff5555' : '#fff'}; width:${glyph.charge*100}%"></div></div>
+            </div>
+            <div class="inspector-field">
+                <div class="inspector-label">CULTURAL PROFILE</div>
+                <div class="profile-list">${profileButtons}</div>
+                <p style="margin-top:10px; font-size:0.9rem; color: var(--if-text-dim);">${glyph.profiles[glyph.activeProfile]}</p>
+            </div>
+        `;
+
+        this.elems.inspector.querySelectorAll('.profile-list button').forEach(btn => {
+            btn.onclick = () => {
+                this.audio.click();
+                const glyphToUpdate = this.state.glyphs.find(g => g.id === parseInt(btn.dataset.glyphId));
+                glyphToUpdate.activeProfile = btn.dataset.profile;
+                this.renderInspector();
+            };
+        });
+    }
+};
+
+IconosphericField.init();
+</script>
+</body>
+</html>

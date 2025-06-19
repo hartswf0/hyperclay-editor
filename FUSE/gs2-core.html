@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENOMA Suite (All-in-One)</title>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    
+    <style>
+        /* --- GENOMA SUITE STYLES (Embedded CSS) --- */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg-dark: #1a1b1e; --bg-medium: #25262b; --bg-light: #3a3c42;
+            --text-primary: #f8f9fa; --text-secondary: #c1c2c5; --text-placeholder: #868e96;
+            --border-color: #373A40;
+            --accent-primary: #228be6; --accent-primary-glow: rgba(34, 139, 230, 0.3);
+            --accent-danger: #e03131; --accent-danger-glow: rgba(224, 49, 49, 0.3);
+            --accent-recomb: #f59f00; --accent-recomb-glow: rgba(245, 159, 0, 0.3);
+            --font-ui: 'Inter', sans-serif; --font-mono: 'Roboto Mono', monospace;
+
+            /* Codon Colors */
+            --color-txt: #40c057; --color-hpl: #228be6; --color-img: #fd7e14;
+            --color-auc: #be4bdb; --color-vid: #f03e3e; --color-cmt: #868e96;
+            --color-sty: #4dabf7; --color-cde: #fab005;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-ui); background-color: var(--bg-dark);
+            color: var(--text-primary); font-size: 14px; overflow: hidden;
+        }
+
+        #app-container {
+            display: grid; grid-template-columns: 280px 1fr 350px;
+            height: 100vh;
+        }
+
+        aside, main {
+            background-color: var(--bg-medium); border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; height: 100vh;
+        }
+        #right-panel { border-right: none; border-left: 1px solid var(--border-color); }
+        main { background-color: var(--bg-dark); }
+
+        .panel-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px; background-color: var(--bg-medium);
+            border-bottom: 1px solid var(--border-color); flex-shrink: 0;
+        }
+        .panel-header h3 { font-size: 1em; font-weight: 500; color: var(--text-primary); }
+        .panel-header i { margin-right: 8px; color: var(--text-secondary); }
+        .panel-header-controls { display: flex; gap: 8px; }
+
+        .icon-button {
+            background: none; border: none; color: var(--text-secondary); cursor: pointer;
+            font-size: 1.1em; padding: 4px; transition: color 0.2s;
+        }
+        .icon-button:hover { color: var(--text-primary); }
+
+        /* Left Panel: Library */
+        #genome-list {
+            list-style: none; padding: 8px; overflow-y: auto; flex-grow: 1;
+        }
+        #genome-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 12px; border-radius: 4px; cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #genome-list li:hover { background-color: var(--bg-light); }
+        #genome-list li.is-active { background-color: var(--accent-primary); color: white; }
+        #genome-list li.is-active .genome-actions { opacity: 1; }
+        #genome-list .genome-name { font-family: var(--font-mono); font-size: 0.9em; }
+        .genome-actions { display: flex; gap: 10px; opacity: 0; transition: opacity 0.2s; }
+        .genome-actions button { color: var(--text-secondary); }
+        #genome-list li.is-active .genome-actions button { color: white; }
+
+        /* Main Panel: Editor */
+        #genome-strand-container {
+            padding: 16px; overflow-y: auto; flex-grow: 1;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .codon {
+            display: flex; align-items: center; padding: 6px 10px; border-radius: 4px;
+            border: 1px solid var(--border-color); background-color: var(--bg-medium);
+            font-family: var(--font-mono); transition: all 0.2s; cursor: grab;
+        }
+        .codon.is-intron { opacity: 0.5; border-style: dashed; }
+        .codon.is-intron .codon-type { filter: grayscale(80%); }
+        .codon.crossover-point { border: 2px solid var(--accent-recomb); box-shadow: 0 0 10px var(--accent-recomb-glow); transform: scale(1.01); }
+        .codon.dragging { opacity: 0.4; }
+        .codon.drag-over { border-bottom: 2px solid var(--accent-primary); }
+        .codon-type {
+            padding: 3px 6px; border-radius: 3px; color: var(--bg-dark);
+            margin-right: 12px; font-weight: 500; user-select: none;
+        }
+        .codon-payload { flex-grow: 1; outline: none; background: transparent; color: var(--text-secondary); border: none; font-family: var(--font-mono); width: 100%;}
+        .codon-payload:focus { color: var(--text-primary); background: var(--bg-light); }
+
+        /* Right Panel: Tabs */
+        #tab-controls { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab-btn {
+            flex: 1; padding: 12px; background: none; border: none; color: var(--text-secondary);
+            font-family: var(--font-ui); font-size: 0.9em; cursor: pointer;
+            border-bottom: 2px solid transparent; transition: all 0.2s;
+        }
+        .tab-btn i { margin-right: 6px; }
+        .tab-btn:hover { color: var(--text-primary); }
+        .tab-btn.is-active { color: var(--accent-primary); border-bottom-color: var(--accent-primary); }
+        .tab-content { display: none; padding: 16px; flex-grow: 1; overflow-y: auto; }
+        .tab-content.is-active { display: block; }
+        .control-group { margin-bottom: 20px; }
+        .control-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        input[type=range] { width: 100%; }
+        .primary-btn {
+            width: 100%; padding: 10px; background-color: var(--accent-primary);
+            border: none; border-radius: 4px; color: white; font-weight: 500;
+            cursor: pointer; transition: background-color 0.2s;
+        }
+        .primary-btn:hover { background-color: #1c7ed6; }
+        .help-text { font-size: 0.85em; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.4; }
+        select {
+            width: 100%; padding: 8px; background-color: var(--bg-light); border: 1px solid var(--border-color);
+            border-radius: 4px; color: var(--text-primary); font-family: var(--font-ui);
+        }
+
+        /* Expression Output */
+        #expression-output { display: flex; flex-direction: column; gap: 16px; }
+        .phenotype { padding: 12px; border-left: 3px solid; background-color: var(--bg-dark); border-radius: 0 4px 4px 0; word-wrap: break-word; }
+        .phenotype-txt { border-color: var(--color-txt); }
+        .phenotype-hpl { border-color: var(--color-hpl); }
+        .phenotype-img { border-color: var(--color-img); padding: 5px;}
+        .phenotype-img img, .phenotype-vid video { max-width: 100%; height: auto; border-radius: 2px; display: block;}
+        .phenotype-cde pre { background: #000; padding: 10px; border-radius: 3px; white-space: pre-wrap; word-wrap: break-word; font-family: var(--font-mono); }
+        .phenotype a { color: var(--accent-primary); text-decoration: none; }
+        .phenotype-auc audio { width: 100%; }
+        .placeholder { color: var(--text-placeholder); text-align: center; padding: 40px 20px; }
+
+        /* Context Menu */
+        #context-menu {
+            position: fixed; display: none; background-color: var(--bg-light);
+            border: 1px solid var(--border-color); border-radius: 6px; padding: 6px;
+            z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        #context-menu button {
+            display: block; width: 100%; background: none; border: none; color: var(--text-primary);
+            padding: 8px 12px; text-align: left; cursor: pointer; border-radius: 4px;
+            font-family: var(--font-ui); font-size: 0.9em;
+        }
+        #context-menu button:hover { background-color: var(--accent-primary); }
+        #context-menu button i { margin-right: 10px; width: 16px; text-align: center; }
+        #context-menu hr { border: none; border-top: 1px solid var(--border-color); margin: 6px 0; }
+        #context-menu button.danger:hover { background-color: var(--accent-danger); }
+
+        /* Modal */
+        #modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+        }
+        #modal-content {
+            background: var(--bg-medium); border-radius: 8px; width: 90%; max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+        #modal-title { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-size: 1.2em; }
+        #modal-body { padding: 24px; flex-grow: 1; }
+        #modal-body .control-group label { color: var(--text-secondary); }
+        #modal-body input[type=text], #modal-body textarea {
+            width: 100%; padding: 10px; background: var(--bg-dark);
+            border: 1px solid var(--border-color); border-radius: 4px;
+            color: var(--text-primary); font-family: var(--font-mono);
+        }
+        #modal-footer {
+            padding: 16px 24px; border-top: 1px solid var(--border-color);
+            display: flex; justify-content: flex-end; gap: 12px;
+        }
+        #modal-footer button { padding: 8px 16px; border-radius: 4px; border: 1px solid var(--border-color); cursor: pointer; }
+        #modal-footer .secondary-btn { background: var(--bg-light); color: var(--text-primary); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- LEFT PANEL: GENOME LIBRARY -->
+        <aside id="left-panel">
+            <div class="panel-header">
+                <h3><i class="fa-solid fa-book-atlas"></i> Genome Library</h3>
+                <div class="panel-header-controls">
+                    <button id="new-genome-btn" class="icon-button" title="New Genome"><i class="fa-solid fa-plus"></i></button>
+                    <button id="import-genome-btn" class="icon-button" title="Import Genome"><i class="fa-solid fa-upload"></i></button>
+                    <input type="file" id="import-file-input" style="display: none;" accept=".genoma,.json">
+                </div>
+            </div>
+            <ul id="genome-list">
+                <!-- Genomes will be populated by JS -->
+            </ul>
+        </aside>
+
+        <!-- MAIN PANEL: GENOME EDITOR -->
+        <main id="main-panel">
+            <div class="panel-header">
+                <h3 id="editor-title"><i class="fa-solid fa-dna"></i> Editor: No Genome Selected</h3>
+                <div class="panel-header-controls">
+                    <button id="add-codon-btn" class="icon-button" title="Add New Codon"><i class="fa-solid fa-circle-plus"></i></button>
+                </div>
+            </div>
+            <div id="genome-strand-container">
+                <!-- Codons will be populated here -->
+            </div>
+        </main>
+
+        <!-- RIGHT PANEL: CONTROLS & EXPRESSION -->
+        <aside id="right-panel">
+            <div id="tab-controls">
+                <button class="tab-btn is-active" data-tab="phenotype"><i class="fa-solid fa-eye"></i> Phenotype</button>
+                <button class="tab-btn" data-tab="mutation"><i class="fa-solid fa-burst"></i> Mutation</button>
+                <button class="tab-btn" data-tab="recombination"><i class="fa-solid fa-link"></i> Recombination</button>
+            </div>
+
+            <!-- Phenotype Tab -->
+            <div class="tab-content is-active" id="phenotype-tab">
+                <div id="expression-output">
+                    <div class="placeholder">Select a genome to see its expression.</div>
+                </div>
+            </div>
+
+            <!-- Mutation Tab -->
+            <div class="tab-content" id="mutation-tab">
+                <h4><i class="fa-solid fa-gears"></i> Mutation Console</h4>
+                <div class="control-group">
+                    <label>Rate: <span id="mutation-rate-display">0.10</span></label>
+                    <input type="range" id="mutation-rate" min="0" max="1" step="0.01" value="0.1">
+                </div>
+                <div class="control-group">
+                    <label>Allowed Types:</label>
+                    <div>
+                        <input type="checkbox" id="allow-point" checked> <label for="allow-point">Point</label>
+                        <input type="checkbox" id="allow-insertion" checked> <label for="allow-insertion">Insertion</label>
+                        <input type="checkbox" id="allow-deletion" checked> <label for="allow-deletion">Deletion</label>
+                    </div>
+                </div>
+                <button id="mutate-btn" class="primary-btn">Mutate Strand</button>
+            </div>
+
+            <!-- Recombination Tab -->
+            <div class="tab-content" id="recombination-tab">
+                <h4><i class="fa-solid fa-people-arrows"></i> Recombination Lab</h4>
+                <div class="control-group">
+                    <label for="recomb-genome-b-selector">Combine with (Strand B):</label>
+                    <select id="recomb-genome-b-selector"></select>
+                </div>
+                <p class="help-text">Select a crossover point in the editor (Strand A), then press the button below.</p>
+                <button id="perform-recomb-btn" class="primary-btn">Perform Recombination</button>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Context Menu (hidden by default) -->
+    <div id="context-menu">
+        <button data-action="toggle-intron"><i class="fa-solid fa-toggle-on"></i> Toggle Intron/Exon</button>
+        <button data-action="duplicate"><i class="fa-solid fa-copy"></i> Duplicate Codon</button>
+        <hr>
+        <button data-action="delete" class="danger"><i class="fa-solid fa-trash-can"></i> Delete Codon</button>
+    </div>
+    
+    <!-- Modal (hidden by default) -->
+    <div id="modal-backdrop" class="hidden">
+        <div id="modal-content">
+            <h3 id="modal-title">Modal Title</h3>
+            <div id="modal-body">Modal body content...</div>
+            <div id="modal-footer">
+                <!-- Buttons added by JS -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    // --- GENOMA SUITE LOGIC (Embedded JavaScript) --- //
+    document.addEventListener('DOMContentLoaded', () => {
+
+        const CODON_DEFINITIONS = {
+            'TXT': { color: 'var(--color-txt)', name: 'Text', defaultPayload: 'New text content.' },
+            'HPL': { color: 'var(--color-hpl)', name: 'Hyperlink', defaultPayload: 'https://example.com' },
+            'IMG': { color: 'var(--color-img)', name: 'Image', defaultPayload: 'https://picsum.photos/seed/new/400/200' },
+            'AUC': { color: 'var(--color-auc)', name: 'Audio', defaultPayload: 'path/to/audio.mp3' },
+            'VID': { color: 'var(--color-vid)', name: 'Video', defaultPayload: 'path/to/video.mp4' },
+            'CMT': { color: 'var(--color-cmt)', name: 'Comment', defaultPayload: 'A descriptive comment.' },
+            'STY': { color: 'var(--color-sty)', name: 'Style', defaultPayload: 'color: #ffdd57;' },
+            'CDE': { color: 'var(--color-cde)', name: 'Code', defaultPayload: 'console.log("hello world");' },
+        };
+        const ALL_CODONS = Object.keys(CODON_DEFINITIONS);
+
+        // --- STATE MANAGEMENT ---
+        const state = {
+            genomes: {},
+            activeGenomeId: null,
+            crossoverPointIndex: null,
+            contextMenuTarget: null,
+        };
+
+        // --- DOM ELEMENTS CACHE ---
+        const dom = {
+            genomeList: document.getElementById('genome-list'),
+            editorTitle: document.getElementById('editor-title'),
+            genomeStrandContainer: document.getElementById('genome-strand-container'),
+            expressionOutput: document.getElementById('expression-output'),
+            newGenomeBtn: document.getElementById('new-genome-btn'),
+            importGenomeBtn: document.getElementById('import-genome-btn'),
+            importFileInput: document.getElementById('import-file-input'),
+            addCodonBtn: document.getElementById('add-codon-btn'),
+            mutateBtn: document.getElementById('mutate-btn'),
+            performRecombBtn: document.getElementById('perform-recomb-btn'),
+            tabControls: document.getElementById('tab-controls'),
+            mutationRateSlider: document.getElementById('mutation-rate'),
+            mutationRateDisplay: document.getElementById('mutation-rate-display'),
+            allowPointCheck: document.getElementById('allow-point'),
+            allowInsertionCheck: document.getElementById('allow-insertion'),
+            allowDeletionCheck: document.getElementById('allow-deletion'),
+            recombGenomeBSelector: document.getElementById('recomb-genome-b-selector'),
+            contextMenu: document.getElementById('context-menu'),
+            modalBackdrop: document.getElementById('modal-backdrop'),
+            modalTitle: document.getElementById('modal-title'),
+            modalBody: document.getElementById('modal-body'),
+            modalFooter: document.getElementById('modal-footer'),
+        };
+        
+        // --- CORE LOGIC & MANAGERS ---
+
+        const GenomeManager = {
+            init() {
+                const savedGenomes = localStorage.getItem('genoma_genomes');
+                if (savedGenomes) {
+                    state.genomes = JSON.parse(savedGenomes);
+                } else {
+                    state.genomes = {
+                        "gX-Poem-01": { id: "gX-Poem-01", sequence: [{ type: "TXT", payload: "The future is layered.", is_intron: false }, { type: "IMG", payload: "https://picsum.photos/seed/future/400/200", is_intron: false }, { type: "HPL", payload: "https://en.wikipedia.org/wiki/Systems_theory", is_intron: false }] },
+                        "gX-Doc-01": { id: "gX-Doc-01", sequence: [{ type: "TXT", payload: "## Quantum Comms Unit", is_intron: false }, { type: "CDE", payload: "const q = new QuantumBit();", is_intron: false }, { type: "CMT", payload: "Needs peer review.", is_intron: true }] }
+                    };
+                }
+                this.setActive(Object.keys(state.genomes)[0]);
+            },
+            save() {
+                localStorage.setItem('genoma_genomes', JSON.stringify(state.genomes));
+            },
+            create(id) {
+                if (state.genomes[id]) {
+                    alert('A genome with this ID already exists.');
+                    return null;
+                }
+                state.genomes[id] = { id, sequence: [] };
+                this.save();
+                return state.genomes[id];
+            },
+            deleteGenome(id) {
+                if (confirm(`Are you sure you want to delete genome "${id}"? This cannot be undone.`)) {
+                    delete state.genomes[id];
+                    if (state.activeGenomeId === id) {
+                        this.setActive(Object.keys(state.genomes)[0] || null);
+                    }
+                    this.save();
+                    UIManager.renderAll();
+                }
+            },
+            clone(id) {
+                let newId = `${id}-copy`;
+                let i = 1;
+                while(state.genomes[newId]) { newId = `${id}-copy${++i}`; }
+                state.genomes[newId] = JSON.parse(JSON.stringify(state.genomes[id]));
+                state.genomes[newId].id = newId;
+                this.save();
+                this.setActive(newId);
+                UIManager.renderAll();
+            },
+            importGenome(fileContent) {
+                try {
+                    const newGenome = JSON.parse(fileContent);
+                    if (!newGenome.id || !Array.isArray(newGenome.sequence)) throw new Error('Invalid format');
+                    if (state.genomes[newGenome.id]) {
+                       if(!confirm(`A genome named "${newGenome.id}" already exists. Overwrite it?`)) return;
+                    }
+                    state.genomes[newGenome.id] = newGenome;
+                    this.save();
+                    this.setActive(newGenome.id);
+                    UIManager.renderAll();
+                } catch (e) {
+                    alert('Failed to import genome. The file may be corrupted or in the wrong format.');
+                }
+            },
+            export(id) {
+                const genome = state.genomes[id];
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(genome, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", `${id}.genoma`);
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            },
+            setActive(id) {
+                state.activeGenomeId = id;
+                state.crossoverPointIndex = null;
+                UIManager.renderAll();
+            },
+            getActive() {
+                return state.genomes[state.activeGenomeId];
+            },
+            addCodon(type) {
+                const genome = this.getActive();
+                if (!genome) return;
+                const definition = CODON_DEFINITIONS[type];
+                genome.sequence.push({ type, payload: definition.defaultPayload, is_intron: false });
+                this.save();
+                UIManager.renderEditor();
+                UIManager.renderPhenotype();
+            },
+            updateCodonPayload(index, payload) {
+                this.getActive().sequence[index].payload = payload;
+                this.save();
+                UIManager.renderPhenotype();
+            },
+            toggleCodonIntron(index) {
+                const codon = this.getActive().sequence[index];
+                codon.is_intron = !codon.is_intron;
+                this.save();
+                UIManager.renderEditor();
+                UIManager.renderPhenotype();
+            },
+            duplicateCodon(index) {
+                const genome = this.getActive();
+                const codonToClone = JSON.parse(JSON.stringify(genome.sequence[index]));
+                genome.sequence.splice(index + 1, 0, codonToClone);
+                this.save();
+                UIManager.renderEditor();
+                UIManager.renderPhenotype();
+            },
+            deleteCodon(index) {
+                this.getActive().sequence.splice(index, 1);
+                this.save();
+                UIManager.renderEditor();
+                UIManager.renderPhenotype();
+            },
+            moveCodon(fromIndex, toIndex) {
+                const genome = this.getActive();
+                const [item] = genome.sequence.splice(fromIndex, 1);
+                genome.sequence.splice(toIndex, 0, item);
+                this.save();
+                UIManager.renderEditor();
+            }
+        };
+
+        const UIManager = {
+            renderAll() {
+                this.renderLibrary();
+                this.renderEditor();
+                this.renderPhenotype();
+                this.updateRecombSelector();
+            },
+            renderLibrary() {
+                dom.genomeList.innerHTML = '';
+                Object.values(state.genomes).forEach(genome => {
+                    const li = document.createElement('li');
+                    li.dataset.id = genome.id;
+                    li.className = genome.id === state.activeGenomeId ? 'is-active' : '';
+                    li.innerHTML = `
+                        <span class="genome-name">${genome.id}</span>
+                        <div class="genome-actions">
+                            <button class="icon-button clone-btn" title="Clone"><i class="fa-solid fa-clone"></i></button>
+                            <button class="icon-button export-btn" title="Export"><i class="fa-solid fa-download"></i></button>
+                            <button class="icon-button delete-btn" title="Delete"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    `;
+                    dom.genomeList.appendChild(li);
+                });
+            },
+            renderEditor() {
+                const genome = GenomeManager.getActive();
+                dom.genomeStrandContainer.innerHTML = '';
+                if (!genome) {
+                    dom.editorTitle.innerHTML = `<i class="fa-solid fa-dna"></i> Editor: No Genome Selected`;
+                    return;
+                }
+                dom.editorTitle.innerHTML = `<i class="fa-solid fa-dna"></i> Editor: ${genome.id}`;
+                genome.sequence.forEach((codon, index) => {
+                    const codonEl = document.createElement('div');
+                    codonEl.className = 'codon';
+                    if (codon.is_intron) codonEl.classList.add('is-intron');
+                    if (index === state.crossoverPointIndex) codonEl.classList.add('crossover-point');
+                    codonEl.dataset.index = index;
+                    codonEl.draggable = true;
+                    const typeInfo = CODON_DEFINITIONS[codon.type] || { color: '#ccc' };
+                    codonEl.innerHTML = `
+                        <span class="codon-type" style="background-color: ${typeInfo.color};" title="${typeInfo.name}">${codon.type}</span>
+                        <input class="codon-payload" value="${escapeHtml(codon.payload)}" />
+                    `;
+                    dom.genomeStrandContainer.appendChild(codonEl);
+                });
+            },
+            renderPhenotype() {
+                const genome = GenomeManager.getActive();
+                dom.expressionOutput.innerHTML = '';
+                if (!genome) {
+                    dom.expressionOutput.innerHTML = `<div class="placeholder">No genome loaded.</div>`;
+                    return;
+                }
+                const splicedSequence = genome.sequence.filter(c => !c.is_intron);
+                if (splicedSequence.length === 0) {
+                     dom.expressionOutput.innerHTML = `<div class="placeholder">No active exons to express.</div>`;
+                    return;
+                }
+                let activeStyles = '';
+                splicedSequence.forEach(codon => {
+                    const phenotypeEl = document.createElement('div');
+                    phenotypeEl.className = `phenotype phenotype-${codon.type.toLowerCase()}`;
+                    if (activeStyles) phenotypeEl.style.cssText += activeStyles;
+                    switch(codon.type) {
+                        case 'TXT': phenotypeEl.textContent = codon.payload; break;
+                        case 'HPL': phenotypeEl.innerHTML = `<a href="${codon.payload}" target="_blank">${escapeHtml(codon.payload)}</a>`; break;
+                        case 'IMG': phenotypeEl.innerHTML = `<img src="${codon.payload}" alt="Expression" onerror="this.parentElement.innerHTML='[Image failed to load]'">`; break;
+                        case 'AUC': phenotypeEl.innerHTML = `<audio controls src="${codon.payload}"></audio>`; break;
+                        case 'VID': phenotypeEl.innerHTML = `<video controls src="${codon.payload}"></video>`; break;
+                        case 'CMT': phenotypeEl.textContent = `// ${codon.payload}`; break;
+                        case 'STY': activeStyles += codon.payload; return;
+                        case 'CDE': phenotypeEl.innerHTML = `<pre>${escapeHtml(codon.payload)}</pre>`; break;
+                        default: phenotypeEl.textContent = `[UNRECOGNIZED: ${codon.type}]`;
+                    }
+                    dom.expressionOutput.appendChild(phenotypeEl);
+                });
+            },
+            showModal(title, body, buttons) {
+                dom.modalTitle.textContent = title;
+                dom.modalBody.innerHTML = body;
+                dom.modalFooter.innerHTML = '';
+                buttons.forEach(btn => {
+                    const buttonEl = document.createElement('button');
+                    buttonEl.textContent = btn.text;
+                    buttonEl.className = btn.class;
+                    buttonEl.onclick = btn.handler;
+                    dom.modalFooter.appendChild(buttonEl);
+                });
+                dom.modalBackdrop.classList.remove('hidden');
+            },
+            hideModal() {
+                dom.modalBackdrop.classList.add('hidden');
+            },
+            updateRecombSelector() {
+                const currentId = GenomeManager.getActive()?.id;
+                dom.recombGenomeBSelector.innerHTML = '';
+                Object.keys(state.genomes).forEach(id => {
+                    if(id !== currentId) {
+                        const option = new Option(id, id);
+                        dom.recombGenomeBSelector.add(option);
+                    }
+                });
+            }
+        };
+        
+        // --- UTILITY FUNCTIONS ---
+        function escapeHtml(unsafe) {
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+        
+        // --- EVENT LISTENERS ---
+        dom.genomeList.addEventListener('click', e => {
+            const li = e.target.closest('li');
+            if (!li) return;
+            const id = li.dataset.id;
+            if (e.target.closest('.clone-btn')) GenomeManager.clone(id);
+            else if (e.target.closest('.export-btn')) GenomeManager.export(id);
+            else if (e.target.closest('.delete-btn')) GenomeManager.deleteGenome(id);
+            else GenomeManager.setActive(id);
+        });
+
+        dom.newGenomeBtn.addEventListener('click', () => {
+            UIManager.showModal('Create New Genome', 
+                `<div class="control-group"><label for="new-genome-id">Genome ID:</label><input type="text" id="new-genome-id" placeholder="e.g., gX-MyProject-01"></div>`,
+                [
+                    { text: 'Cancel', class: 'secondary-btn', handler: UIManager.hideModal },
+                    { text: 'Create', class: 'primary-btn', handler: () => {
+                        const id = document.getElementById('new-genome-id').value.trim();
+                        if (id && GenomeManager.create(id)) {
+                            GenomeManager.setActive(id);
+                            UIManager.hideModal();
+                        }
+                    }}
+                ]
+            );
+            document.getElementById('new-genome-id').focus();
+        });
+
+        dom.importGenomeBtn.addEventListener('click', () => dom.importFileInput.click());
+        dom.importFileInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => GenomeManager.import(event.target.result);
+                reader.readAsText(file);
+            }
+            e.target.value = '';
+        });
+
+        dom.addCodonBtn.addEventListener('click', () => {
+            let optionsHtml = '';
+            ALL_CODONS.forEach(type => {
+                optionsHtml += `<option value="${type}">${CODON_DEFINITIONS[type].name} (${type})</option>`;
+            });
+            UIManager.showModal('Add New Codon',
+                `<div class="control-group"><label for="new-codon-type">Codon Type:</label><select id="new-codon-type">${optionsHtml}</select></div>`,
+                [
+                    { text: 'Cancel', class: 'secondary-btn', handler: UIManager.hideModal },
+                    { text: 'Add', class: 'primary-btn', handler: () => {
+                        const type = document.getElementById('new-codon-type').value;
+                        GenomeManager.addCodon(type);
+                        UIManager.hideModal();
+                    }}
+                ]
+            );
+        });
+
+        dom.genomeStrandContainer.addEventListener('change', e => {
+            if (e.target.classList.contains('codon-payload')) {
+                const index = parseInt(e.target.closest('.codon').dataset.index, 10);
+                GenomeManager.updateCodonPayload(index, e.target.value);
+            }
+        });
+
+        dom.genomeStrandContainer.addEventListener('click', e => {
+            const codonEl = e.target.closest('.codon');
+            if (codonEl && !e.target.classList.contains('codon-payload')) {
+                const index = parseInt(codonEl.dataset.index);
+                state.crossoverPointIndex = (state.crossoverPointIndex === index) ? null : index;
+                UIManager.renderEditor();
+            }
+        });
+
+        let dragStartIndex;
+        dom.genomeStrandContainer.addEventListener('dragstart', e => {
+            const codonEl = e.target.closest('.codon');
+            if(codonEl) {
+                dragStartIndex = parseInt(codonEl.dataset.index);
+                e.dataTransfer.effectAllowed = 'move';
+                setTimeout(() => codonEl.classList.add('dragging'), 0);
+            }
+        });
+        dom.genomeStrandContainer.addEventListener('dragover', e => {
+            e.preventDefault();
+            const targetCodon = e.target.closest('.codon');
+            if(targetCodon) {
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                targetCodon.classList.add('drag-over');
+            }
+        });
+        dom.genomeStrandContainer.addEventListener('dragleave', e => e.target.closest('.codon')?.classList.remove('drag-over'));
+        dom.genomeStrandContainer.addEventListener('drop', e => {
+            e.preventDefault();
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+            const targetCodon = e.target.closest('.codon');
+            if (targetCodon) {
+                const dropIndex = parseInt(targetCodon.dataset.index);
+                if(dragStartIndex !== dropIndex) {
+                     GenomeManager.moveCodon(dragStartIndex, dropIndex);
+                }
+            }
+        });
+        dom.genomeStrandContainer.addEventListener('dragend', e => e.target.closest('.codon')?.classList.remove('dragging'));
+
+        dom.genomeStrandContainer.addEventListener('contextmenu', e => {
+            e.preventDefault();
+            const codonEl = e.target.closest('.codon');
+            if (codonEl) {
+                state.contextMenuTarget = parseInt(codonEl.dataset.index);
+                dom.contextMenu.style.top = `${e.clientY}px`;
+                dom.contextMenu.style.left = `${e.clientX}px`;
+                dom.contextMenu.style.display = 'block';
+            }
+        });
+        document.addEventListener('click', () => { dom.contextMenu.style.display = 'none'; state.contextMenuTarget = null; });
+        dom.contextMenu.addEventListener('click', e => {
+            const action = e.target.closest('button')?.dataset.action;
+            if (action && state.contextMenuTarget !== null) {
+                switch(action) {
+                    case 'toggle-intron': GenomeManager.toggleCodonIntron(state.contextMenuTarget); break;
+                    case 'duplicate': GenomeManager.duplicateCodon(state.contextMenuTarget); break;
+                    case 'delete': GenomeManager.deleteCodon(state.contextMenuTarget); break;
+                }
+            }
+        });
+
+        dom.tabControls.addEventListener('click', e => {
+            const target = e.target.closest('.tab-btn');
+            if(target) {
+                document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('is-active'));
+                target.classList.add('is-active');
+                document.getElementById(`${target.dataset.tab}-tab`).classList.add('is-active');
+            }
+        });
+        
+        dom.mutationRateSlider.addEventListener('input', e => dom.mutationRateDisplay.textContent = parseFloat(e.target.value).toFixed(2));
+        
+        dom.mutateBtn.addEventListener('click', () => {
+            const genome = GenomeManager.getActive();
+            if(!genome) return;
+            const seq = genome.sequence;
+            const rate = parseFloat(dom.mutationRateSlider.value);
+            const types = { point: dom.allowPointCheck.checked, insertion: dom.allowInsertionCheck.checked, deletion: dom.allowDeletionCheck.checked };
+            const allowedMutations = Object.keys(types).filter(k => types[k]);
+            if (allowedMutations.length === 0) return;
+
+            for (let i = seq.length - 1; i >= 0; i--) {
+                if (Math.random() < rate) {
+                    const mutationType = allowedMutations[Math.floor(Math.random() * allowedMutations.length)];
+                    if (mutationType === 'point') {
+                        seq[i].type = ALL_CODONS[Math.floor(Math.random() * ALL_CODONS.length)];
+                    } else if (mutationType === 'insertion' && seq.length < 500) {
+                        const newType = ALL_CODONS[Math.floor(Math.random() * ALL_CODONS.length)];
+                        seq.splice(i + 1, 0, { type: newType, payload: CODON_DEFINITIONS[newType].defaultPayload, is_intron: false });
+                    } else if (mutationType === 'deletion' && seq.length > 1) {
+                        seq.splice(i, 1);
+                    }
+                }
+            }
+            GenomeManager.save();
+            UIManager.renderEditor();
+            UIManager.renderPhenotype();
+        });
+
+        dom.performRecombBtn.addEventListener('click', () => {
+            const genomeA = GenomeManager.getActive();
+            const genomeB_id = dom.recombGenomeBSelector.value;
+            if (!genomeA || !genomeB_id || state.crossoverPointIndex === null) {
+                alert("Please select a genome to combine with and a crossover point in the editor.");
+                return;
+            }
+            const genomeB = state.genomes[genomeB_id];
+            const newId = prompt("Enter ID for new recombinant genome:", `${genomeA.id.split('-')[0]}+${genomeB.id.split('-')[0]}`);
+            if (!newId || state.genomes[newId]) {
+                alert('Invalid or duplicate ID.');
+                return;
+            }
+            const newSequence = [ ...genomeA.sequence.slice(0, state.crossoverPointIndex + 1), ...genomeB.sequence ];
+            state.genomes[newId] = { id: newId, sequence: JSON.parse(JSON.stringify(newSequence)) };
+            GenomeManager.save();
+            GenomeManager.setActive(newId);
+        });
+
+        // --- INITIALIZATION ---
+        GenomeManager.init();
+    });
+    </script>
+</body>
+</html>

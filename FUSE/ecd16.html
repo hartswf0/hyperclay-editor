@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // SUBGLYPH DIFF // MODEL C-78</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Subglyph Diff - Ideological or Ritual Text Comparator
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: Compares two text versions by analyzing divergences in
+        *   symbolism, emotional tone, and philosophical structure.
+        */
+        :root {
+            --sd-bg: #2c3138;
+            --sd-panel: #e0e5e9;
+            --sd-screen: #f0f5f9;
+            --sd-text-dark: #1a1c20;
+            --sd-text-light: #f0f5f9;
+            --sd-accent: #3d7a99;
+            /* Diff Colors */
+            --diff-insertion: rgba(80, 250, 123, 0.2);
+            --diff-redaction: rgba(255, 85, 85, 0.2);
+            --diff-tone: rgba(255, 184, 108, 0.3);
+            --diff-symbolic: rgba(189, 147, 249, 0.3);
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #111; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--sd-text-dark); user-select: none;
+        }
+        #subglyph-chassis {
+            width: 1600px; height: 900px; background-color: var(--sd-bg);
+            border: 1px solid #777; box-shadow: 0 0 30px rgba(61, 122, 153, 0.2);
+            padding: 20px; display: grid; grid-template-columns: 450px 1fr 400px;
+            gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--sd-panel); padding: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 2px solid #b8c0c8;
+            padding-bottom: 5px; margin: 0 0 15px 0;
+        }
+
+        /* --- LEFT PANEL: INPUT --- */
+        #left-panel { grid-column: 1 / 2; }
+        .input-manifold-group { flex-grow: 1; display: flex; flex-direction: column; }
+        .input-manifold {
+            flex-grow: 1; background: #fff; border: 1px solid #888; padding: 10px;
+            font-family: var(--font-main); font-size: 1rem; line-height: 1.6; resize: none;
+        }
+        #compare-button {
+            width: 100%; padding: 15px; font-size: 1.5rem; font-family: var(--font-display);
+            margin-top: 20px; border: 2px solid var(--sd-text-dark); background: var(--sd-panel-dark);
+            color: var(--sd-text-light); cursor: pointer; letter-spacing: 2px;
+        }
+        #compare-button:disabled { background: #888; color: #555; cursor: not-allowed; }
+
+        /* --- CENTER PANEL: COMPARISON MATRIX --- */
+        #center-panel { grid-column: 2 / 3; }
+        #comparison-matrix {
+            flex-grow: 1; overflow-y: auto; background: var(--sd-screen);
+            font-size: 1.1rem; line-height: 2;
+        }
+        .diff-line { display: flex; border-bottom: 1px solid #d0d8e0; }
+        .line-num {
+            width: 40px; text-align: right; padding: 5px 10px;
+            background: #d0d8e0; color: #555; flex-shrink: 0;
+        }
+        .line-content { flex-grow: 1; padding: 5px 10px; }
+        .line-content.insertion { background-color: var(--diff-insertion); }
+        .line-content.redaction { background-color: var(--diff-redaction); text-decoration: line-through; }
+        .line-content.unchanged { color: #666; }
+
+        .diff-tag {
+            border-bottom: 2px dotted; padding-bottom: 1px;
+            cursor: help;
+        }
+        .diff-tag.tone { border-color: var(--diff-tone); background: var(--diff-tone); }
+        .diff-tag.symbolic { border-color: var(--diff-symbolic); background: var(--diff-symbolic); }
+        .diff-tag.structural { border-style: solid; border-color: #8be9fd; background: rgba(139, 233, 253, 0.2); }
+        
+        /* --- RIGHT PANEL: ANALYSIS --- */
+        #right-panel { grid-column: 3 / 4; }
+        #summary-report { height: 300px; flex-shrink: 0; }
+        .report-field { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 1.1rem; }
+        .report-value { font-family: var(--font-display); font-size: 2rem; color: var(--sd-accent); }
+        
+        #semantic-redline-list { flex-grow: 1; overflow-y: auto; margin-top: 15px; }
+        .redline-item { padding: 10px; background: #d0d8e0; margin-bottom: 8px; }
+        .redline-header { font-weight: bold; margin-bottom: 5px; }
+        .redline-header.tone { color: #b0780f; }
+        .redline-header.symbolic { color: #7845a0; }
+        .redline-change { display: flex; align-items: center; }
+        .redline-change .original { text-decoration: line-through; color: #777; margin-right: 5px; }
+        .redline-change .arrow { color: var(--sd-accent); margin: 0 5px; }
+
+    </style>
+</head>
+<body>
+    <div id="subglyph-chassis">
+        <!-- LEFT PANEL -->
+        <div class="panel" id="left-panel">
+            <h2 class="module-label">INPUT MANIFOLDS</h2>
+            <div class="input-manifold-group">
+                <label for="input-a" class="module-label" style="font-size:1.2rem;border:none;">VARIANT A</label>
+                <textarea id="input-a" class="input-manifold"></textarea>
+            </div>
+             <div class="input-manifold-group" style="margin-top: 15px;">
+                <label for="input-b" class="module-label" style="font-size:1.2rem;border:none;">VARIANT B</label>
+                <textarea id="input-b" class="input-manifold"></textarea>
+            </div>
+            <button id="compare-button" disabled>COMPARE</button>
+        </div>
+
+        <!-- CENTER PANEL -->
+        <div class="panel" id="center-panel">
+            <h2 class="module-label">COMPARISON MATRIX</h2>
+            <div id="comparison-matrix">
+                 <div style="text-align:center; padding: 50px; color: #777;">Load text variants and initiate comparison.</div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel" id="right-panel">
+            <div id="summary-report">
+                <h2 class="module-label">ANALYSIS SUMMARY</h2>
+                <div class="report-field">
+                    <span>Tonal Drift:</span>
+                    <span class="report-value" id="report-drift">0.0%</span>
+                </div>
+                <div class="report-field">
+                    <span>Structural Divergence:</span>
+                    <span class="report-value" id="report-divergence">0</span>
+                </div>
+            </div>
+             <h2 class="module-label" style="margin-top:20px;">KEY SEMANTIC CHANGES</h2>
+            <div id="semantic-redline-list">
+                 <div style="text-align:center; padding: 20px; color: #777;">Awaiting analysis...</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const SubglyphDiff = {
+    // --- Data: Simplified Natural Language Processing ---
+    TONE_WORDS: {
+        'compliant': ['obedience', 'follow', 'must', 'required'],
+        'assertive': ['will', 'choose', 'demand', 'self-determination'],
+        'neutral': ['agreement', 'people', 'action'],
+        'formal': ['covenant', 'citizens', 'procedure'],
+    },
+    SYMBOLIC_WORDS: ['covenant', 'mandate', 'ritual', 'void'],
+    
+    // --- DOM Elements ---
+    elems: {
+        inputA: document.getElementById('input-a'),
+        inputB: document.getElementById('input-b'),
+        compareBtn: document.getElementById('compare-button'),
+        matrix: document.getElementById('comparison-matrix'),
+        reportDrift: document.getElementById('report-drift'),
+        reportDivergence: document.getElementById('report-divergence'),
+        redlineList: document.getElementById('semantic-redline-list'),
+    },
+    
+    // --- State ---
+    state: {
+        diffResults: null,
+    },
+    
+    // --- Audio (simplified) ---
+    audio: {
+        ctx: null, click: null, compare: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.click = this.createSound(1000, 0.05, 0.1);
+            this.compare = this.createSound(80, 0.8, 0.05, true);
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sawtooth'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*1.5,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.addEventListeners();
+        // Pre-fill with example text
+        this.elems.inputA.value = "The agreement requires the obedience of all people. This is the required action.";
+        this.elems.inputB.value = "The covenant demands the will of all citizens. This procedure is an act of self-determination.";
+        this.checkCanCompare();
+    },
+    
+    addEventListeners() {
+        this.elems.inputA.oninput = () => this.checkCanCompare();
+        this.elems.inputB.oninput = () => this.checkCanCompare();
+        this.elems.compareBtn.onclick = () => this.runComparison();
+    },
+
+    checkCanCompare() {
+        this.elems.compareBtn.disabled = !(this.elems.inputA.value.trim() && this.elems.inputB.value.trim());
+    },
+    
+    // --- Core Comparison Logic ---
+    runComparison() {
+        this.audio.compare();
+        const textA = this.elems.inputA.value;
+        const textB = this.elems.inputB.value;
+        
+        // This is a placeholder for a real diffing library like diff-match-patch
+        // For this artifact, we'll do a simplified word-level diff.
+        const wordsA = textA.split(/\s+/);
+        const wordsB = textB.split(/\s+/);
+        
+        // A very basic diff algorithm
+        const diff = this.simpleDiff(wordsA, wordsB);
+        this.state.diffResults = diff;
+        
+        this.renderMatrix(diff);
+        this.renderAnalysis(diff);
+    },
+    
+    simpleDiff(a, b) {
+        // This is a simplified stand-in for a proper diff algorithm
+        let posA = 0, posB = 0;
+        const result = [];
+        while(posA < a.length || posB < b.length) {
+            if (a[posA] === b[posB]) {
+                result.push({ op: 'eq', text: a[posA] });
+                posA++; posB++;
+            } else {
+                // Look ahead to see if we can find a match
+                const nextA = a.slice(posA + 1).indexOf(b[posB]);
+                const nextB = b.slice(posB + 1).indexOf(a[posA]);
+
+                if (a[posA] && (nextB === -1 || (nextA !== -1 && nextA < nextB))) {
+                    result.push({ op: 'del', text: a[posA] });
+                    posA++;
+                } else if (b[posB]) {
+                    result.push({ op: 'ins', text: b[posB] });
+                    posB++;
+                }
+            }
+        }
+        return result;
+    },
+
+    // --- Rendering ---
+    renderMatrix(diff) {
+        let html = '';
+        let lineNumA = 1, lineNumB = 1;
+        let lineA = '', lineB = '';
+        
+        const flushLines = () => {
+            if (lineA === lineB) {
+                html += `<div class="diff-line"><div class="line-num">${lineNumA}</div><div class="line-content unchanged">${this.escapeHtml(lineA)}</div></div>`;
+                lineNumA++; lineNumB++;
+            } else {
+                if (lineA) {
+                    html += `<div class="diff-line"><div class="line-num">${lineNumA}</div><div class="line-content redaction">${this.escapeHtml(lineA)}</div></div>`;
+                    lineNumA++;
+                }
+                if (lineB) {
+                    html += `<div class="diff-line"><div class="line-num">${lineNumB}</div><div class="line-content insertion">${this.escapeHtml(lineB)}</div></div>`;
+                    lineNumB++;
+                }
+            }
+            lineA = ''; lineB = '';
+        };
+
+        const originalTextA = this.elems.inputA.value;
+        const originalTextB = this.elems.inputB.value;
+        let pointerA = 0, pointerB = 0;
+
+        diff.forEach(part => {
+            if(part.op === 'eq') {
+                const text = part.text;
+                if (originalTextA.substring(pointerA, pointerA + text.length + 1).includes('\n')) {
+                    flushLines();
+                }
+                lineA += text + ' '; lineB += text + ' ';
+                pointerA += text.length + 1; pointerB += text.length + 1;
+            } else if (part.op === 'del') {
+                const text = part.text;
+                if (originalTextA.substring(pointerA, pointerA + text.length + 1).includes('\n')) {
+                    flushLines();
+                }
+                lineA += this.tagWord(text) + ' ';
+                pointerA += text.length + 1;
+            } else if (part.op === 'ins') {
+                const text = part.text;
+                if (originalTextB.substring(pointerB, pointerB + text.length + 1).includes('\n')) {
+                    flushLines();
+                }
+                lineB += this.tagWord(text) + ' ';
+                pointerB += text.length + 1;
+            }
+        });
+        flushLines();
+
+        this.elems.matrix.innerHTML = html;
+    },
+    
+    tagWord(word) {
+        const cleanWord = word.replace(/[.,]/g, '').toLowerCase();
+        let tagClass = '';
+        if (this.SYMBOLIC_WORDS.includes(cleanWord)) tagClass = 'symbolic';
+        else if (Object.values(this.TONE_WORDS).flat().includes(cleanWord)) tagClass = 'tone';
+        return tagClass ? `<span class="diff-tag ${tagClass}" title="${tagClass.toUpperCase()} SHIFT">${word}</span>` : word;
+    },
+
+    renderAnalysis(diff) {
+        let toneA = 0, toneB = 0;
+        let symbolicA = 0, symbolicB = 0;
+        const redlines = [];
+
+        const findTone = w => Object.keys(this.TONE_WORDS).find(k => this.TONE_WORDS[k].includes(w));
+        
+        for (let i = 0; i < diff.length; i++) {
+            if (diff[i].op === 'del' && diff[i+1] && diff[i+1].op === 'ins') {
+                const wordA = diff[i].text.replace(/[.,]/g, '').toLowerCase();
+                const wordB = diff[i+1].text.replace(/[.,]/g, '').toLowerCase();
+                const toneA = findTone(wordA);
+                const toneB = findTone(wordB);
+                
+                if (toneA && toneB && toneA !== toneB) {
+                    redlines.push({ type: 'tone', from: diff[i].text, to: diff[i+1].text, note: `Modifies tone from ${toneA} to ${toneB}.` });
+                } else if (this.SYMBOLIC_WORDS.includes(wordA) || this.SYMBOLIC_WORDS.includes(wordB)) {
+                     redlines.push({ type: 'symbolic', from: diff[i].text, to: diff[i+1].text, note: `Replaces mundane term with symbolic glyph.` });
+                }
+            }
+        }
+        
+        const drift = (redlines.length / (diff.length/2)) * 100;
+        this.elems.reportDrift.textContent = `${drift.toFixed(1)}%`;
+        this.elems.reportDrift.style.color = drift > 20 ? 'var(--sd-accent-red)' : 'var(--sd-accent)';
+        this.elems.reportDivergence.textContent = redlines.length; // Simplified divergence metric
+
+        if (redlines.length > 0) {
+            this.elems.redlineList.innerHTML = redlines.map(r => `
+                <div class="redline-item">
+                    <div class="redline-header ${r.type}">${r.type.toUpperCase()}</div>
+                    <div class="redline-change">
+                        <span class="original">${this.escapeHtml(r.from)}</span>
+                        <span class="arrow">→</span>
+                        <span class="new">${this.escapeHtml(r.to)}</span>
+                    </div>
+                    <div class="redline-note" style="font-size:0.9em; color: #555;">${r.note}</div>
+                </div>
+            `).join('');
+        } else {
+            this.elems.redlineList.innerHTML = `<div style="text-align:center; padding: 20px; color: #777;">No key semantic changes detected.</div>`;
+        }
+    },
+    
+    escapeHtml(str) {
+        return str.replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")
+                  .replace(/"/g, "&quot;")
+                  .replace(/'/g, "&#039;");
+    }
+};
+
+SubglyphDiff.init();
+</script>
+</body>
+</html>

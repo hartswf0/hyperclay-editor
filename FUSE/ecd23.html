@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // TRUTHWEAVER OS // v.78g</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Truthweaver OS - Multivalent Decision-Logic Interface
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: An interface for modeling decisions as a web of symbolic consequences,
+        *   allowing real-time reconfiguration of the underlying logic system.
+        */
+
+        :root {
+            --tw-bg: #0d1018;
+            --tw-grid: rgba(60, 66, 80, 0.5);
+            --tw-hud-bg: rgba(26, 30, 40, 0.9);
+            --tw-border: #3c4250;
+            --tw-text: #c0c8d8;
+            --tw-text-dim: #6c7888;
+            --tw-accent: #8be9fd; /* Deductive */
+            --tw-empathic: #ff79c6; /* Pink */
+            --tw-ecstatic: #f1fa8c; /* Yellow */
+            --tw-entropy: #ff5555; /* Red */
+            --font-main: 'Share Tech+ Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+        
+        /* --- KEYFRAMES --- */
+        @keyframes node-pulse {
+            0% { box-shadow: 0 0 10px 0px var(--color); }
+            50% { box-shadow: 0 0 20px 5px var(--color); }
+            100% { box-shadow: 0 0 10px 0px var(--color); }
+        }
+        @keyframes ecstatic-link {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: 20; }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; margin: 0; overflow: hidden;
+            font-family: var(--font-main); color: var(--tw-text);
+            user-select: none;
+        }
+        #truthweaver-container {
+            width: 100vw; height: 100vh;
+            background-color: var(--tw-bg);
+            background-image: linear-gradient(var(--tw-grid) 1px, transparent 1px), linear-gradient(90deg, var(--tw-grid) 1px, transparent 1px);
+            background-size: 50px 50px;
+            position: relative; cursor: grab;
+        }
+        #truthweaver-container:active { cursor: grabbing; }
+
+        /* --- EPISTEMIC GRID --- */
+        #epistemic-grid {
+            width: 100%; height: 100%;
+            position: relative;
+            transform-origin: 0 0;
+        }
+        .node {
+            position: absolute;
+            background: var(--tw-bg);
+            border: 2px solid var(--color);
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-shadow: 0 0 10px 0px var(--color);
+            cursor: pointer;
+            text-align: center;
+        }
+        .node.locus {
+            border-radius: 50%;
+            width: 150px; height: 150px;
+            display: grid; place-content: center;
+            font-size: 1.2rem;
+            animation: node-pulse 2s infinite ease-in-out;
+        }
+        .node.consequence {
+            animation: node-pulse 4s infinite ease-in-out;
+        }
+
+        /* --- SVG LINES --- */
+        #connection-svg {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            stroke-linecap: round;
+        }
+        .link { fill: none; stroke-width: 2; }
+        .link-deductive { stroke: var(--tw-accent); }
+        .link-empathic { stroke: var(--tw-empathic); animation: node-pulse 2s infinite; }
+        .link-ecstatic { stroke: var(--tw-ecstatic); stroke-dasharray: 10 10; animation: ecstatic-link 1s linear infinite; }
+        .temp-link { stroke: #fff; stroke-width: 2; stroke-dasharray: 5 5; }
+
+        /* --- HUD & PANELS --- */
+        .hud-panel {
+            position: absolute;
+            background: var(--tw-hud-bg); backdrop-filter: blur(5px);
+            border: 1px solid var(--tw-border); padding: 15px;
+            transition: opacity 0.3s;
+        }
+        .hud-label {
+            font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 1px;
+            border-bottom: 1px solid var(--tw-border); padding-bottom: 8px;
+            margin: 0 0 15px 0; color: var(--tw-text);
+        }
+        
+        /* Left Panel */
+        #logic-config-panel { top: 20px; left: 20px; width: 300px; }
+        #logic-config-panel button {
+            width: 100%; padding: 8px; margin-bottom: 8px;
+            font-family: inherit; font-size: 1rem;
+            background: var(--tw-bg); border: 1px solid var(--color); color: var(--color);
+            cursor: pointer;
+        }
+        .logic-mode-btn.active { box-shadow: 0 0 10px var(--color); }
+
+        /* Bottom Panel */
+        #evolution-panel { bottom: 20px; left: 20px; width: 500px; display: flex; align-items: center; gap: 15px;}
+        #evolution-panel input { flex-grow: 1; }
+        
+        /* Right Panel (Hover HUD) */
+        #hover-hud { top: 20px; right: 20px; width: 300px; opacity: 0; pointer-events: none; }
+        #hover-hud.visible { opacity: 1; }
+        .hud-field { margin-bottom: 10px; }
+        .hud-field .label { color: var(--tw-text-dim); }
+        .hud-field .value { font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+    <div id="truthweaver-container">
+        <svg id="connection-svg"></svg>
+        <div id="epistemic-grid"></div>
+    </div>
+    
+    <div class="hud-panel" id="logic-config-panel">
+        <h2 class="hud-label">LOGIC CONFIGURATION</h2>
+        <button class="logic-mode-btn active" data-mode="deductive" style="--color: var(--tw-accent);">DEDUCTIVE LINK</button>
+        <button class="logic-mode-btn" data-mode="empathic" style="--color: var(--tw-empathic);">EMPATHIC LINK</button>
+        <button class="logic-mode-btn" data-mode="ecstatic" style="--color: var(--tw-ecstatic);">ECSTATIC LINK</button>
+        <button id="clear-links-btn" style="--color: var(--tw-entropy); margin-top: 15px;">CLEAR ALL LINKS</button>
+    </div>
+
+    <div class="hud-panel" id="evolution-panel">
+         <h2 class="hud-label" style="margin:0; border:none; white-space:nowrap;">EVOLUTIONARY PRESSURE</h2>
+         <input type="text" id="pressure-input" placeholder="e.g., 'resource scarcity'" style="padding: 8px; background:var(--tw-bg); border:1px solid var(--tw-border); color: var(--tw-text);">
+         <button id="evolve-btn" style="padding: 8px;">EVOLVE</button>
+    </div>
+
+    <div class="hud-panel" id="hover-hud">
+         <h2 class="hud-label" id="hover-hud-title">INSPECTOR</h2>
+         <div id="hover-hud-content"></div>
+    </div>
+
+<script>
+const Truthweaver = {
+    // --- DOM Elements ---
+    elems: {
+        container: document.getElementById('truthweaver-container'),
+        grid: document.getElementById('epistemic-grid'),
+        svg: document.getElementById('connection-svg'),
+        hoverHud: document.getElementById('hover-hud'),
+        hoverHudTitle: document.getElementById('hover-hud-title'),
+        hoverHudContent: document.getElementById('hover-hud-content'),
+        logicModeBtns: document.querySelectorAll('.logic-mode-btn'),
+        clearLinksBtn: document.getElementById('clear-links-btn'),
+        evolveBtn: document.getElementById('evolve-btn'),
+    },
+    
+    // --- State ---
+    state: {
+        nodes: [],
+        links: [], // { sourceId, targetId, type }
+        nextId: 0,
+        pan: { x: 0, y: 0, scale: 1 },
+        dragging: { active: false, type: 'pan', target: null, startX: 0, startY: 0 },
+        linking: { active: false, sourceId: null, x: 0, y: 0 },
+        activeLogicMode: 'deductive',
+        hovered: null, // { type: 'node'/'link', id: ... }
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, spawn: null, link: null, error: null, evolve: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.spawn = this.createSound(100, 0.3, 0.1, true);
+            this.link = this.createSound(880, 0.1, 0.15);
+            this.error = this.createSound(80, 0.2, 0.2);
+            this.evolve = this.createSound(50, 1.0, 0.1);
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='triangle'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*1.5,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        document.body.addEventListener('mousedown', () => { if (!this.audio.ctx) this.audio.init(); }, { once: true });
+        this.addEventListeners();
+        this.createLocus("Establish a self-governing artist colony");
+        this.physicsLoop();
+    },
+    
+    addEventListeners() {
+        const c = this.elems.container;
+        c.addEventListener('mousedown', e => this.handleMouseDown(e));
+        c.addEventListener('mousemove', e => this.handleMouseMove(e));
+        c.addEventListener('mouseup', e => this.handleMouseUp(e));
+        c.addEventListener('wheel', e => this.handleWheel(e));
+
+        this.elems.logicModeBtns.forEach(btn => {
+            btn.onclick = () => {
+                this.state.activeLogicMode = btn.dataset.mode;
+                this.elems.logicModeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            };
+        });
+        this.elems.clearLinksBtn.onclick = () => { this.state.links = []; this.runPhysics(); };
+    },
+
+    // --- Node & Link Creation ---
+    createLocus(text) {
+        this.state.nodes = []; this.state.links = []; this.state.nextId = 0;
+        const locus = this.createNode(text, { isLocus: true, color: 'var(--tw-accent)' });
+        locus.x = window.innerWidth / 2; locus.y = window.innerHeight / 2;
+        this.createConsequences(locus);
+    },
+
+    createConsequences(sourceNode) {
+        const consequences = [
+            { text: "Increased artistic output", color: 'var(--tw-accent)' },
+            { text: "Internal power struggles", color: 'var(--tw-entropy)' },
+            { text: "Isolation from society", color: 'var(--tw-empathic)' },
+            { text: "New symbolic language emerges", color: 'var(--tw-ecstatic)' },
+            { text: "Economic instability", color: 'var(--tw-entropy)' },
+        ];
+        consequences.forEach((c, i) => {
+            const angle = (i / consequences.length) * 2 * Math.PI;
+            const dist = 250;
+            const node = this.createNode(c.text, { color: c.color, mass: 1.5 });
+            node.x = sourceNode.x + Math.cos(angle) * dist;
+            node.y = sourceNode.y + Math.sin(angle) * dist;
+            this.state.links.push({ sourceId: sourceNode.id, targetId: node.id, type: 'deductive' });
+        });
+    },
+    
+    createNode(text, options = {}) {
+        const node = {
+            id: this.state.nextId++, text,
+            x: 0, y: 0, vx: 0, vy: 0,
+            mass: options.mass || 1,
+            ...options
+        };
+        this.state.nodes.push(node);
+        return node;
+    },
+
+    // --- Event Handlers ---
+    handleMouseDown(e) {
+        const target = e.target.closest('.node');
+        if (target) {
+            this.state.dragging.active = true;
+            this.state.dragging.type = e.shiftKey ? 'link' : 'node';
+            this.state.dragging.target = this.state.nodes.find(n => n.id == target.dataset.id);
+            if (this.state.dragging.type === 'link') {
+                this.state.linking.active = true;
+                this.state.linking.sourceId = this.state.dragging.target.id;
+            }
+        } else {
+            this.state.dragging.active = true;
+            this.state.dragging.type = 'pan';
+            this.state.dragging.startX = e.clientX - this.state.pan.x;
+            this.state.dragging.startY = e.clientY - this.state.pan.y;
+        }
+    },
+    
+    handleMouseMove(e) {
+        if (!this.state.dragging.active) {
+            this.updateHover(e);
+            return;
+        }
+        
+        if (this.state.dragging.type === 'pan') {
+            this.state.pan.x = e.clientX - this.state.dragging.startX;
+            this.state.pan.y = e.clientY - this.state.dragging.startY;
+        } else if (this.state.dragging.type === 'node') {
+            this.state.dragging.target.x = (e.clientX - this.state.pan.x) / this.state.pan.scale;
+            this.state.dragging.target.y = (e.clientY - this.state.pan.y) / this.state.pan.scale;
+        } else if (this.state.dragging.type === 'link') {
+            this.state.linking.x = (e.clientX - this.state.pan.x) / this.state.pan.scale;
+            this.state.linking.y = (e.clientY - this.state.pan.y) / this.state.pan.scale;
+        }
+    },
+    
+    handleMouseUp(e) {
+        if (this.state.linking.active) {
+            const targetNodeEl = e.target.closest('.node');
+            if (targetNodeEl) {
+                const targetId = parseInt(targetNodeEl.dataset.id);
+                if (targetId !== this.state.linking.sourceId) {
+                    this.audio.link();
+                    this.state.links.push({ sourceId: this.state.linking.sourceId, targetId: targetId, type: this.state.activeLogicMode });
+                } else {
+                    this.audio.error();
+                }
+            } else {
+                this.audio.error();
+            }
+            this.state.linking.active = false;
+        }
+        this.state.dragging.active = false;
+        this.state.dragging.target = null;
+    },
+    
+    handleWheel(e) {
+        e.preventDefault();
+        const scaleAmount = 1 - e.deltaY * 0.001;
+        this.state.pan.scale = Math.max(0.2, Math.min(3, this.state.pan.scale * scaleAmount));
+    },
+
+    updateHover(e) {
+        const targetNodeEl = e.target.closest('.node');
+        if (targetNodeEl) {
+            const id = parseInt(targetNodeEl.dataset.id);
+            this.state.hovered = { type: 'node', id: id };
+        } else {
+            this.state.hovered = null;
+        }
+    },
+
+    // --- Physics & Rendering ---
+    runPhysics() {
+        this.state.nodes.forEach(n1 => {
+            // Damping
+            n1.vx *= 0.9; n1.vy *= 0.9;
+            // Repulsion from other nodes
+            this.state.nodes.forEach(n2 => {
+                if (n1 === n2) return;
+                const dx = n2.x - n1.x; const dy = n2.y - n1.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 1) dist = 1;
+                const force = -200 / dist;
+                n1.vx += (dx / dist) * force / n1.mass;
+                n1.vy += (dy / dist) * force / n1.mass;
+            });
+        });
+
+        // Link forces
+        this.state.links.forEach(link => {
+            const n1 = this.state.nodes.find(n => n.id === link.sourceId);
+            const n2 = this.state.nodes.find(n => n.id === link.targetId);
+            if (!n1 || !n2) return;
+            const dx = n2.x - n1.x; const dy = n2.y - n1.y;
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            const force = (dist - 250) * 0.001;
+            n1.vx += (dx/dist) * force; n1.vy += (dy/dist) * force;
+            n2.vx -= (dx/dist) * force; n2.vy -= (dy/dist) * force;
+        });
+
+        // Update positions
+        this.state.nodes.forEach(node => {
+            if (this.state.dragging.target !== node) {
+                node.x += node.vx; node.y += node.vy;
+            }
+        });
+    },
+
+    render() {
+        // Grid transform
+        this.elems.grid.style.transform = `translate(${this.state.pan.x}px, ${this.state.pan.y}px) scale(${this.state.pan.scale})`;
+
+        // Render nodes
+        let nodeHTML = '';
+        this.state.nodes.forEach(node => {
+            const className = node.isLocus ? 'node locus' : 'node consequence';
+            nodeHTML += `<div class="${className}" data-id="${node.id}" style="--color:${node.color}; transform: translate(${node.x}px, ${node.y}px)">${node.text}</div>`;
+        });
+        this.elems.grid.innerHTML = nodeHTML;
+
+        // Render links
+        let linkHTML = '';
+        this.state.links.forEach(link => {
+            const n1 = this.state.nodes.find(n => n.id === link.sourceId);
+            const n2 = this.state.nodes.find(n => n.id === link.targetId);
+            if(n1 && n2) {
+                linkHTML += `<line class="link link-${link.type}" x1="${n1.x}" y1="${n1.y}" x2="${n2.x}" y2="${n2.y}" />`;
+            }
+        });
+        if (this.state.linking.active) {
+            const source = this.state.nodes.find(n => n.id === this.state.linking.sourceId);
+            linkHTML += `<line class="temp-link" x1="${source.x}" y1="${source.y}" x2="${this.state.linking.x}" y2="${this.state.linking.y}" />`;
+        }
+        this.elems.svg.innerHTML = linkHTML;
+        this.elems.svg.style.transform = `translate(${this.state.pan.x}px, ${this.state.pan.y}px) scale(${this.state.pan.scale})`;
+        
+        // Render HUD
+        if(this.state.hovered) {
+            const node = this.state.nodes.find(n => n.id === this.state.hovered.id);
+            this.elems.hoverHud.classList.add('visible');
+            this.elems.hoverHudTitle.textContent = node.text;
+            const probability = (1 / (1 + node.mass)).toFixed(2);
+            const entropy = (node.vx**2 + node.vy**2).toFixed(2);
+            this.elems.hoverHudContent.innerHTML = `
+                <div class="hud-field"><div class="label">Truthstream Probability</div><div class="value">${probability}</div></div>
+                <div class="hud-field"><div class="label">Cultural Harmonics</div><div class="value" style="color:${node.color};">${node.color.startsWith('var') ? 'ALIGNED' : 'NEUTRAL'}</div></div>
+                <div class="hud-field"><div class="label">Metaphysical Entropy</div><div class="value" style="color:var(--tw-entropy);">${entropy}</div></div>
+            `;
+
+        } else {
+             this.elems.hoverHud.classList.remove('visible');
+        }
+    },
+    
+    physicsLoop() {
+        this.runPhysics();
+        this.render();
+        requestAnimationFrame(() => this.physicsLoop());
+    }
+};
+
+Truthweaver.init();
+</script>
+</body>
+</html>

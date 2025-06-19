@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 GENOMIRE SCOPE</title>
+    <style>
+        :root {
+            --green: #4cff4c;
+            --green-dim: #2a7d2a;
+            --green-dark: #1a4d1a;
+            --bg: #020402;
+            --font-mono: 'Menlo', 'Monaco', 'Courier New', monospace;
+            --font-serif: 'Georgia', 'Times New Roman', serif;
+            /* Codon Palette */
+            --c-txt: #33a0ff; /* blue */
+            --c-img: #ffcc00; /* yellow */
+            --c-auc: #ff4d4d; /* red */
+            --c-lnk: #be33ff; /* purple */
+            --c-frg: #7f7f7f; /* grey */
+            --c-cmd: #ff8c33; /* orange */
+        }
+
+        /* --- Global & Tufte Principles --- */
+        * { box-sizing: border-box; }
+        html, body {
+            background-color: var(--bg);
+            color: var(--green);
+            font-family: var(--font-mono);
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 0; padding: 0;
+            height: 100%; width: 100%;
+            overflow: hidden;
+        }
+        canvas { display: block; }
+        .hidden { display: none !important; }
+
+        /* --- Screen Containers --- */
+        .screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg);
+        }
+        .screen.active { opacity: 1; z-index: 10; }
+
+        /* --- SCREEN 1: Boot --- */
+        #boot-screen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        #boot-title { font-size: 2em; letter-spacing: 0.2em; }
+        #boot-subtitle { color: var(--green-dim); margin-top: 0.5em; }
+        #boot-loader { margin-top: 2em; height: 1.5em; font-size: 1.2em; }
+        #boot-prompt { margin-top: 3em; color: var(--green-dim); animation: blink 1.5s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- SCREEN 2: Genome Field View --- */
+        #genome-field-view { flex-direction: row; }
+        #left-panel { width: 30%; max-width: 400px; height: 100%; background: linear-gradient(to right, rgba(0,10,0,0.3), transparent); }
+        #right-panel { flex-grow: 1; height: 100%; position: relative; }
+        #field-resonance-canvas { width: 100%; height: 100%; }
+        #console-container {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%;
+            padding: 10px 20px;
+            background: linear-gradient(to top, rgba(2, 4, 2, 0.9), transparent);
+        }
+        #input-line { display: flex; }
+        #prompt { white-space: nowrap; }
+        #input {
+            width: 100%;
+            background: transparent; border: none; outline: none;
+            color: var(--green); font: inherit; padding-left: 0.5em;
+        }
+        
+        /* --- Overlays (Screens 3, 4, 5, 6) --- */
+        .overlay {
+            position: fixed;
+            z-index: 20;
+            background: rgba(2, 4, 2, 0.9);
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay-content {
+            width: 80%;
+            max-width: 1200px;
+            height: 80%;
+            border: 1px solid var(--green-dim);
+            padding: 2em;
+            overflow: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--green-dim) var(--bg);
+        }
+        .overlay-prompt {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--green-dim);
+        }
+
+        /* --- SCREEN 3: Expression Overlay --- */
+        #expression-content .codon-block {
+            border-left: 2px solid var(--green-dim);
+            padding-left: 1.5em;
+            margin-bottom: 2em;
+        }
+        #expression-content .codon-glyph { color: var(--green-dim); margin-right: 1em; }
+        #expression-content .output-image { max-width: 150px; filter: grayscale(1); border: 1px solid var(--green-dark); }
+        #expression-content .output-sparkline { color: var(--green-dim); font-size: 1.2em; }
+        
+        /* --- SCREEN 4: Genome Editor --- */
+        #editor-content { display: flex; gap: 2em; font-family: var(--font-serif); }
+        #editor-codons { flex-basis: 50%; }
+        #editor-metadata { flex-basis: 50%; }
+        .editor-codon-item {
+            display: flex; align-items: center; gap: 1em; margin-bottom: 0.5em;
+            padding: 0.5em; border: 1px solid transparent; cursor: pointer;
+        }
+        .editor-codon-item.exon { border-color: var(--green-dim); }
+        .editor-codon-item .band { width: 30px; height: 20px; flex-shrink: 0; }
+        .editor-metadata-item { margin-bottom: 1em; }
+        .editor-metadata-item label { display: block; color: var(--green-dim); }
+        .editor-metadata-item input { background: var(--green-dark); border: none; color: var(--green); padding: 0.2em; font-family: var(--font-mono); }
+        
+        /* --- SCREEN 5: Trace View --- */
+        #trace-canvas { width: 100%; height: 100%; }
+
+        /* --- SCREEN 6: Fusion Mode --- */
+        #fusion-content { display: flex; justify-content: space-around; align-items: center; text-align: center;}
+        .fusion-column { display: flex; flex-direction: column; gap: 2px; }
+        .fusion-column .band { width: 30px; height: 5px; }
+        .fusion-plus, .fusion-equals { font-size: 3em; color: var(--green-dim); }
+
+        /* --- SCREEN 7: MIRE Terrain --- */
+        #mire-terrain-view { z-index: 15; }
+        #mire-terrain-canvas { width: 100%; height: 100%; cursor: crosshair; }
+        #mire-hud {
+            position: absolute; bottom: 10px; left: 10px;
+            color: var(--green); text-shadow: 0 0 5px black;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Screen 1: Boot -->
+    <div id="boot-screen" class="screen active">
+        <div>
+            <div id="boot-title">GENOMIRE SCOPE</div>
+            <div id="boot-subtitle">Codified Multilayer Media Expression Engine</div>
+            <div id="boot-loader"></div>
+            <div id="boot-prompt">PRESS ANY KEY</div>
+        </div>
+    </div>
+
+    <!-- Screen 2: Genome Field View -->
+    <div id="genome-field-view" class="screen">
+        <div id="left-panel">
+            <canvas id="electrophoresis-canvas"></canvas>
+        </div>
+        <div id="right-panel">
+            <canvas id="field-resonance-canvas"></canvas>
+        </div>
+        <div id="console-container">
+            <div id="input-line">
+                <span id="prompt">> </span>
+                <input type="text" id="input" autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen 3: Expression Overlay -->
+    <div id="expression-overlay" class="screen overlay hidden">
+        <div id="expression-content" class="overlay-content"></div>
+        <div class="overlay-prompt">> collapse</div>
+    </div>
+
+    <!-- Screen 4: Genome Editor -->
+    <div id="editor-overlay" class="screen overlay hidden">
+        <div class="overlay-content" id="editor-content">
+            <div id="editor-codons"></div>
+            <div id="editor-metadata"></div>
+        </div>
+        <div class="overlay-prompt">> save | > exit</div>
+    </div>
+
+    <!-- Screen 5: Trace View -->
+    <div id="trace-overlay" class="screen overlay hidden">
+        <canvas id="trace-canvas"></canvas>
+        <div class="overlay-prompt">> collapse</div>
+    </div>
+
+    <!-- Screen 6: Fusion Mode -->
+    <div id="fusion-overlay" class="screen overlay hidden">
+        <div id="fusion-content" class="overlay-content"></div>
+        <div class="overlay-prompt">> yes | > cancel</div>
+    </div>
+
+    <!-- Screen 7: MIRE Terrain -->
+    <div id="mire-terrain-view" class="screen hidden">
+        <canvas id="mire-terrain-canvas"></canvas>
+        <div id="mire-hud"></div>
+    </div>
+
+
+    <script>
+    const GENOMIRE = {
+        state: {
+            mode: 'BOOT', // BOOT, FIELD, EXPRESSION, EDITOR, TRACE, FUSION, MIRE
+            activeUnit: null,
+            fusionCandidates: [],
+            mireHover: null,
+            booted: false,
+        },
+        genome: [],
+        dom: {},
+        colors: {}, // Object to hold cached CSS colors
+        codons: {
+            "TXT": { color: 'var(--c-txt)', glyph: "▚" },
+            "IMG": { color: 'var(--c-img)', glyph: "▞" },
+            "AUC": { color: 'var(--c-auc)', glyph: "♪" },
+            "LNK": { color: 'var(--c-lnk)', glyph: "ζ" },
+            "FRG": { color: 'var(--c-frg)', glyph: "Σ" },
+            "CMD": { color: 'var(--c-cmd)', glyph: "⌘" }
+        },
+
+        // --- INITIALIZATION ---
+        init() {
+            // DOM element caching
+            this.dom.bootScreen = document.getElementById('boot-screen');
+            this.dom.bootLoader = document.getElementById('boot-loader');
+            this.dom.fieldView = document.getElementById('genome-field-view');
+            this.dom.electroCanvas = document.getElementById('electrophoresis-canvas');
+            this.dom.resonanceCanvas = document.getElementById('field-resonance-canvas');
+            this.dom.input = document.getElementById('input');
+            this.dom.expressionOverlay = document.getElementById('expression-overlay');
+            this.dom.expressionContent = document.getElementById('expression-content');
+            this.dom.editorOverlay = document.getElementById('editor-overlay');
+            this.dom.editorCodons = document.getElementById('editor-codons');
+            this.dom.editorMetadata = document.getElementById('editor-metadata');
+            this.dom.traceOverlay = document.getElementById('trace-overlay');
+            this.dom.traceCanvas = document.getElementById('trace-canvas');
+            this.dom.fusionOverlay = document.getElementById('fusion-overlay');
+            this.dom.fusionContent = document.getElementById('fusion-content');
+            this.dom.mireView = document.getElementById('mire-terrain-view');
+            this.dom.mireCanvas = document.getElementById('mire-terrain-canvas');
+            this.dom.mireHud = document.getElementById('mire-hud');
+
+            // Contexts
+            this.dom.electroCtx = this.dom.electroCanvas.getContext('2d');
+            this.dom.resonanceCtx = this.dom.resonanceCanvas.getContext('2d');
+            this.dom.traceCtx = this.dom.traceCanvas.getContext('2d');
+            this.dom.mireCtx = this.dom.mireCanvas.getContext('2d');
+
+            this.cacheColors(); // **FIX:** Cache colors on startup
+            this.generateInitialGenome();
+            this.addEventListeners();
+            
+            this.switchMode('BOOT');
+            this.animate();
+        },
+
+        // **FIX:** New function to read CSS variables into a JS object
+        cacheColors() {
+            const style = getComputedStyle(document.body);
+            this.colors.green = style.getPropertyValue('--green').trim();
+            this.colors.greenDim = style.getPropertyValue('--green-dim').trim();
+            this.colors.greenDark = style.getPropertyValue('--green-dark').trim();
+            this.colors.bg = style.getPropertyValue('--bg').trim();
+            this.colors.fontMono = style.getPropertyValue('--font-mono').trim();
+            this.colors.fontSerif = style.getPropertyValue('--font-serif').trim();
+            for (const key in this.codons) {
+                this.codons[key].colorValue = style.getPropertyValue(`--c-${key.toLowerCase()}`).trim();
+            }
+        },
+
+        generateInitialGenome() {
+            this.genome = [
+                {
+                    id: "g-021", codons: ["TXT","IMG","AUC"], exons: [0,1],
+                    traits: { mutability:0.05, accessCount:23, origin:"user-drive", lastAccess: Date.now() - 100000 },
+                    history: [{ type: 'create', origin: 'user-drive', timestamp: Date.now() - 500000 }],
+                    data: {
+                        TXT: "The sky above the port was the color of television, tuned to a dead channel.",
+                        IMG: "https://picsum.photos/seed/g-021/200/200",
+                        AUC: "Static hum with intermittent carrier signal pulses.",
+                    }
+                },
+                {
+                    id: "g-034", codons: ["LNK", "CMD", "FRG"], exons: [0,1],
+                    traits: { mutability:0.1, accessCount:5, origin:"system-kernel", lastAccess: Date.now() - 200000 },
+                    history: [{ type: 'create', origin: 'system-kernel', timestamp: Date.now() - 400000 }],
+                    data: {
+                        LNK: "g-021",
+                        CMD: "verify_integrity('g-021')",
+                    }
+                },
+                {
+                    id: "g-057", codons: ["FRG", "TXT"], exons: [1],
+                    traits: { mutability:0.01, accessCount:2, origin:"archive-frag.β", lastAccess: Date.now() - 800000 },
+                    history: [{ type: 'create', origin: 'archive-frag.β', timestamp: Date.now() - 1000000 }],
+                    data: {
+                        TXT: "A forgotten echo from a deeper layer of the archive."
+                    }
+                }
+            ];
+            this.genome.forEach(u => u.resonance = {x: Math.random(), y: Math.random()});
+        },
+
+        addEventListeners() {
+            window.addEventListener('keydown', (e) => {
+                if (this.state.mode === 'BOOT' && !this.state.booted) {
+                    this.state.booted = true;
+                    setTimeout(() => this.switchMode('FIELD'), 100);
+                } else if (e.key === 'Enter') {
+                    this.processCommand(this.dom.input.value);
+                    this.dom.input.value = '';
+                }
+            });
+            window.addEventListener('resize', () => this.resizeCanvases());
+            
+            this.dom.mireCanvas.addEventListener('mousemove', (e) => {
+                if (this.state.mode !== 'MIRE') return;
+                const rect = this.dom.mireCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const normX = x / rect.width;
+                const normY = y / rect.height;
+                let closest = null;
+                let minDist = Infinity;
+                this.genome.forEach(unit => {
+                    const dx = normX - unit.resonance.x;
+                    const dy = normY - unit.resonance.y;
+                    const dist = dx*dx + dy*dy;
+                    if(dist < minDist) {
+                        minDist = dist;
+                        closest = unit;
+                    }
+                });
+                if(minDist < 0.01) { this.state.mireHover = closest; } 
+                else { this.state.mireHover = null; }
+            });
+            this.dom.mireCanvas.addEventListener('click', () => {
+                if(this.state.mireHover) {
+                    this.dom.input.value = `express ${this.state.mireHover.id}`;
+                    this.switchMode('FIELD');
+                }
+            });
+        },
+        
+        resizeCanvases() {
+            const setSize = (canvas) => {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            };
+            setSize(this.dom.electroCanvas);
+            setSize(this.dom.resonanceCanvas);
+            setSize(this.dom.traceCanvas);
+            setSize(this.dom.mireCanvas);
+        },
+
+        switchMode(newMode, data = {}) {
+            this.state.mode = newMode;
+            this.state.activeUnit = data.unit || null;
+            this.state.fusionCandidates = data.candidates || [];
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+
+            switch(newMode) {
+                case 'BOOT':
+                    this.dom.bootScreen.classList.remove('hidden');
+                    this.dom.bootScreen.classList.add('active');
+                    if (!this.state.booted) {
+                        setTimeout(() => {
+                            if (!this.state.booted) {
+                                this.state.booted = true;
+                                this.switchMode('FIELD');
+                            }
+                        }, 4000);
+                    }
+                    break;
+                case 'FIELD':
+                    this.dom.fieldView.classList.remove('hidden');
+                    this.dom.fieldView.classList.add('active');
+                    this.dom.input.focus();
+                    this.resizeCanvases();
+                    break;
+                case 'EXPRESSION':
+                    this.dom.fieldView.classList.remove('hidden');
+                    this.dom.fieldView.classList.add('active');
+                    this.dom.expressionOverlay.classList.remove('hidden');
+                    this.renderExpression();
+                    break;
+                case 'EDITOR':
+                    this.dom.fieldView.classList.remove('hidden');
+                    this.dom.fieldView.classList.add('active');
+                    this.dom.editorOverlay.classList.remove('hidden');
+                    this.renderEditor();
+                    break;
+                case 'TRACE':
+                    this.dom.fieldView.classList.remove('hidden');
+                    this.dom.fieldView.classList.add('active');
+                    this.dom.traceOverlay.classList.remove('hidden');
+                    this.resizeCanvases();
+                    this.renderTrace();
+                    break;
+                case 'FUSION':
+                    this.dom.fieldView.classList.remove('hidden');
+                    this.dom.fieldView.classList.add('active');
+                    this.dom.fusionOverlay.classList.remove('hidden');
+                    this.renderFusion();
+                    break;
+                case 'MIRE':
+                    this.dom.mireView.classList.remove('hidden');
+                    this.dom.mireView.classList.add('active');
+                    this.resizeCanvases();
+                    break;
+            }
+        },
+
+        processCommand(cmdStr) {
+            if (!cmdStr) return;
+            const [cmd, ...args] = cmdStr.toLowerCase().split(/\s+/);
+            
+            if (this.state.mode === 'EXPRESSION' || this.state.mode === 'TRACE') {
+                if (cmd === 'collapse') this.switchMode('FIELD'); return;
+            }
+            if (this.state.mode === 'EDITOR') {
+                if (cmd === 'save') this.saveEditorChanges();
+                if (cmd === 'exit') this.switchMode('FIELD');
+                return;
+            }
+             if (this.state.mode === 'FUSION') {
+                if (cmd === 'yes') this.confirmFusion();
+                if (cmd === 'cancel') this.switchMode('FIELD');
+                return;
+            }
+             if (this.state.mode === 'MIRE') {
+                if (cmd === 'return') this.switchMode('FIELD');
+                return;
+            }
+
+            switch(cmd) {
+                case 'express': this.commandExpress(args[0]); break;
+                case 'trace': this.commandTrace(args[0]); break;
+                case 'fuse': this.commandFuse(args[0]); break;
+                case 'edit': this.commandEdit(args[0]); break;
+                case 'mutate': this.commandMutate(args); break;
+                case 'drift': this.switchMode('MIRE'); break;
+                case 'help': alert("Commands: express, trace, fuse, edit, mutate, drift"); break;
+                default: console.warn(`Unknown command: ${cmd}`);
+            }
+        },
+        
+        findUnit(id) { return this.genome.find(u => u.id === id); },
+        commandExpress(id) {
+            const unit = this.findUnit(id);
+            if (unit) {
+                unit.traits.accessCount++;
+                unit.traits.lastAccess = Date.now();
+                this.switchMode('EXPRESSION', { unit });
+            }
+        },
+        commandTrace(id) {
+            const unit = this.findUnit(id);
+            if (unit) this.switchMode('TRACE', { unit });
+        },
+        commandEdit(id) {
+            const unit = this.findUnit(id);
+            if(unit) this.switchMode('EDITOR', { unit });
+        },
+        commandFuse(arg) {
+            if (!arg || !arg.includes('+')) return;
+            const [id1, id2] = arg.split('+');
+            const u1 = this.findUnit(id1);
+            const u2 = this.findUnit(id2);
+            if (u1 && u2) this.switchMode('FUSION', { candidates: [u1, u2] });
+        },
+        commandMutate(args) {
+            const unit = this.findUnit(args[0]);
+            if(!unit) return;
+            const rate = 0.1;
+            unit.codons = unit.codons.map(c => Math.random() < rate ? Object.keys(this.codons)[Math.floor(Math.random()*Object.keys(this.codons).length)] : c);
+            unit.history.push({ type: 'mutate', rate: rate, timestamp: Date.now() });
+        },
+
+        renderBoot() {
+            const glyphs = ['░', '▒', '▓', '█', '⌘', 'Σ', 'ζ', '▞', '▚'];
+            this.dom.bootLoader.textContent = Array.from({length: 15}, () => glyphs[Math.floor(Math.random() * glyphs.length)]).join('');
+        },
+
+        renderFieldView() {
+            const ctx = this.dom.electroCtx;
+            const { width, height } = this.dom.electroCanvas;
+            ctx.clearRect(0, 0, width, height);
+            const colWidth = 30, gap = 15;
+            this.genome.forEach((unit, i) => {
+                const x = i * (colWidth + gap) + gap;
+                const recency = Math.exp(-(Date.now() - unit.traits.lastAccess) / (1000 * 60 * 5));
+                ctx.globalAlpha = 0.4 + 0.6 * recency;
+                
+                unit.codons.forEach((codon, j) => {
+                    ctx.fillStyle = this.codons[codon].colorValue; // Use cached color
+                    const y = j * 8 + 20;
+                    ctx.fillRect(x, y, colWidth, 5);
+                });
+                ctx.fillStyle = `rgba(76, 255, 76, ${0.4 + 0.6 * recency})`;
+                ctx.font = `14px ${this.colors.fontMono}`;
+                ctx.fillText(unit.id, x, 15);
+            });
+            ctx.globalAlpha = 1;
+
+            const rCtx = this.dom.resonanceCtx;
+            const rW = this.dom.resonanceCanvas.width, rH = this.dom.resonanceCanvas.height;
+            rCtx.clearRect(0,0,rW,rH);
+            this.genome.forEach(unit => {
+                const recency = Math.exp(-(Date.now() - unit.traits.lastAccess) / (1000 * 60 * 5));
+                rCtx.beginPath();
+                rCtx.arc(unit.resonance.x * rW, unit.resonance.y * rH, 5 + unit.traits.accessCount * 0.5, 0, 2*Math.PI);
+                rCtx.fillStyle = `rgba(76, 255, 76, ${0.1 + 0.4 * recency})`;
+                rCtx.fill();
+            });
+        },
+
+        renderExpression() {
+            const unit = this.state.activeUnit;
+            let html = `<h1>Expression: ${unit.id}</h1>`;
+            unit.exons.forEach(i => {
+                const codon = unit.codons[i];
+                const data = unit.data[codon];
+                if (!data) return;
+                html += `<div class="codon-block">`;
+                html += `<span class="codon-glyph">[${this.codons[codon].glyph} ${codon}]</span>`;
+                switch(codon) {
+                    case 'TXT': html += `<span>${data}</span>`; break;
+                    case 'IMG': html += `<img src="${data}" class="output-image">`; break;
+                    case 'AUC': html += `<span class="output-sparkline">${'▂▃▅▆▇ '.repeat(5)}</span> | <span>${data}</span>`; break;
+                    case 'LNK': html += `<span>Link -> ${data}</span>`; break;
+                    case 'CMD': html += `<code>${data}</code>`; break;
+                }
+                html += `</div>`;
+            });
+            this.dom.expressionContent.innerHTML = html;
+        },
+
+        renderEditor() {
+            const unit = this.state.activeUnit;
+            let codonsHtml = '<h2>Codons</h2>';
+            unit.codons.forEach((codon, i) => {
+                const isExon = unit.exons.includes(i);
+                codonsHtml += `
+                    <div class="editor-codon-item ${isExon ? 'exon' : ''}" data-index="${i}">
+                        <div class="band" style="background-color: ${this.codons[codon].colorValue};"></div>
+                        <span>${this.codons[codon].glyph} ${codon}</span>
+                    </div>
+                `;
+            });
+            this.dom.editorCodons.innerHTML = codonsHtml;
+            this.dom.editorCodons.querySelectorAll('.editor-codon-item').forEach(el => {
+                el.onclick = () => {
+                    const index = parseInt(el.dataset.index);
+                    const exonIndex = unit.exons.indexOf(index);
+                    if (exonIndex > -1) unit.exons.splice(exonIndex, 1);
+                    else unit.exons.push(index);
+                    this.renderEditor();
+                };
+            });
+            this.dom.editorMetadata.innerHTML = `
+                <h2>Metadata</h2>
+                <div class="editor-metadata-item"> <label>ID</label> <input type="text" value="${unit.id}" readonly> </div>
+                <div class="editor-metadata-item"> <label>Origin</label> <input type="text" id="editor-origin" value="${unit.traits.origin}"> </div>
+                <div class="editor-metadata-item"> <label>Mutability</label> <input type="number" id="editor-mutability" step="0.01" value="${unit.traits.mutability}"> </div>
+            `;
+        },
+
+        saveEditorChanges() {
+            const unit = this.state.activeUnit;
+            unit.traits.origin = document.getElementById('editor-origin').value;
+            unit.traits.mutability = parseFloat(document.getElementById('editor-mutability').value);
+            unit.history.push({ type: 'edit', timestamp: Date.now() });
+            this.switchMode('FIELD');
+        },
+
+        renderTrace() {
+            const unit = this.state.activeUnit;
+            const ctx = this.dom.traceCtx;
+            const { width, height } = this.dom.traceCanvas;
+            ctx.clearRect(0,0,width,height);
+            ctx.strokeStyle = this.colors.greenDim; // Use cached color
+            ctx.fillStyle = this.colors.green;     // Use cached color
+            ctx.font = `14px ${this.colors.fontMono}`;
+
+            const drawNode = (u, x, y, isTarget=false) => {
+                ctx.beginPath();
+                ctx.rect(x-40, y-15, 80, 30);
+                ctx.fillStyle = isTarget ? this.colors.greenDark : this.colors.bg; // Use cached color
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = this.colors.green; // Use cached color
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(u.id, x, y);
+            };
+
+            const nodes = [{unit: unit, x: width - 100, y: height/2}];
+            const toProcess = [unit];
+            const processed = new Set();
+            while(toProcess.length > 0) {
+                const current = toProcess.shift();
+                if(processed.has(current.id)) continue;
+                processed.add(current.id);
+                const currentNode = nodes.find(n => n.unit.id === current.id);
+                const fusionEvent = current.history.find(h => h.type === 'fuse');
+                if(fusionEvent) {
+                    const p1 = this.findUnit(fusionEvent.from[0]);
+                    const p2 = this.findUnit(fusionEvent.from[1]);
+                    if(p1) {
+                        const p1Node = {unit: p1, x: currentNode.x - 200, y: currentNode.y - 60};
+                        nodes.push(p1Node); toProcess.push(p1);
+                        ctx.beginPath(); ctx.moveTo(currentNode.x - 40, currentNode.y); ctx.lineTo(p1Node.x + 40, p1Node.y); ctx.stroke();
+                    }
+                     if(p2) {
+                        const p2Node = {unit: p2, x: currentNode.x - 200, y: currentNode.y + 60};
+                        nodes.push(p2Node); toProcess.push(p2);
+                        ctx.beginPath(); ctx.moveTo(currentNode.x - 40, currentNode.y); ctx.lineTo(p2Node.x + 40, p2Node.y); ctx.stroke();
+                    }
+                }
+            }
+            nodes.forEach(n => drawNode(n.unit, n.x, n.y, n.unit.id === unit.id));
+        },
+
+        renderFusion() {
+            const [u1, u2] = this.state.fusionCandidates;
+            const newCodons = u1.codons.concat(u2.codons);
+            const drawColumn = (codons, title) => {
+                let html = `<div><h3>${title}</h3><div class="fusion-column">`;
+                codons.forEach(c => { html += `<div class="band" style="background-color: ${this.codons[c].colorValue};"></div>`; });
+                html += `</div></div>`;
+                return html;
+            };
+            this.dom.fusionContent.innerHTML = `${drawColumn(u1.codons, u1.id)} <div class="fusion-plus">+</div> ${drawColumn(u2.codons, u2.id)} <div class="fusion-equals">=</div> ${drawColumn(newCodons, "Preview")}`;
+        },
+
+        confirmFusion() {
+            const [u1, u2] = this.state.fusionCandidates;
+            const newUnit = {
+                id: `g-${String(this.genome.length + 100).padStart(3, '0')}`,
+                codons: u1.codons.concat(u2.codons),
+                exons: u1.exons.concat(u2.exons.map(e => e + u1.codons.length)),
+                traits: { mutability: (u1.traits.mutability + u2.traits.mutability) / 2, accessCount: 1, origin: `fusion(${u1.id},${u2.id})`, lastAccess: Date.now() },
+                history: [{ type: 'fuse', from: [u1.id, u2.id], timestamp: Date.now() }],
+                data: { ...u1.data, ...u2.data },
+                resonance: { x: (u1.resonance.x + u2.resonance.x)/2, y: (u1.resonance.y + u2.resonance.y)/2 }
+            };
+            this.genome.push(newUnit);
+            this.switchMode('FIELD');
+        },
+
+        renderMire() {
+            const ctx = this.dom.mireCtx;
+            const { width, height } = this.dom.mireCanvas;
+            ctx.fillStyle = this.colors.bg;
+            ctx.fillRect(0,0,width,height);
+            this.genome.forEach(unit => {
+                const recency = Math.exp(-(Date.now() - unit.traits.lastAccess) / (1000 * 60 * 10));
+                const x = unit.resonance.x * width, y = unit.resonance.y * height;
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, 50 + unit.traits.accessCount);
+                grad.addColorStop(0, `rgba(76, 255, 76, ${0.3 * recency})`);
+                grad.addColorStop(1, 'rgba(76, 255, 76, 0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0,0,width,height);
+            });
+            this.dom.mireHud.textContent = this.state.mireHover ? `[${this.state.mireHover.id}] ${this.state.mireHover.traits.origin}` : '> drift';
+        },
+
+        animate() {
+            switch(this.state.mode) {
+                case 'BOOT': this.renderBoot(); break;
+                case 'FIELD': this.renderFieldView(); break;
+                case 'MIRE': this.renderMire(); break;
+            }
+            requestAnimationFrame(() => this.animate());
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => GENOMIRE.init());
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // SCRIPT-CAD // C-78</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cutive+Mono&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: SCRIPT-CAD (SCAD) Model C-78
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: A structural layout tool for composing long-form symbol-narrative documents.
+        */
+
+        :root {
+            --scad-slate: #3d4247;
+            --scad-metal: #8d9299;
+            --scad-vellum: #dcd6c9;
+            --scad-ink: #2a2a2a;
+            --scad-amber: #ffb833;
+            --scad-amber-dark: #4d3c1a;
+            --scad-red-error: #b32d2d;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-script: 'Cutive Mono', monospace;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes blink-active {
+            0%, 100% { background-color: var(--scad-amber); }
+            50% { background-color: var(--scad-amber-dark); }
+        }
+        @keyframes text-glitch {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-1px, 1px); color: var(--scad-red-error); }
+            50% { transform: translate(1px, -1px); }
+            75% { transform: translate(1px, 1px); color: var(--scad-red-error); }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #2a2a2a; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--scad-metal); user-select: none;
+        }
+        #scad-chassis {
+            width: 1600px; height: 900px; background-color: var(--scad-slate);
+            border: 2px solid #000; box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            padding: 20px; display: grid;
+            grid-template-columns: 300px 300px 1fr 300px;
+            gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: #22252a; padding: 15px;
+            box-shadow: inset 0 0 10px #000; display: flex; flex-direction: column; gap: 15px;
+        }
+        .module-label {
+            font-size: 1.2rem; text-align: center; border-bottom: 1px solid var(--scad-slate);
+            padding-bottom: 8px; margin: 0 0 10px 0;
+        }
+
+        /* --- CLAUSE LIBRARY (LEFT) --- */
+        #clause-library-panel { grid-column: 1 / 2; }
+        #clause-list {
+            flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+        }
+        .clause-block {
+            background-color: var(--scad-slate); color: var(--scad-vellum);
+            border: 2px solid #1a1a1a; padding: 10px; cursor: pointer;
+            display: flex; align-items: center; transition: background-color 0.2s;
+        }
+        .clause-block:hover { background-color: #555c66; }
+        .clause-block.active { background-color: var(--scad-amber); color: #000; }
+        .clause-block.disabled { background: #333; color: #666; cursor: not-allowed; opacity: 0.5; }
+        .clause-block-glyph { width: 30px; height: 30px; margin-right: 10px; flex-shrink: 0; }
+        .clause-block-glyph svg { fill: currentColor; }
+
+        /* --- GRAMMAR WHEELS (CENTER-LEFT) --- */
+        #grammar-panel { grid-column: 2 / 3; }
+        .wheel-module { position: relative; width: 270px; height: 270px; }
+        .wheel-svg { width: 100%; height: 100%; }
+        .wheel-svg .wheel-bg { fill: var(--scad-slate); stroke: #1a1a1a; stroke-width: 2; }
+        .wheel-svg .wheel-text { font-family: var(--font-main); font-size: 18px; fill: var(--scad-vellum); }
+        .wheel-svg .wheel-text.selected { fill: var(--scad-amber); font-weight: bold; }
+        .wheel-svg .wheel-pointer { fill: var(--scad-amber); stroke: #000; stroke-width: 1px; }
+
+        /* --- MANUSCRIPT (CENTER) --- */
+        #manuscript-panel { grid-column: 3 / 4; background: var(--scad-vellum); overflow-y: auto; }
+        #manuscript-content { padding: 40px; }
+        .script-item { margin-bottom: 15px; display: flex; }
+        .script-item-margin { width: 50px; text-align: center; }
+        .margin-glyph svg { width: 30px; height: 30px; fill: var(--scad-ink); opacity: 0.6; }
+
+        .script-item-main { flex-grow: 1; border-left: 1px solid #ccc; padding-left: 15px; }
+        .script-item-main.selected-for-encoding { background-color: #efe8d9; }
+        .script-block {
+            font-family: var(--font-script); font-size: 1.5rem; color: var(--scad-ink);
+            display: flex; align-items: center; cursor: pointer;
+        }
+        .script-block .glyph { width: 25px; height: 25px; fill: var(--scad-ink); margin-right: 10px; }
+        .script-block.glitched { animation: text-glitch 0.2s infinite; }
+        .script-block.glitched .glyph { fill: var(--scad-red-error); }
+
+        .connector { text-align: center; margin: 10px 0; }
+        .connector-line { width: 1px; height: 20px; background: #ccc; margin: 0 auto; }
+        .connector-text {
+            color: #777; font-family: var(--font-main); font-size: 0.9rem;
+            background: var(--scad-vellum); display: inline-block; padding: 0 5px;
+            position: relative; top: -10px;
+        }
+        
+        /* --- SETTINGS & ENCODER (RIGHT) --- */
+        #settings-panel { grid-column: 4 / 5; }
+        #margin-encoder-module {
+            display: flex; flex-direction: column; align-items: center;
+        }
+        #margin-encoder-wheel { width: 200px; height: 200px; position: relative; }
+        
+        .toggle-unit { display: flex; justify-content: space-between; align-items: center; }
+        input[type="range"] { width: 60%; } /* Basic styling for brevity */
+        
+        /* --- SHARED COMPONENTS --- */
+        .status-light {
+            width: 15px; height: 15px; border: 1px solid #000;
+            border-radius: 50%; background-color: #333;
+        }
+        .status-light.active { animation: blink-active 1.5s infinite; }
+
+    </style>
+</head>
+<body>
+    <div id="scad-chassis">
+        <div class="panel" id="clause-library-panel">
+            <h2 class="module-label">CLAUSE LIBRARY</h2>
+            <div id="clause-list"></div>
+        </div>
+        <div class="panel" id="grammar-panel">
+            <h2 class="module-label">CHAIN-LOGIC GRAMMAR</h2>
+            <div class="wheel-module" id="primary-wheel-module"></div>
+            <div class="wheel-module" id="secondary-wheel-module"></div>
+            <div style="text-align:center; padding-top: 10px;">
+                <button id="commit-btn" style="width: 80%; padding: 10px; font-size: 1.1rem;" disabled>COMMIT LINK</button>
+            </div>
+        </div>
+        <div class="panel" id="manuscript-panel">
+            <div id="manuscript-content"></div>
+        </div>
+        <div class="panel" id="settings-panel">
+            <h2 class="module-label">MARGIN ENCODER</h2>
+            <div id="margin-encoder-module">
+                 <div class="wheel-module" id="margin-encoder-wheel"></div>
+            </div>
+            <h2 class="module-label">SYSTEM INTEGRITY</h2>
+            <div class="toggle-unit">
+                <label for="decay-slider">Cultural Decay</label>
+                <input type="range" id="decay-slider" min="0" max="1" value="0" step="0.01">
+            </div>
+            <div class="toggle-unit">
+                <label for="error-slider">Calligraphic Error</label>
+                <input type="range" id="error-slider" min="0" max="0.2" value="0" step="0.005">
+            </div>
+            <div class="toggle-unit">
+                 <label>Proximity Filter</label>
+                 <div id="proximity-toggle" class="status-light"></div>
+            </div>
+            <button id="clear-btn" style="width: 100%; padding: 10px; margin-top: auto;">CLEAR SCRIPT</button>
+        </div>
+    </div>
+
+<script>
+const SCAD = {
+    // --- Data ---
+    CLAUSE_DATA: [
+        { id: 'C01', text: 'The Mandate is declared', glyph: 'M10 50 H90 M50 10 V90', type: 'opening' },
+        { id: 'C02', text: 'The boundary is established', glyph: 'M10 10 H90 V90 H10Z', type: 'foundational' },
+        { id: 'C03', text: 'A sacrifice is offered', glyph: 'M50 10 L10 90 H90Z', type: 'action' },
+        { id: 'C04', text: 'Consensus is achieved', glyph: 'M50 50 m-30 0 a30 30 0 1 0 60 0a30 30 0 1 0-60 0', type: 'result' },
+        { id: 'C05', text: 'The system adapts', glyph: 'M10 50 C40 20 60 80 90 50', type: 'action' },
+        { id: 'C06', text: 'A schism is recorded', glyph: 'M50 10 V90 M10 50 H40 M60 50 H90', type: 'negation' },
+        { id: 'C07', text: 'Memory is encoded', glyph: 'M10 20 H90 M10 40 H90 M10 60 H90 M10 80 H90', type: 'foundational' },
+        { id: 'C08', text: 'The cycle repeats', glyph: 'M50 10 A40 40 0 1 1 49.9 10 M50 20 L50 0', type: 'result' },
+    ],
+    PROXIMITY_RULES: { 'opening': ['negation'], 'action': ['action'], 'result': ['foundational'] },
+    MARGIN_GLYPHS: ['M50 10 L50 90', 'M10 50 H90', 'M10 10 L90 90', 'M90 10 L10 90', 'M50 50 m-20 0 a20 20 0 1 0 40 0a20 20 0 1 0-40 0', 'M10 10 H90 V90 H10 Z'],
+
+    // --- DOM Elements ---
+    elems: {
+        clauseList: document.getElementById('clause-list'),
+        manuscriptContent: document.getElementById('manuscript-content'),
+        primaryWheelModule: document.getElementById('primary-wheel-module'),
+        secondaryWheelModule: document.getElementById('secondary-wheel-module'),
+        marginEncoderWheel: document.getElementById('margin-encoder-wheel'),
+        commitBtn: document.getElementById('commit-btn'),
+        clearBtn: document.getElementById('clear-btn'),
+        decaySlider: document.getElementById('decay-slider'),
+        errorSlider: document.getElementById('error-slider'),
+        proximityToggle: document.getElementById('proximity-toggle'),
+    },
+    
+    // --- State ---
+    state: {
+        scriptChain: [], // {clauseId, primaryConnector, secondaryConnector, marginGlyphIndex, isGlitched, decay: {x,y,r}}
+        activeClauseId: null, // ID of clause selected from library, waiting for link
+        selectedForEncoding: null, // Index in scriptChain selected for margin encoding
+        primaryWheel: { angle: 0, options: ['CONSEQUENCE', 'CONDITION', 'NEGATION', 'ELABORATION'] },
+        secondaryWheel: { angle: 0, options: ['AND', 'OR', 'BUT', 'NOT'] },
+        marginWheel: { angle: 0, options: SCAD.MARGIN_GLYPHS },
+        proximityFilter: false,
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null,
+        clack: null, tick: null, bzzt: null, print: null,
+        init() { this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.clack = this.createSound(150, 0.1, 'square', 0.1);
+            this.tick = this.createSound(1000, 0.05, 'sine', 0.02);
+            this.bzzt = this.createSound(80, 0.1, 'sawtooth', 0.08);
+            this.print = this.createSound(440, 0.3, 'triangle', 0.05, true);
+        },
+        createSound(freq, dur, type, vol, desc=false) {
+            return () => { if (!this.ctx) return;
+                const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                o.connect(g); g.connect(this.ctx.destination); o.type = type;
+                o.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                if (desc) o.frequency.exponentialRampToValueAtTime(freq/2, this.ctx.currentTime + dur);
+                g.gain.setValueAtTime(vol, this.ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + dur);
+                o.start(); o.stop(this.ctx.currentTime + dur);
+            };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.renderClauseLibrary();
+        this.renderWheel('primary', this.state.primaryWheel, this.elems.primaryWheelModule, 'LOGIC');
+        this.renderWheel('secondary', this.state.secondaryWheel, this.elems.secondaryWheelModule, 'SUB-LOGIC');
+        this.renderWheel('margin', this.state.marginWheel, this.elems.marginEncoderWheel, 'ENCODER', true);
+        this.addEventListeners();
+    },
+
+    addEventListeners() {
+        this.elems.commitBtn.onclick = () => this.commitLink();
+        this.elems.clearBtn.onclick = () => this.clearScript();
+        this.elems.decaySlider.oninput = () => this.renderScript();
+        this.elems.errorSlider.oninput = () => this.renderScript();
+        this.elems.proximityToggle.onclick = () => {
+            this.state.proximityFilter = !this.state.proximityFilter;
+            this.elems.proximityToggle.classList.toggle('active');
+            this.renderClauseLibrary();
+        };
+    },
+
+    // --- Core Logic ---
+    selectClause(id) {
+        if (this.state.activeClauseId === id) {
+            this.state.activeClauseId = null;
+        } else {
+            this.state.activeClauseId = id;
+        }
+        this.audio.clack();
+        this.elems.commitBtn.disabled = this.state.scriptChain.length === 0;
+        this.renderClauseLibrary();
+    },
+    
+    commitLink() {
+        if (!this.state.activeClauseId) return;
+        const pIndex = Math.floor(this.state.primaryWheel.angle / 90);
+        const sIndex = Math.floor(this.state.secondaryWheel.angle / 90);
+
+        if (this.state.scriptChain.length > 0) {
+            const lastLink = this.state.scriptChain[this.state.scriptChain.length - 1];
+            lastLink.primaryConnector = this.state.primaryWheel.options[pIndex];
+            lastLink.secondaryConnector = this.state.secondaryWheel.options[sIndex];
+        }
+
+        this.state.scriptChain.push({
+            clauseId: this.state.activeClauseId,
+            isGlitched: Math.random() < this.elems.errorSlider.value,
+            decay: {
+                x: (Math.random() - 0.5) * 10,
+                y: (Math.random() - 0.5) * 10,
+                r: (Math.random() - 0.5) * 2,
+            }
+        });
+
+        this.state.activeClauseId = null;
+        this.elems.commitBtn.disabled = true;
+        this.audio.print();
+        this.renderScript();
+        this.renderClauseLibrary();
+    },
+
+    clearScript() {
+        this.state.scriptChain = [];
+        this.state.activeClauseId = null;
+        this.renderScript();
+        this.renderClauseLibrary();
+    },
+
+    selectForEncoding(index) {
+        this.state.selectedForEncoding = this.state.selectedForEncoding === index ? null : index;
+        this.audio.bzzt();
+        this.renderScript();
+    },
+
+    // --- Rendering ---
+    renderClauseLibrary() {
+        const lastClause = this.state.scriptChain.length > 0 ? this.CLAUSE_DATA.find(c => c.id === this.state.scriptChain[this.state.scriptChain.length - 1].clauseId) : null;
+
+        this.elems.clauseList.innerHTML = this.CLAUSE_DATA.map(clause => {
+            let isDisabled = false;
+            if (this.state.proximityFilter && lastClause) {
+                const forbiddenTypes = this.PROXIMITY_RULES[lastClause.type] || [];
+                if (forbiddenTypes.includes(clause.type)) {
+                    isDisabled = true;
+                }
+            }
+            return `<div class="clause-block ${this.state.activeClauseId === clause.id ? 'active' : ''} ${isDisabled ? 'disabled' : ''}" data-id="${clause.id}">
+                <div class="clause-block-glyph"><svg viewbox="0 0 100 100"><path d="${clause.glyph}"></path></svg></div>
+                <span>${clause.text}</span>
+            </div>`;
+        }).join('');
+        
+        // Re-add listeners after re-render
+        this.elems.clauseList.querySelectorAll('.clause-block:not(.disabled)').forEach(el => {
+            el.onclick = () => this.selectClause(el.dataset.id);
+        });
+    },
+
+    renderWheel(type, wheelState, container, label, isEncoder = false) {
+        const numOptions = wheelState.options.length;
+        const angleStep = 360 / numOptions;
+        const radius = isEncoder ? 70 : 100;
+
+        let optionsHtml = wheelState.options.map((opt, i) => {
+            const angle = i * angleStep;
+            const selectedClass = Math.abs(wheelState.angle % 360 - angle) < angleStep / 2 ? 'selected' : '';
+            return `<text class="wheel-text ${selectedClass}" transform="rotate(${angle} ${radius} ${radius}) translate(${radius} 20)">${isEncoder ? '' : opt}</text>`;
+        }).join('');
+
+        if(isEncoder) {
+             optionsHtml = wheelState.options.map((path, i) => {
+                const angle = i * angleStep;
+                const x = radius + Math.cos(angle * Math.PI / 180 - Math.PI / 2) * (radius - 20);
+                const y = radius + Math.sin(angle * Math.PI / 180 - Math.PI / 2) * (radius - 20);
+                return `<path d="${path}" transform="translate(${x-10} ${y-10}) scale(0.2)" stroke-width="10" stroke="${this.SCAD.state.marginWheel.angle % 360 === angle ? 'var(--scad-amber)' : 'var(--scad-vellum)'}" fill="none"/>`;
+            }).join('');
+        }
+
+        container.innerHTML = `<svg class="wheel-svg" viewbox="0 0 ${radius*2} ${radius*2}">
+            <circle class="wheel-bg" cx="${radius}" cy="${radius}" r="${radius-5}"></circle>
+            ${optionsHtml}
+            <polygon class="wheel-pointer" points="${radius-10},0 ${radius+10},0 ${radius},20" transform="translate(0, ${isEncoder ? -10 : 0})"/>
+            <text class="wheel-text" x="${radius}" y="${radius*2-5}" text-anchor="middle">${label}</text>
+        </svg>`;
+
+        let isDragging = false;
+        container.onmousedown = () => { isDragging = true; };
+        document.onmouseup = () => { isDragging = false; };
+        document.onmousemove = (e) => {
+            if (isDragging && e.target.closest('.wheel-module') === container) {
+                wheelState.angle += e.movementY * -1;
+                container.querySelector('.wheel-svg').style.transform = `rotate(${wheelState.angle}deg)`;
+                this.audio.tick();
+
+                if(isEncoder && this.state.selectedForEncoding !== null) {
+                    const selectedIndex = Math.round(wheelState.angle / angleStep) % numOptions;
+                    const normalizedIndex = (selectedIndex + numOptions) % numOptions;
+                    this.state.scriptChain[this.state.selectedForEncoding].marginGlyphIndex = normalizedIndex;
+                    this.renderScript();
+                }
+            }
+        };
+    },
+
+    renderScript() {
+        const decay = this.elems.decaySlider.value;
+        this.elems.manuscriptContent.innerHTML = this.state.scriptChain.map((item, index) => {
+            const clause = this.CLAUSE_DATA.find(c => c.id === item.clauseId);
+            const decayStyle = `transform: translate(${item.decay.x * decay}px, ${item.decay.y * decay}px) rotate(${item.decay.r * decay}deg); opacity: ${1 - (0.5 * decay)}`;
+            const marginGlyphHtml = typeof item.marginGlyphIndex === 'number' ? `<svg viewbox="0 0 100 100"><path d="${this.MARGIN_GLYPHS[item.marginGlyphIndex]}"></path></svg>` : '';
+            const connector = index > 0 ? this.state.scriptChain[index - 1] : null;
+            const connectorHtml = connector ? `<div class="connector">
+                <div class="connector-line"></div>
+                <div class="connector-text">${connector.primaryConnector} ${connector.secondaryConnector || ''}</div>
+            </div>` : '';
+
+            return `
+                ${connectorHtml}
+                <div class="script-item">
+                    <div class="script-item-margin">${marginGlyphHtml}</div>
+                    <div class="script-item-main ${this.state.selectedForEncoding === index ? 'selected-for-encoding' : ''}" data-index="${index}" style="${decayStyle}">
+                        <div class="script-block ${item.isGlitched ? 'glitched' : ''}">
+                            <div class="glyph"><svg viewbox="0 0 100 100"><path d="${clause.glyph}"></path></svg></div>
+                            <span>${clause.text}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        this.elems.manuscriptContent.querySelectorAll('.script-item-main').forEach(el => {
+            el.onclick = () => this.selectForEncoding(parseInt(el.dataset.index));
+        });
+    },
+};
+
+SCAD.init();
+</script>
+</body>
+</html>

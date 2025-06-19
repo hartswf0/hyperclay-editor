@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // AUREOLITHIC DESKTOP // ONTOLOGICAL TERRAIN</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Aureolithic Desktop - Interface for Ontological Terrain Mapping
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: A 3D, physics-based interface for visualizing and manipulating
+        *   the structural and symbolic relationships between concepts.
+        */
+        :root {
+            --ad-bg: #0d1018;
+            --ad-text: #c0c8d8;
+            --ad-text-dim: #6c7888;
+            --ad-hud-bg: rgba(26, 30, 40, 0.8);
+            --ad-border: #3c4250;
+            --font-main: 'Share Tech Mono', monospace;
+            /* Metaphysical Signatures */
+            --sig-order: #8be9fd; /* cyan */
+            --sig-chaos: #ff5555; /* red */
+            --sig-creation: #50fa7b; /* green */
+            --sig-knowledge: #f1fa8c; /* yellow */
+            --sig-human: #ff79c6; /* pink */
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes collapse-anim {
+            0% { transform: translate3d(var(--x), var(--y), var(--z)) scale(1); filter: blur(0); }
+            100% { transform: translate3d(var(--x), var(--y), var(--z)) scale(0); filter: blur(20px) grayscale(1); }
+        }
+        @keyframes paradox-field-anim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; margin: 0; overflow: hidden;
+            font-family: var(--font-main); color: var(--ad-text);
+        }
+        #desktop-container {
+            width: 100vw; height: 100vh;
+            perspective: 1000px;
+            background: var(--ad-bg);
+            background-image: radial-gradient(var(--ad-text-dim) 0.5px, transparent 0.5px);
+            background-size: 20px 20px;
+        }
+
+        /* --- 3D FIELD --- */
+        #ontological-field {
+            width: 100%; height: 100%;
+            position: absolute;
+            transform-style: preserve-3d;
+        }
+        #reality-clusters {
+            width: 100%; height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.2s ease-out;
+        }
+        .concept-object {
+            position: absolute;
+            width: 100px; height: 100px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--color);
+            border-radius: 50%;
+            box-shadow: 0 0 15px 2px var(--color), inset 0 0 10px 1px var(--color);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: grab;
+            transform-origin: center center;
+            backface-visibility: hidden;
+        }
+        .concept-object:active { cursor: grabbing; }
+        .concept-object.selected {
+            border-width: 4px;
+            box-shadow: 0 0 25px 5px var(--color), inset 0 0 20px 3px var(--color);
+        }
+        .concept-glyph { font-size: 2rem; color: var(--color); }
+        .concept-label { font-size: 0.9rem; }
+        .concept-object.collapsing { animation: collapse-anim 0.5s forwards; }
+
+        /* --- OVERLAYS --- */
+        #connection-svg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; overflow: visible;
+        }
+        #connection-svg .bond {
+            stroke-width: 2; stroke-linecap: round;
+            filter: drop-shadow(0 0 3px var(--color));
+        }
+        #connection-svg .potential {
+            stroke: var(--ad-text-dim); stroke-width: 1; stroke-dasharray: 5 5;
+            opacity: 0.3;
+        }
+
+        #paradox-field {
+            position: absolute; border-radius: 50%;
+            background: radial-gradient(circle, transparent 30%, rgba(255,85,85,0.4) 60%, transparent 70%);
+            pointer-events: none; opacity: 0;
+            transition: opacity 0.5s;
+        }
+        #paradox-field.active { opacity: 1; }
+
+        /* --- HUD --- */
+        #hud {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 20px; box-sizing: border-box;
+            display: grid; grid-template-columns: 300px 1fr 400px;
+            grid-template-rows: 1fr 200px; gap: 20px;
+            pointer-events: none;
+        }
+        .hud-panel {
+            background: var(--ad-hud-bg); backdrop-filter: blur(5px);
+            border: 1px solid var(--ad-border); padding: 15px;
+            pointer-events: all;
+        }
+        .hud-label {
+            font-size: 1.2rem; border-bottom: 1px solid var(--ad-border);
+            padding-bottom: 8px; margin: 0 0 15px 0; color: var(--ad-text-highlight);
+        }
+
+        #inspector-panel { grid-area: 1 / 1 / 2 / 2; }
+        .inspector-field { margin-bottom: 10px; }
+        .inspector-field .label { color: var(--ad-text-dim); }
+        .inspector-field .value { font-size: 1.1rem; color: var(--color); }
+
+        #log-panel { grid-area: 2 / 1 / 3 / 3; }
+        #system-log { height: 100%; overflow-y: auto; }
+        .log-entry { margin-bottom: 5px; }
+        .log-entry.support { color: var(--sig-creation); }
+        .log-entry.tension { color: var(--sig-chaos); }
+        .log-entry.collapse { color: var(--sig-chaos); font-weight: bold; }
+
+    </style>
+</head>
+<body>
+    <div id="desktop-container">
+        <div id="ontological-field">
+            <div id="reality-clusters">
+                <!-- Concept objects will be injected here by JS -->
+                <div id="paradox-field"></div>
+            </div>
+        </div>
+        <svg id="connection-svg"></svg>
+        <div id="hud">
+            <div class="hud-panel" id="inspector-panel">
+                <h2 class="hud-label">METAPHYSICAL INSPECTOR</h2>
+                <div id="inspector-content">Select a concept...</div>
+            </div>
+            <div class="hud-panel" id="log-panel">
+                 <h2 class="hud-label">SYSTEM LOG</h2>
+                 <div id="system-log"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const AureolithicDesktop = {
+    // --- Data ---
+    CONCEPTS: [
+        { name: 'Law', signature: 'order', glyph: '⚖️', mass: 1.5 },
+        { name: 'Freedom', signature: 'human', glyph: '🕊️', mass: 1.0 },
+        { name: 'Order', signature: 'order', glyph: '🏛️', mass: 1.5 },
+        { name: 'Chaos', signature: 'chaos', glyph: '🔥', mass: 1.2 },
+        { name: 'Memory', signature: 'human', glyph: '📜', mass: 0.8 },
+        { name: 'Art', signature: 'creation', glyph: '🎨', mass: 0.9 },
+        { name: 'Technology', signature: 'creation', glyph: '⚙️', mass: 1.3 },
+        { name: 'Truth', signature: 'knowledge', glyph: '💡', mass: 0.7 },
+        { name: 'Power', signature: 'order', glyph: '👑', mass: 1.8 },
+        { name: 'Nature', signature: 'creation', glyph: '🌳', mass: 2.0 },
+    ],
+    COMPATIBILITY: {
+        'order': { support: ['order', 'knowledge'], tension: ['human', 'chaos'] },
+        'chaos': { support: ['chaos', 'creation'], tension: ['order', 'knowledge'] },
+        'creation': { support: ['creation', 'human', 'chaos'], tension: [] },
+        'knowledge': { support: ['knowledge', 'order'], tension: ['chaos'] },
+        'human': { support: ['human', 'creation'], tension: ['order'] },
+    },
+    
+    // --- DOM Elements ---
+    elems: {
+        field: document.getElementById('ontological-field'),
+        clusters: document.getElementById('reality-clusters'),
+        svg: document.getElementById('connection-svg'),
+        paradoxField: document.getElementById('paradox-field'),
+        inspector: document.getElementById('inspector-content'),
+        log: document.getElementById('system-log'),
+    },
+    
+    // --- State ---
+    state: {
+        objects: [],
+        camera: { rotX: -20, rotY: 30 },
+        dragging: { active: false, object: null, startX: 0, startY: 0 },
+        selectedObject: null,
+        lastLog: ''
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, hum: null, humGain: null, click: null, bond: null, tension: null, collapse: null,
+        init() {
+            this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.click = this.createSound(1200, 0.05, 0.1, 'sine');
+            this.bond = this.createSound(880, 0.2, 0.2, 'triangle', true);
+            this.collapse = this.createSound(50, 0.8, 0.3, 'sawtooth');
+            // Tension hum
+            const tensionOsc = this.ctx.createOscillator();
+            tensionOsc.type = 'sawtooth'; tensionOsc.frequency.value = 60;
+            const tensionGain = this.ctx.createGain(); tensionGain.gain.value = 0;
+            tensionOsc.connect(tensionGain); tensionGain.connect(this.ctx.destination); tensionOsc.start();
+            this.tension = (level) => tensionGain.gain.setTargetAtTime(level * 0.1, this.ctx.currentTime, 0.2);
+        },
+        createSound(freq, dur, vol, type, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type=type; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*1.5,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.logMessage("AUREOLITHIC DESKTOP V.1.7 ONLINE. MAPPING ONTOLOGICAL TERRAIN...");
+        this.createConcepts();
+        this.addEventListeners();
+        this.updateCamera();
+        this.physicsLoop();
+    },
+
+    createConcepts() {
+        const fieldSize = 400;
+        this.CONCEPTS.forEach(c => {
+            const el = document.createElement('div');
+            el.className = 'concept-object';
+            el.innerHTML = `<div class="concept-glyph">${c.glyph}</div><div class="concept-label">${c.name}</div>`;
+            el.style.setProperty('--color', `var(--sig-${c.signature})`);
+            
+            const obj = {
+                ...c,
+                el: el,
+                pos: { x: (Math.random()-0.5)*fieldSize, y: (Math.random()-0.5)*fieldSize, z: (Math.random()-0.5)*fieldSize },
+                vel: { x: (Math.random()-0.5), y: (Math.random()-0.5), z: (Math.random()-0.5) },
+                friction: 0.95
+            };
+            
+            this.state.objects.push(obj);
+            this.elems.clusters.appendChild(el);
+
+            el.addEventListener('mousedown', (e) => {
+                // Lazy audio init on first interaction
+                if (!this.audio.ctx) this.audio.init();
+                this.audio.click();
+                e.stopPropagation();
+                this.state.dragging.active = true;
+                this.state.dragging.object = obj;
+                this.setSelected(obj);
+            });
+        });
+    },
+
+    addEventListeners() {
+        document.addEventListener('mousedown', (e) => {
+            this.state.dragging.startX = e.clientX;
+            this.state.dragging.startY = e.clientY;
+            document.addEventListener('mousemove', this.handleDrag);
+            if (e.target.id === 'desktop-container' || e.target.id === 'ontological-field') {
+                 // Lazy audio init
+                if (!this.audio.ctx) this.audio.init();
+                this.setSelected(null);
+            }
+        });
+        document.addEventListener('mouseup', () => {
+            this.state.dragging.active = false;
+            this.state.dragging.object = null;
+            document.removeEventListener('mousemove', this.handleDrag);
+        });
+    },
+
+    handleDrag: (e) => { // Use arrow function to preserve 'this'
+        if(AureolithicDesktop.state.dragging.object) return; // Don't rotate camera if dragging an object
+        const dx = e.clientX - AureolithicDesktop.state.dragging.startX;
+        const dy = e.clientY - AureolithicDesktop.state.dragging.startY;
+        AureolithicDesktop.state.camera.rotY += dx * 0.2;
+        AureolithicDesktop.state.camera.rotX -= dy * 0.2;
+        AureolithicDesktop.updateCamera();
+        AureolithicDesktop.state.dragging.startX = e.clientX;
+        AureolithicDesktop.state.dragging.startY = e.clientY;
+    },
+    
+    // --- Core Logic & Physics ---
+    physicsLoop() {
+        const objects = this.state.objects;
+        let activeTension = 0;
+        let paradoxCenter = { x: 0, y: 0, count: 0 };
+        const bonds = [];
+        
+        objects.forEach(obj => {
+            // Apply friction & central gravity
+            obj.vel.x *= obj.friction; obj.vel.y *= obj.friction; obj.vel.z *= obj.friction;
+            obj.vel.x -= obj.pos.x * 0.0001; obj.vel.y -= obj.pos.y * 0.0001; obj.vel.z -= obj.pos.z * 0.0001;
+
+            if(this.state.dragging.object === obj) {
+                // If dragging, don't apply physics. Position is set by user.
+                // Naive drag logic: moves on a plane relative to camera.
+                const moveSpeed = 2;
+                obj.pos.x += event.movementX * moveSpeed;
+                obj.pos.y += event.movementY * moveSpeed;
+            } else {
+                 // Interactions with other objects
+                objects.forEach(other => {
+                    if (obj === other) return;
+                    const dx = other.pos.x - obj.pos.x, dy = other.pos.y - obj.pos.y, dz = other.pos.z - obj.pos.z;
+                    const dist = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+                    const force = -200 / (dist * dist); // General repulsion
+                    obj.vel.x += dx/dist * force / obj.mass; obj.vel.y += dy/dist * force / obj.mass; obj.vel.z += dz/dist * force / obj.mass;
+
+                    // Compatibility physics
+                    if (dist < 200) {
+                        const rules = this.COMPATIBILITY[obj.signature];
+                        if (rules.support.includes(other.signature)) { // ATTRACTION
+                             const supportForce = (dist - 120) * 0.0005;
+                             obj.vel.x += dx/dist * supportForce; obj.vel.y += dy/dist * supportForce; obj.vel.z += dz/dist * supportForce;
+                             if(dist < 150) bonds.push({p1: obj.pos, p2: other.pos, color: `var(--sig-${obj.signature})`});
+                        } else if (rules.tension.includes(other.signature)) { // REPULSION
+                            const tensionForce = -2000 / (dist*dist);
+                             obj.vel.x += dx/dist * tensionForce; obj.vel.y += dy/dist * tensionForce; obj.vel.z += dz/dist * tensionForce;
+                             activeTension = Math.max(activeTension, 1 - dist/200);
+                             paradoxCenter.x += (obj.pos.x + other.pos.x) / 2;
+                             paradoxCenter.y += (obj.pos.y + other.pos.y) / 2;
+                             paradoxCenter.count++;
+                        }
+                    }
+                });
+            }
+            // Update position
+            obj.pos.x += obj.vel.x; obj.pos.y += obj.vel.y; obj.pos.z += obj.vel.z;
+        });
+
+        this.checkCollapse();
+        this.updateVisuals(objects, bonds, activeTension, paradoxCenter);
+        requestAnimationFrame(() => this.physicsLoop());
+    },
+    
+    checkCollapse() {
+        const objects = this.state.objects;
+        for (let i = 0; i < objects.length; i++) {
+            for (let j = i + 1; j < objects.length; j++) {
+                const o1 = objects[i], o2 = objects[j];
+                const dist = Math.hypot(o1.pos.x - o2.pos.x, o1.pos.y - o2.pos.y, o1.pos.z - o2.pos.z);
+                if (dist < 50 && o1.signature === 'chaos' && o2.signature === 'order') {
+                    this.collapse(o1); this.collapse(o2);
+                    return; // exit after one collapse per frame
+                }
+            }
+        }
+    },
+
+    collapse(obj) {
+        if(obj.collapsing) return;
+        obj.collapsing = true;
+        this.audio.collapse();
+        this.logMessage(`ONTOLOGICAL COLLAPSE: [${obj.name}] has destabilized.`, 'collapse');
+        obj.el.style.setProperty('--x', `${obj.pos.x}px`);
+        obj.el.style.setProperty('--y', `${obj.pos.y}px`);
+        obj.el.style.setProperty('--z', `${obj.pos.z}px`);
+        obj.el.classList.add('collapsing');
+        setTimeout(() => {
+            this.state.objects = this.state.objects.filter(o => o !== obj);
+            obj.el.remove();
+        }, 500);
+    },
+
+    // --- Rendering & UI ---
+    updateVisuals(objects, bonds, activeTension, paradoxCenter) {
+        // Update 3D object positions
+        objects.forEach(obj => {
+            if (!obj.collapsing) {
+                obj.el.style.transform = `translate3D(${obj.pos.x}px, ${obj.pos.y}px, ${obj.pos.z}px) rotateX(${-this.state.camera.rotX}deg) rotateY(${-this.state.camera.rotY}deg)`;
+            }
+        });
+        
+        // Update SVG lines
+        const svgHTML = bonds.map(b => `<line class="bond" x1="${b.p1.x}" y1="${b.p1.y}" x2="${b.p2.x}" y2="${b.p2.y}" style="stroke: ${b.color}; --color: ${b.color};" />`).join('');
+        this.elems.svg.innerHTML = svgHTML; // Naive but simple for this demo
+
+        // Update paradox field
+        if (activeTension > 0) {
+            this.elems.paradoxField.classList.add('active');
+            this.elems.paradoxField.style.opacity = activeTension;
+            const avgX = paradoxCenter.x / paradoxCenter.count;
+            const avgY = paradoxCenter.y / paradoxCenter.count;
+            this.elems.paradoxField.style.transform = `translate3d(-50%, -50%, 0) translate3d(${avgX}px, ${avgY}px, 0px) rotateX(${-this.state.camera.rotX}deg) rotateY(${-this.state.camera.rotY}deg)`;
+            this.elems.paradoxField.style.width = this.elems.paradoxField.style.height = `${200 * activeTension + 100}px`;
+            this.logMessage(`TENSION DETECTED.`, 'tension');
+        } else {
+            this.elems.paradoxField.classList.remove('active');
+        }
+        if(this.audio.tension) this.audio.tension(activeTension);
+    },
+
+    updateCamera() {
+        this.elems.clusters.style.transform = `translateZ(-200px) rotateX(${this.state.camera.rotX}deg) rotateY(${this.state.camera.rotY}deg)`;
+    },
+
+    setSelected(obj) {
+        this.state.selectedObject = obj;
+        this.state.objects.forEach(o => o.el.classList.remove('selected'));
+        if(obj) {
+            obj.el.classList.add('selected');
+            this.elems.inspector.innerHTML = `
+                <div class="inspector-field">
+                    <div class="label">CONCEPT</div>
+                    <div class="value" style="--color: var(--sig-${obj.signature})">${obj.name.toUpperCase()}</div>
+                </div>
+                <div class="inspector-field">
+                    <div class="label">METAPHYSICAL SIGNATURE</div>
+                    <div class="value" style="--color: var(--sig-${obj.signature})">${obj.signature.toUpperCase()}</div>
+                </div>
+                <div class="inspector-field">
+                    <div class="label">ONTOLOGICAL WEIGHT</div>
+                    <div class="value" style="--color: var(--sig-${obj.signature})">${obj.mass.toFixed(2)}</div>
+                </div>
+            `;
+        } else {
+             this.elems.inspector.innerHTML = 'Select a concept...';
+        }
+    },
+    
+    logMessage(msg, type = 'info') {
+        if(this.state.lastLog === msg) return; // Prevent log spam
+        this.state.lastLog = msg;
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `> ${msg}`;
+        this.elems.log.prepend(entry);
+        if(this.elems.log.childElementCount > 20) {
+            this.elems.log.lastChild.remove();
+        }
+        setTimeout(() => { if (this.state.lastLog === msg) this.state.lastLog = ''; }, 2000);
+    }
+};
+
+AureolithicDesktop.init();
+</script>
+</body>
+</html>

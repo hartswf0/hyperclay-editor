@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generative Heuristics for System Design</title>
+    <style>
+        /* --- GLOBAL STYLES & THEME --- */
+        :root {
+            --bg-color: #0a0a14;
+            --font-color: #e0e0e0;
+            --strand-bg: #1a1a2a;
+            --title-color: #ffffff;
+            --subtitle-color: #b0b0c0;
+            --border-color: #333344;
+            
+            /* Codon Colors */
+            --color-text: #5599ff;   /* Blue */
+            --color-image: #44cc77;  /* Green */
+            --color-link: #ffdd44;   /* Yellow */
+            --color-quote: #ff5566;  /* Red */
+            --color-video: #aa66ff;  /* Purple */
+            --color-ref-line: rgba(150, 150, 180, 0.4);
+            
+            font-family: 'SF Mono', 'Menlo', 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--font-color);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            overscroll-behavior-y: contain;
+        }
+
+        /* --- HEADER --- */
+        #title-header {
+            text-align: center;
+            padding: 2rem 1rem;
+            position: sticky;
+            top: 0;
+            background: linear-gradient(180deg, var(--bg-color) 70%, transparent 100%);
+            z-index: 100;
+        }
+
+        #title-header h1 {
+            font-size: 2rem;
+            margin: 0;
+            color: var(--title-color);
+            letter-spacing: 1px;
+        }
+        #title-header h1 .icon { font-family: sans-serif; }
+
+        #title-header p {
+            font-size: 1rem;
+            color: var(--subtitle-color);
+            max-width: 800px;
+            margin: 0.5rem auto 0;
+            line-height: 1.5;
+        }
+
+        /* --- MAIN CONTAINER & STRANDS --- */
+        #dna-container {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 2rem 2rem 200vh; /* Extra padding at bottom to trigger infinite scroll */
+            position: relative;
+            z-index: 10;
+        }
+
+        .strand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 20px;
+            background-color: var(--strand-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            width: 250px;
+        }
+        
+        .strand-title {
+            color: var(--title-color);
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            width: 100%;
+        }
+
+        /* --- CODONS (CONTENT NODES) --- */
+        .codon {
+            width: 90%;
+            height: 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.8s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            user-select: none;
+            border: 2px solid transparent;
+        }
+        
+        .codon.dragging {
+            opacity: 0.5;
+            transform: scale(1.05);
+        }
+
+        .codon.drag-over {
+            border: 2px dashed var(--subtitle-color);
+            transform: scale(1.02);
+        }
+
+        .codon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .codon.faded {
+            opacity: 0.3;
+            transform: scale(0.9);
+        }
+
+        /* Type-specific colors and icons */
+        .codon.type-text   { background-color: var(--color-text); }
+        .codon.type-image  { background-color: var(--color-image); }
+        .codon.type-link   { background-color: var(--color-link); }
+        .codon.type-quote  { background-color: var(--color-quote); }
+        .codon.type-video  { background-color: var(--color-video); }
+
+        .codon::before {
+            font-family: sans-serif;
+            font-weight: bold;
+        }
+        .codon.type-text::before   { content: '📄'; }
+        .codon.type-image::before  { content: '🖼️'; }
+        .codon.type-link::before   { content: '🔗'; }
+        .codon.type-quote::before  { content: '💬'; }
+        .codon.type-video::before  { content: '▶️'; }
+
+        /* --- REFERENCE LINES (SVG) --- */
+        #reference-layer-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #reference-layer-svg path {
+            stroke: var(--color-ref-line);
+            stroke-width: 1.5;
+            fill: none;
+            stroke-dasharray: 4 4;
+            transition: stroke 0.3s ease;
+        }
+        
+        #reference-layer-svg path.highlight {
+            stroke: var(--color-link);
+            stroke-width: 2.5;
+            stroke-dasharray: none;
+        }
+
+        /* --- GENE EXPRESSION PANE (MODAL) --- */
+        #expression-pane {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 10, 20, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: none; /* Changed by JS */
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        #expression-pane.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .pane-content {
+            background-color: var(--strand-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        
+        #expression-pane.visible .pane-content {
+            transform: scale(1);
+        }
+
+        .pane-content h2 {
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.8rem;
+        }
+
+        .pane-content h2 .type-icon {
+            font-size: 2rem;
+        }
+
+        .pane-media {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: var(--bg-color);
+            border-radius: 8px;
+        }
+        
+        .pane-media img {
+            max-width: 100%;
+            border-radius: 4px;
+        }
+        
+        .pane-media blockquote {
+            border-left: 3px solid var(--color-quote);
+            padding-left: 1rem;
+            margin: 0;
+            font-style: italic;
+            font-size: 1.2rem;
+        }
+        
+        .pane-media iframe {
+            width: 100%;
+            height: 315px;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .pane-metadata, .pane-transclusion {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--subtitle-color);
+        }
+        
+        .pane-metadata h3, .pane-transclusion h3 {
+            color: var(--font-color);
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.25rem;
+        }
+
+        .pane-metadata p {
+            margin: 0.25rem 0;
+        }
+        .pane-metadata strong {
+            color: var(--font-color);
+        }
+        
+        .pane-metadata a, .pane-transclusion a {
+            color: var(--color-link);
+            text-decoration: none;
+        }
+        
+        .pane-metadata a:hover, .pane-transclusion a:hover {
+            text-decoration: underline;
+        }
+
+        .transcluded-item {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+            background-color: var(--bg-color);
+        }
+        
+        .transcluded-item .type-icon {
+            margin-right: 0.5rem;
+        }
+
+        #close-pane {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2rem;
+            color: var(--subtitle-color);
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+        }
+        #close-pane:hover {
+            color: white;
+            transform: scale(1.1);
+        }
+
+    </style>
+</head>
+<body>
+
+    <header id="title-header">
+        <h1><span class="icon">🔧</span> Generative Heuristics for System Design <span class="icon">🧬</span></h1>
+        <p>A synthetic memory organism. Scroll to explore thought-strands. Click codons to inspect their genes. Drag to re-sequence.</p>
+    </header>
+
+    <div id="dna-container">
+        <!-- Strands will be generated by JavaScript -->
+    </div>
+
+    <svg id="reference-layer-svg"></svg>
+
+    <div id="expression-pane">
+        <div id="close-pane">×</div>
+        <div class="pane-content">
+            <h2 id="pane-title"><span class="type-icon"></span><span id="pane-title-text"></span></h2>
+            
+            <div id="pane-media-container" class="pane-media">
+                <!-- Media content goes here -->
+            </div>
+            
+            <div id="pane-transclusion-container" class="pane-transclusion">
+                <!-- Transcluded content goes here -->
+            </div>
+
+            <div class="pane-metadata">
+                <h3>Trace Metadata</h3>
+                <p><strong>Source:</strong> <a id="pane-source-link" href="#" target="_blank"><span id="pane-source"></span></a></p>
+                <p><strong>Author:</strong> <span id="pane-author"></span></p>
+                <p><strong>Timestamp:</strong> <span id="pane-timestamp"></span></p>
+                <p><strong>Tags:</strong> <span id="pane-tags"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- DATA MODEL --- //
+        // Every piece of content = a colored codon.
+        // Each array = a vertical strand.
+        
+        let codonIdCounter = 0;
+        const data = {
+            strands: [
+                {
+                    title: "Core Concepts",
+                    codons: [
+                        { id: ++codonIdCounter, type: 'text', title: 'The Memex Idea', content: 'As We May Think by Vannevar Bush proposed a "memex," a device in which an individual stores all their books, records, and communications, and which is mechanized so that it may be consulted with exceeding speed and flexibility.', metadata: { author: 'Vannevar Bush', source: 'The Atlantic', sourceURL: 'https://www.theatlantic.com/magazine/archive/1945/07/as-we-may-think/303881/', timestamp: '1945-07-01', tags: 'memex, hypertext, foundational' } },
+                        { id: ++codonIdCounter, type: 'quote', title: 'On Transclusion', content: 'The Xanadu model was based on the idea of "transclusion," where a part of one document can be included in another by reference, without losing its connection to the origin.', metadata: { author: 'Ted Nelson', source: 'Literary Machines', sourceURL: '#', timestamp: '1981-01-01', tags: 'xanadu, transclusion, hypertext' } },
+                        { id: ++codonIdCounter, type: 'image', title: 'Original Memex Sketch', content: 'https://history-computer.com/ModernComputer/Basis/images/Bush_Memex.jpg', metadata: { author: 'Vannevar Bush', source: 'Life Magazine', sourceURL: '#', timestamp: '1945-11-10', tags: 'diagram, memex, sketch' }, references: [1] },
+                        { id: ++codonIdCounter, type: 'link', title: 'Project Xanadu', content: 'http://xanadu.com/', metadata: { author: 'The Xanadu Team', source: 'Xanadu Official Site', sourceURL: 'http://xanadu.com/', timestamp: '1998-01-01', tags: 'project, website, xanadu' }, references: [2] },
+                    ]
+                },
+                {
+                    title: "System Design Patterns",
+                    codons: [
+                        { id: ++codonIdCounter, type: 'text', title: 'CQRS Pattern', content: 'Command Query Responsibility Segregation (CQRS) is a pattern that separates read and update operations for a data store. This can maximize performance, scalability, and security.', metadata: { author: 'Greg Young', source: 'Microsoft Docs', sourceURL: 'https://docs.microsoft.com/en-us/azure/architecture/patterns/cqrs', timestamp: '2016-01-01', tags: 'architecture, cqrs, scaling' } },
+                        { id: ++codonIdCounter, type: 'video', title: 'Event Sourcing Explained', content: 'https://www.youtube.com/embed/8JKjvY4etTY', metadata: { author: 'CodeOpinion', source: 'YouTube', sourceURL: 'https://www.youtube.com/watch?v=8JKjvY4etTY', timestamp: '2020-05-18', tags: 'event-sourcing, video, architecture' }, references: [5] },
+                        { id: ++codonIdCounter, type: 'quote', title: 'Benefits of Immutability', content: 'When data is immutable, you can share it freely among threads without locks, because you know it can never be changed.', metadata: { author: 'Martin Odersky', source: 'Scala Documentation', sourceURL: '#', timestamp: '2010-01-01', tags: 'immutability, concurrency, functional' } },
+                    ]
+                }
+            ]
+        };
+
+        const codonMap = new Map();
+
+        // --- DOM ELEMENTS --- //
+        const container = document.getElementById('dna-container');
+        const svgLayer = document.getElementById('reference-layer-svg');
+        const expressionPane = document.getElementById('expression-pane');
+        const closePaneBtn = document.getElementById('close-pane');
+
+        // --- CORE FUNCTIONS --- //
+
+        // Renders all strands from the data model
+        function renderAllStrands() {
+            container.innerHTML = '';
+            data.strands.forEach((strandData, index) => {
+                const strandEl = document.createElement('div');
+                strandEl.className = 'strand';
+                strandEl.dataset.strandIndex = index;
+                
+                const titleEl = document.createElement('div');
+                titleEl.className = 'strand-title';
+                titleEl.textContent = strandData.title;
+                strandEl.appendChild(titleEl);
+
+                strandData.codons.forEach(codonData => {
+                    const codonEl = createCodonElement(codonData);
+                    strandEl.appendChild(codonEl);
+                    codonMap.set(codonData.id, codonData);
+                });
+                container.appendChild(strandEl);
+            });
+            updateReferenceLines();
+        }
+
+        // Creates a single codon DOM element
+        function createCodonElement(codonData) {
+            const el = document.createElement('div');
+            el.className = `codon type-${codonData.type}`;
+            el.dataset.id = codonData.id;
+            el.draggable = true;
+            el.title = `${codonData.title} (${codonData.type})`;
+            return el;
+        }
+        
+        // Draws connecting lines between referenced codons
+        let lineUpdateTimeout;
+        function updateReferenceLines() {
+            clearTimeout(lineUpdateTimeout);
+            lineUpdateTimeout = setTimeout(() => {
+                svgLayer.innerHTML = '';
+                const containerRect = container.getBoundingClientRect();
+
+                data.strands.forEach(strand => {
+                    strand.codons.forEach(codon => {
+                        if (codon.references && codon.references.length > 0) {
+                            const sourceEl = document.querySelector(`.codon[data-id='${codon.id}']`);
+                            if (!sourceEl) return;
+
+                            const sourceRect = sourceEl.getBoundingClientRect();
+                            const sourceX = sourceRect.left + sourceRect.width / 2 - containerRect.left;
+                            const sourceY = sourceRect.top + sourceRect.height / 2 - containerRect.top;
+
+                            codon.references.forEach(refId => {
+                                const targetEl = document.querySelector(`.codon[data-id='${refId}']`);
+                                if (!targetEl) return;
+                                
+                                const targetRect = targetEl.getBoundingClientRect();
+                                const targetX = targetRect.left + targetRect.width / 2 - containerRect.left;
+                                const targetY = targetRect.top + targetRect.height / 2 - containerRect.top;
+
+                                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                path.setAttribute('d', `M ${sourceX} ${sourceY} C ${sourceX} ${sourceY + 50}, ${targetX} ${targetY - 50}, ${targetX} ${targetY}`);
+                                path.dataset.sourceId = codon.id;
+                                path.dataset.targetId = refId;
+                                svgLayer.appendChild(path);
+                            });
+                        }
+                    });
+                });
+            }, 50); // Debounce for performance
+        }
+        
+        // --- INTERACTION: GENE EXPRESSION PANE --- //
+        
+        function showExpressionPane(codonId) {
+            const codonData = codonMap.get(parseInt(codonId));
+            if (!codonData) return;
+
+            // Populate pane
+            document.getElementById('pane-title-text').textContent = codonData.title;
+            const typeIcon = document.querySelector('#pane-title .type-icon');
+            const mediaContainer = document.getElementById('pane-media-container');
+            
+            // Set type icon
+            const icons = { text: '📄', image: '🖼️', link: '🔗', quote: '💬', video: '▶️' };
+            typeIcon.textContent = icons[codonData.type] || '';
+
+            // Populate media content
+            let mediaHTML = '';
+            switch (codonData.type) {
+                case 'text':
+                    mediaHTML = `<p>${codonData.content}</p>`;
+                    break;
+                case 'image':
+                    mediaHTML = `<img src="${codonData.content}" alt="${codonData.title}">`;
+                    break;
+                case 'link':
+                    mediaHTML = `<p>External Link: <a href="${codonData.content}" target="_blank">${codonData.content}</a></p>`;
+                    break;
+                case 'quote':
+                    mediaHTML = `<blockquote>${codonData.content}</blockquote>`;
+                    break;
+                case 'video':
+                    mediaHTML = `<iframe src="${codonData.content}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                    break;
+            }
+            mediaContainer.innerHTML = mediaHTML;
+
+            // Populate metadata
+            const meta = codonData.metadata;
+            document.getElementById('pane-source').textContent = meta.source;
+            document.getElementById('pane-source-link').href = meta.sourceURL || '#';
+            document.getElementById('pane-author').textContent = meta.author || 'N/A';
+            document.getElementById('pane-timestamp').textContent = meta.timestamp || 'N/A';
+            document.getElementById('pane-tags').textContent = meta.tags || 'None';
+            
+            // Populate transclusion/references
+            const transclusionContainer = document.getElementById('pane-transclusion-container');
+            if (codonData.references && codonData.references.length > 0) {
+                let transclusionHTML = '<h3>🧬 Reference Trail (Transclusion)</h3>';
+                codonData.references.forEach(refId => {
+                    const refCodon = codonMap.get(refId);
+                    if (refCodon) {
+                        transclusionHTML += `
+                            <div class="transcluded-item">
+                                <p>
+                                    <span class="type-icon">${icons[refCodon.type]}</span>
+                                    References "<strong>${refCodon.title}</strong>" by <em>${refCodon.metadata.author}</em>.
+                                    <a href="#" class="view-ref-link" data-ref-id="${refId}">(view)</a>
+                                </p>
+                            </div>
+                        `;
+                    }
+                });
+                transclusionContainer.innerHTML = transclusionHTML;
+                transclusionContainer.style.display = 'block';
+            } else {
+                transclusionContainer.style.display = 'none';
+            }
+
+            // Show pane
+            expressionPane.classList.add('visible');
+        }
+
+        function hideExpressionPane() {
+            expressionPane.classList.remove('visible');
+        }
+
+        // --- INTERACTION: INFINITE SCROLL & MEMORY COMPRESSION --- //
+
+        function generateRandomCodon() {
+            const types = ['text', 'quote', 'link', 'image'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const newId = ++codonIdCounter;
+            
+            const randomData = {
+                text: { title: 'Generated Thought', content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.' },
+                quote: { title: 'Generated Quote', content: 'To invent, you need a good imagination and a pile of junk.' },
+                link: { title: 'Generated Link', content: 'https://en.wikipedia.org/wiki/Special:Random' },
+                image: { title: 'Generated Image', content: `https://picsum.photos/seed/${newId}/400/300` }
+            };
+
+            return {
+                id: newId,
+                type: type,
+                title: randomData[type].title,
+                content: randomData[type].content,
+                metadata: { author: 'The System', source: 'Generative Core', sourceURL: '#', timestamp: new Date().toISOString(), tags: 'generated, procedural' }
+            };
+        }
+
+        function addMoreContent() {
+            data.strands.forEach((strandData, index) => {
+                const newCodonData = generateRandomCodon();
+                strandData.codons.push(newCodonData);
+                codonMap.set(newCodonData.id, newCodonData);
+
+                const strandEl = document.querySelector(`.strand[data-strand-index='${index}']`);
+                const newCodonEl = createCodonElement(newCodonData);
+                strandEl.appendChild(newCodonEl);
+            });
+            updateReferenceLines();
+        }
+        
+        function handleScroll() {
+            // Infinite scroll
+            if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 300) {
+                addMoreContent();
+            }
+
+            // Memory compression (fading)
+            const viewportTop = window.scrollY;
+            const fadeThreshold = viewportTop - window.innerHeight * 0.5;
+            document.querySelectorAll('.codon').forEach(codon => {
+                const codonRect = codon.getBoundingClientRect();
+                if (codonRect.bottom < 0 && (viewportTop - codonRect.bottom > 500)) {
+                    codon.classList.add('faded');
+                } else {
+                    codon.classList.remove('faded');
+                }
+            });
+            
+            updateReferenceLines();
+        }
+        
+        // --- INTERACTION: DRAG & DROP --- //
+        
+        let draggedElement = null;
+
+        container.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('codon')) {
+                draggedElement = e.target;
+                setTimeout(() => e.target.classList.add('dragging'), 0);
+            }
+        });
+
+        container.addEventListener('dragend', (e) => {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+        });
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            const target = e.target.closest('.codon');
+            if (target && target !== draggedElement) {
+                // Clear previous drag-over highlights
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                target.classList.add('drag-over');
+            }
+        });
+        
+        container.addEventListener('dragleave', (e) => {
+             if (e.target.classList.contains('codon')) {
+                 e.target.classList.remove('drag-over');
+             }
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const targetElement = e.target.closest('.codon');
+            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+
+            if (!targetElement || !draggedElement || targetElement === draggedElement) return;
+
+            const sourceId = parseInt(draggedElement.dataset.id);
+            const targetId = parseInt(targetElement.dataset.id);
+
+            const sourceStrandEl = draggedElement.closest('.strand');
+            const targetStrandEl = targetElement.closest('.strand');
+
+            if (sourceStrandEl !== targetStrandEl) {
+                console.log("Cross-strand forking not implemented yet. Re-ordering within the same strand.");
+                return; 
+            }
+            
+            const strandIndex = parseInt(sourceStrandEl.dataset.strandIndex);
+            const strandCodons = data.strands[strandIndex].codons;
+
+            const sourceIndex = strandCodons.findIndex(c => c.id === sourceId);
+            const targetIndex = strandCodons.findIndex(c => c.id === targetId);
+            
+            if (sourceIndex > -1 && targetIndex > -1) {
+                // Remove from old position and insert at new position
+                const [movedCodon] = strandCodons.splice(sourceIndex, 1);
+                strandCodons.splice(targetIndex, 0, movedCodon);
+                
+                // Re-render the affected strand
+                const parentStrand = draggedElement.parentNode;
+                parentStrand.insertBefore(draggedElement, targetElement);
+                updateReferenceLines();
+            }
+        });
+
+        // --- EVENT LISTENERS --- //
+        
+        // Click to open pane
+        container.addEventListener('click', (e) => {
+            const codonEl = e.target.closest('.codon');
+            if (codonEl) {
+                showExpressionPane(codonEl.dataset.id);
+            }
+        });
+        
+        // Click to view referenced item from within pane
+        expressionPane.addEventListener('click', (e) => {
+            if (e.target.classList.contains('view-ref-link')) {
+                e.preventDefault();
+                showExpressionPane(e.target.dataset.refId);
+            }
+        });
+        
+        // Highlight reference lines on hover
+        container.addEventListener('mouseover', (e) => {
+            const codonEl = e.target.closest('.codon');
+            if(codonEl) {
+                const id = codonEl.dataset.id;
+                document.querySelectorAll(`path[data-source-id='${id}'], path[data-target-id='${id}']`)
+                    .forEach(p => p.classList.add('highlight'));
+            }
+        });
+        
+        container.addEventListener('mouseout', (e) => {
+            const codonEl = e.target.closest('.codon');
+            if(codonEl) {
+                document.querySelectorAll('path.highlight').forEach(p => p.classList.remove('highlight'));
+            }
+        });
+
+        closePaneBtn.addEventListener('click', hideExpressionPane);
+        expressionPane.addEventListener('click', (e) => {
+            if (e.target === expressionPane) {
+                hideExpressionPane();
+            }
+        });
+        
+        let scrollTimeout;
+        window.addEventListener('scroll', () => {
+             clearTimeout(scrollTimeout);
+             scrollTimeout = setTimeout(handleScroll, 50); // Debounce scroll handler
+        });
+        
+        window.addEventListener('resize', updateReferenceLines);
+
+
+        // --- INITIALIZATION --- //
+        renderAllStrands();
+
+    });
+    </script>
+</body>
+</html>

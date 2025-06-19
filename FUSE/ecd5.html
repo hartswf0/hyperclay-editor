@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // EMOTOTYPE™ SYSTEM // V.4</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: EMOTOTYPE™ SYSTEM V.4
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: Typography system that warps letterforms based on
+        *   a dialed-in emotional current, not traditional grammar.
+        */
+
+        :root {
+            --emo-casing: #e0e5e9;
+            --emo-casing-dark: #a8b0b6;
+            --emo-panel: #3d4247;
+            --emo-text: #1a1a1a;
+            --emo-screen-bg: #101210;
+            --emo-phosphor: #44ffaa;
+
+            /* Emotional Colors */
+            --emo-grief: #00aaff;
+            --emo-elation: #ffee00;
+            --emo-dread: #ff3311;
+            --emo-serenity: #00ff88;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes pulse-imprint {
+            0% { box-shadow: 0 0 10px 5px rgba(255,255,255,0.2); }
+            50% { box-shadow: 0 0 40px 20px rgba(255,255,255,0.7); }
+            100% { box-shadow: 0 0 10px 5px rgba(255,255,255,0.2); }
+        }
+        @keyframes flicker {
+            0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #555; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: 'Share Tech Mono', monospace;
+            color: var(--emo-text); user-select: none;
+        }
+        #emototype-chassis {
+            width: 1400px; height: 800px; background-color: var(--emo-casing);
+            border: 2px solid #555; box-shadow: 0 0 30px rgba(0,0,0,0.4);
+            padding: 20px; display: grid; grid-template-columns: 350px 1fr 400px;
+            gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--emo-casing-dark); padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.3); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-size: 1.2rem; text-align: center; border-bottom: 1px solid var(--emo-text);
+            padding-bottom: 8px; margin: 0 0 15px 0; letter-spacing: 1px;
+        }
+
+        /* --- LEFT PANEL: GLYPH INPUT --- */
+        #input-panel { grid-column: 1 / 2; }
+        #glyph-matrix {
+            flex-grow: 1; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+        }
+        .glyph-key {
+            background-color: #333; color: var(--emo-casing); border: 2px solid #111;
+            font-size: 1.8rem; font-family: 'Roboto Condensed', sans-serif;
+            cursor: pointer; display: grid; place-items: center;
+            transition: all 0.1s;
+        }
+        .glyph-key:hover { background-color: #555; }
+        .glyph-key.active { background-color: var(--emo-phosphor); color: #000; transform: scale(1.05); }
+
+        /* --- CENTER PANEL: EMOTION ENCODERS --- */
+        #encoder-panel { grid-column: 2 / 3; display: grid; grid-template-rows: 1fr 200px; gap: 20px; }
+        #encoder-bank { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; }
+        .encoder-module {
+            background-color: var(--emo-panel); padding: 20px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+        }
+        .encoder-dial {
+            width: 150px; height: 150px; border: 5px solid; border-radius: 50%;
+            position: relative; cursor: grab; background-color: #222;
+        }
+        .encoder-dial:active { cursor: grabbing; }
+        .encoder-dial-indicator {
+            width: 50%; height: 4px; background: currentColor; position: absolute;
+            top: calc(50% - 2px); left: 50%; transform-origin: left center;
+        }
+        .encoder-label { color: var(--emo-casing); font-size: 1.5rem; margin-top: 10px; font-family: 'Roboto Condensed', sans-serif;}
+        /* Color coding the encoders */
+        #encoder-grief { color: var(--emo-grief); }
+        #encoder-elation { color: var(--emo-elation); }
+        #encoder-dread { color: var(--emo-dread); }
+        #encoder-serenity { color: var(--emo-serenity); }
+
+        #waveform-monitor { background-color: var(--emo-screen-bg); box-shadow: inset 0 0 10px #000; }
+        #waveform-canvas { width: 100%; height: 100%; }
+
+        /* --- RIGHT PANEL: IMPRINTING STAGE --- */
+        #output-panel { grid-column: 3 / 4; }
+        #imprinting-stage {
+            background-color: #000; flex-grow: 1; padding: 20px;
+            display: grid; place-items: center;
+        }
+        #output-glyph {
+            font-family: 'Roboto Condensed', sans-serif;
+            font-size: 400px; font-weight: 700; color: #fff;
+            transition: filter 0.1s linear;
+        }
+        #commit-button {
+            width: 100%; padding: 15px; font-size: 1.5rem; font-family: 'Roboto Condensed', sans-serif;
+            margin-top: 15px; border: 2px solid var(--emo-panel); background: var(--emo-casing-dark);
+            cursor: pointer; transition: all 0.2s;
+        }
+        #commit-button:hover:not(:disabled) { background: var(--emo-phosphor); color: #000; }
+        #commit-button:disabled { background: #555; color: #888; cursor: not-allowed; }
+
+        #output-log {
+            height: 200px; background-color: var(--emo-casing-dark); margin-top: 15px;
+            overflow-y: auto; padding: 10px; display: flex; gap: 10px;
+        }
+        .log-item {
+            flex-shrink: 0; width: 100px; height: 100px; padding: 5px;
+            background: #fff; text-align: center; font-size: 70px;
+            font-family: 'Roboto Condensed', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="emototype-chassis">
+        <div class="panel" id="input-panel">
+            <h2 class="module-label">GLYPH-BLOCK MATRIX</h2>
+            <div id="glyph-matrix"></div>
+        </div>
+        <div id="encoder-panel">
+            <div id="encoder-bank">
+                <div class="encoder-module" id="encoder-grief">
+                    <div class="encoder-dial"><div class="encoder-dial-indicator"></div></div>
+                    <div class="encoder-label">GRIEF</div>
+                </div>
+                <div class="encoder-module" id="encoder-elation">
+                    <div class="encoder-dial"><div class="encoder-dial-indicator"></div></div>
+                    <div class="encoder-label">ELATION</div>
+                </div>
+                <div class="encoder-module" id="encoder-dread">
+                    <div class="encoder-dial"><div class="encoder-dial-indicator"></div></div>
+                    <div class="encoder-label">DREAD</div>
+                </div>
+                <div class="encoder-module" id="encoder-serenity">
+                    <div class="encoder-dial"><div class="encoder-dial-indicator"></div></div>
+                    <div class="encoder-label">SERENITY</div>
+                </div>
+            </div>
+            <div id="waveform-monitor">
+                <canvas id="waveform-canvas"></canvas>
+            </div>
+        </div>
+        <div class="panel" id="output-panel">
+            <h2 class="module-label">IMPRINTING STAGE</h2>
+            <div id="imprinting-stage">
+                <div id="output-glyph">A</div>
+            </div>
+            <button id="commit-button">COMMIT TO PLATE</button>
+            <div id="output-log"></div>
+        </div>
+    </div>
+    
+    <!-- SVG Filters for Emotional Effects -->
+    <svg width="0" height="0">
+        <filter id="filter-grief">
+            <feTurbulence type="turbulence" baseFrequency="0.01 0.1" numOctaves="2" result="turbulence"/>
+            <feDisplacementMap in2="turbulence" in="SourceGraphic" scale="0" xChannelSelector="R" yChannelSelector="G" result="displacement"/>
+        </filter>
+        <filter id="filter-elation">
+            <feMorphology operator="dilate" radius="0" result="dilation"/>
+            <feTurbulence type="fractalNoise" baseFrequency="0.2" numOctaves="3" result="noise"/>
+            <feComposite in="dilation" in2="noise" operator="in" result="composite"/>
+            <feMerge>
+                <feMergeNode in="SourceGraphic"/>
+                <feMergeNode in="composite"/>
+            </feMerge>
+        </filter>
+        <filter id="filter-dread">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="5" seed="0" result="turbulence"/>
+            <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="0"/>
+        </filter>
+        <filter id="filter-serenity">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0" result="blur"/>
+        </filter>
+    </svg>
+
+<script>
+const Emototype = {
+    // --- Data ---
+    GLYPHS: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?&@'.split(''),
+
+    // --- DOM Elements ---
+    elems: {
+        glyphMatrix: document.getElementById('glyph-matrix'),
+        outputGlyph: document.getElementById('output-glyph'),
+        commitButton: document.getElementById('commit-button'),
+        outputLog: document.getElementById('output-log'),
+        waveformCanvas: document.getElementById('waveform-canvas'),
+        waveformCtx: null,
+        encoders: {
+            grief: { dial: document.querySelector('#encoder-grief .encoder-dial'), filter: document.querySelector('#filter-grief feDisplacementMap') },
+            elation: { dial: document.querySelector('#encoder-elation .encoder-dial'), filter: document.querySelector('#filter-elation feMorphology') },
+            dread: { dial: document.querySelector('#encoder-dread .encoder-dial'), filter: document.querySelector('#filter-dread feDisplacementMap') },
+            serenity: { dial: document.querySelector('#encoder-serenity .encoder-dial'), filter: document.querySelector('#filter-serenity feGaussianBlur') }
+        }
+    },
+    
+    // --- State ---
+    state: {
+        activeGlyph: 'A',
+        emotionLevels: { grief: 0, elation: 0, dread: 0, serenity: 0 },
+        waveformTime: 0,
+        animationFrame: null,
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, keyClick: null, commit: null, hum: {}, humGains: {},
+        init() { this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.keyClick = this.createSound(800, 0.05, 'sine', 0.1);
+            this.commit = this.createSound(200, 0.3, 'sawtooth', 0.2, true);
+            ['grief', 'elation', 'dread', 'serenity'].forEach((emo, i) => {
+                const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                o.connect(g); g.connect(this.ctx.destination);
+                o.type = i % 2 === 0 ? 'sine' : 'triangle';
+                o.frequency.value = 60 + i * 30 + Math.random() * 10;
+                g.gain.value = 0;
+                o.start();
+                this.hum[emo] = o; this.humGains[emo] = g;
+            });
+        },
+        createSound(freq, dur, type, vol, desc=false) {
+            return () => { if (!this.ctx) return;
+                const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                o.connect(g); g.connect(this.ctx.destination); o.type = type;
+                o.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                if (desc) o.frequency.exponentialRampToValueAtTime(freq/4, this.ctx.currentTime + dur);
+                g.gain.setValueAtTime(vol, this.ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + dur);
+                o.start(); o.stop(this.ctx.currentTime + dur); };
+        },
+        setHumLevel(emotion, level) {
+            if (this.humGains[emotion]) {
+                this.humGains[emotion].gain.setTargetAtTime(level * 0.05, this.ctx.currentTime, 0.1);
+            }
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.elems.waveformCtx = this.elems.waveformCanvas.getContext('2d');
+        this.resizeWaveformCanvas();
+        window.onresize = () => this.resizeWaveformCanvas();
+        
+        this.audio.init();
+        this.renderGlyphMatrix();
+        this.addEventListeners();
+        this.updateOutputGlyph();
+        this.drawWaveformLoop();
+    },
+
+    resizeWaveformCanvas() {
+        this.elems.waveformCanvas.width = this.elems.waveformCanvas.offsetWidth;
+        this.elems.waveformCanvas.height = this.elems.waveformCanvas.offsetHeight;
+    },
+
+    renderGlyphMatrix() {
+        this.elems.glyphMatrix.innerHTML = this.GLYPHS.map(g => 
+            `<div class="glyph-key" data-glyph="${g}">${g}</div>`
+        ).join('');
+    },
+
+    addEventListeners() {
+        this.elems.glyphMatrix.addEventListener('click', e => {
+            if(e.target.classList.contains('glyph-key')) this.selectGlyph(e.target.dataset.glyph);
+        });
+        
+        Object.keys(this.elems.encoders).forEach(emo => {
+            const el = this.elems.encoders[emo].dial;
+            let isDragging = false;
+            let startAngle = 0;
+            let currentRotation = 0;
+
+            el.onmousedown = (e) => {
+                isDragging = true;
+                const rect = el.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+                currentRotation = this.state.emotionLevels[emo] * 360;
+                el.style.cursor = 'grabbing';
+            };
+            document.onmouseup = () => { isDragging = false; el.style.cursor = 'grab'; };
+            document.onmousemove = e => {
+                if(isDragging) {
+                    const rect = el.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2;
+                    const centerY = rect.top + rect.height / 2;
+                    const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+                    let deltaAngle = angle - startAngle;
+                    let newRotation = currentRotation + deltaAngle;
+                    let newLevel = (newRotation % 360) / 360;
+                    if (newLevel < 0) newLevel += 1;
+                    
+                    this.setEmotionLevel(emo, newLevel);
+                }
+            };
+        });
+
+        this.elems.commitButton.onclick = () => this.commitToPlate();
+    },
+    
+    // --- Core Logic ---
+    selectGlyph(glyph) {
+        this.audio.keyClick();
+        this.state.activeGlyph = glyph;
+        this.updateOutputGlyph();
+    },
+
+    setEmotionLevel(emotion, level) {
+        this.state.emotionLevels[emotion] = level;
+        this.audio.setHumLevel(emotion, level);
+        
+        // Update dial indicator
+        const indicator = this.elems.encoders[emotion].dial.querySelector('.encoder-dial-indicator');
+        indicator.style.transform = `rotate(${level * 360}deg)`;
+        
+        // Update SVG filter attributes
+        const filterEl = this.elems.encoders[emotion].filter;
+        switch(emotion) {
+            case 'grief': filterEl.setAttribute('scale', level * 20); break;
+            case 'elation': filterEl.setAttribute('radius', level * 3); break;
+            case 'dread': filterEl.setAttribute('scale', level * 5); break;
+            case 'serenity': filterEl.setAttribute('stdDeviation', level * 2); break;
+        }
+    },
+    
+    commitToPlate() {
+        this.audio.commit();
+        const logItem = document.createElement('div');
+        logItem.className = 'log-item';
+        logItem.textContent = this.state.activeGlyph;
+        logItem.style.filter = this.getFilterString();
+        this.elems.outputLog.prepend(logItem);
+
+        const stage = document.getElementById('imprinting-stage');
+        stage.style.animation = 'none';
+        void stage.offsetWidth; // Trigger reflow
+        stage.style.animation = 'pulse-imprint 0.3s ease-out';
+    },
+
+    // --- Rendering ---
+    updateOutputGlyph() {
+        // Update active key
+        document.querySelectorAll('.glyph-key').forEach(k => {
+            k.classList.toggle('active', k.dataset.glyph === this.state.activeGlyph);
+        });
+        // Update main display
+        this.elems.outputGlyph.textContent = this.state.activeGlyph;
+    },
+    
+    getFilterString() {
+        return `url(#filter-grief) url(#filter-elation) url(#filter-dread) url(#filter-serenity)`;
+    },
+
+    drawWaveformLoop() {
+        const ctx = this.elems.waveformCtx;
+        const w = this.elems.waveformCanvas.width;
+        const h = this.elems.waveformCanvas.height;
+        
+        ctx.fillStyle = 'rgba(16, 18, 16, 0.1)'; // Phosphor decay
+        ctx.fillRect(0, 0, w, h);
+        
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(68, 255, 170, 0.8)`;
+        ctx.lineWidth = 1.5;
+        
+        const { grief, elation, dread, serenity } = this.state.emotionLevels;
+        const t = this.state.waveformTime;
+        
+        for (let i = 0; i < 200; i++) {
+            const p = i / 199;
+            const time = t + p * 0.1;
+            const x = w/2 + Math.sin(time * (1 + grief*4)) * (w/2.2 * (1 - dread*0.5));
+            const y = h/2 + Math.cos(time * (1 + elation*4)) * (h/2.2 * (1 - serenity*0.5));
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        
+        this.state.waveformTime += 0.02;
+        this.state.animationFrame = requestAnimationFrame(() => this.drawWaveformLoop());
+    },
+};
+
+Emototype.init();
+
+// Apply SVG filters via CSS custom properties for dynamic update
+const outputGlyphEl = document.getElementById('output-glyph');
+setInterval(() => {
+    // This is a bit of a hack. In a real app/framework, you'd manage state better.
+    // But for a single file artifact, it's an effective way to link JS state to CSS filters.
+    outputGlyphEl.style.filter = Emototype.getFilterString();
+}, 50);
+
+</script>
+</body>
+</html>

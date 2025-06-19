@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGMATIC FORGE [ECD-78-RLE-001]</title>
+    <style>
+        /* ECD Standard Typeface Protocol */
+        @import url('https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=Roboto+Mono:wght@300;400;500&display=swap');
+
+        :root {
+            --bg-deep: #020308;
+            --bg-console: #0a0c14;
+            --panel-bg: rgba(16, 20, 36, 0.6);
+            --border-color: #2a314b;
+            --glow-color: #7efdff;
+            --glow-color-rgba: 126, 253, 255;
+            --text-color: #d0d8f0;
+            --text-muted: #626c8b;
+            --accent-resonant: #f0c674;
+            --accent-tension: #f87a9b;
+            --font-body: 'Roboto Mono', monospace;
+            --font-display: 'Major Mono Display', monospace;
+        }
+
+        /* --- Foundational Environment --- */
+        html, body {
+            margin: 0; padding: 0;
+            width: 100vw; height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-deep);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            font-size: 14px;
+            user-select: none;
+        }
+        
+        /* --- Ritual Feedback Console (Ambient Background) --- */
+        #feedback-console-background {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--bg-console);
+            background-image: 
+                linear-gradient(rgba(42, 49, 75, 0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(42, 49, 75, 0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            transition: opacity 1s;
+        }
+        body.breath-in #feedback-console-background { opacity: 0.7; transform: scale(1.01); }
+        body.breath-out #feedback-console-background { opacity: 1; transform: scale(1); }
+
+        /* --- Invocation Overlay --- */
+        #invocation-overlay {
+            position: fixed; inset: 0; z-index: 1000;
+            background: rgba(2, 3, 8, 0.97);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            transition: opacity 2s ease-out;
+        }
+        #invocation-overlay.hidden { opacity: 0; pointer-events: none; }
+        #invocation-overlay h1 { font-family: var(--font-display); font-size: 2.5em; color: var(--glow-color); text-shadow: 0 0 15px var(--glow-color); margin-bottom: 20px; }
+        #invocation-overlay p { max-width: 600px; color: var(--text-muted); line-height: 1.8; font-size: 1em; }
+        #invocation-overlay button {
+            margin-top: 40px; padding: 15px 30px; font-family: var(--font-display); font-size: 1.2em;
+            background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+            cursor: pointer; transition: all 0.3s ease;
+        }
+        #invocation-overlay button:hover { color: var(--glow-color); border-color: var(--glow-color); box-shadow: 0 0 15px var(--glow-color); }
+
+        /* --- Core Layout --- */
+        #sigmatic-forge {
+            display: grid; width: 100%; height: 100%;
+            grid-template-columns: 35% 1fr;
+            grid-template-rows: 40px 1fr 1fr;
+            grid-template-areas:
+                "header header"
+                "genesis causal"
+                "synthesis causal";
+            gap: 2px; background-color: var(--border-color); padding: 2px; box-sizing: border-box;
+        }
+        .forge-module {
+            background: var(--panel-bg); backdrop-filter: blur(10px);
+            position: relative; overflow: hidden; padding: 30px 20px 20px 20px;
+        }
+        .module-title {
+            position: absolute; top: 10px; left: 15px;
+            font-family: var(--font-display); color: var(--text-muted); font-size: 0.9em;
+        }
+
+        #header { grid-area: header; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+        #chantwell { grid-area: genesis; }
+        #sigma-strata { grid-area: causal; padding: 30px 0 0 0;}
+        #synthesis-field { grid-area: synthesis; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 0; background-color: var(--border-color); }
+
+        /* Header & Resonance Aligner */
+        #resonance-aligner { display: flex; gap: 25px; }
+        .aligner-glyph { font-family: var(--font-display); font-size: 1.2em; cursor: pointer; transition: all 0.3s ease; }
+        .aligner-glyph.active { color: var(--glow-color); text-shadow: 0 0 8px var(--glow-color); }
+        
+        /* CHANTWELL */
+        #chantwell-input {
+            position: absolute; inset: 40px; opacity: 0; pointer-events: none;
+        }
+        .glyph-fragment {
+            position: absolute; font-family: var(--font-display); font-size: 1.2em;
+            padding: 5px 10px; border: 1px solid transparent;
+            cursor: grab; transition: all 0.5s ease;
+        }
+        .glyph-fragment.breathing { animation: breathe-glyph 4s infinite ease-in-out; }
+        @keyframes breathe-glyph { 0%,100%{transform:scale(1); color: var(--glow-color);} 50%{transform:scale(1.1); color: white;} }
+        
+        /* SYNTHESIS FIELD (Lattices, Crucible, Furnace) */
+        #aletheon-lattices, #modulonic-crucible, #temporal-furnace { position: relative; padding: 30px 20px 20px 20px; background-color: var(--bg-console); }
+        
+        /* ALETHEON LATTICES */
+        #aletheon-field { position: absolute; inset: 40px 20px 20px 20px; border: 1px dashed var(--border-color); }
+        .logic-cube {
+            position: absolute; width: 80px; height: 80px;
+            border: 1px solid var(--text-muted); background: rgba(var(--glow-color-rgba), 0.05);
+            display: flex; align-items: center; justify-content: center; text-align: center;
+            font-family: var(--font-body); font-size: 0.8em; padding: 5px;
+            transform-style: preserve-3d; transition: all 0.5s; cursor: grab;
+        }
+        .logic-cube:hover { border-color: var(--glow-color); }
+        .tension-line { stroke: var(--accent-tension); stroke-width: 1px; fill: none; opacity: 0.6; }
+
+        /* MODULONIC CRUCIBLE */
+        #crucible-zone {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+            width: 150px; height: 150px; border: 2px dashed var(--border-color); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; text-align: center;
+            transition: all 0.3s ease;
+        }
+        #crucible-zone.drop-target { border-style: solid; border-color: var(--accent-resonant); background: rgba(240, 198, 116, 0.1); }
+        #transmutation-output { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1s; }
+        
+        /* TEMPORAL FURNACE */
+        #furnace-chamber {
+            position: absolute; inset: 40px 20px 20px 20px; background: var(--bg-deep);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border: 1px solid var(--border-color); transition: all 0.5s;
+        }
+        #furnace-chamber.drop-target { border-color: var(--accent-tension); box-shadow: 0 0 15px var(--accent-tension) inset; }
+        .meter { width: 80%; height: 8px; border: 1px solid var(--border-color); margin-bottom: 10px; }
+        .meter-fill { height: 100%; width: 0%; transition: width 0.2s linear; }
+        #pressure-fill { background: var(--glow-color); }
+        #stillness-fill { background: var(--accent-resonant); }
+        
+        /* SIGMA STRATA */
+        #sigma-strata-svg { width: 100%; height: 100%; }
+        .strata-path { fill: none; stroke: var(--border-color); stroke-width: 1px; stroke-dasharray: 2 4; }
+        .strata-label { font-family: var(--font-display); fill: var(--text-muted); font-size: 10px; }
+        .causal-node { fill: var(--text-muted); cursor: grab; transition: all 0.3s ease; }
+        .causal-node:hover, .causal-node.selected { fill: var(--glow-color); filter: drop-shadow(0 0 5px var(--glow-color)); r: 7; }
+        .causal-link { stroke: var(--accent-resonant); stroke-width: 1.5px; opacity: 0.8; pointer-events: none; }
+        
+        /* --- UTILITY & FEEDBACK --- */
+        .system-log { position: fixed; bottom: 10px; left: 10px; font-size: 0.8em; color: var(--text-muted); max-width: 30%; opacity: 0.7; pointer-events:none; }
+        .draggable { position: absolute; }
+    </style>
+</head>
+<body>
+
+    <div id="feedback-console-background"></div>
+
+    <div id="invocation-overlay">
+        <h1>SIGMATIC FORGE</h1>
+        <p>ECD-78-RLE-001 :: This system is a ritual-logic environment. It responds to resonance, not command. Interaction is invocation. Output is a mirror. To begin, align your intention.</p>
+        <button id="initiate-button">I N I T I A T E</button>
+    </div>
+
+    <main id="sigmatic-forge">
+        <header id="header" class="forge-module">
+            <div id="header-title">SYS_STATUS :: RESONANT</div>
+            <div id="resonance-aligner">
+                <div class="aligner-glyph" data-mode="G">[G]esture</div>
+                <div class="aligner-glyph" data-mode="R">[R]hythm</div>
+                <div class="aligner-glyph" data-mode="S">[S]ilence</div>
+            </div>
+        </header>
+
+        <section id="chantwell" class="forge-module">
+            <div class="module-title">CHANTWELL :: Recursive Invocation</div>
+            <input id="chantwell-input" type="text" autocomplete="off" />
+        </section>
+
+        <section id="sigma-strata" class="forge-module">
+            <div class="module-title">SIGMA STRATA :: Causal Loom</div>
+            <svg id="sigma-strata-svg"></svg>
+        </section>
+        
+        <section id="synthesis-field">
+            <div id="aletheon-lattices">
+                 <div class="module-title">ALETHEON LATTICES :: Conceptual Geometry</div>
+                 <div id="aletheon-field"></div>
+                 <svg style="position:absolute; inset:0; pointer-events:none;" id="tension-svg"></svg>
+            </div>
+            <div style="display:grid; grid-template-rows:1fr 1fr; gap:2px; background-color: var(--border-color);">
+                <div id="modulonic-crucible">
+                    <div class="module-title">MODULONIC CRUCIBLE :: Alchemy</div>
+                    <div id="crucible-zone">
+                        <span style="color:var(--text-muted); text-align:center;">Drop Artifact<br>for Transmutation</span>
+                    </div>
+                    <img id="transmutation-output" />
+                </div>
+                <div id="temporal-furnace">
+                    <div class="module-title">TEMPORAL FURNACE :: Crystallizer</div>
+                    <div id="furnace-chamber">
+                        <div class="meter"><div class="meter-fill" id="pressure-fill"></div></div>
+                        <div class="meter"><div class="meter-fill" id="stillness-fill"></div></div>
+                        <div style="color:var(--text-muted); font-size:0.8em; margin-top:10px;">[Silence Mode] Drop constellation<br>and hold stillness</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <div class="system-log" id="system-log">[SYSTEM BOOT] ECD-78 ONLINE. AWAITING RESONANCE.</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- ECD CORE SYSTEMS & DOM BINDINGS ---
+    const DOM = {
+        overlay: document.getElementById('invocation-overlay'),
+        initiateBtn: document.getElementById('initiate-button'),
+        log: document.getElementById('system-log'),
+        alignerGlyphs: document.querySelectorAll('.aligner-glyph'),
+        chantwell: document.getElementById('chantwell'),
+        chantwellInput: document.getElementById('chantwell-input'),
+        aletheonField: document.getElementById('aletheon-field'),
+        tensionSvg: document.getElementById('tension-svg'),
+        crucibleZone: document.getElementById('crucible-zone'),
+        transmutationOutput: document.getElementById('transmutation-output'),
+        furnaceChamber: document.getElementById('furnace-chamber'),
+        pressureFill: document.getElementById('pressure-fill'),
+        stillnessFill: document.getElementById('stillness-fill'),
+        sigmaStrataSvg: document.getElementById('sigma-strata-svg'),
+        body: document.body,
+    };
+
+    // --- SYSTEM STATE ---
+    const STATE = {
+        resonanceMode: 'G', // G, R, S
+        artifacts: {},      // Master list of all created symbolic objects
+        draggedElement: null,
+        selectedNode: null,
+    };
+
+    // --- UTILITY & FEEDBACK FUNCTIONS ---
+    const logMsg = (msg) => { DOM.log.innerHTML = `> ${msg}`; console.log(`LOG: ${msg}`); };
+    const playTone = (freq=440, duration=0.1, type='sine') => {
+        const audioCtx = window.audioCtx || (window.audioCtx = new AudioContext());
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = freq;
+        osc.type = type;
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    };
+    const isOver = (e, element) => {
+        const rect = element.getBoundingClientRect();
+        return e.clientX > rect.left && e.clientX < rect.right && e.clientY > rect.top && e.clientY < rect.bottom;
+    };
+    const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+
+    // --- BREATH SIMULATOR ---
+    setInterval(() => {
+        DOM.body.classList.remove('breath-out');
+        DOM.body.classList.add('breath-in');
+        setTimeout(() => {
+            DOM.body.classList.remove('breath-in');
+            DOM.body.classList.add('breath-out');
+        }, 4000);
+    }, 8000);
+
+    // --- INITIALIZATION RITUAL ---
+    DOM.initiateBtn.addEventListener('click', () => {
+        DOM.overlay.classList.add('hidden');
+        logMsg("RESONANCE LINK ESTABLISHED. FORGE IS LIVE.");
+        playTone(220, 0.5, 'sawtooth');
+        setResonanceMode('G');
+        drawSigmaStrata();
+    });
+
+    // --- GLOBAL INTERACTION HANDLERS ---
+    function setResonanceMode(mode) {
+        STATE.resonanceMode = mode;
+        DOM.alignerGlyphs.forEach(g => g.classList.toggle('active', g.dataset.mode === mode));
+        logMsg(`Resonance aligned to [${mode}].`);
+        playTone(330, 0.05);
+        if (mode === 'R') DOM.chantwellInput.focus();
+    }
+    DOM.alignerGlyphs.forEach(g => g.addEventListener('click', () => setResonanceMode(g.dataset.mode)));
+    window.addEventListener('keydown', e => {
+        if (e.key.toUpperCase() === 'G' || e.key.toUpperCase() === 'R' || e.key.toUpperCase() === 'S') {
+            setResonanceMode(e.key.toUpperCase());
+        }
+    });
+
+    // --- DRAG & DROP GESTURAL LOGIC ---
+    document.addEventListener('mousedown', e => {
+        if (STATE.resonanceMode !== 'G') return;
+        const target = e.target.closest('.draggable');
+        if (target) {
+            STATE.draggedElement = target;
+            STATE.draggedElement.style.zIndex = 1000;
+            playTone(440, 0.05, 'square');
+        }
+    });
+    document.addEventListener('mousemove', e => {
+        if (!STATE.draggedElement) return;
+        const parentRect = STATE.draggedElement.parentElement.getBoundingClientRect();
+        STATE.draggedElement.style.left = `${e.clientX - parentRect.left - STATE.draggedElement.offsetWidth / 2}px`;
+        STATE.draggedElement.style.top = `${e.clientY - parentRect.top - STATE.draggedElement.offsetHeight / 2}px`;
+        
+        DOM.crucibleZone.classList.toggle('drop-target', isOver(e, DOM.crucibleZone));
+        DOM.furnaceChamber.classList.toggle('drop-target', isOver(e, DOM.furnaceChamber));
+        DOM.aletheonField.style.borderColor = isOver(e, DOM.aletheonField) ? 'var(--glow-color)' : 'var(--border-color)';
+    });
+    document.addEventListener('mouseup', e => {
+        if (!STATE.draggedElement) return;
+        
+        if (isOver(e, DOM.aletheonField) && STATE.draggedElement.dataset.type === 'glyph-fragment') {
+            transmuteToCube(STATE.draggedElement);
+        } else if (isOver(e, DOM.crucibleZone)) {
+            transmuteInCrucible(STATE.draggedElement);
+        } else if (isOver(e, DOM.furnaceChamber)) {
+            initiateCrystallization();
+        }
+
+        STATE.draggedElement.style.zIndex = 'auto';
+        STATE.draggedElement = null;
+        DOM.crucibleZone.classList.remove('drop-target');
+        DOM.furnaceChamber.classList.remove('drop-target');
+        DOM.aletheonField.style.borderColor = 'var(--border-color)';
+    });
+
+    // --- MODULE 1: CHANTWELL ---
+    DOM.chantwellInput.addEventListener('keydown', e => {
+        if (STATE.resonanceMode !== 'R' || e.key !== 'Enter') return;
+        e.preventDefault();
+        const text = DOM.chantwellInput.value.trim();
+        if (!text) return;
+        
+        logMsg(`Invocation received: "${text}"`);
+        playTone(261, 0.2);
+        text.split(' ').forEach((word, i) => {
+            if (!word) return;
+            const id = createId('glyph');
+            const el = document.createElement('div');
+            el.id = id;
+            el.className = 'glyph-fragment draggable breathing';
+            el.dataset.id = id;
+            el.dataset.type = 'glyph-fragment';
+            el.dataset.text = word;
+            el.textContent = word;
+            el.style.left = `${10 + i * 15}%`;
+            el.style.top = `${40 + (Math.random() - 0.5) * 20}%`;
+            DOM.chantwell.appendChild(el);
+            STATE.artifacts[id] = { el, type: 'glyph-fragment', text: word };
+        });
+        DOM.chantwellInput.value = '';
+    });
+
+    // --- MODULE 2: ALETHEON LATTICES ---
+    function transmuteToCube(glyphElement) {
+        logMsg(`Glyph "${glyphElement.dataset.text}" transmuted to Aletheon Cube.`);
+        playTone(293, 0.15);
+        const id = createId('cube');
+        const el = document.createElement('div');
+        el.id = id;
+        el.className = 'logic-cube draggable';
+        el.dataset.id = id;
+        el.dataset.type = 'logic-cube';
+        el.dataset.text = glyphElement.dataset.text;
+        el.textContent = glyphElement.dataset.text;
+        
+        const parentRect = DOM.aletheonField.parentElement.getBoundingClientRect();
+        const glyphRect = glyphElement.getBoundingClientRect();
+        el.style.left = `${glyphRect.left - parentRect.left}px`;
+        el.style.top = `${glyphRect.top - parentRect.top}px`;
+        
+        DOM.aletheonField.appendChild(el);
+        STATE.artifacts[id] = { el, type: 'logic-cube', text: glyphElement.dataset.text };
+        delete STATE.artifacts[glyphElement.id];
+        glyphElement.remove();
+        updateTensionLines();
+    }
+    function updateTensionLines() {
+        DOM.tensionSvg.innerHTML = '';
+        const cubes = Object.values(STATE.artifacts).filter(a => a.type === 'logic-cube');
+        if (cubes.length < 2) return;
+        for (let i = 0; i < cubes.length; i++) {
+            for (let j = i + 1; j < cubes.length; j++) {
+                const c1 = cubes[i].el;
+                const c2 = cubes[j].el;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', c1.offsetLeft + c1.offsetWidth / 2);
+                line.setAttribute('y1', c1.offsetTop + c1.offsetHeight / 2);
+                line.setAttribute('x2', c2.offsetLeft + c2.offsetWidth / 2);
+                line.setAttribute('y2', c2.offsetTop + c2.offsetHeight / 2);
+                line.setAttribute('class', 'tension-line');
+                DOM.tensionSvg.appendChild(line);
+            }
+        }
+    }
+    setInterval(updateTensionLines, 100);
+
+    // --- MODULE 3: MODULONIC CRUCIBLE ---
+    function transmuteInCrucible(artifactElement) {
+        const artifact = STATE.artifacts[artifactElement.id];
+        logMsg(`Transmuting [${artifact.text}] in Crucible...`);
+        playTone(329, 0.3, 'triangle');
+        delete STATE.artifacts[artifact.id];
+        artifactElement.remove();
+        
+        // Simple transmutation logic: hash text to get an image from a placeholder service
+        const hash = artifact.text.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
+        DOM.transmutationOutput.src = `https://picsum.photos/seed/${hash & 0x7FFFFFFF}/200/200`;
+        DOM.transmutationOutput.style.opacity = '1';
+        
+        logMsg(`Transmutation yielded a visual seed. Anchoring to Sigma Strata.`);
+        setTimeout(() => {
+            createCausalNode({
+                sourceType: artifact.type,
+                sourceText: artifact.text,
+                mediaType: 'image',
+                mediaSrc: DOM.transmutationOutput.src
+            });
+            DOM.transmutationOutput.style.opacity = '0';
+        }, 2000);
+    }
+    
+    // --- MODULE 4: SIGMA STRATA ---
+    function drawSigmaStrata() {
+        const { width, height } = DOM.sigmaStrataSvg.getBoundingClientRect();
+        const cx = width / 2, cy = height / 2;
+        const spirals = [
+            { name: 'LOGOS', b: 0.15, offset: 0, color: 'var(--glow-color)'},
+            { name: 'MYTHOS', b: 0.15, offset: 2 * Math.PI / 3, color: 'var(--accent-resonant)' },
+            { name: 'RITUS', b: 0.15, offset: 4 * Math.PI / 3, color: 'var(--accent-tension)'},
+        ];
+        
+        spirals.forEach(s => {
+            let pathData = `M ${cx + 30 * Math.cos(s.offset)} ${cy + 30 * Math.sin(s.offset)}`;
+            for (let i = 0; i < 500; i++) {
+                const angle = 0.1 * i + s.offset;
+                const radius = 30 + s.b * angle * angle;
+                const x = cx + radius * Math.cos(angle);
+                const y = cy + radius * Math.sin(angle);
+                pathData += ` L ${x} ${y}`;
+            }
+            const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+            path.setAttribute('d', pathData);
+            path.setAttribute('class', 'strata-path');
+            DOM.sigmaStrataSvg.appendChild(path);
+        });
+    }
+
+    function createCausalNode(data) {
+        const id = createId('node');
+        const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        el.id = id;
+        el.setAttribute('class', 'causal-node draggable');
+        el.dataset.id = id;
+        el.dataset.type = 'causal-node';
+        const { width, height } = DOM.sigmaStrataSvg.getBoundingClientRect();
+        el.setAttribute('cx', width / 2);
+        el.setAttribute('cy', height / 2);
+        el.setAttribute('r', 5);
+        DOM.sigmaStrataSvg.appendChild(el);
+        STATE.artifacts[id] = { el, type: 'causal-node', data };
+        
+        el.addEventListener('click', () => handleNodeClick(id));
+    }
+
+    function handleNodeClick(nodeId) {
+        if (!STATE.selectedNode) {
+            STATE.selectedNode = nodeId;
+            STATE.artifacts[nodeId].el.classList.add('selected');
+            logMsg('Causal node selected. Select another to form a link.');
+        } else if (STATE.selectedNode !== nodeId) {
+            const n1 = STATE.artifacts[STATE.selectedNode];
+            const n2 = STATE.artifacts[nodeId];
+            const link = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            link.setAttribute('x1', n1.el.getAttribute('cx'));
+            link.setAttribute('y1', n1.el.getAttribute('cy'));
+            link.setAttribute('x2', n2.el.getAttribute('cx'));
+            link.setAttribute('y2', n2.el.getAttribute('cy'));
+            link.setAttribute('class', 'causal-link');
+            DOM.sigmaStrataSvg.insertBefore(link, DOM.sigmaStrataSvg.firstChild);
+            logMsg('Causal link formed.');
+            playTone(523, 0.2, 'triangle');
+            n1.el.classList.remove('selected');
+            STATE.selectedNode = null;
+        } else {
+            STATE.artifacts[nodeId].el.classList.remove('selected');
+            STATE.selectedNode = null;
+        }
+    }
+    
+    // --- MODULE 5: TEMPORAL FURNACE ---
+    function initiateCrystallization() {
+        if (STATE.resonanceMode !== 'S') {
+            logMsg("ERROR :: FURNACE REQUIRES [S]ILENCE RESONANCE");
+            playTone(110, 0.3, 'square');
+            return;
+        }
+        logMsg("CRYSTALLIZATION INITIATED. MAINTAIN STILLNESS...");
+        let stillness = 100;
+        const stillnessDecay = () => { stillness = Math.max(0, stillness - 10); };
+        window.addEventListener('mousemove', stillnessDecay);
+        window.addEventListener('keydown', stillnessDecay);
+        
+        let pressure = 0;
+        const interval = setInterval(() => {
+            pressure += stillness / 100;
+            stillness = Math.min(100, stillness + 1); // slowly recover stillness
+            DOM.pressureFill.style.width = `${pressure}%`;
+            DOM.stillnessFill.style.width = `${stillness}%`;
+
+            if (stillness <= 0) {
+                logMsg("STILLNESS BROKEN. CRYSTALLIZATION FAILED.");
+                clearInterval(interval);
+                resetFurnace();
+            } else if (pressure >= 100) {
+                logMsg("CRYSTALLIZATION COMPLETE. Ontological artifact stabilized.");
+                clearInterval(interval);
+                finalizeArtifact();
+                resetFurnace();
+            }
+        }, 50);
+        
+        const resetFurnace = () => {
+             window.removeEventListener('mousemove', stillnessDecay);
+             window.removeEventListener('keydown', stillnessDecay);
+             DOM.pressureFill.style.width = '0%';
+             DOM.stillnessFill.style.width = '0%';
+        };
+    }
+    
+    function finalizeArtifact() {
+        playTone(659, 0.8, 'sine');
+        // This simulates creating a final artifact that can be used again.
+        const finalGlyph = document.createElement('div');
+        const id = createId('final-glyph');
+        finalGlyph.id = id;
+        finalGlyph.className = 'glyph-fragment draggable';
+        finalGlyph.dataset.id = id;
+        finalGlyph.dataset.type = 'glyph-fragment';
+        finalGlyph.dataset.text = "RECURSION";
+        finalGlyph.textContent = "RECURSION";
+        finalGlyph.style.left = "50%";
+        finalGlyph.style.top = "80%";
+        finalGlyph.style.color = "var(--accent-resonant)";
+        finalGlyph.style.borderColor = "var(--accent-resonant)";
+        DOM.chantwell.appendChild(finalGlyph);
+        STATE.artifacts[id] = {el: finalGlyph, type: 'glyph-fragment', text: "RECURSION"};
+        logMsg("A recursive artifact has been returned to the Chantwell.");
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 KINETIC WEAVING</title>
+    <style>
+        /* --- CORE SETUP & AESTHETICS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@300;400&display=swap');
+
+        :root {
+            --bg-color: #020308;
+            --field-grid-color: rgba(0, 255, 255, 0.05);
+            --primary-glow: #00ffff;
+            --secondary-glow: #ff00ff;
+            --child-glow: #aaff00;
+            --text-color: #e0e0ff;
+            --interface-bg: rgba(20, 20, 40, 0.85);
+            --border-color: rgba(0, 255, 255, 0.3);
+            --font-display: 'Orbitron', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        * { box-sizing: border-box; user-select: none; }
+
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: var(--bg-color);
+            font-family: var(--font-mono); color: var(--text-color);
+            cursor: default;
+        }
+
+        /* --- THE RESONANCE FIELD --- */
+        #resonance-field {
+            position: relative; width: 100%; height: 100%;
+            background: linear-gradient(var(--field-grid-color) 1px, transparent 1px),
+                        linear-gradient(90deg, var(--field-grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        #lineage-svg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+        }
+
+        .lineage-trail {
+            stroke-width: 1.5px;
+            stroke-dasharray: 4 4;
+            animation: flow 1s linear infinite;
+        }
+        
+        @keyframes flow { to { stroke-dashoffset: -8; } }
+
+        /* --- GENOME STRANDS --- */
+        .g-strand {
+            position: absolute; width: 150px; height: 200px;
+            border: 1px solid var(--border-color);
+            background: rgba(10, 10, 30, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex; flex-direction: column; align-items: center;
+            padding: 8px; cursor: grab;
+            transition: box-shadow 0.3s ease, transform 0.2s ease, opacity 0.5s ease;
+        }
+        .g-strand:active { cursor: grabbing; transform: scale(1.05); z-index: 100; }
+        .g-strand.fading-out { opacity: 0; transform: scale(0.5); }
+
+        .g-strand .handle {
+            width: 100%; padding: 5px; background: rgba(0, 0, 0, 0.4);
+            text-align: center; font-family: var(--font-display); font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .g-strand .codons {
+            flex-grow: 1; width: 100%; padding-top: 8px; font-size: 11px;
+            line-height: 1.5; overflow: hidden; text-align: center;
+            opacity: 0.7; word-break: break-all;
+            transition: opacity 0.3s;
+        }
+        
+        #g-alpha { box-shadow: 0 0 10px var(--primary-glow); }
+        #g-beta { box-shadow: 0 0 10px var(--secondary-glow); }
+        .fused { box-shadow: 0 0 15px var(--child-glow); }
+
+        /* --- GESTURAL STATES & EFFECTS --- */
+        .unstable {
+            animation: flicker 0.15s infinite alternate;
+        }
+        @keyframes flicker {
+            0% { transform: skewX(-2deg) scale(1.02); box-shadow: 0 0 20px white; }
+            100% { transform: skewX(2deg) scale(1); }
+        }
+
+        .primed::after {
+            content: ''; position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px;
+            border: 2px dashed var(--child-glow);
+            border-radius: 2px;
+            animation: pulse-aura 2s infinite;
+            pointer-events: none;
+        }
+        @keyframes pulse-aura {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        .phenotype-display {
+            opacity: 1 !important;
+            font-family: var(--font-display);
+            font-size: 1.2em;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 0 10px white;
+        }
+        
+        .effect-pulse-ring, .effect-shockwave {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 1;
+        }
+        .effect-pulse-ring {
+            border: 2px solid white;
+            animation: pulse-out 0.7s ease-out forwards;
+        }
+        .effect-shockwave {
+            background: white;
+            box-shadow: 0 0 30px 20px white;
+            animation: shockwave-out 0.4s ease-out forwards;
+        }
+        @keyframes pulse-out { to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+        @keyframes shockwave-out { to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+
+        /* --- CONTEXTUAL GLYPH WHEEL --- */
+        #glyph-wheel {
+            position: absolute;
+            width: 160px; height: 160px;
+            transform: translate(-50%, -50%);
+            display: none; /* Changed by JS */
+            align-items: center; justify-content: center;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 200;
+        }
+        
+        .glyph-button {
+            position: absolute;
+            width: 50px; height: 50px;
+            background: var(--interface-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            color: var(--text-color);
+            font-size: 24px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            pointer-events: all;
+            transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+        }
+        .glyph-button:hover {
+            background: var(--primary-glow);
+            color: var(--bg-color);
+            transform: scale(1.1);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+        .glyph-button.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+            background: #333;
+        }
+        /* Positions are calculated in JS */
+        
+        /* --- CALIBRATE PANEL --- */
+        #calibrate-panel {
+            position: absolute;
+            width: 200px;
+            padding: 15px;
+            background: var(--interface-bg);
+            border: 1px solid var(--child-glow);
+            box-shadow: 0 0 15px var(--child-glow);
+            z-index: 300;
+            display: none; /* Changed by JS */
+            flex-direction: column; gap: 15px;
+        }
+        #calibrate-panel label { font-family: var(--font-display); font-size: 12px; }
+        #calibrate-panel input[type="range"] { accent-color: var(--child-glow); }
+        #calibrate-panel button {
+            background: transparent; border: 1px solid var(--child-glow);
+            color: var(--child-glow); padding: 8px; cursor: pointer;
+        }
+
+        /* --- INFO PANEL --- */
+        #info-panel {
+            position: absolute; top: 15px; left: 15px;
+            padding: 15px; background: rgba(10,10,30,0.7);
+            border: 1px solid var(--border-color);
+            max-width: 350px; z-index: 500;
+        }
+        #info-panel h1 { font-family: var(--font-display); margin: 0 0 10px 0; color: var(--primary-glow); }
+        #info-panel ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+    <div id="resonance-field">
+        <svg id="lineage-svg"></svg>
+
+        <!-- Initial Strands -->
+        <div class="g-strand" id="g-alpha" style="top: 20%; left: 15%;">
+            <div class="handle">g-alpha</div>
+            <div class="codons">AAT GCT TCG ... GCA TTA CCT</div>
+        </div>
+        <div class="g-strand" id="g-beta" style="top: 50%; left: 75%;">
+            <div class="handle">g-beta</div>
+            <div class="codons">CGC TAT AAG ... TTT ACG GAT</div>
+        </div>
+    </div>
+    
+    <div id="info-panel">
+        <h1>Kinetic Weaving</h1>
+        <ul>
+            <li><b>Fuse:</b> Drag one strand on top of another.</li>
+            <li><b>Express:</b> Double-click a strand.</li>
+            <li><b>Mutate:</b> Click, hold, and shake a strand.</li>
+            <li><b>Actions:</b> Right-click a strand for the Glyph Wheel.</li>
+        </ul>
+    </div>
+    
+    <!-- UI Templates (cloned by JS) -->
+    <div id="glyph-wheel">
+        <div class="glyph-button" data-glyph="echo">⫸</div>
+        <div class="glyph-button" data-glyph="fuse">∿</div>
+        <div class="glyph-button" data-glyph="calibrate">🔧</div>
+        <div class="glyph-button" data-glyph="stabilize">⚕️</div>
+    </div>
+    
+    <div id="calibrate-panel">
+        <label for="bias-slider">FUSION BIAS</label>
+        <input type="range" id="bias-slider" min="0" max="1" value="0.5" step="0.01">
+        <label for="drift-checkbox">INDUCE DRIFT ON FUSE</label>
+        <input type="checkbox" id="drift-checkbox">
+        <button id="calibrate-close">CLOSE</button>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const field = document.getElementById('resonance-field');
+        const svg = document.getElementById('lineage-svg');
+        const glyphWheel = document.getElementById('glyph-wheel');
+        const calibratePanel = document.getElementById('calibrate-panel');
+        
+        let strands = [];
+        let activeDrag = null;
+        let nextGenomeId = 1;
+        let shakeData = { lastPos: null, history: [] };
+        
+        // --- INITIALIZATION ---
+        function initializeStrands() {
+            document.querySelectorAll('.g-strand').forEach(el => {
+                const strandObj = {
+                    el: el,
+                    id: el.id,
+                    parents: [],
+                    children: [],
+                    isUnstable: false,
+                    primedSettings: { bias: 0.5, drift: false }
+                };
+                strands.push(strandObj);
+                attachEventListeners(strandObj);
+            });
+        }
+
+        // --- CORE EVENT HANDLING ---
+        function attachEventListeners(strand) {
+            strand.el.addEventListener('mousedown', (e) => onMouseDown(e, strand));
+            strand.el.addEventListener('dblclick', (e) => onDoubleClick(e, strand));
+            strand.el.addEventListener('contextmenu', (e) => onRightClick(e, strand));
+        }
+
+        function onMouseDown(e, strand) {
+            if (e.button !== 0) return; // Only left-click for drag
+            e.preventDefault();
+            activeDrag = {
+                strand,
+                offsetX: e.clientX - strand.el.offsetLeft,
+                offsetY: e.clientY - strand.el.offsetTop
+            };
+            shakeData.lastPos = { x: e.clientX, y: e.clientY };
+            shakeData.history = [];
+            hideGlyphWheel();
+            hideCalibratePanel();
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (!activeDrag) return;
+            const { strand, offsetX, offsetY } = activeDrag;
+
+            let newX = e.clientX - offsetX;
+            let newY = e.clientY - offsetY;
+            strand.el.style.left = `${newX}px`;
+            strand.el.style.top = `${newY}px`;
+            
+            updateAllLineageTrails();
+            checkCollision(strand);
+            trackShake(e);
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (!activeDrag) return;
+            checkShakeGesture(activeDrag.strand);
+            activeDrag = null;
+        });
+
+        function onDoubleClick(e, strand) {
+            e.preventDefault();
+            const center = getCenter(strand.el);
+            createEffect('pulse-ring', center, 200);
+
+            const codonsEl = strand.el.querySelector('.codons');
+            const originalText = codonsEl.innerHTML;
+            codonsEl.classList.add('phenotype-display');
+            codonsEl.innerHTML = 'PHENOTYPE: EXPRESSING';
+
+            setTimeout(() => {
+                codonsEl.classList.remove('phenotype-display');
+                codonsEl.innerHTML = originalText;
+            }, 2000);
+        }
+
+        function onRightClick(e, strand) {
+            e.preventDefault();
+            showGlyphWheel(strand, { x: e.clientX, y: e.clientY });
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#glyph-wheel') && !e.target.closest('.g-strand')) {
+                hideGlyphWheel();
+            }
+            if (!e.target.closest('#calibrate-panel')) {
+                 hideCalibratePanel();
+            }
+        });
+
+        // --- GESTURE LOGIC ---
+        function checkCollision(draggedStrand) {
+            const draggedCenter = getCenter(draggedStrand.el);
+            for (const targetStrand of strands) {
+                if (targetStrand === draggedStrand || targetStrand.el.classList.contains('fading-out')) continue;
+                
+                const targetCenter = getCenter(targetStrand.el);
+                const distance = Math.hypot(draggedCenter.x - targetCenter.x, draggedCenter.y - targetCenter.y);
+
+                if (distance < 80) { // Collision threshold
+                    handleFusion(draggedStrand, targetStrand);
+                    activeDrag = null; // Stop dragging
+                    break;
+                }
+            }
+        }
+        
+        function trackShake(e) {
+            const dx = e.clientX - shakeData.lastPos.x;
+            shakeData.history.push(dx);
+            if (shakeData.history.length > 10) shakeData.history.shift();
+            shakeData.lastPos = { x: e.clientX, y: e.clientY };
+        }
+
+        function checkShakeGesture(strand) {
+            if (shakeData.history.length < 5) return;
+            let reversals = 0;
+            for (let i = 1; i < shakeData.history.length; i++) {
+                if (Math.sign(shakeData.history[i]) !== Math.sign(shakeData.history[i-1])) {
+                    reversals++;
+                }
+            }
+            if (reversals > 3) {
+                makeUnstable(strand);
+            }
+        }
+
+        // --- ACTION HANDLERS ---
+        function handleFusion(p1, p2) {
+            const center1 = getCenter(p1.el);
+            const center2 = getCenter(p2.el);
+            const midPoint = { x: (center1.x + center2.x) / 2, y: (center1.y + center2.y) / 2 };
+            
+            createEffect('shockwave', midPoint, 300);
+            
+            p1.el.classList.add('fading-out');
+            p2.el.classList.add('fading-out');
+            
+            const isChildUnstable = p1.isUnstable || p2.isUnstable || p1.primedSettings.drift || p2.primedSettings.drift;
+            const bias = p1.primedSettings.bias; // Simplified: p1's setting takes precedence
+            
+            // Create new strand after fade out
+            setTimeout(() => {
+                createFusedStrand(
+                    [p1, p2], 
+                    { x: midPoint.x - 75, y: midPoint.y - 100 }, 
+                    isChildUnstable
+                );
+                p1.el.remove();
+                p2.el.remove();
+            }, 500);
+        }
+
+        function makeUnstable(strand) {
+            strand.isUnstable = true;
+            strand.el.classList.add('unstable');
+        }
+        
+        function stabilizeStrand(strand) {
+            strand.isUnstable = false;
+            strand.el.classList.remove('unstable');
+        }
+
+        // --- UI & ELEMENT CREATION ---
+        function createFusedStrand(parents, pos, isUnstable) {
+            const newId = `g-gamma-${nextGenomeId++}`;
+            const newStrandEl = document.createElement('div');
+            newStrandEl.id = newId;
+            newStrandEl.className = 'g-strand fused';
+            newStrandEl.style.left = `${pos.x}px`;
+            newStrandEl.style.top = `${pos.y}px`;
+            newStrandEl.innerHTML = `
+                <div class="handle">${newId}</div>
+                <div class="codons">fused ... kinetic ... genetic data</div>
+            `;
+            field.appendChild(newStrandEl);
+            
+            const newStrandObj = {
+                el: newStrandEl,
+                id: newId,
+                parents: parents.map(p => p.id),
+                children: [],
+                isUnstable: isUnstable,
+                primedSettings: { bias: 0.5, drift: false }
+            };
+            
+            if (isUnstable) newStrandEl.classList.add('unstable');
+
+            parents.forEach(p => {
+                const parentObj = strands.find(s => s.id === p.id);
+                if (parentObj) parentObj.children.push(newId);
+            });
+
+            strands.push(newStrandObj);
+            attachEventListeners(newStrandObj);
+            updateAllLineageTrails();
+            return newStrandObj;
+        }
+
+        function createEffect(type, pos, size) {
+            const effect = document.createElement('div');
+            effect.className = `effect-${type}`;
+            effect.style.left = `${pos.x}px`;
+            effect.style.top = `${pos.y}px`;
+            effect.style.width = `${size}px`;
+            effect.style.height = `${size}px`;
+            field.appendChild(effect);
+            setTimeout(() => effect.remove(), 1000);
+        }
+        
+        function showGlyphWheel(strand, pos) {
+            const radius = 80;
+            const buttons = glyphWheel.querySelectorAll('.glyph-button');
+            
+            // Contextual Logic
+            const nearest = findNearestStrand(strand);
+            buttons.forEach(btn => {
+                const glyph = btn.dataset.glyph;
+                let isDisabled = false;
+                if (glyph === 'fuse' && !nearest) isDisabled = true;
+                if (glyph === 'stabilize' && !strand.isUnstable) isDisabled = true;
+                btn.classList.toggle('disabled', isDisabled);
+                
+                // Unbind old listeners
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                // Bind new
+                if(!isDisabled) {
+                    newBtn.addEventListener('click', () => handleGlyphClick(glyph, strand));
+                }
+            });
+
+            const updatedButtons = glyphWheel.querySelectorAll('.glyph-button');
+            updatedButtons.forEach((btn, i) => {
+                const angle = (i / updatedButtons.length) * 2 * Math.PI - (Math.PI / 2);
+                btn.style.transform = `translate(${radius * Math.cos(angle)}px, ${radius * Math.sin(angle)}px)`;
+            });
+
+            glyphWheel.style.left = `${strand.el.offsetLeft + strand.el.offsetWidth / 2}px`;
+            glyphWheel.style.top = `${strand.el.offsetTop + strand.el.offsetHeight / 2}px`;
+            glyphWheel.style.display = 'flex';
+        }
+
+        function hideGlyphWheel() {
+            glyphWheel.style.display = 'none';
+        }
+        
+        function handleGlyphClick(glyph, strand) {
+            hideGlyphWheel();
+            switch(glyph) {
+                case 'echo':
+                    const newPos = { x: strand.el.offsetLeft + 170, y: strand.el.offsetTop };
+                    createFusedStrand([strand], newPos, strand.isUnstable); // Simple clone
+                    break;
+                case 'fuse':
+                    const target = findNearestStrand(strand);
+                    if (target) handleFusion(strand, target);
+                    break;
+                case 'calibrate':
+                    showCalibratePanel(strand);
+                    break;
+                case 'stabilize':
+                    stabilizeStrand(strand);
+                    break;
+            }
+        }
+        
+        function showCalibratePanel(strand) {
+            calibratePanel.style.left = `${strand.el.offsetLeft + strand.el.offsetWidth/2 - 100}px`;
+            calibratePanel.style.top = `${strand.el.offsetTop - 120}px`;
+            calibratePanel.style.display = 'flex';
+            
+            const biasSlider = calibratePanel.querySelector('#bias-slider');
+            const driftCheckbox = calibratePanel.querySelector('#drift-checkbox');
+            biasSlider.value = strand.primedSettings.bias;
+            driftCheckbox.checked = strand.primedSettings.drift;
+            
+            biasSlider.oninput = () => {
+                strand.primedSettings.bias = parseFloat(biasSlider.value);
+                strand.el.classList.add('primed');
+            };
+            driftCheckbox.onchange = () => {
+                strand.primedSettings.drift = driftCheckbox.checked;
+                strand.el.classList.add('primed');
+            };
+            calibratePanel.querySelector('#calibrate-close').onclick = hideCalibratePanel;
+        }
+
+        function hideCalibratePanel() {
+            calibratePanel.style.display = 'none';
+        }
+
+        // --- UTILITY & DRAWING ---
+        function getCenter(el) {
+            return {
+                x: el.offsetLeft + el.offsetWidth / 2,
+                y: el.offsetTop + el.offsetHeight / 2
+            };
+        }
+
+        function findNearestStrand(sourceStrand) {
+            let nearest = null;
+            let minDistance = Infinity;
+            const sourceCenter = getCenter(sourceStrand.el);
+
+            for (const targetStrand of strands) {
+                if (targetStrand === sourceStrand || targetStrand.el.classList.contains('fading-out')) continue;
+                const targetCenter = getCenter(targetStrand.el);
+                const distance = Math.hypot(sourceCenter.x - targetCenter.x, sourceCenter.y - targetCenter.y);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearest = targetStrand;
+                }
+            }
+            return nearest;
+        }
+
+        function updateAllLineageTrails() {
+            svg.innerHTML = '';
+            const existingStrands = strands.filter(s => !s.el.classList.contains('fading-out'));
+            existingStrands.forEach(strand => {
+                if (strand.parents.length > 0) {
+                    const childCenter = getCenter(strand.el);
+                    strand.parents.forEach(parentId => {
+                        const parentStrand = strands.find(s => s.id === parentId);
+                        if (parentStrand) {
+                            const parentEl = document.getElementById(parentId);
+                            if (parentEl) { // Check if parent still exists visually
+                                const parentCenter = getCenter(parentEl);
+                                createLineageTrail(parentCenter, childCenter, parentId);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        function createLineageTrail(start, end, parentId) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', start.x); line.setAttribute('y1', start.y);
+            line.setAttribute('x2', end.x); line.setAttribute('y2', end.y);
+            line.classList.add('lineage-trail');
+            if (parentId === 'g-alpha') line.style.stroke = 'var(--primary-glow)';
+            else if (parentId === 'g-beta') line.style.stroke = 'var(--secondary-glow)';
+            else line.style.stroke = 'var(--child-glow)';
+            svg.appendChild(line);
+        }
+
+        initializeStrands();
+    });
+    </script>
+
+</body>
+</html>

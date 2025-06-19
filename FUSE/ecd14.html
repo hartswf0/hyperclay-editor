@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // POLISIG // IDEOLOGICAL ANALYZER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Polisig - Ideological Drift Analyzer
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: Audits text for consistency with a selected ideological stance,
+        *   highlighting contradictions and suggesting aligned phrase swaps.
+        */
+
+        :root {
+            --ps-bg: #e0e5e9;
+            --ps-panel-dark: #3d4247;
+            --ps-panel-light: #b8c0c8;
+            --ps-text-light: #f0f5f9;
+            --ps-text-dark: #1a1c20;
+            --ps-accent-blue: #4a7a8c;
+            --ps-accent-red: #c74444;
+            --ps-accent-yellow: #c7a83f;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #111; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--ps-text-dark); user-select: none;
+        }
+        #polisig-chassis {
+            width: 1600px; height: 900px; background-color: var(--ps-bg);
+            border: 2px solid #555; box-shadow: 0 0 30px rgba(0,0,0,0.4);
+            padding: 20px; display: grid; grid-template-columns: 500px 1fr 400px;
+            gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--ps-panel-light); padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.2); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 2px solid var(--ps-text-dark);
+            padding-bottom: 5px; margin: 0 0 15px 0;
+        }
+
+        /* --- LEFT PANEL: INPUT & STANCE --- */
+        #left-panel { grid-column: 1 / 2; }
+        #input-manifold {
+            flex-grow: 1; background: #fff; border: 1px solid #888; padding: 10px;
+            font-family: var(--font-main); font-size: 1.1rem; line-height: 1.6; resize: none;
+        }
+        
+        #stance-selector { margin-top: 20px; }
+        .stance-toggle-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .stance-button {
+            display: flex; align-items: center; padding: 12px; background: var(--ps-panel-dark);
+            color: var(--ps-text-light); border: 2px solid #111; cursor: pointer;
+        }
+        .stance-button .indicator {
+            width: 20px; height: 20px; background: #111; margin-right: 15px;
+        }
+        .stance-button.active .indicator { background: var(--ps-accent-blue); }
+        .stance-button span { font-size: 1.3rem; }
+
+        #analyze-button {
+            width: 100%; padding: 15px; font-size: 1.5rem; font-family: var(--font-display);
+            margin-top: 20px; border: 2px solid var(--ps-text-dark); background: var(--ps-panel-dark);
+            color: var(--ps-text-light); cursor: pointer; letter-spacing: 2px;
+        }
+        #analyze-button:disabled { background: #888; color: #555; cursor: not-allowed; }
+
+        /* --- CENTER PANEL: AUDIT MATRIX --- */
+        #center-panel { grid-column: 2 / 3; }
+        #audit-matrix { flex-grow: 1; overflow-y: auto; background: #fff; padding: 10px; }
+        .audit-line { display: flex; align-items: center; gap: 15px; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .drift-meter-container { width: 50px; height: 20px; background: #ddd; border: 1px solid #aaa; }
+        .drift-meter-bar { height: 100%; background: var(--ps-accent-blue); transition: width 0.5s; }
+        .line-text { flex-grow: 1; font-size: 1.2rem; }
+        .flagged-phrase {
+            background: rgba(255, 184, 108, 0.4);
+            padding: 2px 0;
+            cursor: pointer;
+            border-bottom: 2px solid var(--ps-accent-yellow);
+        }
+        .flagged-phrase.contradiction {
+            background: rgba(255, 85, 85, 0.4);
+            border-bottom-color: var(--ps-accent-red);
+        }
+
+        /* --- RIGHT PANEL: CORRECTION ENGINE --- */
+        #right-panel { grid-column: 3 / 4; }
+        #correction-engine { height: 300px; }
+        #suggestion-list { overflow-y: auto; }
+        .suggestion-item {
+            padding: 10px; background: #d0d8e0; margin-bottom: 5px; cursor: pointer;
+            border-left: 4px solid var(--ps-accent-blue);
+        }
+        .suggestion-item:hover { background: #f0f5f9; }
+        
+        #corrected-output {
+            flex-grow: 1; background: #fff; margin-top: 15px; padding: 10px;
+            font-size: 1.1rem; line-height: 1.6; overflow-y: auto;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="polisig-chassis">
+        <!-- LEFT PANEL -->
+        <div class="panel" id="left-panel">
+            <h2 class="module-label">INPUT MANIFOLD</h2>
+            <textarea id="input-manifold" placeholder="Load manuscript here..."></textarea>
+            <div id="stance-selector">
+                <h2 class="module-label" style="font-size:1.5rem; margin-top:20px;">IDEOLOGICAL STANCE</h2>
+                <div class="stance-toggle-grid">
+                    <div class="stance-button" data-stance="technocratic">
+                        <div class="indicator"></div><span>Technocratic Ethics</span>
+                    </div>
+                    <div class="stance-button" data-stance="anarchist">
+                        <div class="indicator"></div><span>Anarchist Autonomy</span>
+                    </div>
+                    <div class="stance-button" data-stance="harmonist">
+                        <div class="indicator"></div><span>Dream-State Harmonism</span>
+                    </div>
+                </div>
+            </div>
+            <button id="analyze-button" disabled>ANALYZE</button>
+        </div>
+
+        <!-- CENTER PANEL -->
+        <div class="panel" id="center-panel">
+            <h2 class="module-label">AUDIT MATRIX</h2>
+            <div id="audit-matrix">
+                <div style="text-align:center; padding: 50px; color: #777;">Awaiting analysis...</div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel" id="right-panel">
+            <div id="correction-engine">
+                <h2 class="module-label">CORRECTION ENGINE</h2>
+                <div id="suggestion-list">
+                     <div style="text-align:center; padding: 20px; color: #777;">Select a flagged phrase to view suggestions.</div>
+                </div>
+            </div>
+            <h2 class="module-label" style="margin-top:20px;">CORRECTED OUTPUT</h2>
+            <div id="corrected-output"></div>
+        </div>
+    </div>
+
+<script>
+const Polisig = {
+    // --- Data ---
+    IDEOLOGIES: {
+        technocratic: {
+            name: "Technocratic Ethics",
+            keywords: { positive: ['efficiency', 'optimal', 'data-driven', 'system', 'engineered', 'logic', 'rational'], negative: ['feeling', 'believe', 'chaos', 'tradition', 'unstructured', 'individualism'] },
+            swaps: {
+                'people should choose': 'optimal outcomes must be engineered',
+                'we feel that': 'the data indicates',
+                'a messy process': 'a sub-optimal workflow',
+                'follow your heart': 'consult the predictive model',
+            }
+        },
+        anarchist: {
+            name: "Anarchist Autonomy",
+            keywords: { positive: ['freedom', 'autonomy', 'mutual aid', 'consensus', 'direct action', 'community'], negative: ['hierarchy', 'control', 'state', 'authority', 'mandate', 'rules'] },
+            swaps: {
+                'the leaders decided': 'the community reached consensus',
+                'we must obey the law': 'we must act in solidarity',
+                'a required procedure': 'a voluntary association',
+                'managed by the state': 'organized by the collective',
+            }
+        },
+        harmonist: {
+            name: "Dream-State Harmonism",
+            keywords: { positive: ['oneness', 'flow', 'resonance', 'collective dream', 'intuition', 'harmony'], negative: ['ego', 'conflict', 'separation', 'logic', 'waking world', 'rigid'] },
+            swaps: {
+                'a logical conclusion': 'a resonant truth',
+                'I think that': 'the dream-current suggests',
+                'a heated debate': 'a dissonant frequency',
+                'a separate entity': 'a facet of the whole',
+            }
+        }
+    },
+    
+    // --- DOM Elements ---
+    elems: {
+        input: document.getElementById('input-manifold'),
+        stanceButtons: document.querySelectorAll('.stance-button'),
+        analyzeBtn: document.getElementById('analyze-button'),
+        auditMatrix: document.getElementById('audit-matrix'),
+        suggestionList: document.getElementById('suggestion-list'),
+        correctedOutput: document.getElementById('corrected-output'),
+    },
+    
+    // --- State ---
+    state: {
+        activeStance: null,
+        analyzedLines: [],
+        currentSuggestions: [],
+        selectedFlag: null,
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, click: null, analyze: null, swap: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.click = this.createSound(1200, 0.05, 0.1);
+            this.analyze = this.createSound(50, 0.5, 0.05, true);
+            this.swap = this.createSound(600, 0.1, 0.2);
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sine'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*0.5,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.addEventListeners();
+        this.elems.input.value = "The leaders decided that people should choose their own path. We feel that this is a messy process, but we must obey the law. This is a logical conclusion.";
+    },
+    
+    addEventListeners() {
+        this.elems.stanceButtons.forEach(btn => {
+            btn.onclick = () => this.selectStance(btn.dataset.stance);
+        });
+        this.elems.analyzeBtn.onclick = () => this.runAnalysis();
+        this.elems.input.oninput = () => this.checkCanAnalyze();
+    },
+
+    // --- Core Logic ---
+    selectStance(stance) {
+        this.audio.click();
+        this.state.activeStance = stance;
+        this.elems.stanceButtons.forEach(btn => {
+            btn.classList.remove('active');
+            btn.querySelector('.indicator').style.backgroundColor = '';
+        });
+        const activeBtn = document.querySelector(`.stance-button[data-stance="${stance}"]`);
+        activeBtn.classList.add('active');
+        activeBtn.querySelector('.indicator').style.backgroundColor = 'var(--ps-accent-blue)';
+        this.checkCanAnalyze();
+    },
+
+    checkCanAnalyze() {
+        this.elems.analyzeBtn.disabled = !(this.state.activeStance && this.elems.input.value.trim().length > 0);
+    },
+
+    runAnalysis() {
+        this.audio.analyze();
+        const text = this.elems.input.value;
+        const lines = text.split('\n');
+        const stanceData = this.IDEOLOGIES[this.state.activeStance];
+        
+        this.state.analyzedLines = lines.map((line, index) => {
+            let score = 0;
+            const flags = [];
+            const words = line.toLowerCase().match(/\b(\w+)\b/g) || [];
+
+            // Simple scoring
+            words.forEach(word => {
+                if (stanceData.keywords.positive.includes(word)) score += 0.1;
+                if (stanceData.keywords.negative.includes(word)) score -= 0.1;
+            });
+
+            // Flagging phrases
+            Object.keys(stanceData.swaps).forEach(phrase => {
+                if (line.toLowerCase().includes(phrase)) {
+                    score -= 0.5; // Penalize for having a swappable phrase
+                    flags.push({
+                        type: 'dilution', // Default to dilution, could be more complex
+                        phrase: phrase,
+                        startIndex: line.toLowerCase().indexOf(phrase),
+                        endIndex: line.toLowerCase().indexOf(phrase) + phrase.length
+                    });
+                }
+            });
+            
+            return {
+                originalText: line,
+                drift: Math.max(0, Math.min(1, 0.5 - score)),
+                flags
+            };
+        });
+        
+        this.renderAuditMatrix();
+        this.renderCorrectedOutput();
+        this.elems.suggestionList.innerHTML = `<div style="text-align:center; padding: 20px; color: #777;">Select a flagged phrase to view suggestions.</div>`;
+    },
+    
+    showSuggestions(lineIndex, flagIndex) {
+        this.audio.click();
+        const flag = this.state.analyzedLines[lineIndex].flags[flagIndex];
+        this.state.selectedFlag = { lineIndex, flagIndex };
+        const stanceData = this.IDEOLOGIES[this.state.activeStance];
+        const suggestion = stanceData.swaps[flag.phrase];
+        
+        this.elems.suggestionList.innerHTML = `
+            <div class="suggestion-item" onclick="Polisig.applySuggestion('${suggestion}')">
+                Replace with: "<strong>${suggestion}</strong>"
+            </div>
+        `;
+    },
+
+    applySuggestion(suggestion) {
+        this.audio.swap();
+        if (!this.state.selectedFlag) return;
+        const { lineIndex, flagIndex } = this.state.selectedFlag;
+        const line = this.state.analyzedLines[lineIndex];
+        const flag = line.flags[flagIndex];
+        
+        // Replace phrase
+        line.originalText = line.originalText.substring(0, flag.startIndex) + suggestion + line.originalText.substring(flag.endIndex);
+        
+        // Remove flag and re-render
+        line.flags.splice(flagIndex, 1);
+        this.state.selectedFlag = null;
+        this.elems.suggestionList.innerHTML = `<div style="text-align:center; padding: 20px; color: #777;">Correction applied. Select another flag.</div>`;
+        this.renderAuditMatrix();
+        this.renderCorrectedOutput();
+    },
+
+    // --- Rendering ---
+    renderAuditMatrix() {
+        if (this.state.analyzedLines.length === 0) {
+            this.elems.auditMatrix.innerHTML = `<div style="text-align:center; padding: 50px; color: #777;">Awaiting analysis...</div>`;
+            return;
+        }
+
+        this.elems.auditMatrix.innerHTML = this.state.analyzedLines.map((line, lineIndex) => {
+            let lineHtml = line.originalText;
+            // Apply flags backwards to not mess up indices
+            [...line.flags].reverse().forEach((flag, i) => {
+                const reversedIndex = line.flags.length - 1 - i;
+                const originalPhrase = lineHtml.substring(flag.startIndex, flag.endIndex);
+                lineHtml = `${lineHtml.substring(0, flag.startIndex)}<span class="flagged-phrase ${flag.type}" onclick="Polisig.showSuggestions(${lineIndex}, ${reversedIndex})">${originalPhrase}</span>${lineHtml.substring(flag.endIndex)}`;
+            });
+
+            return `
+                <div class="audit-line">
+                    <div class="drift-meter-container">
+                        <div class="drift-meter-bar" style="width: ${line.drift * 100}%; background-color: ${line.drift > 0.6 ? 'var(--ps-accent-red)' : 'var(--ps-accent-blue)'};"></div>
+                    </div>
+                    <div class="line-text">${lineHtml}</div>
+                </div>
+            `;
+        }).join('');
+    },
+    
+    renderCorrectedOutput() {
+        this.elems.correctedOutput.textContent = this.state.analyzedLines.map(line => line.originalText).join('\n');
+    }
+};
+
+Polisig.init();
+</script>
+</body>
+</html>

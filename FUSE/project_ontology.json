@@ -1,0 +1,498 @@
+{
+  "files": {
+    "gm2.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "keywords": ["SCOPE"]
+    },
+    "gm3.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "keywords": ["SCOPE"]
+    },
+    "gm4.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "keywords": ["SCOPE"]
+    },
+    "gm6.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "keywords": ["SCOPE"]
+    },
+    "gm7.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "keywords": ["SCOPE"]
+    },
+    "gm8.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "keywords": ["SCOPE"]
+    },
+    "gm9.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "keywords": ["SCOPE"]
+    },
+    "gm10.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "keywords": ["SCOPE"]
+    },
+    "gm-ooo.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "keywords": ["SCOPE"]
+    },
+    "fu8.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE SCOPE (GM-S)",
+      "note": "Variant",
+      "keywords": ["SCOPE"]
+    },
+    "gf1.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE FIELD (GM-F)",
+      "keywords": ["SCOPE"]
+    },
+    "gf2.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE FIELD (GM-F)",
+      "keywords": ["SCOPE"]
+    },
+    "gf3.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE FIELD (GM-F)",
+      "keywords": ["SCOPE"]
+    },
+    "g2.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOMIRE FIELD (GM-F)",
+      "keywords": ["SCOPE"]
+    },
+    "gs1.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOSCOPE / GENOMA (GS/GG)",
+      "keywords": ["SCOPE"]
+    },
+    "gs3.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOSCOPE / GENOMA (GS/GG)",
+      "keywords": ["SCOPE"]
+    },
+    "gs4.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOSCOPE / GENOMA (GS/GG)",
+      "keywords": ["SCOPE"]
+    },
+    "gg1.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOSCOPE / GENOMA (GS/GG)",
+      "keywords": ["SCOPE"]
+    },
+    "gg2.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOSCOPE / GENOMA (GS/GG)",
+      "keywords": ["SCOPE"]
+    },
+    "gs-dev.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOSCOPE / GENOMA (GS/GG)",
+      "note": "Genoma Suite (All-in-One)",
+      "keywords": ["SCOPE"]
+    },
+    "gs2.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOSCOPE / GENOMA (GS/GG)",
+      "note": "Genoma Suite (All-in-One)",
+      "keywords": ["SCOPE"]
+    },
+    "gs2-base.html": {
+      "macro_structure": "The GENOMIRE Project (GM)",
+      "codon_group": "GENOSCOPE / GENOMA (GS/GG)",
+      "note": "Genoma Suite (All-in-One)",
+      "keywords": ["SCOPE"]
+    },
+    "fu2.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE INTERFACES (FU-I)",
+      "keywords": ["FUSE"]
+    },
+    "fu5.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE INTERFACES (FU-I)",
+      "keywords": ["FUSE"]
+    },
+    "fu4.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE INTERFACES (FU-I)",
+      "keywords": ["FUSE"]
+    },
+    "fu6.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE INTERFACES (FU-I)",
+      "keywords": ["FUSE"]
+    },
+    "fu7.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE INTERFACES (FU-I)",
+      "keywords": ["FUSE"]
+    },
+    "fu9.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE INTERFACES (FU-I)",
+      "keywords": ["FUSE"]
+    },
+    "ecd-fu-odd.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE INTERFACES (FU-I)",
+      "keywords": ["FUSE"]
+    },
+    "gf4.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE INTERFACES (FU-I)",
+      "note": "Cross-lineage artifact (GMSCOPE // Synthesis & Fusion Models)",
+      "keywords": ["FUSE"]
+    },
+    "gf5.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE INTERFACES (FU-I)",
+      "note": "Cross-lineage artifact (GMSCOPE // Synthesis & Fusion Models)",
+      "keywords": ["FUSE"]
+    },
+    "fu1.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE CONCEPTS (FU-C)",
+      "keywords": ["FUSE"]
+    },
+    "fu3.html": {
+      "macro_structure": "The FUSE Project (FU)",
+      "codon_group": "FUSE CONCEPTS (FU-C)",
+      "keywords": ["FUSE"]
+    },
+    "ecd17.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ANALYSIS ENGINES (ECD-A)",
+      "keywords": ["ECD"]
+    },
+    "ecd16.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ANALYSIS ENGINES (ECD-A)",
+      "keywords": ["ECD"]
+    },
+    "ecd14.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ANALYSIS ENGINES (ECD-A)",
+      "keywords": ["ECD"]
+    },
+    "ecd10.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ANALYSIS ENGINES (ECD-A)",
+      "keywords": ["ECD"]
+    },
+    "ecd11.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ANALYSIS ENGINES (ECD-A)",
+      "keywords": ["ECD"]
+    },
+    "ecd12.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ANALYSIS ENGINES (ECD-A)",
+      "keywords": ["ECD"]
+    },
+    "ecd2.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD COMPOSITION & TRANSLATION (ECD-C)",
+      "keywords": ["ECD"]
+    },
+    "ecd13.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD COMPOSITION & TRANSLATION (ECD-C)",
+      "keywords": ["ECD"]
+    },
+    "ecd3.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD COMPOSITION & TRANSLATION (ECD-C)",
+      "keywords": ["ECD"]
+    },
+    "ecd8.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD COMPOSITION & TRANSLATION (ECD-C)",
+      "keywords": ["ECD"]
+    },
+    "ecd9.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD COMPOSITION & TRANSLATION (ECD-C)",
+      "keywords": ["ECD"]
+    },
+    "ecd18.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ONTOLOGICAL INTERFACES (ECD-O)",
+      "keywords": ["ECD"]
+    },
+    "ecd21.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ONTOLOGICAL INTERFACES (ECD-O)",
+      "keywords": ["ECD"]
+    },
+    "ecd-u2.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ONTOLOGICAL INTERFACES (ECD-O)",
+      "note": "Concept",
+      "keywords": ["ECD"]
+    },
+    "ecd23.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ONTOLOGICAL INTERFACES (ECD-O)",
+      "keywords": ["ECD"]
+    },
+    "ecd-u4.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ONTOLOGICAL INTERFACES (ECD-O)",
+      "note": "Concept",
+      "keywords": ["ECD"]
+    },
+    "ecd19.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ONTOLOGICAL INTERFACES (ECD-O)",
+      "keywords": ["ECD"]
+    },
+    "ecd-u1.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD ONTOLOGICAL INTERFACES (ECD-O)",
+      "note": "Concept",
+      "keywords": ["ECD"]
+    },
+    "ecd20.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)",
+      "keywords": ["ECD"]
+    },
+    "ecd22.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)",
+      "keywords": ["ECD"]
+    },
+    "ecd-u3.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)",
+      "note": "Concept",
+      "keywords": ["ECD"]
+    },
+    "ecd5.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)",
+      "keywords": ["ECD"]
+    },
+    "ecd15.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)",
+      "keywords": ["ECD"]
+    },
+    "ecd4.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)",
+      "keywords": ["ECD"]
+    },
+    "fu10.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD HARMONIZERS (ECD-H)",
+      "keywords": ["ECD"]
+    },
+    "fu11.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD HARMONIZERS (ECD-H)",
+      "keywords": ["ECD"]
+    },
+    "ecd1.html": {
+      "macro_structure": "Esoterica Cybernetics Division (ECD)",
+      "codon_group": "ECD HARMONIZERS (ECD-H)",
+      "keywords": ["ECD"]
+    },
+    "ecd6.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMADOS (Operating System)",
+      "keywords": ["SYSTEM", "OS"]
+    },
+    "ecd7.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMADOS (Operating System)",
+      "keywords": ["SYSTEM", "OS"]
+    },
+    "owe-1.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMATIC FORGE / OWE (Ontological Weaving Engine)",
+      "keywords": ["SYSTEM", "OS", "FORGE"]
+    },
+    "owe2.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMATIC FORGE / OWE (Ontological Weaving Engine)",
+      "note": "Concept",
+      "keywords": ["SYSTEM", "OS", "FORGE"]
+    },
+    "owe3.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMATIC FORGE / OWE (Ontological Weaving Engine)",
+      "keywords": ["SYSTEM", "OS", "FORGE"]
+    },
+    "owe4.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMATIC FORGE / OWE (Ontological Weaving Engine)",
+      "keywords": ["SYSTEM", "OS", "FORGE"]
+    },
+    "owe5.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMATIC FORGE / OWE (Ontological Weaving Engine)",
+      "keywords": ["SYSTEM", "OS", "FORGE"]
+    },
+    "owe6.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMATIC FORGE / OWE (Ontological Weaving Engine)",
+      "keywords": ["SYSTEM", "OS", "FORGE"]
+    },
+    "owe7.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMATIC FORGE / OWE (Ontological Weaving Engine)",
+      "keywords": ["SYSTEM", "OS", "FORGE"]
+    },
+    "ecd-u5.html": {
+      "macro_structure": "The HOLOSOMES (Unified Environments)",
+      "codon_group": "SIGMATIC FORGE / OWE (Ontological Weaving Engine)",
+      "note": "Alternate Title",
+      "keywords": ["SYSTEM", "OS", "FORGE"]
+    },
+    "f1.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "CODONSYNTH (CS)"
+    },
+    "f2.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "CODONSYNTH (CS)"
+    },
+    "f5.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "CODONSYNTH (CS)"
+    },
+    "f3.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "CODONSYNTH (CS)",
+      "note": "Specific Implementation"
+    },
+    "f4.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "CODONSYNTH (CS)",
+      "note": "Specific Implementation"
+    },
+    "f6.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "CODONSYNTH (CS)",
+      "note": "Specific Implementation"
+    },
+    "f7.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "CODONSYNTH (CS)",
+      "note": "Specific Implementation"
+    },
+    "m1.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "MIRE (MI)"
+    },
+    "m2.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "MIRE (MI)"
+    },
+    "m4.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "MIRE (MI)"
+    },
+    "g1.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g3.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g4.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g5.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g6.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g7.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g8.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g9.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g10.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g11.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g13.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)"
+    },
+    "g12.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)",
+      "note": "Untitled Artifact"
+    },
+    "index.html": {
+      "macro_structure": "R&D INCUBATOR",
+      "codon_group": "GENERIC / UNTITLED (G)",
+      "note": "Project Genome Directory"
+    }
+  },
+  "macro_structures_order": [
+    "The GENOMIRE Project (GM)",
+    "The FUSE Project (FU)",
+    "Esoterica Cybernetics Division (ECD)",
+    "The HOLOSOMES (Unified Environments)",
+    "R&D INCUBATOR"
+  ],
+  "codon_groups_order": {
+    "The GENOMIRE Project (GM)": [
+      "GENOMIRE SCOPE (GM-S)",
+      "GENOMIRE FIELD (GM-F)",
+      "GENOSCOPE / GENOMA (GS/GG)"
+    ],
+    "The FUSE Project (FU)": [
+      "FUSE INTERFACES (FU-I)",
+      "FUSE CONCEPTS (FU-C)"
+    ],
+    "Esoterica Cybernetics Division (ECD)": [
+      "ECD ANALYSIS ENGINES (ECD-A)",
+      "ECD COMPOSITION & TRANSLATION (ECD-C)",
+      "ECD ONTOLOGICAL INTERFACES (ECD-O)",
+      "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)",
+      "ECD HARMONIZERS (ECD-H)"
+    ],
+    "The HOLOSOMES (Unified Environments)": [
+      "SIGMADOS (Operating System)",
+      "SIGMATIC FORGE / OWE (Ontological Weaving Engine)"
+    ],
+    "R&D INCUBATOR": [
+      "CODONSYNTH (CS)",
+      "MIRE (MI)",
+      "GENERIC / UNTITLED (G)"
+    ]
+  }
+}

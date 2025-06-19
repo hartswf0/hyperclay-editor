@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // NOETIC KNOWLEDGE SYNTHESIZER // 78/C</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic" class="crossorigin">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: NOETIC KNOWLEDGE SYNTHESIZER, Model 78/C
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   CONCEPT: An integrated, non-obvious interface for knowledge synthesis.
+        *   It visualizes the conceptual space between two texts, allowing a user
+        *   to intuitively discover and crystallize emergent ideas.
+        */
+
+        :root {
+            --ecd-wood: #4d3a2a;
+            --ecd-brushed-metal: #c5c8c6;
+            --ecd-bakelite: #3a2f2f;
+            --ecd-text: #222;
+            --ecd-screen-bg: #101210;
+            --ecd-phosphor-alpha: #00ffaa;
+            --ecd-phosphor-beta: #ff8c00;
+            --ecd-phosphor-bridge: #f0f0f0;
+            --font-main: 'Share Tech+ Mono', monospace;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes text-flicker {
+            0%, 100% { opacity: 0.95; } 50% { opacity: 1; }
+        }
+        @keyframes pulse-crystallize {
+            0% { r: 6; opacity: 1; }
+            100% { r: 25; opacity: 0; }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #222; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--ecd-text); user-select: none;
+        }
+        #synthesizer-chassis {
+            width: 1400px; height: 850px; background-color: var(--ecd-wood);
+            border: 3px solid #000; box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 0 20px rgba(0,0,0,0.5);
+            padding: 20px; display: grid; grid-template-columns: 1fr 350px;
+            grid-template-rows: auto 1fr; gap: 20px;
+        }
+        .main-instrument-panel {
+            grid-column: 1 / 2; grid-row: 1 / 3; background-color: var(--ecd-brushed-metal);
+            border: 2px solid #555; box-shadow: inset 0 0 15px rgba(0,0,0,0.4);
+            display: grid; grid-template-rows: 650px 1fr; padding: 20px; gap: 20px;
+        }
+        .telemetry-panel {
+            grid-column: 2 / 3; grid-row: 1 / 3; background-color: var(--ecd-bakelite);
+            padding: 15px; box-shadow: inset 0 0 10px #000; display: flex; flex-direction: column;
+        }
+
+        /* --- CHAMBER-SCOPE & CONTROLS --- */
+        #chamber-scope-unit { position: relative; display: grid; place-items: center; }
+        #scope-display {
+            width: 600px; height: 600px; background-color: var(--ecd-screen-bg);
+            border: 20px solid #282828; box-shadow: inset 0 0 30px #000, 0 0 10px rgba(0,0,0,0.5);
+            cursor: crosshair;
+        }
+        #scope-canvas { position: absolute; }
+        
+        .rotary-encoder {
+            position: absolute; width: 140px; text-align: center; cursor: ns-resize;
+        }
+        .rotary-encoder .dial {
+            width: 80px; height: 80px; background-color: #585858; border: 3px solid #222;
+            border-radius: 50%; margin: 0 auto 5px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+        }
+        .rotary-encoder .dial-indicator {
+            position: absolute; width: 4px; height: 18px; background-color: var(--ecd-brushed-metal);
+            top: 8px; left: 50%; transform-origin: 2px 32px; transition: transform 0.1s linear;
+        }
+        .rotary-encoder label {
+            display: block; font-size: 1.1rem; letter-spacing: 1px;
+            background: var(--ecd-bakelite); color: var(--ecd-brushed-metal); padding: 3px;
+        }
+        .rotary-encoder.disabled .dial { background-color: #333; }
+        #encoder-alpha { top: -25px; left: 50%; transform: translateX(-50%); }
+        #encoder-delta { right: -25px; top: 50%; transform: translateY(-50%); }
+        #encoder-lambda { bottom: -25px; left: 50%; transform: translateX(-50%); }
+        #encoder-zeta { left: -25px; top: 50%; transform: translateY(-50%); }
+
+        /* --- MEMEX CANISTER SELECTOR --- */
+        #memex-selector {
+            background-color: #222; padding: 15px; border: 2px solid #555;
+            display: flex; justify-content: space-around; align-items: center;
+        }
+        .toggle-switch-unit { text-align: center; }
+        .toggle-switch {
+            width: 30px; height: 60px; background-color: var(--ecd-brushed-metal);
+            border: 2px solid #111; border-radius: 3px; padding: 5px; cursor: pointer;
+        }
+        .toggle-flick {
+            width: 100%; height: 50%; background-color: #585858;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); transition: transform 0.1s ease-in-out;
+        }
+        .toggle-switch.active-alpha .toggle-flick { transform: translateY(100%); background-color: var(--ecd-phosphor-alpha); }
+        .toggle-switch.active-beta .toggle-flick { transform: translateY(100%); background-color: var(--ecd-phosphor-beta); }
+        .toggle-switch-unit label { display: block; margin-top: 5px; color: var(--ecd-brushed-metal); }
+
+        /* --- TELEMETRY PANEL --- */
+        .panel-label {
+            text-align: center; color: var(--ecd-brushed-metal); margin-bottom: 10px;
+            border-bottom: 1px solid #555; padding-bottom: 5px; font-size: 1.2rem;
+        }
+        #telemetry-printout {
+            flex-grow: 1; background-color: #c2bba8; color: #333; padding: 10px;
+            font-size: 1.1rem; line-height: 1.6; overflow-y: auto; white-space: pre-wrap;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); animation: text-flicker 3s infinite;
+        }
+        .log-entry.system { color: #00552b; }
+        .log-entry.warning { color: #880000; }
+        .log-entry.crystallized { font-weight: bold; background-color: rgba(255, 255, 255, 0.7); }
+        .log-entry.crystallized .term { text-decoration: underline; }
+        .log-entry.crystallized .source { font-size: 0.9em; color: #555; }
+    </style>
+</head>
+<body>
+    <div id="synthesizer-chassis">
+        <div class="main-instrument-panel">
+            <div id="chamber-scope-unit">
+                <div id="scope-display">
+                    <canvas id="scope-canvas" width="600" height="600"></canvas>
+                </div>
+                <div class="rotary-encoder disabled" id="encoder-alpha"><div class="dial"><div class="dial-indicator"></div></div><label>APERTURE (α)</label></div>
+                <div class="rotary-encoder disabled" id="encoder-delta"><div class="dial"><div class="dial-indicator"></div></div><label>SEMANTIC BIAS (δ)</label></div>
+                <div class="rotary-encoder disabled" id="encoder-lambda"><div class="dial"><div class="dial-indicator"></div></div><label>ASSOC. DRIFT (λ)</label></div>
+                <div class="rotary-encoder disabled" id="encoder-zeta"><div class="dial"><div class="dial-indicator"></div></div><label>COHERENCE (ζ)</label></div>
+            </div>
+            <div id="memex-selector"></div>
+        </div>
+        <div class="telemetry-panel">
+            <h2 class="panel-label">TELEMETRY & INSIGHTS</h2>
+            <div id="telemetry-printout"></div>
+        </div>
+    </div>
+
+<script>
+const Synthesizer = {
+    // --- Data ---
+    KNOWLEDGE_BASE: [
+        { name: "AI Ethics", text: "Artificial intelligence ethics responsibility bias transparency accountability. The development of AI must consider societal impact. Fairness and justice are paramount. Machine learning models can perpetuate historical bias. We need robust frameworks for AI governance. Autonomy and decision-making require ethical oversight. Explainable AI is crucial for trust." },
+        { name: "Cog. Bias", text: "Cognitive bias confirmation bias anchoring framing effect. Heuristics are mental shortcuts that can lead to systematic errors in judgment. Loss aversion is a powerful motivator. The human mind seeks patterns, even in randomness. Understanding bias helps improve decision-making. Thinking fast and slow describes two modes of thought." },
+        { name: "Cybernetics", text: "Cybernetics feedback loop system control communication. The study of systems, both mechanical and biological. Homeostasis is a key concept. Norbert Wiener defined it as the science of control and communication in the animal and the machine. Feedback is essential for learning and adaptation. A system regulates itself." },
+        { name: "Pol. Theory", text: "Political theory power justice liberty equality state. Social contract theory explores the legitimacy of state authority over the individual. Sovereignty is a central theme. From Plato to Rawls, philosophers debate the ideal form of governance. The distribution of resources and rights is a core issue of justice." },
+        { name: "Econ. Models", text: "Economic models supply demand equilibrium market efficiency. Game theory analyzes strategic decision-making. Behavioral economics incorporates psychological insights into economic behavior. The invisible hand is a metaphor for unintended social benefits of individual self-interested actions. Market failure occurs when resource allocation is inefficient." },
+        { name: "Lit. Crit.", text: "Literary criticism deconstruction formalism postmodernism. Structuralism seeks underlying patterns in text. Reader-response theory focuses on the audience's role in creating meaning. The death of the author is a concept that separates a text from its creator's intent. Intertextuality describes the shaping of a text's meaning by other texts." }
+    ],
+    STOP_WORDS: new Set(['a', 'an', 'the', 'is', 'are', 'in', 'of', 'for', 'to', 'and', 'it', 'that', 'its', 'from', 'on', 'with', 'as']),
+
+    // --- DOM Elements ---
+    elems: {
+        canvas: document.getElementById('scope-canvas'),
+        ctx: null,
+        selectorContainer: document.getElementById('memex-selector'),
+        telemetry: document.getElementById('telemetry-printout'),
+        encoders: {
+            alpha: document.getElementById('encoder-alpha'), // Aperture
+            delta: document.getElementById('encoder-delta'), // Bias
+            lambda: document.getElementById('encoder-lambda'), // Drift
+            zeta: document.getElementById('encoder-zeta'),   // Coherence
+        }
+    },
+    
+    // --- State ---
+    state: {
+        selected: { alpha: null, beta: null },
+        nodes: [],
+        attractors: {},
+        controls: { alpha: 0.2, delta: 0.5, lambda: 0.1, zeta: 0.8 },
+        isEnergized: false,
+        animationFrame: null,
+        hoveredNode: null
+    },
+    
+    // --- Initialization ---
+    init() {
+        this.elems.ctx = this.elems.canvas.getContext('2d');
+        this.log("SYSTEM BOOT: ECD-78/C ONLINE.", "system");
+        this.renderSelectorSwitches();
+        this.setupEncoderControls();
+        this.log("AWAITING MEMEX CANISTER SELECTION (SELECT 2).", "system");
+        this.elems.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        this.elems.canvas.addEventListener('click', (e) => this.handleMouseClick(e));
+    },
+
+    renderSelectorSwitches() {
+        this.KNOWLEDGE_BASE.forEach((canister, id) => {
+            const unit = document.createElement('div');
+            unit.className = 'toggle-switch-unit';
+            unit.innerHTML = `<div class="toggle-switch" data-id="${id}"><div class="toggle-flick"></div></div><label>${canister.name}</label>`;
+            this.elems.selectorContainer.appendChild(unit);
+            unit.querySelector('.toggle-switch').addEventListener('click', () => this.toggleCanister(id));
+        });
+    },
+
+    // --- Core Logic ---
+    toggleCanister(id) {
+        const switchEl = document.querySelector(`.toggle-switch[data-id="${id}"]`);
+        
+        if (this.state.selected.alpha === id) {
+            this.state.selected.alpha = null;
+            switchEl.classList.remove('active-alpha');
+        } else if (this.state.selected.beta === id) {
+            this.state.selected.beta = null;
+            switchEl.classList.remove('active-beta');
+        } else if (this.state.selected.alpha === null) {
+            this.state.selected.alpha = id;
+            switchEl.classList.add('active-alpha');
+        } else if (this.state.selected.beta === null) {
+            this.state.selected.beta = id;
+            switchEl.classList.add('active-beta');
+        }
+        this.checkChamberState();
+    },
+
+    checkChamberState() {
+        if (this.state.selected.alpha !== null && this.state.selected.beta !== null) {
+            if (!this.state.isEnergized) this.energizeChamber();
+        } else {
+            if (this.state.isEnergized) this.deEnergizeChamber();
+        }
+    },
+    
+    energizeChamber() {
+        this.log("SEMANTIC FIELD ENERGIZED. PROJECTING CONCEPTUAL SPACE.", "system");
+        this.state.isEnergized = true;
+        this.processTexts();
+        Object.values(this.elems.encoders).forEach(el => el.classList.remove('disabled'));
+        this.drawLoop();
+    },
+
+    deEnergizeChamber() {
+        this.log("FIELD COLLAPSED. AWAITING 2 CANISTERS.", "warning");
+        this.state.isEnergized = false;
+        this.state.nodes = [];
+        Object.values(this.elems.encoders).forEach(el => el.classList.add('disabled'));
+        cancelAnimationFrame(this.state.animationFrame);
+        this.elems.ctx.clearRect(0, 0, 600, 600);
+    },
+
+    processTexts() {
+        const textAlpha = this.KNOWLEDGE_BASE[this.state.selected.alpha].text;
+        const textBeta = this.KNOWLEDGE_BASE[this.state.selected.beta].text;
+
+        const wordsAlpha = new Set(textAlpha.toLowerCase().replace(/[.,]/g, '').split(' ').filter(w => !this.STOP_WORDS.has(w)));
+        const wordsBeta = new Set(textBeta.toLowerCase().replace(/[.,]/g, '').split(' ').filter(w => !this.STOP_WORDS.has(w)));
+
+        this.state.nodes = [];
+        const allWords = new Set([...wordsAlpha, ...wordsBeta]);
+        
+        allWords.forEach(word => {
+            let type = 'bridge';
+            if (wordsAlpha.has(word) && !wordsBeta.has(word)) type = 'alpha';
+            if (!wordsAlpha.has(word) && wordsBeta.has(word)) type = 'beta';
+
+            this.state.nodes.push({
+                text: word, type: type,
+                x: Math.random() * 600, y: Math.random() * 600,
+                vx: 0, vy: 0, mass: 1 + Math.random(),
+            });
+        });
+        
+        this.state.attractors = {
+            alpha: { x: 50, y: 300 },
+            beta: { x: 550, y: 300 }
+        };
+    },
+    
+    // --- Controls & Interaction ---
+    setupEncoderControls() {
+        for (const key in this.elems.encoders) {
+            const el = this.elems.encoders[key];
+            let isDragging = false;
+            el.onmousedown = () => { if (this.state.isEnergized) isDragging = true; };
+            document.onmouseup = () => { isDragging = false; };
+            document.onmousemove = (e) => {
+                if (isDragging && e.target.closest('.rotary-encoder') === el) {
+                    const change = -e.movementY * 0.002;
+                    this.state.controls[key] = Math.max(0, Math.min(1, this.state.controls[key] + change));
+                    el.querySelector('.dial-indicator').style.transform = `rotate(${(this.state.controls[key] * 270) - 135}deg)`;
+                }
+            };
+        }
+    },
+
+    handleMouseMove(e) {
+        if (!this.state.isEnergized) return;
+        const rect = this.elems.canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        let closestNode = null;
+        let min_d2 = 50 * 50; // 50px hover radius
+
+        this.state.nodes.forEach(node => {
+            const d2 = (node.x - mouseX)**2 + (node.y - mouseY)**2;
+            if (d2 < min_d2) {
+                min_d2 = d2;
+                closestNode = node;
+            }
+        });
+        this.state.hoveredNode = closestNode;
+    },
+
+    handleMouseClick() {
+        if (this.state.hoveredNode) {
+            this.crystallize(this.state.hoveredNode);
+        }
+    },
+    
+    crystallize(node) {
+        this.log(`INSIGHT CRYSTALLIZED: <span class="term">${node.text}</span>`, "crystallized");
+        const sourceAlphaName = this.KNOWLEDGE_BASE[this.state.selected.alpha].name;
+        const sourceBetaName = this.KNOWLEDGE_BASE[this.state.selected.beta].name;
+        this.log(`  <span class="source">Synthesis of [${sourceAlphaName}] & [${sourceBetaName}]</span>`, "crystallized");
+
+        // Add a visual effect
+        const effect = document.createElementNS("http://www.w3.org/2000/svg", 'circle');
+        effect.setAttribute('cx', node.x);
+        effect.setAttribute('cy', node.y);
+        effect.setAttribute('r', '5');
+        effect.setAttribute('fill', 'none');
+        effect.setAttribute('stroke', '#fff');
+        effect.setAttribute('stroke-width', '2');
+        const anim = document.createElementNS("http://www.w3.org/2000/svg", 'animate');
+        anim.setAttribute('attributeName', 'r'); anim.setAttribute('from', '5'); anim.setAttribute('to', '30'); anim.setAttribute('dur', '0.5s');
+        const anim2 = document.createElementNS("http://www.w3.org/2000/svg", 'animate');
+        anim2.setAttribute('attributeName', 'opacity'); anim2.setAttribute('from', '1'); anim2.setAttribute('to', '0'); anim2.setAttribute('dur', '0.5s');
+        effect.appendChild(anim);
+        effect.appendChild(anim2);
+        document.getElementById('scope-canvas').ownerSVGElement.appendChild(effect);
+        setTimeout(() => effect.remove(), 500);
+    },
+
+    // --- Drawing & Physics Loop ---
+    drawLoop() {
+        if (!this.state.isEnergized) return;
+        const ctx = this.elems.ctx;
+        const { alpha, delta, lambda, zeta } = this.state.controls;
+
+        // Physics update
+        this.state.nodes.forEach(node => {
+            // Attractor forces
+            let ax = 0, ay = 0;
+            const bias = delta * 2 - 1; // map 0-1 to -1-1
+            if (node.type === 'alpha') {
+                ax += (this.state.attractors.alpha.x - node.x);
+                ay += (this.state.attractors.alpha.y - node.y);
+            } else if (node.type === 'beta') {
+                ax += (this.state.attractors.beta.x - node.x);
+                ay += (this.state.attractors.beta.y - node.y);
+            } else { // bridge
+                ax += (this.state.attractors.alpha.x - node.x) * (1 - bias);
+                ax += (this.state.attractors.beta.x - node.x) * (1 + bias);
+                ay += (300 - node.y) * 2; // pulls to center
+            }
+            
+            // Repulsion from other nodes (simplified)
+            this.state.nodes.forEach(other => {
+                if (node === other) return;
+                const d2 = (node.x - other.x)**2 + (node.y - other.y)**2;
+                if (d2 < 10000) {
+                    const d = Math.sqrt(d2);
+                    ax -= (other.x - node.x) / d * 100;
+                    ay -= (other.y - node.y) / d * 100;
+                }
+            });
+
+            // Update velocity & position
+            node.vx += ax * 0.0001;
+            node.vy += ay * 0.0001;
+            node.vx *= (0.9 + (zeta * 0.09)); // Damping
+            node.vy *= (0.9 + (zeta * 0.09)); // Damping
+            
+            // Associative Drift (random kicks)
+            node.vx += (Math.random() - 0.5) * lambda * 0.1;
+            node.vy += (Math.random() - 0.5) * lambda * 0.1;
+
+            node.x += node.vx;
+            node.y += node.vy;
+        });
+
+        // Drawing
+        ctx.clearRect(0, 0, 600, 600);
+        ctx.font = '14px "Share Tech Mono"';
+        
+        // Draw connections (lines)
+        const maxDist = 100 + (lambda * 100);
+        const minStrength = 1 - alpha;
+        
+        for(let i = 0; i < this.state.nodes.length; i++) {
+            for(let j = i + 1; j < this.state.nodes.length; j++) {
+                const n1 = this.state.nodes[i];
+                const n2 = this.state.nodes[j];
+                const d = Math.hypot(n1.x - n2.x, n1.y - n2.y);
+                if (d < maxDist) {
+                    const strength = 1 - (d / maxDist);
+                    if (strength > minStrength) {
+                        ctx.beginPath();
+                        ctx.moveTo(n1.x, n1.y);
+                        ctx.lineTo(n2.x, n2.y);
+                        ctx.strokeStyle = `rgba(200, 200, 200, ${strength * 0.2})`;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+        
+        // Draw nodes
+        const nodeThreshold = (1 - alpha) * this.state.nodes.length;
+        this.state.nodes.forEach((node, i) => {
+            if (i < nodeThreshold && node.type !== 'bridge') return; // Aperture filter
+            
+            ctx.beginPath();
+            if (node === this.state.hoveredNode) {
+                ctx.arc(node.x, node.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                ctx.fillStyle = "#000";
+                ctx.fillText(node.text, node.x + 12, node.y + 4);
+            } else {
+                ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+                if (node.type === 'alpha') ctx.fillStyle = `rgba(0, 255, 170, ${node.mass})`;
+                else if (node.type === 'beta') ctx.fillStyle = `rgba(255, 140, 0, ${node.mass})`;
+                else ctx.fillStyle = `rgba(240, 240, 240, ${node.mass})`;
+                ctx.fill();
+            }
+        });
+        
+        this.state.animationFrame = requestAnimationFrame(() => this.drawLoop());
+    },
+
+    // --- Utility ---
+    log(message, type = 'system') {
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        entry.innerHTML = message;
+        this.elems.telemetry.appendChild(entry);
+        this.elems.telemetry.scrollTop = this.elems.telemetry.scrollHeight;
+    }
+};
+
+Synthesizer.init();
+</script>
+</body>
+</html>

@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 GENOMIRE</title>
+    <style>
+        :root {
+            --phosphor-green: #3fff3f;
+            --phosphor-green-dim: #1a641a;
+            --bg-black: #050805;
+            --glow: 0 0 3px var(--phosphor-green-dim), 0 0 5px var(--phosphor-green-dim);
+        }
+
+        /* --- Basic Setup & Tufte Principles --- */
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            background-color: var(--bg-black);
+            color: var(--phosphor-green);
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            cursor: text;
+        }
+
+        /* --- Main Layout --- */
+        #genomire {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 🌊 MIRE Layer (Resonant Texture Field) --- */
+        #mire-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.6;
+            filter: blur(1px);
+        }
+
+        /* --- 🧬 Genome Core (Biological Logic) --- */
+        #genome-core {
+            position: absolute;
+            top: 2%;
+            left: 0;
+            right: 0;
+            height: 35%;
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: 1.5vw;
+            z-index: 1;
+            padding: 0 2vw;
+            pointer-events: none; /* Let clicks pass through to console */
+        }
+
+        .strand {
+            flex: 1;
+            max-width: 40px;
+            display: flex;
+            flex-direction: column-reverse; /* Codons build from the bottom up */
+            justify-content: flex-start;
+            position: relative;
+            padding: 5px 2px;
+            background: rgba(0, 20, 0, 0.1);
+        }
+
+        .strand-id {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: var(--phosphor-green-dim);
+            transition: color 0.5s;
+        }
+
+        .strand:hover .strand-id {
+            color: var(--phosphor-green);
+        }
+
+        .codon {
+            width: 100%;
+            margin-bottom: 2px;
+            background-color: var(--phosphor-green);
+            transition: height 0.5s ease, opacity 0.5s ease, background-color 0.5s ease;
+            animation: pulse 3s infinite ease-in-out;
+            box-shadow: var(--glow);
+        }
+
+        .codon.INTRON {
+            background-color: var(--phosphor-green-dim);
+            animation-name: pulse-dim;
+            box-shadow: none;
+        }
+
+        .codon.TXT { height: 5px; animation-delay: 0.1s; }
+        .codon.IMG { height: 10px; animation-delay: 0.2s; }
+        .codon.AUD { height: 3px; animation-delay: 0.3s; }
+        .codon.VID { height: 15px; animation-delay: 0.4s; }
+        .codon.COD { height: 8px; animation-delay: 0.5s; }
+        .codon.HPL { height: 6px; animation-delay: 0.6s; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; transform: scaleY(1.0); }
+            50% { opacity: 1; transform: scaleY(1.05); }
+        }
+        @keyframes pulse-dim {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.6; }
+        }
+
+
+        /* --- 🖥️ Console Interface --- */
+        #console {
+            position: relative;
+            z-index: 2;
+            padding: 20px;
+            margin-top: 40%; /* Position below genome core */
+            height: 60%;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--phosphor-green-dim) var(--bg-black);
+        }
+
+        #output {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        #input-line {
+            display: flex;
+        }
+
+        #prompt {
+            white-space: nowrap;
+        }
+
+        #input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--phosphor-green);
+            font-family: inherit;
+            font-size: inherit;
+            padding: 0;
+            margin: 0;
+            text-shadow: var(--glow);
+        }
+        
+        #caret {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background: var(--phosphor-green);
+            animation: blink 1s step-end infinite;
+            vertical-align: bottom;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* --- Expression Output Styles --- */
+        .output-block {
+            border-left: 1px solid var(--phosphor-green-dim);
+            padding-left: 15px;
+            margin: 1em 0;
+        }
+
+        .output-text {
+            max-width: 60ch;
+            text-align: justify;
+        }
+        
+        .output-image {
+            filter: grayscale(1) contrast(1.5);
+            max-width: 200px;
+            max-height: 200px;
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        .output-code {
+            background: rgba(63, 255, 63, 0.05);
+            padding: 10px;
+            border: 1px dashed var(--phosphor-green-dim);
+        }
+
+        .output-audio, .output-video, .output-hpl {
+            font-style: italic;
+            color: var(--phosphor-green-dim);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="genomire">
+        <!-- 🌊 MIRE Layer -->
+        <canvas id="mire-canvas"></canvas>
+
+        <!-- 🧬 Genome Core -->
+        <div id="genome-core"></div>
+
+        <!-- 🖥️ Console Interface -->
+        <div id="console" onclick="document.getElementById('input').focus()">
+            <div id="output"></div>
+            <div id="input-line">
+                <span id="prompt">> </span>
+                <input type="text" id="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <span id="caret"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const GENOMIRE = {
+        // --- 🧠 System Composition ---
+        genome: [],
+        console: {
+            output: null,
+            input: null,
+            history: [],
+            historyIndex: -1
+        },
+        mire: {
+            canvas: null,
+            ctx: null,
+            grid: [],
+            gridSize: 24, // Larger number = finer grid
+            time: 0
+        },
+        asciiGlyphs: {
+            "TXT": "▚", "IMG": "▞", "AUD": "♪", "VID": "►", "COD": "⌘", "HPL": "ζ", "INTRON": "░"
+        },
+
+        // --- 📦 Initial Data ---
+        generateInitialGenome: function() {
+            this.genome = [
+                {
+                    id: "g-A01",
+                    codons: ["TXT", "INTRON", "COD"],
+                    expression: "standard",
+                    strata: { origin: "archive-α1", mutation_rate: 0.01, recall_count: 5 },
+                    resonance_map: [0.8, 0.2, 0.6],
+                    data: {
+                        TXT: `Information is not knowledge. Knowledge is not wisdom. Wisdom is not truth. Truth is not beauty. Beauty is not love. Love is not music. Music is THE BEST.`,
+                        COD: `function life(universe) {\n  while(universe.isBig) {\n    universe.expand();\n  }\n}`
+                    }
+                },
+                {
+                    id: "g-B42",
+                    codons: ["IMG", "INTRON", "INTRON", "TXT"],
+                    expression: "sparse",
+                    strata: { origin: "deep-scan-β7", mutation_rate: 0.05, recall_count: 12 },
+                    resonance_map: [0.9, 0.1, 0.1, 0.4],
+                    data: {
+                        IMG: "https://picsum.photos/seed/genomire1/200/200?grayscale",
+                        TXT: `A visual record from the early system epochs. The resonance is faint, a memory of a memory.`
+                    }
+                },
+                {
+                    id: "g-C11",
+                    codons: ["AUD", "INTRON"],
+                    expression: "decaying",
+                    strata: { origin: "harmonic-burst-δ3", mutation_rate: 0.02, recall_count: 88 },
+                    resonance_map: [0.95, 0.3],
+                    data: {
+                        AUD: `Carrier wave detected. Frequency: 440Hz. Amplitude: 0.8. Waveform: Sine. Signal integrity: 98.7%.`
+                    }
+                },
+                {
+                    id: "g-D73",
+                    codons: ["HPL", "TXT", "INTRON", "COD"],
+                    expression: "linked",
+                    strata: { origin: "protocol-stack-ε9", mutation_rate: 0.03, recall_count: 42 },
+                    resonance_map: [0.7, 0.6, 0.2, 0.5],
+                    data: {
+                        HPL: `g-A01`,
+                        TXT: `This strand contains a hyperlink reference to another genomic structure. Trace it for details.`,
+                        COD: `const a = require('./g-A01');\nconsole.log(a.strata.origin);`
+                    }
+                },
+                {
+                    id: "g-E09",
+                    codons: ["VID", "INTRON", "INTRON", "INTRON"],
+                    expression: "fragmented",
+                    strata: { origin: "archive-Ω9", mutation_rate: 0.1, recall_count: 2 },
+                    resonance_map: [0.5, 0.2, 0.2, 0.2],
+                    data: {
+                        VID: `Frame sequence log: 30fps. Codec: HEVC. Resolution: 1920x1080. Source: External Feed 7.`
+                    }
+                },
+            ];
+        },
+
+        // --- Initialization ---
+        init: function() {
+            // Console setup
+            this.console.output = document.getElementById('output');
+            this.console.input = document.getElementById('input');
+            this.console.input.addEventListener('keydown', this.handleInput.bind(this));
+
+            // MIRE setup
+            this.mire.canvas = document.getElementById('mire-canvas');
+            this.mire.ctx = this.mire.canvas.getContext('2d');
+            this.resizeMire();
+            window.addEventListener('resize', this.resizeMire.bind(this));
+            
+            // Core logic
+            this.generateInitialGenome();
+            this.renderGenome();
+
+            // Welcome message
+            this.logOutput(`GENOMIRE v1.0 - Genomic Multilayered Interface for Resonant Expression\nSystem online. Type 'help' for available commands.`);
+
+            // Start animation loop
+            this.animate();
+        },
+
+        // --- 🖥️ Console Logic ---
+        handleInput: function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const command = this.console.input.value.trim();
+                if (command) {
+                    this.logOutput(`> ${command}`);
+                    this.console.history.push(command);
+                    this.console.historyIndex = this.console.history.length;
+                    this.processCommand(command);
+                }
+                this.console.input.value = '';
+                this.console.output.scrollTop = this.console.output.scrollHeight;
+            } else if (e.key === 'ArrowUp') {
+                if (this.console.historyIndex > 0) {
+                    this.console.historyIndex--;
+                    this.console.input.value = this.console.history[this.console.historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                 if (this.console.historyIndex < this.console.history.length - 1) {
+                    this.console.historyIndex++;
+                    this.console.input.value = this.console.history[this.console.historyIndex];
+                } else {
+                    this.console.historyIndex = this.console.history.length;
+                    this.console.input.value = '';
+                }
+            }
+        },
+
+        processCommand: function(command) {
+            const [cmd, ...args] = command.toLowerCase().split(/\s+/);
+            
+            switch(cmd) {
+                case 'help':
+                    this.logOutput(
+`Available commands:
+  express <id>   - Renders the primary phenotype of a genome strand.
+  trace <id>     - Displays metadata and codon sequence of a strand.
+  fuse <id1>+<id2> - Splices two strands to create a new one.
+  drift          - Induces a random mutation across the entire genome.
+  echo <message> - Prints a message to the console.
+  clear          - Clears the console output.
+  help           - Shows this help message.`
+                    );
+                    break;
+                case 'express':
+                    this.commandExpress(args[0]);
+                    break;
+                case 'trace':
+                    this.commandTrace(args[0]);
+                    break;
+                case 'fuse':
+                    this.commandFuse(args[0]);
+                    break;
+                case 'drift':
+                    this.commandDrift();
+                    break;
+                case 'echo':
+                    this.logOutput(command.substring(5));
+                    break;
+                case 'clear':
+                    this.console.output.innerHTML = '';
+                    break;
+                default:
+                    this.logOutput(`Error: Command not recognized: '${cmd}'`);
+            }
+        },
+
+        // --- Command Implementations ---
+        findStrand: function(id_or_index) {
+            const index = parseInt(id_or_index);
+            if (!isNaN(index) && this.genome[index]) {
+                return {strand: this.genome[index], index: index};
+            }
+            const foundIndex = this.genome.findIndex(s => s.id.toLowerCase() === id_or_index.toLowerCase());
+            if (foundIndex > -1) {
+                return {strand: this.genome[foundIndex], index: foundIndex};
+            }
+            return {strand: null, index: -1};
+        },
+
+        commandExpress: function(targetId) {
+            if (!targetId) { this.logOutput("Error: 'express' requires a strand ID or index."); return; }
+            
+            const { strand, index } = this.findStrand(targetId);
+            if (!strand) { this.logOutput(`Error: Strand '${targetId}' not found.`); return; }
+
+            let expressed = false;
+            for(let i = 0; i < strand.codons.length; i++) {
+                const codonType = strand.codons[i];
+                if (codonType !== 'INTRON') {
+                    this.renderExpression(strand, codonType);
+                    // Expression increases resonance
+                    strand.resonance_map[i] = Math.min(1.0, strand.resonance_map[i] + 0.5);
+                    strand.strata.recall_count++;
+                    expressed = true;
+                    break;
+                }
+            }
+
+            if (!expressed) {
+                this.logOutput(`Strand ${strand.id} contains no expressive exons.`);
+            }
+        },
+        
+        commandTrace: function(targetId) {
+            if (!targetId) { this.logOutput("Error: 'trace' requires a strand ID or index."); return; }
+            
+            const { strand, index } = this.findStrand(targetId);
+            if (!strand) { this.logOutput(`Error: Strand '${targetId}' not found.`); return; }
+
+            let output = `[TRACING STRAND ${strand.id}]\n`;
+            output += `  Origin: ${strand.strata.origin}\n`;
+            output += `  Recall Count: ${strand.strata.recall_count}\n`;
+            output += `  Mutation Rate: ${strand.strata.mutation_rate}\n`;
+            output += `  Codon Sequence:\n`;
+            strand.codons.forEach((c, i) => {
+                const glyph = this.asciiGlyphs[c] || '?';
+                const resonance = strand.resonance_map[i].toFixed(2);
+                output += `    ${i}: [${glyph} ${c}] - Resonance: ${resonance}\n`;
+            });
+
+            this.logOutput(output);
+        },
+
+        commandFuse: function(targetStr) {
+            if (!targetStr || !targetStr.includes('+')) { this.logOutput("Error: 'fuse' requires two IDs separated by '+'. (e.g., fuse 0+1)"); return; }
+            
+            const [id1, id2] = targetStr.split('+');
+            const { strand: s1, index: i1 } = this.findStrand(id1);
+            const { strand: s2, index: i2 } = this.findStrand(id2);
+
+            if (!s1 || !s2) { this.logOutput("Error: One or both strands for fusion not found."); return; }
+
+            this.logOutput(`Fusing ${s1.id} and ${s2.id}...`);
+
+            // Biological Splicing Logic (Simplified)
+            const newCodons = s1.codons.slice(0, Math.ceil(s1.codons.length / 2))
+                .concat(s2.codons.slice(Math.floor(s2.codons.length / 2)));
+            
+            const newResonance = s1.resonance_map.slice(0, Math.ceil(s1.resonance_map.length / 2))
+                .concat(s2.resonance_map.slice(Math.floor(s2.resonance_map.length / 2)));
+
+            const newId = `g-F${this.genome.length.toString().padStart(2, '0')}`;
+            
+            const newStrand = {
+                id: newId,
+                codons: newCodons,
+                expression: "hybrid",
+                strata: {
+                    origin: `fusion(${s1.id},${s2.id})`,
+                    mutation_rate: (s1.strata.mutation_rate + s2.strata.mutation_rate) / 2,
+                    recall_count: 0
+                },
+                resonance_map: newResonance,
+                data: { ...s1.data, ...s2.data } // Simple merge
+            };
+
+            this.genome.push(newStrand);
+            this.logOutput(`Splicing complete. New strand ${newId} created.`);
+            this.renderGenome();
+        },
+
+        commandDrift: function() {
+            this.logOutput("Inducing systemic mutation drift...");
+            const strandIndex = Math.floor(Math.random() * this.genome.length);
+            const strand = this.genome[strandIndex];
+            
+            if (strand.codons.length === 0) {
+                this.logOutput("Drift failed: target strand has no codons.");
+                return;
+            }
+
+            const codonIndex = Math.floor(Math.random() * strand.codons.length);
+            const originalCodon = strand.codons[codonIndex];
+            
+            // Mutation Logic
+            const codonTypes = ["TXT", "IMG", "AUD", "VID", "COD", "HPL", "INTRON"];
+            let newCodon = originalCodon;
+            while(newCodon === originalCodon) {
+                newCodon = codonTypes[Math.floor(Math.random() * codonTypes.length)];
+            }
+            
+            strand.codons[codonIndex] = newCodon;
+            strand.resonance_map[codonIndex] = Math.random() * 0.5; // Mutation resets resonance
+            
+            this.logOutput(`Mutation event in ${strand.id}: Codon ${codonIndex} (${originalCodon}) -> (${newCodon})`);
+            this.renderGenome();
+        },
+
+
+        // --- 🧬 Genome Core & Expression Rendering ---
+        renderGenome: function() {
+            const core = document.getElementById('genome-core');
+            core.innerHTML = '';
+            this.genome.forEach((strand, index) => {
+                const strandEl = document.createElement('div');
+                strandEl.className = 'strand';
+                strandEl.title = `Strand ${strand.id}`;
+                
+                const idEl = document.createElement('div');
+                idEl.className = 'strand-id';
+                idEl.textContent = `[${index}] ${strand.id}`;
+                strandEl.appendChild(idEl);
+
+                strand.codons.forEach(codonType => {
+                    const codonEl = document.createElement('div');
+                    codonEl.className = `codon ${codonType}`;
+                    codonEl.title = codonType;
+                    strandEl.appendChild(codonEl);
+                });
+                core.appendChild(strandEl);
+            });
+        },
+
+        renderExpression: function(strand, codonType) {
+            const glyph = this.asciiGlyphs[codonType] || '?';
+            let output = `Expressing ${glyph} ${codonType} from ${strand.id}...\n`;
+            output += `<div class="output-block">`;
+            
+            switch(codonType) {
+                case 'TXT':
+                    const text = strand.data.TXT || "[No text data available]";
+                    output += `<div class="output-text">${text.substring(0, 200)}${text.length > 200 ? '...' : ''}</div>`;
+                    break;
+                case 'IMG':
+                    const imgUrl = strand.data.IMG || "";
+                    output += `<img src="${imgUrl}" class="output-image" alt="[Image data stream]">`;
+                    break;
+                case 'AUD':
+                    const audData = strand.data.AUD || "[No audio data available]";
+                    const sparkline = '▂▃▅▆▇▆▅▃▂'.repeat(5);
+                    output += `<div class="output-audio">[[AUDIO SPARKLINE]] ${sparkline}\n${audData}</div>`;
+                    break;
+                case 'VID':
+                     output += `<div class="output-video">${strand.data.VID || "[No video data available]"}</div>`;
+                    break;
+                case 'COD':
+                    const code = strand.data.COD || "[No code data available]";
+                    output += `<div class="output-code">${code}</div>`;
+                    break;
+                case 'HPL':
+                    const link = strand.data.HPL || "[No hyperlink data]";
+                    output += `<div class="output-hpl">Hyperlink established -> ${link}\nUse 'trace ${link}' or 'express ${link}' to follow.</div>`;
+                    break;
+            }
+            output += `</div>`;
+            this.logOutput(output, true);
+        },
+
+        logOutput: function(message, isHTML = false) {
+            const line = document.createElement('div');
+            if (isHTML) {
+                line.innerHTML = message;
+            } else {
+                line.textContent = message;
+            }
+            this.console.output.appendChild(line);
+            this.console.output.scrollTop = this.console.output.scrollHeight;
+        },
+
+        // --- 🌊 MIRE Layer Animation ---
+        resizeMire: function() {
+            this.mire.canvas.width = window.innerWidth;
+            this.mire.canvas.height = window.innerHeight;
+            
+            const w = Math.ceil(this.mire.canvas.width / this.mire.gridSize);
+            const h = Math.ceil(this.mire.canvas.height / this.mire.gridSize);
+            this.mire.grid = [];
+            for (let i = 0; i < w; i++) {
+                this.mire.grid[i] = [];
+                for (let j = 0; j < h; j++) {
+                    this.mire.grid[i][j] = 0;
+                }
+            }
+        },
+
+        updateMire: function() {
+            this.mire.time += 0.005;
+
+            for (let i = 0; i < this.mire.grid.length; i++) {
+                for (let j = 0; j < this.mire.grid[0].length; j++) {
+                    // Base value from a slowly changing noise field (simulated)
+                    let baseVal = (Math.sin(i * 0.1 + this.mire.time) + Math.cos(j * 0.1 + this.mire.time)) / 4 + 0.5;
+
+                    // Influence from nearby genome strands
+                    const canvasX = i * this.mire.gridSize;
+                    const strandCount = this.genome.length;
+                    const genomeWidth = window.innerWidth * 0.9;
+                    const strandX = (canvasX / window.innerWidth - 0.5) * strandCount + (strandCount / 2);
+                    
+                    const nearIndex = Math.floor(strandX);
+
+                    if (nearIndex >= 0 && nearIndex < strandCount) {
+                        const strand = this.genome[nearIndex];
+                        // Average resonance of the strand influences the grid
+                        const avgResonance = strand.resonance_map.reduce((a, b) => a + b, 0) / strand.resonance_map.length;
+                        baseVal = (baseVal + avgResonance) / 2;
+                    }
+
+                    // Decay
+                    this.mire.grid[i][j] = Math.max(0, baseVal - 0.01);
+                }
+            }
+
+            // Resonance decay on strands themselves
+            this.genome.forEach(strand => {
+                strand.resonance_map = strand.resonance_map.map(r => Math.max(0.1, r * 0.9995));
+            });
+        },
+
+        drawMire: function() {
+            this.mire.ctx.clearRect(0, 0, this.mire.canvas.width, this.mire.canvas.height);
+
+            for (let i = 0; i < this.mire.grid.length; i++) {
+                for (let j = 0; j < this.mire.grid[0].length; j++) {
+                    const value = this.mire.grid[i][j];
+                    if (value > 0.05) {
+                        // Color terrain: red = recent, green = dormant, blue = deep origin
+                        // We map resonance value (0-1) to HSL hue (Blue 240 to Red 0)
+                        const hue = 240 - (value * 240);
+                        const lightness = 10 + value * 20; // Low lightness for dark feel
+                        this.mire.ctx.fillStyle = `hsla(${hue}, 100%, ${lightness}%, ${value * 0.5})`;
+                        this.mire.ctx.fillRect(i * this.mire.gridSize, j * this.mire.gridSize, this.mire.gridSize, this.mire.gridSize);
+                    }
+                }
+            }
+        },
+
+        // --- Main Animation Loop ---
+        animate: function() {
+            this.updateMire();
+            this.drawMire();
+            requestAnimationFrame(this.animate.bind(this));
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        GENOMIRE.init();
+    });
+
+    // Make the caret hide when input is not focused
+    document.getElementById('input').addEventListener('focus', () => document.getElementById('caret').style.display = 'inline-block');
+    document.getElementById('input').addEventListener('blur', () => document.getElementById('caret').style.display = 'none');
+    </script>
+</body>
+</html>

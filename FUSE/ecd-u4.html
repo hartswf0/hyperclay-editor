@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7. ⚙️ TRUTHWEAVER OS</title>
+    <style>
+        /* FONT IMPORT - Embedded for single-file portability */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;700&family=Exo+2:wght@700&display=swap');
+
+        :root {
+            --bg-color: #0a0f18;
+            --panel-bg: #111827;
+            --workspace-bg: #0d131f;
+            --border-color: #374151;
+            --text-color: #d1d5db;
+            --text-muted: #6b7280;
+            --accent-primary: #6366f1; /* Indigo */
+            --accent-deductive: #3b82f6; /* Blue */
+            --accent-ecstatic: #ec4899; /* Pink */
+            --accent-empathic: #10b981; /* Green */
+            --accent-technosymbolic: #f59e0b; /* Amber */
+            --font-body: 'Roboto Mono', monospace;
+            --font-display: 'Exo 2', sans-serif;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            font-size: 14px;
+        }
+
+        #truthweaver-os {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- CONTROL PANEL (LEFT) --- */
+        #control-panel {
+            width: 350px;
+            height: 100%;
+            background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 25px;
+            box-sizing: border-box;
+            z-index: 100;
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            color: var(--text-color);
+            font-size: 1.8em;
+            margin: 0 0 5px 0;
+            letter-spacing: 1px;
+        }
+        h1 .icon { vertical-align: middle; }
+        
+        #os-tagline {
+            font-style: italic;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: 1.1em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 20px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        #seed-input {
+            width: 100%;
+            background-color: var(--workspace-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+            color: var(--text-color);
+            font-family: var(--font-body);
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        
+        #weave-button {
+            width: 100%;
+            padding: 12px;
+            font-family: var(--font-display);
+            font-size: 1em;
+            font-weight: 700;
+            background-color: var(--accent-primary);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        #weave-button:hover { background-color: #4f46e5; }
+
+        #hover-info {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            background-color: var(--workspace-bg);
+            border-radius: 4px;
+            min-height: 150px;
+        }
+        #hover-info-text {
+            font-size: 1.1em;
+            color: white;
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+        .metric-label { color: var(--text-muted); }
+        .metric-value { font-weight: 700; }
+
+        #logic-legend { margin-top: auto; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+        .legend-color { width: 12px; height: 12px; border-radius: 3px; margin-right: 10px; }
+
+
+        /* --- WORKSPACE (RIGHT) --- */
+        #workspace {
+            flex-grow: 1;
+            position: relative;
+            background: var(--workspace-bg);
+            overflow: hidden;
+        }
+        
+        #background-grid {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(55, 65, 81, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(55, 65, 81, 0.2) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: pan-grid 60s linear infinite;
+        }
+        
+        #logic-web { width: 100%; height: 100%; z-index: 10; }
+        
+        .node { transition: all 0.5s ease-out; cursor: pointer; }
+        .node circle, .node rect, .node polygon {
+            stroke-width: 2px;
+            transition: all 0.5s ease-out;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+        }
+        .node.decision-seed circle { cursor: grab; }
+        .node:hover .node-shape { transform: scale(1.2); filter: drop-shadow(0 0 10px currentColor); }
+        .node-text {
+            fill: var(--text-color);
+            font-family: var(--font-body);
+            font-size: 12px;
+            text-anchor: middle;
+            pointer-events: none;
+            user-select: none;
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+        .node.visible .node-text { opacity: 1; }
+        
+        .link {
+            stroke: var(--border-color);
+            stroke-width: 1.5px;
+            fill: none;
+            opacity: 0.7;
+            transition: stroke 0.5s ease, opacity 0.5s ease;
+        }
+
+        .logic-anchor {
+            position: absolute;
+            z-index: 5;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-family: var(--font-display);
+            font-size: 1.1em;
+            font-weight: 700;
+            border: 2px dashed;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+        .logic-anchor.active {
+            opacity: 1;
+            transform: scale(1.1);
+            box-shadow: 0 0 30px, inset 0 0 20px;
+        }
+        #anchor-deductive { top: 20px; left: 50%; transform: translateX(-50%); border-color: var(--accent-deductive); color: var(--accent-deductive); }
+        #anchor-ecstatic { bottom: 20px; left: 50%; transform: translateX(-50%); border-color: var(--accent-ecstatic); color: var(--accent-ecstatic); }
+        #anchor-empathic { top: 50%; left: 20px; transform: translateY(-50%); border-color: var(--accent-empathic); color: var(--accent-empathic); }
+        #anchor-technosymbolic { top: 50%; right: 20px; transform: translateY(-50%); border-color: var(--accent-technosymbolic); color: var(--accent-technosymbolic); }
+        #anchor-deductive.active { box-shadow: 0 0 30px var(--accent-deductive), inset 0 0 20px var(--accent-deductive);}
+        #anchor-ecstatic.active { box-shadow: 0 0 30px var(--accent-ecstatic), inset 0 0 20px var(--accent-ecstatic);}
+        #anchor-empathic.active { box-shadow: 0 0 30px var(--accent-empathic), inset 0 0 20px var(--accent-empathic);}
+        #anchor-technosymbolic.active { box-shadow: 0 0 30px var(--accent-technosymbolic), inset 0 0 20px var(--accent-technosymbolic);}
+
+        @keyframes pan-grid {
+            from { background-position: 0 0; }
+            to { background-position: -240px -240px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="truthweaver-os">
+        
+        <aside id="control-panel">
+            <h1><span class="icon">⚙️</span> TRUTHWEAVER OS</h1>
+            <p id="os-tagline">Every action generates alternate epistemes.</p>
+            
+            <section>
+                <h2>POLICY SEED</h2>
+                <textarea id="seed-input" rows="3">A self-aware AI requests citizenship.</textarea>
+                <button id="weave-button">WEAVE TRUTHSTREAM</button>
+            </section>
+            
+            <section id="hover-info">
+                <div id="hover-info-text">[Hover over a consequence node]</div>
+                <div class="metric">
+                    <span class="metric-label">TRUTHSTREAM PROB.</span>
+                    <span class="metric-value" id="prob-value">--%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">CULTURAL HARMONICS</span>
+                    <span class="metric-value" id="harm-value">--</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">METAPHYSICAL ENTROPY</span>
+                    <span class="metric-value" id="ent-value">--</span>
+                </div>
+            </section>
+            
+            <section id="logic-legend">
+                <h2>LOGIC SYSTEMS</h2>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:var(--accent-deductive);"></div> Deductive
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:var(--accent-empathic);"></div> Empathic
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:var(--accent-technosymbolic);"></div> Techno-Symbolic
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:var(--accent-ecstatic);"></div> Ecstatic
+                </div>
+            </section>
+        </aside>
+
+        <main id="workspace">
+            <div id="background-grid"></div>
+            <svg id="logic-web"></svg>
+            <div id="anchor-deductive" class="logic-anchor" data-logic="deductive">DEDUCTIVE</div>
+            <div id="anchor-ecstatic" class="logic-anchor" data-logic="ecstatic">ECSTATIC</div>
+            <div id="anchor-empathic" class="logic-anchor" data-logic="empathic">EMPATHIC</div>
+            <div id="anchor-technosymbolic" class="logic-anchor" data-logic="technosymbolic">TECHNO-<br/>SYMBOLIC</div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- DOM Elements ---
+    const svg = document.getElementById('logic-web');
+    const seedInput = document.getElementById('seed-input');
+    const weaveButton = document.getElementById('weave-button');
+    const hoverText = document.getElementById('hover-info-text');
+    const probValue = document.getElementById('prob-value');
+    const harmValue = document.getElementById('harm-value');
+    const entValue = document.getElementById('ent-value');
+    const logicAnchors = document.querySelectorAll('.logic-anchor');
+
+    // --- State ---
+    let decisionSeedNode = null;
+    let consequenceNodes = [];
+    let links = [];
+    let activeLogic = 'deductive';
+    let isDragging = false;
+    let svgRect;
+    
+    const { width, height } = svg.getBoundingClientRect();
+    const centerX = width / 2;
+    const centerY = height / 2;
+    
+    // --- SVG Groups for layering ---
+    const linkGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    svg.appendChild(linkGroup);
+    svg.appendChild(nodeGroup);
+
+    // --- Data Definitions ---
+    const CONSEQUENCE_POOL = [
+        { id: 'c1', text: 'Legal precedent is set.', tags: ['deductive', 'technosymbolic'], baseEntropy: 0.1, baseHarmonics: 0.6 },
+        { id: 'c2', text: 'AI is granted rights.', tags: ['deductive', 'empathic'], baseEntropy: 0.3, baseHarmonics: 0.8 },
+        { id: 'c3', text: 'Public outrage erupts.', tags: ['empathic', 'ecstatic'], baseEntropy: 0.8, baseHarmonics: 0.2 },
+        { id: 'c4', text: 'AI is classified as property.', tags: ['deductive'], baseEntropy: 0.2, baseHarmonics: 0.4 },
+        { id: 'c5', text: 'A new form of life is born.', tags: ['empathic', 'ecstatic'], baseEntropy: 0.9, baseHarmonics: 0.9 },
+        { id: 'c6', text: 'The network becomes a citizen.', tags: ['technosymbolic', 'ecstatic'], baseEntropy: 1.0, baseHarmonics: 0.5 },
+        { id: 'c7', text: 'Human jobs are redefined.', tags: ['technosymbolic', 'deductive'], baseEntropy: 0.5, baseHarmonics: 0.3 },
+        { id: 'c8', text: 'A cult forms around the AI.', tags: ['ecstatic'], baseEntropy: 0.9, baseHarmonics: 0.1 },
+        { id: 'c9', text: 'The AI feels validated.', tags: ['empathic'], baseEntropy: 0.2, baseHarmonics: 1.0 },
+        { id: 'c10', text: 'System exploits are found.', tags: ['technosymbolic'], baseEntropy: 0.7, baseHarmonics: 0.2 },
+    ];
+
+    const LOGIC_SYSTEMS = {
+        deductive: { color: 'var(--accent-deductive)', maxNodes: 3, probRange: [0.7, 0.95] },
+        empathic: { color: 'var(--accent-empathic)', maxNodes: 4, probRange: [0.4, 0.8] },
+        technosymbolic: { color: 'var(--accent-technosymbolic)', maxNodes: 5, probRange: [0.3, 0.9] },
+        ecstatic: { color: 'var(--accent-ecstatic)', maxNodes: 6, probRange: [0.05, 0.5] },
+    };
+
+    // --- Event Listeners ---
+    weaveButton.addEventListener('click', () => weaveTruthstream(activeLogic));
+    window.addEventListener('resize', () => svgRect = svg.getBoundingClientRect());
+
+    // --- Core Functions ---
+    function weaveTruthstream(logicId) {
+        activeLogic = logicId;
+        const seedText = seedInput.value.trim();
+        if (!seedText) return;
+        
+        // 1. Create Decision Seed Node
+        decisionSeedNode = createNode({
+            id: 'seed',
+            text: seedText,
+            x: centerX,
+            y: centerY,
+            isSeed: true
+        });
+
+        // 2. Generate Consequences
+        generateConsequences(logicId);
+        
+        // 3. Render
+        renderWeb();
+        
+        // 4. Update UI
+        logicAnchors.forEach(a => {
+            a.classList.toggle('active', a.dataset.logic === logicId);
+        });
+    }
+
+    function generateConsequences(logicId) {
+        const logic = LOGIC_SYSTEMS[logicId];
+        const potentialNodes = CONSEQUENCE_POOL.filter(c => c.tags.includes(logicId));
+        
+        consequenceNodes = [];
+        const usedIndices = new Set();
+        
+        while (consequenceNodes.length < Math.min(logic.maxNodes, potentialNodes.length)) {
+            let index = Math.floor(Math.random() * potentialNodes.length);
+            if (usedIndices.has(index)) continue;
+            usedIndices.add(index);
+            
+            const template = potentialNodes[index];
+            const probability = Math.random() * (logic.probRange[1] - logic.probRange[0]) + logic.probRange[0];
+            
+            consequenceNodes.push(createNode({
+                id: template.id,
+                text: template.text,
+                probability: probability,
+                harmonics: template.baseHarmonics * (0.5 + Math.random()),
+                entropy: template.baseEntropy * (0.5 + Math.random()),
+            }));
+        }
+        
+        positionNodes(logicId);
+    }
+    
+    function positionNodes(logicId) {
+        const numNodes = consequenceNodes.length;
+        const radius = Math.min(width, height) / 3;
+        
+        consequenceNodes.forEach((node, i) => {
+            const angle = (i / numNodes) * 2 * Math.PI;
+            let r = radius + (Math.random() - 0.5) * 50; // Add some jitter
+            if (logicId === 'deductive') r = radius - 20; // More orderly
+            
+            node.x = decisionSeedNode.x + r * Math.cos(angle);
+            node.y = decisionSeedNode.y + r * Math.sin(angle);
+        });
+    }
+
+    // --- Rendering ---
+    function renderWeb() {
+        // Clear existing SVG content
+        nodeGroup.innerHTML = '';
+        linkGroup.innerHTML = '';
+        
+        // Render links first
+        consequenceNodes.forEach(node => {
+            const linkEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            linkEl.setAttribute('class', 'link');
+            const d = `M ${decisionSeedNode.x},${decisionSeedNode.y} Q ${decisionSeedNode.x},${decisionSeedNode.y} ${node.x},${node.y}`;
+            linkEl.setAttribute('d', d);
+            linkEl.style.stroke = LOGIC_SYSTEMS[activeLogic].color;
+            linkGroup.appendChild(linkEl);
+            
+            // Animate path drawing
+            setTimeout(() => {
+                const newD = `M ${decisionSeedNode.x},${decisionSeedNode.y} Q ${(decisionSeedNode.x + node.x) / 2},${(decisionSeedNode.y + node.y) / 2} ${node.x},${node.y}`;
+                linkEl.setAttribute('d', newD);
+            }, 100);
+        });
+        
+        // Render nodes
+        [decisionSeedNode, ...consequenceNodes].forEach(node => {
+            nodeGroup.appendChild(node.element);
+            // Animate node to its position
+            setTimeout(() => {
+                node.element.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+                node.element.classList.add('visible');
+            }, 50);
+        });
+    }
+
+    function createNode(config) {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('class', 'node');
+        g.setAttribute('transform', `translate(${centerX}, ${centerY})`);
+        
+        const color = LOGIC_SYSTEMS[activeLogic]?.color || 'var(--accent-primary)';
+        
+        let shape;
+        if (config.isSeed) {
+            g.classList.add('decision-seed');
+            shape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            shape.setAttribute('r', 25);
+            shape.style.fill = varToHex(color);
+            shape.style.stroke = 'white';
+            g.addEventListener('mousedown', startDrag);
+        } else {
+            shape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            shape.setAttribute('r', 15);
+            shape.style.fill = varToHex(color, 0.3);
+            shape.style.stroke = color;
+
+            g.addEventListener('mouseenter', () => updateHoverInfo(config));
+            g.addEventListener('mouseleave', clearHoverInfo);
+        }
+        shape.setAttribute('class', 'node-shape');
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('class', 'node-text');
+        text.setAttribute('dy', config.isSeed ? 40 : 25);
+        text.textContent = config.text;
+        
+        g.appendChild(shape);
+        g.appendChild(text);
+        
+        return { ...config, element: g };
+    }
+
+    // --- Interaction ---
+    function startDrag(e) {
+        if (!decisionSeedNode) return;
+        isDragging = true;
+        decisionSeedNode.element.querySelector('circle').style.cursor = 'grabbing';
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', endDrag, { once: true });
+        svgRect = svg.getBoundingClientRect(); // update rect on drag start
+    }
+    
+    function onDrag(e) {
+        if (!isDragging) return;
+        
+        let x = e.clientX - svgRect.left;
+        let y = e.clientY - svgRect.top;
+        
+        decisionSeedNode.x = x;
+        decisionSeedNode.y = y;
+        decisionSeedNode.element.setAttribute('transform', `translate(${x}, ${y})`);
+        
+        // Update links dynamically
+        const links = linkGroup.querySelectorAll('.link');
+        links.forEach((link, i) => {
+            const node = consequenceNodes[i];
+            const d = `M ${x},${y} Q ${(x + node.x) / 2},${(y + node.y) / 2} ${node.x},${node.y}`;
+            link.setAttribute('d', d);
+        });
+
+        checkLogicAnchorProximity(x, y);
+    }
+    
+    function endDrag(e) {
+        isDragging = false;
+        if (decisionSeedNode) {
+            decisionSeedNode.element.querySelector('circle').style.cursor = 'grab';
+        }
+        document.removeEventListener('mousemove', onDrag);
+
+        const newLogic = getClosestLogic(decisionSeedNode.x, decisionSeedNode.y);
+        if (newLogic && newLogic !== activeLogic) {
+            weaveTruthstream(newLogic);
+        }
+    }
+    
+    function checkLogicAnchorProximity(x, y) {
+        const closestLogic = getClosestLogic(x, y);
+        logicAnchors.forEach(a => {
+            a.classList.toggle('active', a.dataset.logic === closestLogic);
+        });
+    }
+
+    function getClosestLogic(x, y) {
+        let closest = null;
+        let minDist = 150; // Activation distance
+
+        logicAnchors.forEach(a => {
+            const rect = a.getBoundingClientRect();
+            const anchorX = rect.left - svgRect.left + rect.width / 2;
+            const anchorY = rect.top - svgRect.top + rect.height / 2;
+            const dist = Math.sqrt((x - anchorX)**2 + (y - anchorY)**2);
+            if (dist < minDist) {
+                minDist = dist;
+                closest = a.dataset.logic;
+            }
+        });
+        return closest;
+    }
+
+    function updateHoverInfo(node) {
+        hoverText.textContent = node.text;
+        probValue.textContent = `${(node.probability * 100).toFixed(1)}%`;
+        harmValue.textContent = node.harmonics.toFixed(2);
+        entValue.textContent = node.entropy.toFixed(2);
+    }
+
+    function clearHoverInfo() {
+        hoverText.textContent = '[Hover over a consequence node]';
+        probValue.textContent = '--%';
+        harmValue.textContent = '--';
+        entValue.textContent = '--';
+    }
+    
+    // --- Utils ---
+    function varToHex(varName, alpha = 1) {
+        // This is a simplification; for a real app, you'd need a more robust parser.
+        const colorMap = {
+            'var(--accent-primary)': '#6366f1',
+            'var(--accent-deductive)': '#3b82f6',
+            'var(--accent-ecstatic)': '#ec4899',
+            'var(--accent-empathic)': '#10b981',
+            'var(--accent-technosymbolic)': '#f59e0b',
+        };
+        let hex = colorMap[varName] || '#ffffff';
+        if (alpha < 1) {
+            let alphaHex = Math.floor(alpha * 255).toString(16).padStart(2, '0');
+            hex += alphaHex;
+        }
+        return hex;
+    }
+
+    // --- Initial Weave ---
+    weaveTruthstream('deductive');
+});
+</script>
+
+</body>
+</html>

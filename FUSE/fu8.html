@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENOMIRE SCOPE v2.7</title>
+    <style>
+        /* --- CRT STYLING & AESTHETICS --- */
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+        :root {
+            --monitor-bg: #040804;
+            --phosphor-color: #33ff33;
+            --phosphor-glow: 0 0 8px #33ff33, 0 0 10px #33ff33;
+        }
+
+        body {
+            background-color: #111;
+            color: var(--phosphor-color);
+            font-family: 'VT323', monospace;
+            font-size: 22px;
+            line-height: 1.2;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #crt {
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--monitor-bg);
+            box-shadow: inset 0 0 10em 2em rgba(0,0,0,0.8);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #screen {
+            width: 100%;
+            height: 100%;
+            padding: 2em;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Scanlines and flicker effect */
+        #crt::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(to bottom, rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 2;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0%   { opacity: 0.2; }
+            20%  { opacity: 1; }
+            80%  { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        #output {
+            height: calc(100% - 30px);
+            overflow-y: scroll;
+            overflow-x: hidden;
+            word-wrap: break-word;
+            text-shadow: var(--phosphor-glow);
+        }
+        #output::-webkit-scrollbar { display: none; } /* Hide scrollbar */
+        #output { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .prompt-line {
+            display: flex;
+            align-items: center;
+        }
+
+        #input-line {
+            background: transparent;
+            border: none;
+            color: var(--phosphor-color);
+            font-family: 'VT323', monospace;
+            font-size: 22px;
+            text-shadow: var(--phosphor-glow);
+            width: 100%;
+            outline: none;
+        }
+        
+        .cursor {
+            display: inline-block;
+            width: 12px;
+            height: 22px;
+            background: var(--phosphor-color);
+            box-shadow: var(--phosphor-glow);
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            from, to { background: transparent; box-shadow: none; }
+            50% { background: var(--phosphor-color); box-shadow: var(--phosphor-glow); }
+        }
+        
+        /* Canvas for visualizations */
+        #fusion-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+    <div id="crt">
+        <canvas id="fusion-canvas"></canvas>
+        <div id="screen">
+            <div id="output"></div>
+            <div class="prompt-line">
+                <span>> </span>
+                <input type="text" id="input-line" autofocus>
+            </div>
+        </div>
+    </div>
+
+<script>
+//==================================================================//
+//                                                                  //
+//          G E N O M I R E   S C O P E   (v2.7 JS Core)            //
+//                                                                  //
+//==================================================================//
+document.addEventListener('DOMContentLoaded', () => {
+
+    const output = document.getElementById('output');
+    const input = document.getElementById('input-line');
+    const canvas = document.getElementById('fusion-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let commandHistory = [];
+    let historyIndex = -1;
+    let isBusy = true;
+    let animationFrameId = null;
+
+    // --- GENOME DATABASE ---
+    // Simple representation. Properties are used to seed the visualizations.
+    const genomes = {
+        'g-021': { name: "Crystalline Lattice", complexity: 0.8, baseHue: 120, structure: 'serif', frequency: 88.1, path: 'line' },
+        'g-034': { name: "Pulsar Mollusc", complexity: 0.5, baseHue: 200, structure: 'sans-serif', frequency: 101.5, path: 'curve' },
+        'g-113': { name: "Mycelial Network", complexity: 0.3, baseHue: 40, structure: 'script', frequency: 94.2, path: 'network' },
+        'g-777': { name: "Echoing Void", complexity: 1.0, baseHue: 300, structure: 'blackletter', frequency: 60.0, path: 'chaotic' }
+    };
+
+    // --- UTILITY FUNCTIONS ---
+    function log(message, instant = false) {
+        return new Promise(resolve => {
+            const line = document.createElement('div');
+            line.innerHTML = message.replace(/ /g, ' ');
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+            if (instant) {
+                resolve();
+            } else {
+                setTimeout(resolve, 50 + Math.random() * 50);
+            }
+        });
+    }
+
+    async function typeLog(message, delay = 50) {
+        const line = document.createElement('div');
+        output.appendChild(line);
+        for (let i = 0; i < message.length; i++) {
+            line.innerHTML += message[i].replace(/ /g, ' ');
+            output.scrollTop = output.scrollHeight;
+            await new Promise(r => setTimeout(r, Math.random() * delay));
+        }
+    }
+
+    function clearScreen() {
+        output.innerHTML = '';
+    }
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    
+    // --- COMMAND HANDLING ---
+    input.addEventListener('keydown', (e) => {
+        if (isBusy) return;
+        if (e.key === 'Enter') {
+            const command = input.value.trim();
+            if (command) {
+                commandHistory.unshift(command);
+                historyIndex = -1;
+                log(`> ${command}`, true);
+                processCommand(command);
+                input.value = '';
+            }
+        } else if (e.key === 'ArrowUp') {
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                input.value = commandHistory[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            if (historyIndex > 0) {
+                historyIndex--;
+                input.value = commandHistory[historyIndex];
+            } else {
+                historyIndex = -1;
+                input.value = '';
+            }
+        }
+    });
+    
+    // Always focus the input when clicking on the screen
+    document.getElementById('screen').addEventListener('click', () => {
+        input.focus();
+    });
+
+    async function processCommand(command) {
+        isBusy = true;
+        const fuseRegex = /^fuse\s+(g-\d{3})\+(g-\d{3})\s+using:(\w+)(?:\((am|fm)\))?$/;
+        const fuseMatch = command.match(fuseRegex);
+
+        if (fuseMatch) {
+            const [, g1Id, g2Id, mode, subMode] = fuseMatch;
+            if (!genomes[g1Id] || !genomes[g2Id]) {
+                await typeLog("ERROR: GENOME ID NOT FOUND IN GRIMOIRE.");
+            } else if (FUSION_MODES[mode]) {
+                await FUSION_MODES[mode](genomes[g1Id], genomes[g2Id], subMode);
+            } else {
+                await typeLog(`ERROR: UNKNOWN FUSION MODE: [${mode}]`);
+            }
+        } else {
+            switch (command.toLowerCase()) {
+                case 'help':
+                    await log("<br>", true);
+                    await typeLog("GENOMIRE SCOPE v2.7 - COMMAND LIST");
+                    await typeLog("------------------------------------");
+                    await typeLog("fuse g-xxx+g-yyy using:[mode] - Perform fusion.");
+                    await typeLog("  Modes: radar, radio, type, wave(am/fm), vector");
+                    await typeLog("list - List available genomes.");
+                    await typeLog("clear - Clear the screen.");
+                    await typeLog("help - Display this help text.");
+                    await log("<br>", true);
+                    break;
+                case 'list':
+                    await log("<br>", true);
+                    await typeLog("AVAILABLE GENOMIC ENTITIES:");
+                    for (const id in genomes) {
+                        await typeLog(`${id}: ${genomes[id].name}`);
+                    }
+                    await log("<br>", true);
+                    break;
+                case 'clear':
+                    clearScreen();
+                    break;
+                default:
+                    await typeLog(`SYNTAX ERROR: UNKNOWN COMMAND "${command}"`);
+            }
+        }
+        isBusy = false;
+        input.focus();
+    }
+    
+    // --- FUSION VISUALIZATION LOGIC ---
+    
+    function stopAnimation() {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        canvas.style.display = 'none';
+    }
+    
+    function startAnimation(drawFunction) {
+        stopAnimation();
+        resizeCanvas();
+        canvas.style.display = 'block';
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        function loop() {
+            drawFunction();
+            animationFrameId = requestAnimationFrame(loop);
+        }
+        loop();
+    }
+    
+    const FUSION_MODES = {
+        'radar': async function(g1, g2) {
+            await typeLog("[SYSTEM] INITIALIZING RADAR FUSION PROTOCOL...");
+            await typeLog("[SYSTEM] DISPLAYING ECHO MAP...");
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = Math.min(centerX, centerY) * 0.8;
+            let angle = 0;
+            const blip1 = { angle: Math.random() * 2 * Math.PI, radius: maxRadius * (0.2 + g1.complexity * 0.7) };
+            const blip2 = { angle: Math.random() * 2 * Math.PI, radius: maxRadius * (0.2 + g2.complexity * 0.7) };
+            let locked = false;
+
+            startAnimation(() => {
+                ctx.fillStyle = 'rgba(4, 8, 4, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw grid
+                ctx.strokeStyle = 'rgba(51, 255, 51, 0.2)';
+                ctx.lineWidth = 1;
+                for (let i = 1; i <= 4; i++) {
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, maxRadius * (i / 4), 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+                
+                // Draw sweep
+                angle += 0.02;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(centerX + maxRadius * Math.cos(angle), centerY + maxRadius * Math.sin(angle));
+                ctx.strokeStyle = 'rgba(51, 255, 51, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw blips
+                function drawBlip(b, g) {
+                    const x = centerX + b.radius * Math.cos(b.angle);
+                    const y = centerY + b.radius * Math.sin(b.angle);
+                    const angleDiff = Math.abs((angle % (2*Math.PI)) - b.angle);
+                    if (angleDiff < 0.1 || angleDiff > (2*Math.PI - 0.1)) {
+                         ctx.fillStyle = '#ffff00';
+                         ctx.shadowColor = '#ffff00';
+                         ctx.shadowBlur = 15;
+                    } else {
+                         ctx.fillStyle = `hsla(${g.baseHue}, 100%, 50%, 0.8)`;
+                         ctx.shadowColor = `hsla(${g.baseHue}, 100%, 50%, 0.8)`;
+                         ctx.shadowBlur = 10;
+                    }
+                    ctx.beginPath();
+                    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+                drawBlip(blip1, g1);
+                drawBlip(blip2, g2);
+
+                if(!locked && Math.abs(blip1.angle - blip2.angle) < 0.2) {
+                    locked = true;
+                    finishFusion();
+                }
+            });
+
+            async function finishFusion() {
+                await new Promise(r => setTimeout(r, 1500));
+                await typeLog("[SYSTEM] RESONANCE LOCK ACHIEVED.");
+                await typeLog("[SYSTEM] FUSION COMPLETE. NEW ENTITY DESIGNATED g-055.");
+                await typeLog("[SYSTEM] DISPLAYING PHENOTYPIC EXPRESSION...");
+                
+                let pulseRadius = 0;
+                let pulseAlpha = 1;
+                startAnimation(() => {
+                    ctx.fillStyle = 'rgba(4, 8, 4, 0.2)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    ctx.strokeStyle = `rgba(51, 255, 51, ${pulseAlpha})`;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, pulseRadius, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    
+                    pulseRadius += 2;
+                    pulseAlpha -= 0.01;
+                    
+                    if (pulseAlpha <= 0) {
+                        pulseRadius = 0;
+                        pulseAlpha = 1;
+                    }
+                });
+            }
+        },
+        'radio': async function(g1, g2) {
+            await typeLog("[SYSTEM] ENGAGING SPECTRUM ANALYZER...");
+            await typeLog(`[SYSTEM] g-021 BROADCASTING AT ${g1.frequency} MHz. g-034 AT ${g2.frequency} MHz.`);
+            await typeLog("[SYSTEM] TUNE FOR HARMONIC CONVERGENCE. (SIMULATING...)");
+
+            let currentFreq = 70.0;
+            const targetFreq = (g1.frequency + g2.frequency) / 2;
+            const interval = setInterval(async () => {
+                currentFreq += (targetFreq - currentFreq) * 0.1;
+                const clarity = 1 - Math.abs(targetFreq - currentFreq) / 30;
+                const staticChars = '░▒▓█';
+                let vuMeter = `[${staticChars[Math.floor(clarity*3)].repeat(Math.floor(clarity*10))}]`;
+                await log(`TUNING: ${currentFreq.toFixed(2)} MHz... CLARITY: ${vuMeter}`, true);
+                if (clarity > 0.98) {
+                    clearInterval(interval);
+                    finishFusion();
+                }
+            }, 200);
+
+            async function finishFusion() {
+                await typeLog("...HARMONIC LOCK ESTABLISHED. SIGNAL-TO-NOISE RATIO OPTIMAL.");
+                await typeLog("[SYSTEM] FUSION COMPLETE. NEW ENTITY DESIGNATED g-056.");
+                await typeLog("[SYSTEM] DISPLAYING PHENOTYPIC EXPRESSION...");
+
+                let time = 0;
+                startAnimation(() => {
+                    ctx.fillStyle = 'rgba(4, 8, 4, 0.25)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.strokeStyle = '#ffb000'; // Amber color for radio
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#ffb000';
+                    ctx.shadowBlur = 10;
+                    
+                    ctx.beginPath();
+                    for(let i = 0; i < canvas.width; i++) {
+                        const y = canvas.height/2 + Math.sin(i * 0.05 + time) * (canvas.height/4);
+                        if(i === 0) ctx.moveTo(i,y);
+                        else ctx.lineTo(i,y);
+                    }
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                    time += 0.05;
+                });
+            }
+        },
+        'type': async function(g1, g2) {
+            await typeLog("[SYSTEM] LOADING TYPOGRAPHIC PROFILES...");
+            await typeLog(`[SYSTEM] g-021: ${g1.structure.toUpperCase()}, CONDENSED. g-034: ${g2.structure.toUpperCase()}, BOLD.`);
+            await typeLog("[SYSTEM] TYPESETTING NEW GENOME... (SIMULATING...)");
+            await new Promise(r => setTimeout(r, 1000));
+            
+            const glyphChars = "AαBβCçDδEεFƒGγHηIιJϕKκLλMμNνOοPπQθRρSσTτUυVωWψXξYζZ≠≡≤≥";
+            let tempGlyph = '';
+            for(let i=0; i<5; i++){
+                tempGlyph = '';
+                for(let j=0; j<10; j++){
+                    tempGlyph += glyphChars[Math.floor(Math.random() * glyphChars.length)];
+                }
+                await log(tempGlyph, true);
+                await new Promise(r => setTimeout(r, 200));
+            }
+            
+            await typeLog("...COMPLETE.");
+            await typeLog("[SYSTEM] FUSION COMPLETE. NEW ENTITY DESIGNATED g-057.");
+            await typeLog("[SYSTEM] DISPLAYING PHENOTYPIC EXPRESSION...");
+
+            const finalGlyph = tempGlyph;
+            let fontSize = 10;
+            let alpha = 0;
+
+            startAnimation(() => {
+                ctx.fillStyle = 'rgba(4, 8, 4, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if (fontSize < 200) fontSize += 2;
+                if (alpha < 1) alpha += 0.01;
+
+                ctx.fillStyle = `rgba(51, 255, 51, ${alpha})`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `${fontSize}px VT323`;
+                ctx.shadowColor = `rgba(51, 255, 51, ${alpha})`;
+                ctx.shadowBlur = 15;
+                ctx.fillText(finalGlyph[4], canvas.width/2, canvas.height/2);
+                ctx.shadowBlur = 0;
+            });
+        },
+        'wave': async function(g1, g2, subMode = 'fm') {
+            await typeLog("[SYSTEM] CONFIGURING WAVEFORM FUSION...");
+            await typeLog(`[SYSTEM] CARRIER: g-021. MODULATOR: g-034. MODE: ${subMode.toUpperCase()}.`);
+            await typeLog("[SYSTEM] APPLYING MODULATION... (SIMULATING...)");
+            await new Promise(r => setTimeout(r, 2000));
+            
+            await typeLog("[SYSTEM] MODULATION APPLIED. CARRIER STABLE.");
+            await typeLog("[SYSTEM] FUSION COMPLETE. NEW ENTITY DESIGNATED g-058.");
+            await typeLog("[SYSTEM] DISPLAYING PHENOTYPIC EXPRESSION...");
+
+            let time = 0;
+            const carrierFreq = 0.02 * g1.complexity;
+            const modulatorFreq = 0.08 * g2.complexity;
+
+            startAnimation(() => {
+                ctx.fillStyle = 'rgba(4, 8, 4, 0.25)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.lineWidth = 2;
+                
+                // Draw Modulator wave (ghostly)
+                ctx.strokeStyle = `hsla(${g2.baseHue}, 100%, 50%, 0.3)`;
+                ctx.beginPath();
+                 for(let i = 0; i < canvas.width; i++) {
+                    const y = canvas.height/2 + Math.sin(i * modulatorFreq + time) * 50;
+                    if(i === 0) ctx.moveTo(i,y); else ctx.lineTo(i,y);
+                }
+                ctx.stroke();
+
+                // Draw Fused wave
+                ctx.strokeStyle = `hsla(${g1.baseHue}, 100%, 50%, 1)`;
+                ctx.shadowColor = `hsla(${g1.baseHue}, 100%, 50%, 1)`;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                for(let i = 0; i < canvas.width; i++) {
+                    let y;
+                    const modulatorValue = Math.sin(i * modulatorFreq + time);
+                    if (subMode === 'am') {
+                        const amplitude = (1.5 + modulatorValue) * (canvas.height/8);
+                        y = canvas.height/2 + Math.sin(i * carrierFreq + time) * amplitude;
+                    } else { // FM
+                        const frequency = carrierFreq + modulatorValue * 0.01;
+                        y = canvas.height/2 + Math.sin(i * frequency + time) * (canvas.height/4);
+                    }
+                    if(i === 0) ctx.moveTo(i,y); else ctx.lineTo(i,y);
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                time += 0.03;
+            });
+        },
+        'vector': async function(g1, g2) {
+            await typeLog("[SYSTEM] TRANSLATING GENOMES TO VECTOR PATHS...");
+            await typeLog("[SYSTEM] DRAWING g-021... DRAWING g-034...");
+            await typeLog("[SYSTEM] GENERATING INTERLEAVED DISPLAY LIST...");
+            await new Promise(r => setTimeout(r, 2000));
+
+            await typeLog("[SYSTEM] FUSION COMPLETE. NEW ENTITY DESIGNATED g-059.");
+            await typeLog("[SYSTEM] DISPLAYING PHENOTYPIC EXPRESSION...");
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const numPoints = 10;
+            
+            function createPath(g, offset) {
+                let points = [];
+                for(let i=0; i<numPoints; i++) {
+                    points.push({
+                        x: w/2 + Math.sin(i/numPoints * Math.PI*2 + offset) * (w/4 * g.complexity),
+                        y: h/2 + Math.cos(i/numPoints * Math.PI*2 * g2.complexity + offset) * (h/4 * g.complexity)
+                    });
+                }
+                return points;
+            }
+
+            const path1 = createPath(g1, 0);
+            const path2 = createPath(g2, Math.PI);
+            const fusedPath = [];
+            for(let i=0; i<numPoints; i++){
+                fusedPath.push(path1[i]);
+                fusedPath.push(path2[i]);
+            }
+            let currentPoint = 0;
+
+            startAnimation(() => {
+                ctx.fillStyle = 'rgba(4, 8, 4, 0.1)'; // Phosphor decay
+                ctx.fillRect(0, 0, w, h);
+                ctx.strokeStyle = `hsla(${(g1.baseHue + g2.baseHue)/2}, 100%, 70%, 0.8)`;
+                ctx.lineWidth = 2;
+                ctx.shadowColor = `hsla(${(g1.baseHue + g2.baseHue)/2}, 100%, 70%, 1)`;
+                ctx.shadowBlur = 15;
+
+                ctx.beginPath();
+                for(let i=0; i < fusedPath.length; i++) {
+                    const p = fusedPath[i];
+                    if (i===0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+                
+                // Animate a bright spot along the path
+                const p1 = fusedPath[currentPoint % fusedPath.length];
+                const p2 = fusedPath[(currentPoint + 1) % fusedPath.length];
+                const progress = (Date.now() % 100) / 100;
+                const spotX = p1.x + (p2.x - p1.x) * progress;
+                const spotY = p1.y + (p2.y - p1.y) * progress;
+
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(spotX, spotY, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                if(progress > 0.98) currentPoint++;
+
+                ctx.shadowBlur = 0;
+            });
+        }
+    };
+
+    // --- INITIAL BOOT SEQUENCE ---
+    async function boot() {
+        resizeCanvas();
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            // a redraw function could be called here if needed for active animations
+        });
+
+        clearScreen();
+        await log("<< GENOMIRE SCOPE BIOS v2.7 (Phosphor-Burn revision) >>", true);
+        await log("(c) 1978, Esoterica Cybernetics Division", true);
+        await log("<br>", true);
+        await typeLog("> CHECKING MEMORY... 1024K OK");
+        await typeLog("> CALIBRATING CRT DEFLECTION YOKE... OK");
+        await typeLog("> LOADING KERNEL... OK");
+        await typeLog(`> MOUNTING GENOMIC GRIMOIRE... ${Object.keys(genomes).length} ENTITIES FOUND`);
+        await typeLog("> AWAITING COMMAND...");
+        await log("<br>", true);
+        await typeLog("Type 'help' for a list of commands.");
+        isBusy = false;
+        input.focus();
+    }
+
+    boot();
+});
+</script>
+</body>
+</html>

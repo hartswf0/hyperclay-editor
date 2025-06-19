@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CodonSynth - Musical Garden</title>
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <style>
+        :root {
+            --bg-color: #0c101f;
+            --font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+            --key-c-major: "hsl(14, 100%, 70%)";
+            --key-f-minor: "hsl(210, 100%, 70%)";
+            --key-g-lydian: "hsl(125, 80%, 70%)";
+            --key-d-phrygian: "hsl(310, 70%, 70%)";
+        }
+        body, html {
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            overflow: hidden; background-color: var(--bg-color);
+            font-family: var(--font-family);
+            -webkit-tap-highlight-color: transparent;
+        }
+        #garden {
+            position: relative; width: 100%; height: 100%;
+            touch-action: none;
+        }
+        #start-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); z-index: 1000;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; transition: opacity 0.5s; color: #fff;
+        }
+        #start-button {
+            padding: 1.2rem 2rem; font-size: 1.2rem; background-color: #fff;
+            color: #000; border: none; border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 30px #fff;
+        }
+        
+        #harmonic-field {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            transition: background 3s ease-in-out;
+            animation: field-breathe 15s infinite alternate ease-in-out;
+        }
+        @keyframes field-breathe {
+            from { transform: scale(1); opacity: 0.6; }
+            to { transform: scale(1.05); opacity: 1; }
+        }
+        
+        #visual-canvas {
+            position: absolute; top: 0; left: 0; z-index: 1;
+        }
+
+        #rhythmic-heart {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 80px; height: 80px;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            cursor: grab;
+            z-index: 10;
+            background-color: white;
+            box-shadow: 0 0 20px white;
+            transition: box-shadow 0.5s, background-color 0.5s;
+        }
+        
+        .orb-element, .memory-flower {
+            position: absolute; border-radius: 50%; z-index: 5;
+            transition: transform 0.5s, opacity 0.5s, background-color 0.5s, width 0.5s, height 0.5s;
+        }
+        
+        #color-palette, #archive-bay {
+            position: absolute; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 15px;
+            padding: 10px; background: rgba(0,0,0,0.3); backdrop-filter: blur(5px);
+            border-radius: 20px; z-index: 20;
+        }
+        #color-palette { bottom: 20px; }
+        #archive-bay { top: 20px; }
+        .color-bead, .memory-flower {
+            width: 40px; height: 40px;
+            border-radius: 50%; border: 2px solid rgba(255,255,255,0.7);
+            cursor: pointer;
+        }
+        .memory-flower { width: 30px; height: 30px; cursor: grab; }
+    </style>
+</head>
+<body>
+    <div id="garden">
+        <div id="start-overlay">
+            <button id="start-button">CULTIVATE</button>
+            <p style="margin-top:20px;">Touch the heart to find the soul of the music. <br/>Swipe the field to strum its strings.</p>
+        </div>
+        <div id="harmonic-field"></div>
+        <canvas id="visual-canvas"></canvas>
+        <div id="rhythmic-heart"></div>
+        <div id="color-palette">
+            <div class="color-bead" data-key="c-major" style="background: var(--key-c-major);"></div>
+            <div class="color-bead" data-key="f-minor" style="background: var(--key-f-minor);"></div>
+            <div class="color-bead" data-key="g-lydian" style="background: var(--key-g-lydian);"></div>
+            <div class="color-bead" data-key="d-phrygian" style="background: var(--key-d-phrygian);"></div>
+        </div>
+        <div id="archive-bay"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM & Canvas Setup ---
+            const startOverlay = document.getElementById('start-overlay');
+            const startButton = document.getElementById('start-button');
+            const gardenEl = document.getElementById('garden');
+            const heartEl = document.getElementById('rhythmic-heart');
+            const harmonicFieldEl = document.getElementById('harmonic-field');
+            const colorPalette = document.getElementById('color-palette');
+            const archiveBayEl = document.getElementById('archive-bay');
+            const canvas = document.getElementById('visual-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            // --- Global State & Tone.js Setup ---
+            let population = new Map();
+            let nextCodonId = 0;
+            let archives = [];
+            let ripples = [];
+            let longPressTimeout;
+
+            // NEW Custom Synth Voice for a more pleasant tone
+            class PleasantSynth extends Tone.Synth {
+                constructor(options) {
+                    super(options);
+                    this.oscillator = new Tone.AMOscillator({
+                        frequency: 440,
+                        type: "sine",
+                        harmonicity: 1.2
+                    }).start();
+                    this.envelope = new Tone.AmplitudeEnvelope({
+                        attack: 0.2, decay: 0.5, sustain: 0.8, release: 2
+                    });
+                    this.filter = new Tone.Filter(5000, "lowpass");
+                    this.oscillator.chain(this.filter, this.envelope);
+                }
+            }
+            const synth = new Tone.PolySynth(PleasantSynth).toDestination();
+            const reverb = new Tone.Reverb({ decay: 10, wet: 0.5 }).toDestination();
+            synth.connect(reverb);
+            
+            const scales = {
+                'c-major':    { key: ['C','D','E','F','G','A','B'], color1: '#ff8a65', color2: '#f44336' },
+                'f-minor':    { key: ['F','G','G#','A#','C','C#','D#'], color1: '#64b5f6', color2: '#2196f3' },
+                'g-lydian':   { key: ['G','A','B','C#','D','E','F#'], color1: '#a5d6a7', color2: '#4caf50' },
+                'd-phrygian': { key: ['D','D#','F','G','A','A#','C'], color1: '#ce93d8', color2: '#9c27b0' }
+            };
+
+            let environment = {
+                key: 'c-major',
+                mutationRate: 0.1,
+                survivalThreshold: 0.6
+            };
+            
+            // --- Synesthetic Control & Engine ---
+            function updateHarmonicField() {
+                const colors = scales[environment.key];
+                harmonicFieldEl.style.background = `radial-gradient(ellipse at center, ${colors.color1} 0%, ${colors.color2} 40%, #0c101f 75%)`;
+            }
+
+            function updateHeartPosition(x, y) {
+                heartEl.style.left = `${x}px`;
+                heartEl.style.top = `${y}px`;
+                // Y-Axis: Atmosphere (Reverb Wetness)
+                const wetness = (y / window.innerHeight) * 0.8;
+                reverb.wet.rampTo(wetness, 0.1);
+                // X-Axis: Filter Brightness
+                const filterFreq = 400 + (x / window.innerWidth) * 6000;
+                synth.set({ filter: { frequency: filterFreq } });
+            }
+
+            const runGeneration = () => {
+                const survivors = new Map();
+                if (population.size > 0) {
+                    population.forEach(parent => {
+                        if (parent.fitness > environment.survivalThreshold) {
+                           survivors.set(parent.id, parent);
+                           parent.age++;
+                           if (Math.random() < environment.mutationRate) {
+                               const child = { ...parent, id: `c-${nextCodonId++}`, parentId: parent.id, age: 0 };
+                               child.pitch = `${scales[environment.key].key[Math.floor(Math.random() * 7)]}${3+Math.floor(Math.random()*2)}`;
+                               survivors.set(child.id, child);
+                           }
+                        }
+                    });
+                }
+                if (survivors.size === 0) {
+                    const seed = createCodon(null, heartEl.offsetLeft, heartEl.offsetTop, 'C4', '2n');
+                    survivors.set(seed.id, seed);
+                }
+                population = survivors;
+
+                // Create a musical part for the next measure
+                const partEvents = [];
+                population.forEach(codon => {
+                    codon.fitness = scales[environment.key].key.includes(codon.pitch.slice(0, -1)) ? 1.0 : 0.2;
+                    partEvents.push({
+                        time: `${Math.floor(Math.random()*4)}: ${Math.floor(Math.random()*4)}:0`,
+                        note: codon.pitch,
+                        velocity: Math.max(0.1, codon.fitness),
+                        // HARMONIC FILTERING: Unfit notes are muffled
+                        filterFreq: 200 + codon.fitness * 5000,
+                        x: codon.x, y: codon.y
+                    });
+                });
+                
+                new Tone.Part((time, value) => {
+                    synth.set({ filter: { frequency: value.filterFreq } });
+                    synth.triggerAttackRelease(value.note, "2n", time, value.velocity);
+                    ripples.push({ x: value.x, y: value.y, radius: 0, maxRadius: 100, opacity: value.velocity });
+                }, partEvents).start(0);
+            };
+
+            const draw = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                for (let i = ripples.length - 1; i >= 0; i--) {
+                    const r = ripples[i];
+                    r.radius += 2;
+                    r.opacity -= 0.02;
+                    if (r.opacity <= 0) { ripples.splice(i, 1); continue; }
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${r.opacity})`;
+                    ctx.stroke();
+                }
+
+                population.forEach(codon => {
+                    let el = document.getElementById(codon.id);
+                    if (!el) {
+                        el = document.createElement('div');
+                        el.id = codon.id;
+                        el.className = 'orb-element';
+                        gardenEl.insertBefore(el, heartEl);
+                    }
+                    codon.x += (heartEl.offsetLeft - codon.x) * 0.01 + (Math.random() - 0.5);
+                    codon.y += (heartEl.offsetTop - codon.y) * 0.01 + (Math.random() - 0.5);
+                    
+                    const noteValue = scales[environment.key].key.indexOf(codon.pitch.slice(0, -1));
+                    const hue = (noteValue / 7) * 360;
+                    const saturation = 50 + codon.fitness * 50;
+                    const size = 10 + codon.age + codon.fitness * 15;
+                    
+                    el.style.transform = `translate(${codon.x-size/2}px, ${codon.y-size/2}px)`;
+                    el.style.width = `${size}px`;
+                    el.style.height = `${size}px`;
+                    el.style.backgroundColor = `hsl(${hue}, ${saturation}%, 70%)`;
+                });
+                
+                requestAnimationFrame(draw);
+            };
+
+            // --- INTERACTIONS ---
+            colorPalette.addEventListener('click', (e) => {
+                if (e.target.classList.contains('color-bead')) {
+                    environment.key = e.target.dataset.key;
+                    updateHarmonicField();
+                }
+            });
+
+            // Heart dragging and archiving
+            let isDraggingHeart = false;
+            heartEl.addEventListener('pointerdown', () => {
+                isDraggingHeart = true; heartEl.style.cursor = 'grabbing';
+                longPressTimeout = setTimeout(() => {
+                    isDraggingHeart = false;
+                    const archiveData = { population: new Map(population), environment: { ...environment } };
+                    archives.push(archiveData);
+                    const sporeEl = document.createElement('div');
+                    sporeEl.className = 'memory-flower';
+                    sporeEl.style.background = `radial-gradient(circle, ${scales[environment.key].color1}, ${scales[environment.key].color2})`;
+                    sporeEl.dataset.archiveIndex = archives.length - 1;
+                    archiveBayEl.appendChild(sporeEl);
+                }, 800);
+            });
+            
+            // Strumming and general movement
+            let lastPos = {x: 0, y: 0};
+            gardenEl.addEventListener('pointermove', (e) => {
+                clearTimeout(longPressTimeout);
+                const velocity = Math.hypot(e.clientX - lastPos.x, e.clientY - lastPos.y);
+                if (isDraggingHeart) {
+                    updateHeartPosition(e.clientX, e.clientY);
+                } else if (velocity > 40) { // Strumming gesture
+                    const scale = scales[environment.key].key;
+                    const arp = new Tone.Arpeggiator([`${scale[0]}3`, `${scale[2]}3`, `${scale[4]}4`, `${scale[6]}4`], "up").toDestination();
+                    arp.start(0).stop("1m");
+                    Tone.Transport.emit('strum'); // Visual cue
+                }
+                lastPos = {x: e.clientX, y: e.clientY};
+            });
+            
+            gardenEl.addEventListener('pointerup', () => {
+                clearTimeout(longPressTimeout); isDraggingHeart = false; heartEl.style.cursor = 'grab';
+            });
+            
+            // Pinch to zoom for mutation
+            let lastPinchDist = 0;
+            gardenEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                }
+            }, {passive: true});
+            
+            gardenEl.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2) {
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const delta = dist - lastPinchDist;
+                    environment.mutationRate = Math.max(0.05, Math.min(0.95, environment.mutationRate + delta * 0.002));
+                    lastPinchDist = dist;
+                }
+            }, {passive: true});
+            
+            // Fuse via drag-and-drop
+            archiveBayEl.addEventListener('pointerdown', e => {
+                if(e.target.classList.contains('memory-flower')) {
+                    e.target.style.position = 'absolute'; e.target.style.zIndex = '30';
+                    const drag = (ev) => { e.target.style.left = ev.clientX - 15 + 'px'; e.target.style.top = ev.clientY - 15 + 'px'; };
+                    const drop = (ev) => {
+                        const dropTarget = document.elementFromPoint(ev.clientX, ev.clientY);
+                        if(dropTarget.id === 'harmonic-field' || dropTarget.id === 'rhythmic-heart') {
+                            const archiveData = archives[parseInt(e.target.dataset.archiveIndex)];
+                            archiveData.population.forEach(c => population.set(c.id, c));
+                            e.target.remove();
+                        } else { e.target.style.position = 'static'; }
+                        document.removeEventListener('pointermove', drag); document.removeEventListener('pointerup', drop);
+                    };
+                    document.addEventListener('pointermove', drag); document.addEventListener('pointerup', drop);
+                }
+            });
+
+            startButton.addEventListener('click', async () => {
+                await Tone.start();
+                startOverlay.style.opacity = '0';
+                setTimeout(() => startOverlay.style.display = 'none', 500);
+                
+                updateHarmonicField();
+                updateHeartPosition(window.innerWidth/2, window.innerHeight/2);
+                
+                // Set up the rhythmic heartbeat
+                Tone.Transport.bpm.value = 80;
+                Tone.Transport.scheduleRepeat(time => {
+                    Tone.Draw.schedule(() => {
+                        heartEl.style.transition = 'transform 0.1s';
+                        heartEl.style.transform = `translate(-50%, -50%) scale(1.1)`;
+                        setTimeout(() => heartEl.style.transform = `translate(-50%, -50%) scale(1)`, 100);
+                    }, time);
+                }, "4n");
+                
+                // Start the evolutionary loop
+                new Tone.Loop(runGeneration, "1m").start(0);
+                Tone.Transport.start();
+                
+                requestAnimationFrame(draw);
+            });
+        });
+    </script>
+</body>
+</html>

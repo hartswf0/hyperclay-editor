@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // NOETIC RESONANCE HARMONIZER // [CLASSIFIED]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: ECD // NOETIC RESONANCE HARMONIZER
+        *   ID: ECD-H78-NRH-01
+        *   DIVISION: ESOTERICA CYBERNETICS
+        *   CONCEPT: A 2070-era GUI envisioned from a 1978 perspective.
+        *   It abandons standard UI for an analog, esoteric synthesis process
+        *   based on Lissajous curve harmonization.
+        */
+
+        :root {
+            --ecd-beige: #d8c8a8;
+            --ecd-dark-beige: #4d483e;
+            --ecd-green: #2a3d33;
+            --ecd-olive: #4a543b;
+            --ecd-amber: #ff8c00;
+            --ecd-screen-bg: #131514;
+            --ecd-glow: rgba(255, 140, 0, 0.7);
+            --font-main: 'Share Tech Mono', monospace;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes flicker {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 10px 3px var(--ecd-glow); color: var(--ecd-amber); }
+            50% { box-shadow: 0 0 25px 8px var(--ecd-glow); color: #fff; }
+            100% { box-shadow: 0 0 10px 3px var(--ecd-glow); color: var(--ecd-amber); }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: var(--font-main);
+            color: var(--ecd-dark-beige);
+        }
+
+        #artifact-container {
+            width: 1400px;
+            height: 750px;
+            background-color: var(--ecd-beige);
+            border: 2px solid #000;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.3);
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            grid-template-rows: 50px 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .panel-header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--ecd-dark-beige);
+            padding-bottom: 10px;
+        }
+        .panel-header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            font-weight: normal;
+            letter-spacing: 2px;
+        }
+        .panel-header .serial {
+            font-size: 1rem;
+            background-color: var(--ecd-dark-beige);
+            color: var(--ecd-beige);
+            padding: 5px 10px;
+        }
+
+        /* --- LEFT PANEL: TARGETING MATRIX --- */
+        #left-panel {
+            background-color: var(--ecd-green);
+            padding: 15px;
+            box-shadow: inset 0 0 10px #000;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-label {
+            text-align: center;
+            color: var(--ecd-beige);
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--ecd-dark-beige);
+            padding-bottom: 5px;
+        }
+        .targeting-matrix {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            flex-grow: 1;
+        }
+        .matrix-button {
+            background-color: var(--ecd-dark-beige);
+            border: 2px solid #000;
+            color: var(--ecd-beige);
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+        .matrix-button:hover {
+            background-color: #6a6356;
+        }
+        .matrix-button.selected-x {
+            background-color: var(--ecd-amber);
+            color: #000;
+            box-shadow: 0 0 10px 2px var(--ecd-glow);
+            transform: scale(1.05);
+        }
+        .matrix-button.selected-y {
+            background-color: #ffa544;
+            color: #000;
+            box-shadow: 0 0 10px 2px var(--ecd-glow);
+            transform: scale(1.05);
+        }
+
+        /* --- CENTER PANEL: HARMONIZER SCOPE --- */
+        #center-panel {
+            background-color: var(--ecd-screen-bg);
+            box-shadow: inset 0 0 20px #000;
+            position: relative;
+        }
+        #scope-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .scope-label {
+            position: absolute;
+            color: var(--ecd-amber);
+            font-size: 1.2rem;
+            opacity: 0.6;
+        }
+        .scope-label.x-axis { bottom: 10px; left: 50%; transform: translateX(-50%); }
+        .scope-label.y-axis { top: 50%; left: 10px; transform: translateY(-50%) rotate(-90deg); }
+
+        /* --- RIGHT PANEL: CONTROL & TELEMETRY --- */
+        #right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-module, .telemetry-module {
+            background-color: var(--ecd-olive);
+            padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            flex-grow: 1;
+        }
+        .control-slider {
+            margin-bottom: 20px;
+        }
+        .control-slider label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--ecd-beige);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 10px;
+            background: var(--ecd-dark-beige);
+            outline: none;
+            border: 1px solid #000;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 25px;
+            background: var(--ecd-beige);
+            border: 1px solid #000;
+            cursor: pointer;
+        }
+        
+        .initiate-button {
+            width: 100%;
+            padding: 15px;
+            font-family: inherit;
+            font-size: 1.2rem;
+            background-color: var(--ecd-dark-beige);
+            color: var(--ecd-beige);
+            border: 2px solid #000;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .initiate-button:disabled {
+            background-color: #222;
+            color: #555;
+            cursor: not-allowed;
+        }
+        .initiate-button:not(:disabled):hover {
+            background-color: var(--ecd-amber);
+            color: #000;
+        }
+        
+        #telemetry-log {
+            height: 100%;
+            background-color: var(--ecd-screen-bg);
+            color: var(--ecd-amber);
+            padding: 10px;
+            font-size: 1rem;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-shadow: inset 0 0 10px #000;
+            animation: flicker 2s infinite;
+        }
+        #telemetry-log .log-entry.converged {
+            animation: pulse-glow 1.5s infinite;
+            text-align: center;
+            font-weight: bold;
+        }
+        #telemetry-log .log-entry.error { color: #f55; }
+    </style>
+</head>
+<body>
+    <div id="artifact-container">
+        <header class="panel-header">
+            <h1>NOETIC RESONANCE HARMONIZER</h1>
+            <div class="serial">UNIT ID: ECD-H78-NRH-01</div>
+        </header>
+
+        <aside id="left-panel">
+            <h2 class="panel-label">CONVERGENCE MATRIX</h2>
+            <div class="targeting-matrix">
+                <!-- Buttons will be generated by JS -->
+            </div>
+        </aside>
+
+        <main id="center-panel">
+            <canvas id="scope-canvas"></canvas>
+            <div class="scope-label x-axis">SIGNATURE-X</div>
+            <div class="scope-label y-axis">SIGNATURE-Y</div>
+        </main>
+
+        <aside id="right-panel">
+            <div class="control-module">
+                <h2 class="panel-label">HARMONIC CONTROLS</h2>
+                <div class="control-slider">
+                    <label for="freq-ratio">FREQUENCY RATIO (ωx/ωy)</label>
+                    <input type="range" id="freq-ratio" min="0.1" max="3" value="1" step="0.001" disabled>
+                </div>
+                <div class="control-slider">
+                    <label for="phase-offset">PHASE OFFSET (δ)</label>
+                    <input type="range" id="phase-offset" min="0" max="180" value="90" step="0.1" disabled>
+                </div>
+                 <div class="control-slider">
+                    <label for="damping">AMPLITUDE DAMPING (ζ)</label>
+                    <input type="range" id="damping" min="0" max="0.1" value="0.01" step="0.0001" disabled>
+                </div>
+                <button class="initiate-button" id="initiate-btn" disabled>INITIATE HARMONIZATION</button>
+            </div>
+            <div class="telemetry-module">
+                 <h2 class="panel-label">SYSTEM TELEMETRY</h2>
+                 <div id="telemetry-log">AWAITING SIGNATURE INPUT...</div>
+            </div>
+        </aside>
+    </div>
+
+<script>
+const Harmonizer = {
+    // --- ELEMENTS ---
+    canvas: document.getElementById('scope-canvas'),
+    ctx: null,
+    matrixContainer: document.querySelector('.targeting-matrix'),
+    log: document.getElementById('telemetry-log'),
+    controls: {
+        ratio: document.getElementById('freq-ratio'),
+        phase: document.getElementById('phase-offset'),
+        damping: document.getElementById('damping'),
+        initiate: document.getElementById('initiate-btn'),
+    },
+
+    // --- STATE ---
+    state: {
+        signatures: [],
+        selectedX: null,
+        selectedY: null,
+        running: false,
+        animationFrame: null,
+        time: 0,
+        audioCtx: null,
+        oscX: null,
+        oscY: null,
+    },
+    
+    // --- CORE METHODS ---
+    init() {
+        this.ctx = this.canvas.getContext('2d');
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+        
+        this.generateSignatures();
+        this.renderMatrix();
+        this.addEventListeners();
+        this.logMessage('SYSTEM BOOT COMPLETE.');
+        this.logMessage('ECD-H78-NRH-01 ONLINE.');
+    },
+
+    resizeCanvas() {
+        this.canvas.width = this.canvas.offsetWidth;
+        this.canvas.height = this.canvas.offsetHeight;
+    },
+
+    generateSignatures() {
+        for (let i = 0; i < 16; i++) {
+            this.state.signatures.push({
+                id: `EIGEN-SIG-${String(i+1).padStart(2,'0')}`,
+                baseFreq: 1 + Math.random() * 2 // Base frequency between 1 and 3 Hz for audio
+            });
+        }
+    },
+    
+    renderMatrix() {
+        this.matrixContainer.innerHTML = '';
+        this.state.signatures.forEach((sig, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'matrix-button';
+            btn.textContent = `S-${String(index+1).padStart(2,'0')}`;
+            btn.dataset.index = index;
+            btn.onclick = (e) => this.selectSignature(e);
+            this.matrixContainer.appendChild(btn);
+        });
+    },
+    
+    addEventListeners() {
+        Object.values(this.controls).forEach(control => {
+            if (control.type === 'range') {
+                control.addEventListener('input', () => this.updateHarmonics());
+            }
+        });
+        this.controls.initiate.onclick = () => this.toggleHarmonization();
+    },
+
+    // --- INTERACTION LOGIC ---
+    selectSignature(event) {
+        const index = parseInt(event.target.dataset.index);
+        const signature = this.state.signatures[index];
+
+        if (!this.state.selectedX) {
+            this.state.selectedX = signature;
+            event.target.classList.add('selected-x');
+            this.logMessage(`X-AXIS SIGNATURE LOCKED: ${signature.id}`);
+        } else if (!this.state.selectedY) {
+            if (signature === this.state.selectedX) return; // Can't select same for both
+            this.state.selectedY = signature;
+            event.target.classList.add('selected-y');
+            this.logMessage(`Y-AXIS SIGNATURE LOCKED: ${signature.id}`);
+        } else {
+            // Reset selection
+            this.state.selectedX = signature;
+            this.state.selectedY = null;
+            document.querySelectorAll('.matrix-button').forEach(b => b.className = 'matrix-button');
+            event.target.classList.add('selected-x');
+            this.logMessage(`SELECTION RESET. X-AXIS LOCKED: ${signature.id}`);
+        }
+        
+        this.checkReadyState();
+    },
+
+    checkReadyState() {
+        const ready = this.state.selectedX && this.state.selectedY;
+        this.controls.initiate.disabled = !ready;
+        this.controls.ratio.disabled = !ready;
+        this.controls.phase.disabled = !ready;
+        this.controls.damping.disabled = !ready;
+
+        if (ready) {
+            this.logMessage('SIGNATURES ALIGNED. AWAITING HARMONIZATION.');
+        }
+    },
+
+    toggleHarmonization() {
+        if (this.state.running) {
+            this.stop();
+        } else {
+            this.start();
+        }
+    },
+
+    start() {
+        this.state.running = true;
+        this.controls.initiate.textContent = 'CEASE HARMONIZATION';
+        this.logMessage('HARMONIZATION INITIATED.');
+        
+        // Initialize Web Audio
+        this.state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        this.state.oscX = this.state.audioCtx.createOscillator();
+        this.state.oscY = this.state.audioCtx.createOscillator();
+        const merger = this.state.audioCtx.createChannelMerger(2);
+        
+        this.state.oscX.connect(merger, 0, 0);
+        this.state.oscY.connect(merger, 0, 1);
+        merger.connect(this.state.audioCtx.destination);
+        
+        this.updateHarmonics(); // Set initial frequencies
+        this.state.oscX.start();
+        this.state.oscY.start();
+        
+        this.state.time = 0;
+        this.drawLoop();
+    },
+    
+    stop() {
+        this.state.running = false;
+        cancelAnimationFrame(this.state.animationFrame);
+        this.controls.initiate.textContent = 'INITIATE HARMONIZATION';
+        this.logMessage('HARMONIZATION CEASED.');
+        
+        if (this.state.audioCtx) {
+            this.state.oscX.stop();
+            this.state.oscY.stop();
+            this.state.audioCtx.close();
+            this.state.audioCtx = null;
+        }
+    },
+    
+    // --- DRAWING & AUDIO ---
+    updateHarmonics() {
+        if (!this.state.running) return;
+        
+        const freqX = this.state.selectedX.baseFreq * 100; // Scale for audible range
+        const freqY = (this.state.selectedY.baseFreq / this.controls.ratio.value) * 100;
+        
+        this.state.oscX.frequency.setValueAtTime(freqX, this.state.audioCtx.currentTime);
+        this.state.oscY.frequency.setValueAtTime(freqY, this.state.audioCtx.currentTime);
+    },
+    
+    drawLoop() {
+        if (!this.state.running) return;
+
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        const ratio = parseFloat(this.controls.ratio.value);
+        const phase = parseFloat(this.controls.phase.value) * (Math.PI / 180);
+        const damping = parseFloat(this.controls.damping.value);
+
+        // Phosphor decay effect
+        this.ctx.fillStyle = 'rgba(19, 21, 20, 0.1)';
+        this.ctx.fillRect(0, 0, w, h);
+
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = var(--ecd-amber);
+        this.ctx.lineWidth = 2;
+        this.ctx.shadowBlur = 8;
+        this.ctx.shadowColor = var(--ecd-glow);
+
+        for (let i = 0; i < 100; i++) {
+            const t = this.state.time + i * 0.001;
+            const amp = Math.exp(-t * damping);
+            const x = (w / 2) + (w / 2.2) * amp * Math.sin(this.state.selectedX.baseFreq * t * 2 * Math.PI);
+            const y = (h / 2) + (h / 2.2) * amp * Math.sin(this.state.selectedY.baseFreq * t * 2 * Math.PI * ratio + phase);
+            
+            if (i === 0) this.ctx.moveTo(x, y);
+            else this.ctx.lineTo(x, y);
+        }
+        this.ctx.stroke();
+        this.ctx.shadowBlur = 0;
+
+        this.state.time += 0.01;
+        this.checkConvergence(ratio);
+        this.state.animationFrame = requestAnimationFrame(() => this.drawLoop());
+    },
+
+    checkConvergence(ratio) {
+        // Find a simple fraction close to the ratio
+        const tolerance = 0.01;
+        let bestMatch = { coherence: 0, text: 'CHAOTIC' };
+
+        for (let d = 1; d <= 10; d++) {
+            for (let n = 1; n <= 10; n++) {
+                const fraction = n / d;
+                if (Math.abs(ratio - fraction) < tolerance) {
+                    const coherence = 1 - (Math.abs(ratio - fraction) / tolerance);
+                    if (coherence > bestMatch.coherence) {
+                        bestMatch = { coherence: coherence, text: `RESONANCE DETECTED (${n}:${d})` };
+                    }
+                }
+            }
+        }
+        
+        const lastLog = this.log.lastChild;
+        if (bestMatch.coherence > 0.95 && this.controls.phase.value > 88 && this.controls.phase.value < 92) {
+             if (!lastLog.classList.contains('converged')) {
+                this.logMessage('>> HARMONIC CONVERGENCE ACHIEVED <<', 'converged');
+             }
+        } else {
+             if (lastLog.classList.contains('converged')) {
+                this.logMessage('CONVERGENCE LOST. REALIGNING...');
+             }
+        }
+    },
+
+    // --- UTILITY ---
+    logMessage(msg, className = '') {
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${className}`;
+        entry.textContent = `> ${msg}`;
+        this.log.appendChild(entry);
+        this.log.scrollTop = this.log.scrollHeight;
+    }
+};
+
+Harmonizer.init();
+
+</script>
+</body>
+</html>

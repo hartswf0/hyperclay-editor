@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // EMOTOTYPE // AFFECTIVE SYNTHESIZER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght,wdth,slnt@8..144,100..1000,25..151,-10..0&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Emototype - Emotion-Responsive Typography Generator
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: Generates typographic variants based on emotional intent,
+        *   modulating rhythm, punctuation, and letterform properties.
+        */
+
+        :root {
+            --et-bg: #2c3138;
+            --et-panel: #e0e5e9;
+            --et-screen: #f0f5f9;
+            --et-text-dark: #1a1c20;
+            --et-text-light: #f0f5f9;
+            --et-accent: #3d7a99;
+            --font-main: 'Share Tech Mono', monospace;
+            /* This is a variable font, which is key to the effect */
+            --font-output: 'Roboto Flex', sans-serif;
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #111; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--et-text-dark); user-select: none;
+        }
+        #emototype-chassis {
+            width: 1600px; height: 900px; background-color: var(--et-bg);
+            border: 1px solid #777; box-shadow: 0 0 30px rgba(61, 122, 153, 0.2);
+            padding: 20px; display: grid; grid-template-columns: 400px 1fr 400px;
+            gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--et-panel); padding: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-main); font-size: 1.2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 2px solid #b8c0c8;
+            padding-bottom: 8px; margin: 0 0 15px 0;
+        }
+
+        /* --- LEFT PANEL: INPUT & SYNTHESIS --- */
+        #left-panel { grid-column: 1 / 2; }
+        #input-manifold {
+            height: 150px; background: #fff; border: 1px solid #888; padding: 10px;
+            font-family: var(--font-main); font-size: 1.1rem; line-height: 1.6; resize: none;
+            margin-bottom: 20px;
+        }
+        
+        #synthesis-panel { flex-grow: 1; }
+        .synthesis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .affect-switch {
+            background: #b8c0c8; padding: 10px; text-align: center; cursor: pointer;
+            border: 2px solid #555;
+        }
+        .affect-switch .indicator {
+            width: 100%; height: 20px; background: #333; margin-bottom: 8px;
+            border: 1px solid #111; transition: background-color 0.2s;
+        }
+        .affect-switch.active .indicator { background: var(--color); }
+        .affect-switch span { font-size: 1.3rem; font-family: 'Share Tech Mono', monospace; }
+        
+        /* --- CENTER PANEL: OUTPUT CANVAS --- */
+        #center-panel { grid-column: 2 / 3; background-color: var(--et-screen); justify-content: center; align-items: center; }
+        #output-canvas {
+            width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;
+            padding: 40px; text-align: center;
+        }
+        #output-text {
+            font-family: var(--font-output);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* --- RIGHT PANEL: PARAMETERS --- */
+        #right-panel { grid-column: 3 / 4; }
+        #parameter-readout {
+            flex-grow: 1; background: var(--et-text-dark); color: var(--et-text-light);
+            padding: 20px; font-size: 1.1rem; line-height: 1.8; white-space: pre;
+            overflow-y: auto;
+        }
+        .param-key { color: #8be9fd; }
+        .param-value { color: #f1fa8c; }
+        .param-comment { color: #6c7079; }
+
+    </style>
+</head>
+<body>
+    <div id="emototype-chassis">
+        <!-- LEFT PANEL -->
+        <div class="panel" id="left-panel">
+            <h2 class="module-label">BASELINE INPUT</h2>
+            <textarea id="input-manifold">The future is not a destination. It is a process.</textarea>
+            <div id="synthesis-panel">
+                <h2 class="module-label">AFFECTIVE SYNTHESIS</h2>
+                <div class="synthesis-grid">
+                    <div class="affect-switch" data-emotion="joy" style="--color: #ffee00;">
+                        <div class="indicator"></div><span>JOY</span>
+                    </div>
+                    <div class="affect-switch" data-emotion="grief" style="--color: #00aaff;">
+                        <div class="indicator"></div><span>GRIEF</span>
+                    </div>
+                     <div class="affect-switch" data-emotion="awe" style="--color: #ff55ff;">
+                        <div class="indicator"></div><span>AWE</span>
+                    </div>
+                     <div class="affect-switch" data-emotion="shame" style="--color: #50fa7b;">
+                        <div class="indicator"></div><span>SHAME</span>
+                    </div>
+                     <div class="affect-switch" data-emotion="irony" style="--color: #ffb86c;">
+                        <div class="indicator"></div><span>IRONY</span>
+                    </div>
+                     <div class="affect-switch" data-emotion="reverence" style="--color: #e0e5e9;">
+                        <div class="indicator"></div><span>REVERENCE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL -->
+        <div class="panel" id="center-panel">
+            <div id="output-canvas">
+                <div id="output-text">The future is not a destination. It is a process.</div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel" id="right-panel">
+            <h2 class="module-label">TYPOGRAPHIC PARAMETERS</h2>
+            <div id="parameter-readout"></div>
+        </div>
+    </div>
+
+<script>
+const Emototype = {
+    // --- Data: Synthesis Profiles ---
+    PROFILES: {
+        // Base state
+        default: { wght: 400, wdth: 100, slnt: 0, size: 2.5, case: 'sentence', spacing: 0.1, rhythm: [10, 20], punctuation: '.', distortion: 0 },
+        // Primary emotions
+        joy: { wght: 700, wdth: 120, slnt: -5, size: 3.5, case: 'upper', spacing: 0.2, rhythm: [5, 10], punctuation: '!', distortion: 2 },
+        grief: { wght: 200, wdth: 75, slnt: 2, size: 2.0, case: 'lower', spacing: 0.3, rhythm: [15, 30], punctuation: ' ', distortion: 5 },
+        awe: { wght: 900, wdth: 150, slnt: 0, size: 4.0, case: 'upper', spacing: 1, rhythm: [100], punctuation: '', distortion: 0 },
+        shame: { wght: 900, wdth: 50, slnt: 0, size: 1.5, case: 'lower', spacing: -0.05, rhythm: [100], punctuation: '', distortion: 1 },
+        irony: { wght: 300, wdth: 100, slnt: -8, size: 2.5, case: 'sentence', spacing: 0.1, rhythm: [10, 20], punctuation: '.', distortion: 0 },
+        reverence: { wght: 100, wdth: 110, slnt: 0, size: 3.0, case: 'title', spacing: 0.5, rhythm: [15], punctuation: '', distortion: 0 },
+        
+        // Emergent (combination) emotions
+        sublimity: { wght: 100, wdth: 150, slnt: 0, size: 4.0, case: 'lower', spacing: 1.5, rhythm: [100], punctuation: '', distortion: 4 }, // awe + grief
+        dread: { wght: 900, wdth: 100, slnt: 0, size: 3.0, case: 'lower', spacing: 0.2, rhythm: [3, 5, 2], punctuation: '', distortion: 8 }, // grief + shame
+        mania: { wght: 1000, wdth: 150, slnt: -10, size: 4.5, case: 'upper', spacing: -0.05, rhythm: [2, 3], punctuation: '!!', distortion: 6 }, // joy + awe
+    },
+
+    // --- DOM Elements ---
+    elems: {
+        input: document.getElementById('input-manifold'),
+        switches: document.querySelectorAll('.affect-switch'),
+        outputText: document.getElementById('output-text'),
+        paramReadout: document.getElementById('parameter-readout'),
+    },
+    
+    // --- State ---
+    state: {
+        activeEmotions: new Set(),
+        currentParams: {},
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, switchOn: null, switchOff: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.switchOn = this.createSound(880, 0.05, 0.1);
+            this.switchOff = this.createSound(440, 0.08, 0.1);
+        },
+        createSound(freq, dur, vol) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sine'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.addEventListeners();
+        this.synthesize(); // Initial run
+    },
+    
+    addEventListeners() {
+        this.elems.input.addEventListener('input', () => this.synthesize());
+        this.elems.switches.forEach(sw => {
+            sw.addEventListener('click', () => this.toggleEmotion(sw.dataset.emotion));
+        });
+    },
+
+    // --- Core Logic ---
+    toggleEmotion(emotion) {
+        if (this.state.activeEmotions.has(emotion)) {
+            this.state.activeEmotions.delete(emotion);
+            this.audio.switchOff();
+        } else {
+            this.state.activeEmotions.add(emotion);
+            this.audio.switchOn();
+        }
+        
+        document.querySelector(`.affect-switch[data-emotion="${emotion}"]`).classList.toggle('active', this.state.activeEmotions.has(emotion));
+        
+        this.synthesize();
+    },
+
+    synthesize() {
+        let finalParams = { ...this.PROFILES.default };
+        let activeProfileName = 'Default';
+
+        // Check for emergent profiles first
+        if (this.state.activeEmotions.has('awe') && this.state.activeEmotions.has('grief')) {
+            activeProfileName = 'Sublimity (Awe+Grief)';
+            finalParams = this.PROFILES.sublimity;
+        } else if (this.state.activeEmotions.has('grief') && this.state.activeEmotions.has('shame')) {
+            activeProfileName = 'Dread (Grief+Shame)';
+            finalParams = this.PROFILES.dread;
+        } else if (this.state.activeEmotions.has('joy') && this.state.activeEmotions.has('awe')) {
+            activeProfileName = 'Mania (Joy+Awe)';
+            finalParams = this.PROFILES.mania;
+        } else if (this.state.activeEmotions.size === 1) {
+            // Apply single primary emotion
+            const singleEmotion = [...this.state.activeEmotions][0];
+            activeProfileName = singleEmotion.charAt(0).toUpperCase() + singleEmotion.slice(1);
+            finalParams = this.PROFILES[singleEmotion];
+        } else if (this.state.activeEmotions.size > 1) {
+            // Average multiple emotions if no emergent profile matches
+            activeProfileName = 'Interpolated Blend';
+            let count = 0;
+            const avgParams = { wght: 0, wdth: 0, slnt: 0, size: 0, spacing: 0, distortion: 0 };
+            
+            this.state.activeEmotions.forEach(emo => {
+                const profile = this.PROFILES[emo];
+                if (profile) {
+                    Object.keys(avgParams).forEach(key => avgParams[key] += profile[key]);
+                    count++;
+                }
+            });
+            
+            if (count > 0) {
+                Object.keys(avgParams).forEach(key => avgParams[key] /= count);
+                finalParams = { ...finalParams, ...avgParams }; // Keep default rhythm etc.
+            }
+        }
+        
+        this.state.currentParams = finalParams;
+        this.applyStyling();
+        this.renderReadout(activeProfileName);
+    },
+
+    // --- Rendering ---
+    applyStyling() {
+        const p = this.state.currentParams;
+        const text = this.elems.input.value;
+        const el = this.elems.outputText;
+        
+        // Apply font variations
+        el.style.fontVariationSettings = `'wght' ${p.wght}, 'wdth' ${p.wdth}, 'slnt' ${p.slnt}`;
+        el.style.fontSize = `${p.size}rem`;
+        el.style.letterSpacing = `${p.spacing}em`;
+        
+        // Apply distortion (a subtle text-shadow trick for effect)
+        if (p.distortion > 0) {
+            const angle = Math.random() * 360;
+            const x = Math.cos(angle) * (p.distortion / 5);
+            const y = Math.sin(angle) * (p.distortion / 5);
+            el.style.textShadow = `${x}px ${y}px 1px rgba(0,0,0,0.1)`;
+        } else {
+            el.style.textShadow = 'none';
+        }
+
+        // Apply text transformations (case, rhythm, punctuation)
+        let processedText = this.applyCase(text, p.case);
+        processedText = this.applyRhythm(processedText, p.rhythm);
+        processedText += p.punctuation;
+        
+        el.innerHTML = processedText;
+    },
+
+    applyCase(text, caseType) {
+        switch (caseType) {
+            case 'upper': return text.toUpperCase();
+            case 'lower': return text.toLowerCase();
+            case 'title': return text.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase());
+            case 'sentence':
+            default:
+                return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+        }
+    },
+    
+    applyRhythm(text, rhythmPattern) {
+        const words = text.split(' ');
+        if (words.length <= rhythmPattern[0]) return text;
+        
+        let result = [];
+        let wordIndex = 0;
+        let patternIndex = 0;
+        
+        while(wordIndex < words.length) {
+            const breakAfter = rhythmPattern[patternIndex % rhythmPattern.length];
+            result.push(words.slice(wordIndex, wordIndex + breakAfter).join(' '));
+            wordIndex += breakAfter;
+            patternIndex++;
+        }
+        return result.join('<br>');
+    },
+    
+    renderReadout(activeProfileName) {
+        const p = this.state.currentParams;
+        this.elems.paramReadout.innerHTML = `
+<span class="param-comment">/* ACTIVE PROFILE: ${activeProfileName} */</span>
+<span class="param-key">font-family</span>: <span class="param-value">'Roboto Flex'</span>;
+<span class="param-key">font-size</span>: <span class="param-value">${p.size.toFixed(2)}rem</span>;
+<span class="param-key">letter-spacing</span>: <span class="param-value">${p.spacing.toFixed(2)}em</span>;
+<span class="param-key">font-variation-settings</span>:
+  <span class="param-value">'wght' ${p.wght.toFixed(0)}</span>,
+  <span class="param-value">'wdth' ${p.wdth.toFixed(0)}</span>,
+  <span class="param-value">'slnt' ${p.slnt.toFixed(0)}</span>;
+<span class="param-key">text-transform</span>: <span class="param-value">${p.case === 'upper' ? 'uppercase' : p.case === 'lower' ? 'lowercase' : 'capitalize'}</span>;
+<span class="param-comment">/* RHYTHM (words/line): ${p.rhythm.join(', ')} */</span>
+<span class="param-comment">/* DISTORTION: ${p.distortion.toFixed(2)} */</span>
+        `;
+    }
+};
+
+Emototype.init();
+</script>
+</body>
+</html>

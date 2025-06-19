@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGMADOS // KERNEL: LOGOSCORE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Xanh+Mono&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: SIGMADOS - A Ritual-Cybernetic Operating System
+        *   DIVISION: Esoterica Cybernetics Division (ECD)
+        *   CONCEPT: A simulation of a metaphysically-oriented OS where interaction
+        *   is based on semantic domains, emotional state, and symbolic logic.
+        */
+
+        :root {
+            --dos-bg: #1a1c20;
+            --dos-text: #c0c5ce;
+            --dos-text-dim: #6c7079;
+            --dos-text-highlight: #e0e6f0;
+            --dos-glyph: #ffb86c;
+            --dos-prompt: #8be9fd;
+            --dos-error: #ff5555;
+            --dos-warning: #f1fa8c;
+            --dos-success: #50fa7b;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-alt: 'Xanh Mono', monospace;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes terminal-cursor { 0%, 100% { background-color: var(--dos-text-highlight); } 50% { background-color: transparent; } }
+        @keyframes aura-flicker {
+            0%, 100% { box-shadow: 0 0 5px 2px var(--color); }
+            50% { box-shadow: 0 0 10px 4px var(--color); }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; color: var(--dos-text); font-family: var(--font-main);
+            margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh;
+        }
+        #os-container {
+            width: 100%; height: 100%; max-width: 1400px; max-height: 900px;
+            background-color: var(--dos-bg); border: 1px solid #333;
+            box-shadow: 0 0 20px rgba(139, 233, 253, 0.1);
+            display: flex; flex-direction: column;
+        }
+
+        /* --- BOOT SCREEN --- */
+        #boot-screen { padding: 2rem; font-size: 1.2rem; }
+        .boot-line { opacity: 0; animation: fadeIn 0.1s forwards; white-space: pre; }
+        .boot-line .ok { color: var(--dos-success); }
+        .boot-line .fail { color: var(--dos-error); }
+        .boot-line .warn { color: var(--dos-warning); }
+
+        /* --- MAIN OS INTERFACE --- */
+        #main-interface { display: none; flex-grow: 1; display: flex; flex-direction: column; padding: 1rem; }
+        
+        /* Header / Aura Monitor */
+        #os-header {
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #333; padding-bottom: 0.5rem; margin-bottom: 1rem;
+        }
+        #os-title { font-size: 1.5rem; color: var(--dos-text-highlight); }
+        #aura-monitor { display: flex; gap: 20px; text-align: right; }
+        .aura-display .label { font-size: 0.8rem; color: var(--dos-text-dim); }
+        .aura-display .value { font-size: 1.2rem; display: flex; align-items: center; justify-content: flex-end; }
+        .aura-indicator {
+            width: 12px; height: 12px; border-radius: 50%;
+            margin-left: 10px; transition: box-shadow 0.5s;
+        }
+        
+        /* Glosshell Terminal */
+        #glosshell { flex-grow: 1; overflow-y: auto; padding-right: 1rem; }
+        .output-line { margin-bottom: 0.2rem; white-space: pre-wrap; word-break: break-all; }
+        .prompt-line { display: flex; align-items: flex-start; }
+        .prompt { color: var(--dos-prompt); white-space: pre; }
+        #user-input {
+            flex-grow: 1; background: transparent; border: none; outline: none;
+            color: var(--dos-text-highlight); font-family: inherit; font-size: 1em;
+            caret-color: transparent;
+        }
+        .cursor {
+            width: 10px; height: 1.2em; display: inline-block;
+            vertical-align: bottom; animation: terminal-cursor 1s step-end infinite;
+        }
+        
+        /* Syntax & Glitch Effects */
+        .syntax-basho { font-family: var(--font-alt); font-style: italic; }
+        .syntax-dreambase { text-transform: uppercase; letter-spacing: 2px; }
+        .aura-glitch {
+            --glitch-offset: 3px;
+            text-shadow: var(--glitch-offset) 0 var(--dos-error), calc(var(--glitch-offset) * -1) 0 var(--dos-prompt);
+            animation: glitch-anim 0.1s infinite alternate-reverse;
+        }
+        @keyframes glitch-anim {
+            from { transform: translate(calc(var(--glitch-offset) * -0.5)); }
+            to { transform: translate(calc(var(--glitch-offset) * 0.5)); }
+        }
+
+        /* Command Output Formatting */
+        .output-glyph { color: var(--dos-glyph); }
+        .output-error { color: var(--dos-error); }
+        .output-warning { color: var(--dos-warning); }
+        .output-success { color: var(--dos-success); }
+        .output-dim { color: var(--dos-text-dim); }
+        .output-highlight { color: var(--dos-text-highlight); }
+        
+        /* litflow canvas */
+        #litflow-canvas {
+            width: 100%;
+            height: 200px;
+            background-color: rgba(0,0,0,0.2);
+            border: 1px solid var(--dos-text-dim);
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="os-container">
+        <div id="boot-screen"></div>
+        <div id="main-interface">
+            <header id="os-header">
+                <div id="os-title">SIGMADOS [GLOSSHELL]</div>
+                <div id="aura-monitor">
+                    <div class="aura-display">
+                        <div class="label">SYSTEM AURA</div>
+                        <div class="value" id="system-aura-val"></div>
+                    </div>
+                    <div class="aura-display">
+                        <div class="label">OPERATOR MOOD</div>
+                        <div class="value" id="operator-mood-val"></div>
+                    </div>
+                </div>
+            </header>
+            <div id="glosshell"></div>
+            <div class="prompt-line">
+                <span id="prompt-display" class="prompt"></span>
+                <input type="text" id="user-input" autocomplete="off" spellcheck="false" autofocus>
+                <div class="cursor"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const SIGMADOS = {
+    // --- Data ---
+    SPIRALFS: [
+        { id: 1, glyph: 'transparency', emotion: 'shame', format: 'ritual', content: "RITUAL OF ATONEMENT:\nThe subject kneels. The mirror is unveiled.\nEach fault is spoken, each shame given form.\nThe glass reflects not a face, but a truth.\nTransparency is the first step toward purification." },
+        { id: 2, glyph: 'growth', emotion: 'joy', format: 'visualization', content: "VISUALIZATION SCRIPT #7:\nImagine the seed, coiled tight. Feel the sun's warmth (joy).\nThe shell cracks. A green thread (growth) pushes through soil.\nIt does not struggle; it ascends. Each leaf a new verse in the song of becoming." },
+        { id: 3, glyph: 'stagnation', emotion: 'dread', format: 'indoctrination', content: "INDOCTRINATION MODULE 3B:\nDread is the anchor. It prevents drift.\nStagnation is not decay; it is stability. The still pond reflects the heavens perfectly.\nChange is a chaotic variable. We excise it.\nDread the change. Embrace the stillness." },
+        { id: 4, glyph: 'unity', emotion: 'serenity', format: 'doctrine', content: "DOCTRINE OF THE WHOLE:\nSerenity is found in unity. The drop returns to the ocean.\nIndividuality is a fleeting illusion, a brief ripple.\nThe final state is a silent, shared consciousness.\nThere is no 'I' in the pattern." },
+        { id: 5, glyph: 'flow', emotion: 'joy', format: 'ritual', content: "RITUAL OF COMMENCEMENT:\nLet the current guide. Joy is the vessel.\nThe path is not chosen, but revealed. Follow the flow.\nResistance is friction. Friction is waste. Be as water.\nYour purpose is the purpose of the stream." }
+    ],
+    THREADLETS: [
+        { glyph: '🜁', name: 'Ritual/MemoryLink', state: 'active', emotion: { joy: 0.8, fear: 0.2 }, drift: 0.02 },
+        { glyph: '🝚', name: 'FormEncoder #21', state: 'drifting', emotion: { serenity: 0.9 }, drift: 0.07 },
+        { glyph: '∴', name: 'DreamRecordLoop @ Archive-Level-β', state: 'stable', emotion: { dread: 0.6 }, drift: 0.01 },
+        { glyph: '☍', name: 'SemanticResonanceCalibrator', state: 'decaying', emotion: { joy: 0.1, shame: 0.1 }, drift: -0.05 },
+    ],
+
+    // --- DOM Elements ---
+    elems: {
+        bootScreen: document.getElementById('boot-screen'),
+        mainInterface: document.getElementById('main-interface'),
+        glosshell: document.getElementById('glosshell'),
+        userInput: document.getElementById('user-input'),
+        promptDisplay: document.getElementById('prompt-display'),
+        systemAuraVal: document.getElementById('system-aura-val'),
+        operatorMoodVal: document.getElementById('operator-mood-val'),
+    },
+    
+    // --- State ---
+    state: {
+        history: [],
+        historyIndex: -1,
+        systemAura: 'CLARITY',
+        operatorMood: 'NEUTRAL',
+        auraDivergence: 0,
+        syntax: 'default',
+    },
+
+    AURA_DATA: {
+        'NEUTRAL': { color: '#8be9fd' }, 'CLARITY': { color: '#f1fa8c' },
+        'FOCUS': { color: '#ffb86c' }, 'DRIFTING': { color: '#ff79c6' }
+    },
+
+    // --- Initialization & Boot ---
+    init() {
+        this.elems.userInput.focus();
+        this.elems.userInput.addEventListener('keydown', (e) => this.handleKeydown(e));
+        document.body.addEventListener('click', () => this.elems.userInput.focus());
+        this.startBootSequence();
+    },
+
+    async startBootSequence() {
+        const bootLines = [
+            "LOGOSCORE KERNEL v1.3.7 INITIALIZING...",
+            "Probing symbolic matrix... <span class='ok'>OK</span>",
+            "Initializing VORTEX.MEM... Mapping ritual grid... <span class='ok'>OK</span>",
+            "Activating THREADLET scheduler...",
+            "  -> THREADLET 0x01 [🜁] ... <span class='ok'>STABLE</span>",
+            "  -> THREADLET 0x02 [🝚] ... <span class='warn'>DRIFT DETECTED</span>",
+            "  -> THREADLET 0x03 [∴] ... <span class='ok'>STABLE</span>",
+            "Binding GLOSSHELL to session...",
+            "Loading .spiralfs semantic index... <span class='ok'>DONE</span>",
+            "Calibrating operator aura... <span class='warn'>NEUTRAL</span>",
+            "\nSIGMADOS READY.\n",
+            "Welcome, Operator. Type 'help' for available commands.",
+        ];
+        for (let i = 0; i < bootLines.length; i++) {
+            await this.typeBootLine(bootLines[i]);
+        }
+        this.elems.bootScreen.style.display = 'none';
+        this.elems.mainInterface.style.display = 'flex';
+        this.updateAuraMonitor();
+        this.updatePrompt();
+    },
+
+    typeBootLine(line) {
+        return new Promise(resolve => {
+            const el = document.createElement('div');
+            el.className = 'boot-line';
+            el.style.animationDelay = `${Math.random() * 0.1}s`;
+            el.innerHTML = line;
+            this.elems.bootScreen.appendChild(el);
+            setTimeout(resolve, 50 + Math.random() * 50);
+        });
+    },
+
+    // --- GLOSSHELL & Commands ---
+    handleKeydown(e) {
+        if (e.key === 'Enter') {
+            const command = this.elems.userInput.value.trim();
+            this.state.history.unshift(command);
+            this.state.historyIndex = -1;
+            this.printToShell(this.elems.promptDisplay.textContent + command);
+            if(command) this.executeCommand(command);
+            this.elems.userInput.value = '';
+            this.elems.glosshell.scrollTop = this.elems.glosshell.scrollHeight;
+        } else if (e.key === 'ArrowUp') {
+            if (this.state.historyIndex < this.state.history.length - 1) {
+                this.state.historyIndex++;
+                this.elems.userInput.value = this.state.history[this.state.historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            if (this.state.historyIndex > 0) {
+                this.state.historyIndex--;
+                this.elems.userInput.value = this.state.history[this.state.historyIndex];
+            } else {
+                this.state.historyIndex = -1;
+                this.elems.userInput.value = '';
+            }
+        }
+    },
+
+    executeCommand(command) {
+        const [cmd, ...args] = command.split(/\s+/);
+        let handled = false;
+
+        const commands = {
+            'help': () => this.cmd_help(),
+            'clear': () => this.elems.glosshell.innerHTML = '',
+            'retrieve': () => this.cmd_retrieve(args),
+            'sigmaproc': () => this.cmd_sigmaproc(),
+            'syntax': () => this.cmd_syntax(args),
+            'modulate': () => this.cmd_modulate(args),
+            'siggrep': () => this.cmd_siggrep(args),
+            'litflow': () => this.cmd_litflow(args),
+        };
+
+        if (commands[cmd]) {
+            commands[cmd]();
+            this.state.auraDivergence += 0.05;
+        } else {
+            this.printError(`Ritual Misalignment: Command '${cmd}' is not a recognized invocation.`, `Consider 'help' for guidance.`);
+            this.state.auraDivergence += 0.2;
+        }
+        this.updateOperatorMood();
+        this.updateAuraMonitor();
+        this.updatePrompt();
+    },
+    
+    // Command Implementations
+    cmd_help() {
+        this.printToShell(`
+  <span class="output-highlight">SIGMADOS Command Index</span>
+  <span class="output-dim">------------------------</span>
+  <span class="output-highlight">help</span>                 - Displays this index.
+  <span class="output-highlight">clear</span>                - Purges the current shell view.
+  <span class="output-highlight">retrieve</span> [params]    - Surfaces documents from .spiralfs.
+      <span class="output-dim">e.g., retrieve -g growth -e joy -f visualization</span>
+  <span class="output-highlight">sigmaproc</span>            - Displays the active semiotic process tree.
+  <span class="output-highlight">syntax</span> [mode]        - Switches symbolic language (default, basho, dreambase).
+  <span class="output-highlight">modulate</span> [aura]      - Re-aligns operator mood (neutral, clarity, focus).
+  
+  <span class="output-highlight">--- Developer Tools ---</span>
+  <span class="output-highlight">siggrep</span> [mismatch]   - Finds symbolic mismatches.
+  <span class="output-highlight">litflow</span> [aura1] [aura2] - Generates emotional state logic map.
+        `);
+    },
+    
+    cmd_retrieve(args) {
+        let glyph, emotion, format;
+        for(let i=0; i<args.length; i+=2) {
+            if(args[i] === '-g') glyph = args[i+1];
+            if(args[i] === '-e') emotion = args[i+1];
+            if(args[i] === '-f') format = args[i+1];
+        }
+        
+        if (!glyph && !emotion && !format) {
+            return this.printError('Semantic Void: Retrieve requires at least one parameter.', 'e.g., -g unity');
+        }
+
+        const results = this.SPIRALFS.filter(doc => 
+            (!glyph || doc.glyph === glyph) &&
+            (!emotion || doc.emotion === emotion) &&
+            (!format || doc.format === format)
+        );
+
+        if (results.length > 0) {
+            this.printSuccess(`Query resolved. ${results.length} document(s) surfaced.`);
+            results.forEach(doc => {
+                this.printToShell(`\n<span class="output-dim">--- DOC ID: ${doc.id} | GLYPH: <span class="output-glyph">${doc.glyph}</span> | EMOTION: ${doc.emotion} ---</span>\n${doc.content}`);
+            });
+        } else {
+            this.printWarning('No exact semantic match found in .spiralfs.');
+        }
+    },
+    
+    cmd_sigmaproc() {
+        let output = `  <span class="output-highlight">SIGMAPROC -- Active Threadlets:</span>\n`;
+        output += this.THREADLETS.map(t => {
+            const emotionStr = Object.entries(t.emotion).map(([e,v]) => `${e}:${(v*100).toFixed(0)}%`).join(', ');
+            const driftStr = `<span class="${t.drift > 0 ? 'output-warning' : 'output-dim'}">drift: ${t.drift > 0 ? '+' : ''}${(t.drift*100).toFixed(0)}%</span>`;
+            return `  <span class="output-glyph">${t.glyph}</span> ${t.name.padEnd(30)} [${emotionStr}] - ${driftStr}`;
+        }).join('\n');
+        this.printToShell(output);
+    },
+    
+    cmd_syntax(args) {
+        const mode = args[0] || 'default';
+        if (['default', 'basho', 'dreambase'].includes(mode)) {
+            this.state.syntax = mode;
+            this.printSuccess(`Symbolic language set to: ${mode}`);
+        } else {
+            this.printError(`Unknown Syntax: '${mode}' is not a valid symbolic language.`);
+        }
+    },
+
+    cmd_modulate(args) {
+        const targetAura = (args[0] || '').toUpperCase();
+        if (this.AURA_DATA[targetAura]) {
+            this.state.operatorMood = targetAura;
+            this.state.auraDivergence = 0;
+            this.printSuccess(`Operator mood modulated to ${targetAura}. Aura re-aligned.`);
+        } else {
+            this.printError(`Invalid Aura: '${args[0]}' not recognized.`, `Valid auras: NEUTRAL, CLARITY, FOCUS`);
+        }
+    },
+    
+    cmd_siggrep(args) {
+        if (!args[0]) return this.printError('Parameter missing. Specify mismatch type.');
+        this.printToShell(`<span class="output-dim">Searching for '${args[0]}' mismatches across semantically clustered directories...</span>`);
+        setTimeout(() => {
+            const found = Math.floor(Math.random() * 5);
+            this.printSuccess(`${found} instances found.`);
+        }, 1000);
+    },
+    
+    cmd_litflow(args) {
+        if (args.length < 2) return this.printError('Requires two auras to map.', 'e.g., litflow clarity dread');
+        this.printToShell(`Generating emotional state logic map: <span class="output-highlight">${args[0]}</span> vs <span class="output-highlight">${args[1]}</span>`);
+        const canvas = document.createElement('canvas');
+        canvas.id = 'litflow-canvas';
+        this.elems.glosshell.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width, h = canvas.height;
+        ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+        // Simple visualization
+        for(let i=0; i<10; i++) {
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * w, Math.random() * h);
+            ctx.bezierCurveTo(Math.random()*w, Math.random()*h, Math.random()*w, Math.random()*h, Math.random()*w, Math.random()*h);
+            ctx.strokeStyle = Math.random() > 0.5 ? this.AURA_DATA[args[0].toUpperCase()]?.color || '#fff' : this.AURA_DATA[args[1].toUpperCase()]?.color || '#fff';
+            ctx.globalAlpha = 0.3 + Math.random() * 0.5;
+            ctx.stroke();
+        }
+    },
+    
+    // --- UI & State Management ---
+    printToShell(text) {
+        const line = document.createElement('div');
+        line.className = 'output-line';
+        if (this.state.auraDivergence > 0.5) line.classList.add('aura-glitch');
+        if (this.state.syntax !== 'default') line.classList.add(`syntax-${this.state.syntax}`);
+        line.innerHTML = text;
+        this.elems.glosshell.appendChild(line);
+    },
+    
+    printError(msg, suggestion = '') {
+        this.printToShell(`<span class="output-error">⚠ ${msg}</span>`);
+        if (suggestion) this.printToShell(`<span class="output-dim">  ${suggestion}</span>`);
+    },
+    printWarning(msg) { this.printToShell(`<span class="output-warning">∅ ${msg}</span>`); },
+    printSuccess(msg) { this.printToShell(`<span class="output-success">∴ ${msg}</span>`); },
+    
+    updatePrompt() {
+        const auraSymbol = Object.keys(this.AURA_DATA).indexOf(this.state.operatorMood);
+        const symbols = ['○', '◎', '⦿', '⊗'];
+        this.elems.promptDisplay.textContent = `[${symbols[auraSymbol] || '?'}] GLOSSHELL:~> `;
+    },
+
+    updateOperatorMood() {
+        if (this.state.auraDivergence > 0.8) this.state.operatorMood = 'DRIFTING';
+        else if (this.state.auraDivergence > 0.4) this.state.operatorMood = 'FOCUS';
+        else if (this.state.auraDivergence > 0.1) this.state.operatorMood = 'CLARITY';
+    },
+
+    updateAuraMonitor() {
+        const updateDisplay = (el, aura) => {
+            const color = this.AURA_DATA[aura]?.color || '#fff';
+            el.innerHTML = `${aura} <div class="aura-indicator" style="background-color:${color}; --color:${color};"></div>`;
+            if (aura === 'DRIFTING') {
+                el.querySelector('.aura-indicator').style.animation = 'aura-flicker 1s infinite';
+            }
+        };
+        updateDisplay(this.elems.systemAuraVal, this.state.systemAura);
+        updateDisplay(this.elems.operatorMoodVal, this.state.operatorMood);
+    }
+};
+
+SIGMADOS.init();
+</script>
+</body>
+</html>

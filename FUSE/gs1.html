@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 GENOSCOPE</title>
+    <style>
+        /* ---------------------------------- */
+        /* ---        CORE STYLING        --- */
+        /* ---------------------------------- */
+        :root {
+            --black: #020205;
+            --glow: #0f0;
+            --glow-dim: #0a0;
+            --glow-dark: #050;
+            --font: 'Fira Code', 'Courier New', Courier, monospace;
+            --blue: #4d9de0;
+            --green: #48b348;
+            --red: #e54b4b;
+            --yellow: #f9c74f;
+            --purple: #9d4edd;
+        }
+
+        @font-face {
+            font-family: 'Fira Code';
+            src: url('https://cdn.jsdelivr.net/gh/tonsky/FiraCode@6.2/distr/woff2/FiraCode-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--black);
+            color: var(--glow);
+            font-family: var(--font);
+            font-size: 14px;
+        }
+
+        /* Scanlines & CRT effect */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 1000;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            animation: flicker 0.15s infinite;
+        }
+        
+        @keyframes flicker {
+            0% { opacity: 0.25; }
+            20% { opacity: 0.95; }
+            40% { opacity: 0.3; }
+            60% { opacity: 0.8; }
+            80% { opacity: 0.45; }
+            100% { opacity: 0.6; }
+        }
+
+        #genoscope-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ---------------------------------- */
+        /* ---    1. GEL VIEW (VISUAL)    --- */
+        /* ---------------------------------- */
+        #gel-view {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            padding: 20px;
+            gap: 15px;
+            position: relative;
+        }
+
+        .genome-column {
+            position: relative;
+            width: 50px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .genome-column.selected {
+            border-color: var(--glow);
+            box-shadow: 0 0 15px var(--glow-dim);
+        }
+
+        .genome-column canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #tooltip {
+            position: absolute;
+            background-color: rgba(10, 20, 10, 0.9);
+            border: 1px solid var(--glow-dim);
+            color: var(--glow);
+            padding: 5px 8px;
+            font-size: 12px;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 500;
+            opacity: 0;
+            transition: opacity 0.2s;
+            white-space: pre;
+        }
+
+        /* ---------------------------------- */
+        /* --- MEDIA PHENOTYPE OVERLAYS --- */
+        /* ---------------------------------- */
+        .phenotype-overlay {
+            position: absolute;
+            top: 20px;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .phenotype {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            opacity: 0;
+            transform-origin: center center;
+            animation: express-unfurl 1.5s forwards ease-out;
+        }
+
+        @keyframes express-unfurl {
+            from {
+                opacity: 0;
+                transform: scale(0.1, 0.5);
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .phenotype-image {
+            width: 250px; /* Wider for better visibility */
+            height: auto;
+            max-height: 100%;
+            object-fit: contain;
+            mix-blend-mode: lighten;
+            filter: saturate(1.5) contrast(1.2);
+            opacity: 0.7;
+        }
+
+        .phenotype-text {
+            width: 250px;
+            color: var(--green);
+            font-size: 16px;
+            line-height: 1.2;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 0 0 5px var(--green);
+        }
+        
+        .phenotype-text .glyph-ribbon {
+            animation: scroll-text 20s linear infinite;
+        }
+        
+        @keyframes scroll-text {
+            from { transform: translateY(100%); }
+            to { transform: translateY(-100%); }
+        }
+
+        .phenotype-audio {
+            width: 250px;
+        }
+
+        .phenotype-code {
+            width: 250px;
+            font-size: 12px;
+            color: var(--yellow);
+            text-shadow: 0 0 5px var(--yellow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break: break-all;
+            line-height: 1;
+            white-space: pre;
+        }
+        
+        /* ---------------------------------- */
+        /* ---  2. CONSOLE VIEW (ENGINE)  --- */
+        /* ---------------------------------- */
+        #console-view {
+            height: 200px;
+            min-height: 150px;
+            background-color: rgba(0, 10, 0, 0.2);
+            border-top: 1px solid var(--glow-dark);
+            box-shadow: 0 -5px 15px rgba(0, 255, 0, 0.05);
+            padding: 10px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse; /* Puts input at the bottom */
+        }
+
+        #output {
+            flex-grow: 1;
+        }
+
+        #output > div {
+            margin-bottom: 2px;
+        }
+        .command-history { color: var(--glow-dim); }
+        .command-history::before { content: '> '; }
+        .system-response { color: var(--glow); }
+        .system-error { color: var(--red); }
+        .system-trace { color: var(--blue); }
+
+        #input-line {
+            display: flex;
+            align-items: center;
+        }
+
+        #prompt {
+            white-space: nowrap;
+            color: var(--glow);
+        }
+
+        #cli-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--glow);
+            font-family: var(--font);
+            font-size: 14px;
+            width: 100%;
+            padding-left: 5px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 1.2em;
+            background: var(--glow);
+            animation: cursor-blink 1s steps(2) infinite;
+            vertical-align: bottom;
+            margin-left: -8px; /* Overlay on top of input caret */
+        }
+        
+        @keyframes cursor-blink {
+            0% { background: var(--glow); }
+            50% { background: transparent; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="genoscope-container">
+        <div id="gel-view">
+            <!-- Genome columns will be dynamically generated here -->
+        </div>
+        <div class="phenotype-overlay">
+            <!-- Media phenotypes will appear here -->
+        </div>
+        <div id="console-view">
+            <div id="input-line">
+                <span id="prompt">GENOSCOPE [~]></span>
+                <input type="text" id="cli-input" autocomplete="off" autofocus>
+                <div class="cursor"></div>
+            </div>
+            <div id="output"></div>
+        </div>
+    </div>
+    <div id="tooltip"></div>
+
+<script>
+// -----------------------------------------------------------------------------
+// --- 🧬 GENOSCOPE - Codified Media System
+// --- An experimental media artifact combining DNA electrophoresis visualization
+// --- with a command-line phenotype engine.
+// -----------------------------------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- DOM Elements ---
+    const gelView = document.getElementById('gel-view');
+    const consoleView = document.getElementById('console-view');
+    const output = document.getElementById('output');
+    const cliInput = document.getElementById('cli-input');
+    const prompt = document.getElementById('prompt');
+    const tooltip = document.getElementById('tooltip');
+    const phenotypeOverlay = document.querySelector('.phenotype-overlay');
+
+    // --- Core State ---
+    let genomes = [];
+    let selectedGenomeIndex = -1;
+    let commandHistory = [];
+    let historyIndex = -1;
+    let nextGenomeId = 1;
+
+    // --- Biological Concept to Interface Mapping ---
+    const CODON_TYPES = {
+        IMG: { color: 'var(--blue)', name: 'Image' },       // Exon
+        TXT: { color: 'var(--green)', name: 'Text' },       // Exon
+        SND: { color: 'var(--red)', name: 'Sound' },         // Exon
+        CODE: { color: 'var(--yellow)', name: 'Code' },      // Exon
+        META: { color: 'var(--purple)', name: 'Metadata' },  // Intron (hidden context)
+    };
+
+    // --- Sample Data (Embedded) ---
+    const SAMPLE_DATA = {
+        IMG: [
+            // Base64 encoded 100x100 nebula image. An "archived fragment".
+            'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAyADIDASIAAhEBAxEB/8QAGQABAQEBAQEAAAAAAAAAAAAAAgEAAwQF/8QAIxABAQEAAgICAgIDAAAAAAAAAAECAxESBCExQVFhEyIycTP/xAAXAQEBAQEAAAAAAAAAAAAAAAAAAQID/8QAFhEBAQEAAAAAAAAAAAAAAAAAABEB/9oADAMBAAIRAxEAPwD6VsmZJnUnTMtXKZJiQsSEsR5/d6GvT48u7XHz+2XVv29Ovjwx2+m3L5fLyv7sTq60s/JthjtfpMZZda88u70+t6/tP1s9W8Msd1M6tY2iQJExiQkLEhLEamZambRekzLUyYkZYkLEhLEGYkZYkLEhLEB//2Q=='
+        ],
+        TXT: [
+            "dream.archive\nfragment #7B\n'cosmic dust whispers silent stories'",
+            "sequence.log\n'the pattern repeats,\n an echo in the data stream'"
+        ],
+        CODE: [
+            "function fuse(a, b) {\n  return a.slice(0, a.length/2)\n    .concat(b.slice(b.length/2));\n}"
+        ],
+        SND: [
+            // Placeholder for sound generation
+            { freq: 220, duration: 1.5, type: 'sine' } 
+        ]
+    };
+    
+    // ----------------------------------
+    // ---      DATA & GENOME         ---
+    // ----------------------------------
+
+    function createCodon(type, value, origin = 'synthesis') {
+        return { type, value, origin, color: CODON_TYPES[type].color };
+    }
+
+    function createGenome(codons, history) {
+        const id = nextGenomeId++;
+        const canvas = document.createElement('canvas');
+        canvas.width = 50; // internal resolution
+        canvas.height = gelView.clientHeight || 500;
+        const ctx = canvas.getContext('2d');
+        
+        const columnDiv = document.createElement('div');
+        columnDiv.className = 'genome-column';
+        columnDiv.dataset.id = id;
+        columnDiv.appendChild(canvas);
+        gelView.appendChild(columnDiv);
+
+        const genome = {
+            id,
+            codons,
+            history,
+            canvas,
+            ctx,
+            columnDiv,
+            lastExpressed: 0,
+            activity: 0.5,
+        };
+
+        // Add event listeners for this new genome
+        columnDiv.addEventListener('click', () => selectGenome(genomes.findIndex(g => g.id === id)));
+        columnDiv.addEventListener('mousemove', (e) => handleHover(e, genome));
+        columnDiv.addEventListener('mouseleave', () => { tooltip.style.opacity = '0'; });
+        
+        return genome;
+    }
+
+    function initGenomes() {
+        logToConsole("System boot... initializing GENOSCOPE.", "system-response");
+        logToConsole("Loading archival fragments into genome strands...", "system-response");
+        
+        genomes.push(createGenome([
+            createCodon('META', 'origin: archive fragment 21', 'archive'),
+            createCodon('IMG', SAMPLE_DATA.IMG[0], 'archive'),
+            createCodon('META', 'type: stellar nebula', 'archive'),
+        ], "origin: archive fragment 21"));
+
+        genomes.push(createGenome([
+            createCodon('META', 'log entry #42', 'log'),
+            createCodon('TXT', SAMPLE_DATA.TXT[0], 'log'),
+            createCodon('META', 'classification: poetic', 'log'),
+        ], "origin: dream.archive fragment #7B"));
+        
+        genomes.push(createGenome([
+            createCodon('META', 'utility function', 'core_lib'),
+            createCodon('CODE', SAMPLE_DATA.CODE[0], 'core_lib'),
+            createCodon('META', 'splice algorithm v1.2', 'core_lib'),
+        ], "origin: core_lib/splice_utils.js"));
+
+        genomes.push(createGenome([
+            createCodon('META', 'auditory signal', 'synthesis'),
+            createCodon('SND', SAMPLE_DATA.SND[0], 'synthesis'),
+            createCodon('META', 'A4 harmonic', 'synthesis'),
+        ], "origin: procedural synthesis"));
+
+        for(let i=0; i<8; i++) {
+            const numCodons = 3 + Math.floor(Math.random() * 5);
+            let randomCodons = [];
+            for(let j=0; j<numCodons; j++){
+                const types = Object.keys(CODON_TYPES);
+                const randomType = types[Math.floor(Math.random() * types.length)];
+                randomCodons.push(createCodon(randomType, 'latent data', 'randomized'));
+            }
+            genomes.push(createGenome(randomCodons, "origin: random synthesis"));
+        }
+        logToConsole(`Initialization complete. ${genomes.length} genome strands active. Type 'help' for commands.`, "system-response");
+    }
+
+    // ----------------------------------
+    // ---      RENDERING LOOP        ---
+    // ----------------------------------
+
+    function drawGenomes(time) {
+        genomes.forEach(genome => {
+            const { ctx, canvas, codons, activity } = genome;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const bandHeight = canvas.height / (codons.length + 1);
+
+            codons.forEach((codon, i) => {
+                const y = (i + 1) * bandHeight;
+                const pulse = 0.7 + 0.3 * Math.sin(time * 0.001 + i * 0.5);
+                const brightness = activity * pulse;
+
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue(codon.color).trim();
+                ctx.globalAlpha = brightness;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.shadowBlur = 15;
+                
+                // Visible/expressible media (Exons) are thicker
+                const height = (codon.type === 'META') ? 2 : 8; 
+                ctx.fillRect(5, y - height / 2, canvas.width - 10, height);
+            });
+            
+            // Decay activity
+            genome.activity *= 0.995;
+            if (genome.activity < 0.1) genome.activity = 0.1;
+        });
+
+        requestAnimationFrame(drawGenomes);
+    }
+
+    // ----------------------------------
+    // ---      INTERACTIVITY         ---
+    // ----------------------------------
+
+    function selectGenome(index) {
+        if (selectedGenomeIndex > -1 && genomes[selectedGenomeIndex]) {
+            genomes[selectedGenomeIndex].columnDiv.classList.remove('selected');
+        }
+        
+        if (index > -1 && genomes[index]) {
+            selectedGenomeIndex = index;
+            genomes[index].columnDiv.classList.add('selected');
+            prompt.textContent = `GENOSCOPE [strand ${genomes[index].id}]> `;
+        } else {
+            selectedGenomeIndex = -1;
+            prompt.textContent = `GENOSCOPE [~]> `;
+        }
+        cliInput.focus();
+    }
+    
+    function handleHover(event, genome) {
+        const rect = genome.canvas.getBoundingClientRect();
+        const y = event.clientY - rect.top;
+        const totalHeight = rect.height;
+        const codonCount = genome.codons.length;
+        const bandHeight = totalHeight / (codonCount + 1);
+        const codonIndex = Math.floor(y / bandHeight) -1;
+
+        if (codonIndex >= 0 && codonIndex < codonCount) {
+            const codon = genome.codons[codonIndex];
+            tooltip.style.left = `${event.clientX + 15}px`;
+            tooltip.style.top = `${event.clientY}px`;
+            tooltip.innerHTML = `CODON: [${codonIndex}] - ${CODON_TYPES[codon.type].name}\nORIGIN: ${codon.origin}`;
+            tooltip.style.opacity = '1';
+        } else {
+            tooltip.style.opacity = '0';
+        }
+    }
+
+
+    // ----------------------------------
+    // ---    PHENOTYPE EXPRESSION    ---
+    // ----------------------------------
+    
+    function expressPhenotype(genome) {
+        clearPhenotypes();
+        genome.activity = 1.5; // Boost activity on expression
+        
+        const expressibleCodons = genome.codons.filter(c => c.type !== 'META');
+        if (expressibleCodons.length === 0) {
+            logToConsole(`Strand ${genome.id} has no expressible exons.`, 'system-error');
+            return;
+        }
+
+        // For simplicity, express the first found phenotype
+        const primaryCodon = expressibleCodons[0];
+        const colRect = genome.columnDiv.getBoundingClientRect();
+        const phenotypeX = colRect.left + (colRect.width / 2);
+        
+        let phenotypeEl;
+
+        switch(primaryCodon.type) {
+            case 'IMG':
+                phenotypeEl = document.createElement('img');
+                phenotypeEl.className = 'phenotype phenotype-image';
+                phenotypeEl.src = primaryCodon.value;
+                break;
+            case 'TXT':
+                phenotypeEl = document.createElement('div');
+                phenotypeEl.className = 'phenotype phenotype-text';
+                const ribbon = document.createElement('div');
+                ribbon.className = 'glyph-ribbon';
+                ribbon.textContent = primaryCodon.value;
+                phenotypeEl.appendChild(ribbon);
+                break;
+            case 'CODE':
+                phenotypeEl = document.createElement('pre');
+                phenotypeEl.className = 'phenotype phenotype-code';
+                phenotypeEl.textContent = primaryCodon.value;
+                // ASCII cloud effect
+                const originalCode = primaryCodon.value;
+                let flickerInterval = setInterval(() => {
+                    let chars = originalCode.split('');
+                    for(let i=0; i<chars.length; i++){
+                        if(Math.random() > 0.95 && chars[i] !== '\n') {
+                            chars[i] = String.fromCharCode(33 + Math.random() * 94);
+                        }
+                    }
+                    phenotypeEl.textContent = chars.join('');
+                }, 100);
+                setTimeout(() => {
+                    clearInterval(flickerInterval);
+                    phenotypeEl.textContent = originalCode;
+                }, 1500);
+                break;
+            case 'SND':
+                phenotypeEl = document.createElement('canvas');
+                phenotypeEl.className = 'phenotype phenotype-audio';
+                phenotypeEl.width = 250;
+                phenotypeEl.height = 150;
+                playAndVisualizeSound(primaryCodon.value, phenotypeEl);
+                break;
+        }
+
+        if (phenotypeEl) {
+            phenotypeEl.style.left = `${phenotypeX - phenotypeEl.clientWidth / 2}px`;
+            phenotypeOverlay.appendChild(phenotypeEl);
+        }
+    }
+
+    function clearPhenotypes() {
+        phenotypeOverlay.innerHTML = '';
+    }
+
+    function playAndVisualizeSound({ freq, duration, type }, canvas) {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        const analyser = audioCtx.createAnalyser();
+
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + duration);
+
+        // Visualization
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        const canvasCtx = canvas.getContext('2d');
+        
+        function drawWave() {
+            if (audioCtx.currentTime > duration) return;
+            requestAnimationFrame(drawWave);
+            analyser.getByteTimeDomainData(dataArray);
+            canvasCtx.fillStyle = 'rgba(2, 2, 5, 0.5)';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeStyle = 'var(--red)';
+            canvasCtx.shadowColor = 'var(--red)';
+            canvasCtx.shadowBlur = 10;
+            canvasCtx.beginPath();
+
+            const sliceWidth = canvas.width * 1.0 / bufferLength;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * canvas.height / 2;
+                if (i === 0) {
+                    canvasCtx.moveTo(x, y);
+                } else {
+                    canvasCtx.lineTo(x, y);
+                }
+                x += sliceWidth;
+            }
+            canvasCtx.lineTo(canvas.width, canvas.height / 2);
+            canvasCtx.stroke();
+        }
+        drawWave();
+    }
+
+
+    // ----------------------------------
+    // ---      CONSOLE & COMMANDS    ---
+    // ----------------------------------
+
+    function logToConsole(message, className = "system-response") {
+        const line = document.createElement('div');
+        line.className = className;
+        // Sanitize for safety, though we control inputs here
+        line.textContent = message;
+        output.prepend(line);
+    }
+    
+    function handleCommand(cmdStr) {
+        logToConsole(cmdStr, "command-history");
+        commandHistory.unshift(cmdStr);
+        historyIndex = -1; // Reset history navigation
+        
+        const parts = cmdStr.toLowerCase().split(' ').filter(p => p);
+        const command = parts[0];
+        const args = parts.slice(1);
+        
+        clearPhenotypes();
+
+        switch(command) {
+            case 'help':
+                logToConsole("--- GENOSCOPE Command List ---", "system-response");
+                logToConsole("  select <id>         - Select a genome strand by its ID.", "system-response");
+                logToConsole("  express [id]        - Render the media phenotype of the selected or specified strand.", "system-response");
+                logToConsole("  trace [id]          - Show the ancestral lineage of a strand.", "system-response");
+                logToConsole("  mutate [id] <rate>  - Induce random mutations in a strand. rate is 0.0-1.0 (e.g., mutate 3 rate=0.2).", "system-response");
+                logToConsole("  fuse <id1>+<id2>     - Splice two genomes to create a new one (e.g., fuse 1+4).", "system-response");
+                logToConsole("  echo <message>      - Display a message.", "system-response");
+                logToConsole("  clear               - Clear the console output.", "system-response");
+                logToConsole("  ls                  - List all active genome strands.", "system-response");
+                break;
+
+            case 'select': {
+                const id = parseInt(args[0]);
+                const index = genomes.findIndex(g => g.id === id);
+                if (index > -1) {
+                    selectGenome(index);
+                    logToConsole(`Selected strand ${id}.`, "system-response");
+                } else {
+                    logToConsole(`Error: Strand with ID ${id} not found.`, "system-error");
+                }
+                break;
+            }
+
+            case 'express': {
+                const targetIndex = (args[0]) ? genomes.findIndex(g => g.id === parseInt(args[0])) : selectedGenomeIndex;
+                if(targetIndex > -1) {
+                    logToConsole(`Expressing phenotype for strand ${genomes[targetIndex].id}...`, "system-response");
+                    expressPhenotype(genomes[targetIndex]);
+                } else {
+                    logToConsole("Error: No strand selected or specified. Use 'select <id>' or 'express <id>'.", "system-error");
+                }
+                break;
+            }
+
+            case 'trace': {
+                 const targetIndex = (args[0]) ? genomes.findIndex(g => g.id === parseInt(args[0])) : selectedGenomeIndex;
+                if(targetIndex > -1) {
+                    const g = genomes[targetIndex];
+                    logToConsole(`--- Trace for Strand ${g.id} ---`, "system-trace");
+                    logToConsole(`${g.history}`, "system-trace");
+                } else {
+                    logToConsole("Error: No strand selected or specified.", "system-error");
+                }
+                break;
+            }
+
+            case 'mutate': {
+                const targetIndex = (args[0] && !args[0].startsWith('rate')) ? genomes.findIndex(g => g.id === parseInt(args[0])) : selectedGenomeIndex;
+                if (targetIndex > -1) {
+                    const g = genomes[targetIndex];
+                    const rateArg = args.find(a => a.startsWith('rate='));
+                    const rate = rateArg ? parseFloat(rateArg.split('=')[1]) : 0.1;
+                    
+                    let mutations = 0;
+                    g.codons = g.codons.map(codon => {
+                        if (Math.random() < rate) {
+                            mutations++;
+                            const types = Object.keys(CODON_TYPES);
+                            const randomType = types[Math.floor(Math.random() * types.length)];
+                            return createCodon(randomType, 'mutated data', 'mutation');
+                        }
+                        return codon;
+                    });
+                    g.history += ` · mutated (rate=${rate})`;
+                    g.activity = 1.2;
+                    logToConsole(`Induced ${mutations} mutations in strand ${g.id} at rate ${rate}.`, "system-response");
+                } else {
+                    logToConsole("Error: No strand selected or specified for mutation.", "system-error");
+                }
+                break;
+            }
+
+            case 'fuse': {
+                if (!args[0] || !args[0].includes('+')) {
+                    logToConsole("Error: Invalid fuse syntax. Use 'fuse <id1>+<id2>'.", "system-error");
+                    return;
+                }
+                const [id1, id2] = args[0].split('+').map(Number);
+                const g1_idx = genomes.findIndex(g => g.id === id1);
+                const g2_idx = genomes.findIndex(g => g.id === id2);
+
+                if (g1_idx > -1 && g2_idx > -1) {
+                    const g1 = genomes[g1_idx];
+                    const g2 = genomes[g2_idx];
+                    const slice1 = Math.floor(g1.codons.length / 2);
+                    const slice2 = Math.floor(g2.codons.length / 2);
+
+                    const newCodons = [
+                        ...g1.codons.slice(0, slice1),
+                        ...g2.codons.slice(slice2)
+                    ];
+                    
+                    const newHistory = `fused from strand ${g1.id} & ${g2.id}`;
+                    const newGenome = createGenome(newCodons, newHistory);
+                    genomes.push(newGenome);
+                    logToConsole(`Successfully fused strands ${id1} and ${id2}. New strand ${newGenome.id} created.`, "system-response");
+                    selectGenome(genomes.length - 1);
+                } else {
+                    logToConsole("Error: One or both specified strands for fusion not found.", "system-error");
+                }
+                break;
+            }
+
+            case 'echo':
+                logToConsole(args.join(' '), "system-response");
+                break;
+
+            case 'clear':
+                output.innerHTML = '';
+                break;
+            
+            case 'ls':
+                logToConsole("--- Active Genome Strands ---", "system-response");
+                let list = genomes.map(g => {
+                    const exonCount = g.codons.filter(c => c.type !== 'META').length;
+                    return `  ID: ${g.id.toString().padStart(2)} | Codons: ${g.codons.length.toString().padStart(2)} | Exons: ${exonCount}`;
+                }).join('\n');
+                logToConsole(list, "system-response");
+                break;
+
+            default:
+                if (command) {
+                    logToConsole(`Error: command not found: ${command}`, "system-error");
+                }
+        }
+    }
+
+
+    // --- Event Listeners ---
+    cliInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleCommand(cliInput.value);
+            cliInput.value = '';
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                cliInput.value = commandHistory[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                cliInput.value = commandHistory[historyIndex];
+            } else {
+                historyIndex = -1;
+                cliInput.value = '';
+            }
+        } else if(e.key === 'l' && e.ctrlKey){
+            e.preventDefault();
+            output.innerHTML = '';
+        }
+    });
+    
+    // Focus input on click anywhere in console
+    consoleView.addEventListener('click', () => cliInput.focus());
+
+    // --- Kickoff ---
+    initGenomes();
+    requestAnimationFrame(drawGenomes);
+});
+</script>
+</body>
+</html>

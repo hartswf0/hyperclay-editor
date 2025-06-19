@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CodonSynth: Evolutionary Music Ecology</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-color: #0a0a0f;
+            --text-color: #a0c0c0;
+            --accent-color: #00ffff;
+            --warning-color: #ffaa00;
+            --danger-color: #ff3c00;
+            --border-color: rgba(0, 255, 255, 0.2);
+            --font-family: 'Share Tech Mono', monospace;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            overflow: hidden;
+            font-size: 14px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            box-sizing: border-box;
+            padding: 15px;
+        }
+
+        .header {
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            color: var(--accent-color);
+            font-size: 1.2em;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        p.subtitle {
+            margin: 5px 0 0 0;
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .module {
+            border: 1px solid var(--border-color);
+            margin-top: 15px;
+            padding: 10px;
+            background-color: rgba(0, 255, 255, 0.02);
+        }
+
+        .module-title {
+            color: var(--accent-color);
+            margin: 0 0 10px 0;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        #status-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            font-size: 0.8em;
+        }
+
+        #status-display span {
+            opacity: 0.8;
+        }
+        
+        #status-display span .value {
+            color: white;
+            font-weight: bold;
+        }
+
+        #environment-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            font-size: 0.8em;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 5px;
+            background: rgba(0, 255, 255, 0.1);
+            outline: none;
+            border: 1px solid var(--border-color);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            background: var(--accent-color);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-color);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            background: var(--accent-color);
+            cursor: pointer;
+            border: none;
+            border-radius: 0;
+        }
+
+        #gene-pool {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .codon {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transition: all 0.5s ease-out, opacity 1s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #start-button {
+            padding: 15px 30px;
+            background: transparent;
+            border: 2px solid var(--accent-color);
+            color: var(--accent-color);
+            font-family: var(--font-family);
+            font-size: 1.2em;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 15px var(--accent-color);
+            transition: all 0.3s;
+        }
+        
+        #start-button:hover {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="start-overlay">
+        <h1>CodonSynth</h1>
+        <p class="subtitle" style="margin-bottom: 30px;">An Evolutionary Music Ecology</p>
+        <button id="start-button">INITIATE</button>
+        <p class="subtitle" style="margin-top: 30px; font-size: 0.7em; max-width: 300px;">You do not compose. You cultivate.<br>Tune the environment. The music will adapt.</p>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Bureau Tech Fusion Interface</h1>
+            <p class="subtitle">Model: CodonSynth-Ecology</p>
+        </div>
+
+        <div class="module">
+            <h2 class="module-title">// SYSTEM STATUS</h2>
+            <div id="status-display">
+                <span>POPULATION: <span class="value" id="population-count">0</span></span>
+                <span>GENERATION: <span class="value" id="generation-count">0</span></span>
+                <span>FITNESS AVG: <span class="value" id="fitness-avg">0.00</span></span>
+                <span>MUTATION RATE: <span class="value" id="mutation-rate">0.10</span></span>
+            </div>
+        </div>
+
+        <div class="module">
+            <h2 class="module-title">// FITNESS ENVIRONMENT TUNING</h2>
+            <div id="environment-controls">
+                <div class="control-group">
+                    <label for="harmony-bias">HARMONY BIAS (FIT TO SCALE)</label>
+                    <input type="range" id="harmony-bias" min="0" max="1" step="0.01" value="0.5">
+                </div>
+                <div class="control-group">
+                    <label for="rhythm-cohesion">RHYTHMIC COHESION (ON-GRID)</label>
+                    <input type="range" id="rhythm-cohesion" min="0" max="1" step="0.01" value="0.7">
+                </div>
+                <div class="control-group">
+                    <label for="tonal-gravity">TONAL GRAVITY (FIT TO ROOT)</label>
+                    <input type="range" id="tonal-gravity" min="0" max="1" step="0.01" value="0.3">
+                </div>
+                <div class="control-group">
+                    <label for="spectral-smoothness">SPECTRAL SMOOTHNESS (TIMBRE)</label>
+                    <input type="range" id="spectral-smoothness" min="0" max="1" step="0.01" value="0.6">
+                </div>
+            </div>
+        </div>
+
+        <div class="module" id="gene-pool">
+            <h2 class="module-title">// LIVE GENE POOL</h2>
+            <!-- Codons will be dynamically added here -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const startButton = document.getElementById('start-button');
+            const startOverlay = document.getElementById('start-overlay');
+            const genePoolContainer = document.getElementById('gene-pool');
+
+            // --- UI Elements ---
+            const populationDisplay = document.getElementById('population-count');
+            const generationDisplay = document.getElementById('generation-count');
+            const fitnessAvgDisplay = document.getElementById('fitness-avg');
+            const mutationRateDisplay = document.getElementById('mutation-rate');
+            const sliders = {
+                harmony: document.getElementById('harmony-bias'),
+                rhythm: document.getElementById('rhythm-cohesion'),
+                gravity: document.getElementById('tonal-gravity'),
+                spectral: document.getElementById('spectral-smoothness'),
+            };
+
+            // --- Core System Parameters ---
+            let genePool = [];
+            let generation = 0;
+            const MAX_POPULATION = 50;
+            const SIMULATION_INTERVAL = 200; // ms
+            const FITNESS_THRESHOLD_PLAY = 0.6;
+            const FITNESS_THRESHOLD_REPRODUCE = 0.8;
+            const LIFESPAN = 100; // in simulation ticks
+
+            // --- Tone.js Setup ---
+            let synth;
+
+            // --- Musical Parameters ---
+            const SCALE = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'];
+            const RHYTHMS = ['16n', '8n', '8t', '4n'];
+            const WAVEFORMS = ['sine', 'triangle', 'sawtooth', 'square'];
+
+            class Codon {
+                constructor(parentId = null, inheritedProperties = {}) {
+                    this.id = 'codon-' + Date.now() + Math.random();
+                    this.parentId = parentId;
+                    this.age = 0;
+                    this.fitness = 0;
+
+                    // Inherit or randomize properties
+                    this.pitch = inheritedProperties.pitch || this.getRandom(SCALE);
+                    this.rhythm = inheritedProperties.rhythm || this.getRandom(RHYTHMS);
+                    this.waveform = inheritedProperties.waveform || this.getRandom(WAVEFORMS);
+                    this.envelope = inheritedProperties.envelope || { attack: Math.random() * 0.1, decay: 0.1 + Math.random() * 0.3, sustain: 0.1, release: 0.2 };
+                    
+                    // Mutate if inherited
+                    if (parentId) this.mutate();
+
+                    // DOM element
+                    this.element = document.createElement('div');
+                    this.element.className = 'codon';
+                    this.element.style.left = `${Math.random() * 95}%`;
+                    this.element.style.top = `${Math.random() * 85 + 10}%`; // avoid title
+                    genePoolContainer.appendChild(this.element);
+                }
+
+                getRandom(arr) {
+                    return arr[Math.floor(Math.random() * arr.length)];
+                }
+
+                mutate() {
+                    if (Math.random() < 0.3) this.pitch = this.getRandom(SCALE);
+                    if (Math.random() < 0.2) this.rhythm = this.getRandom(RHYTHMS);
+                    if (Math.random() < 0.1) this.waveform = this.getRandom(WAVEFORMS);
+                }
+                
+                evaluateFitness() {
+                    const env = {
+                        harmony: parseFloat(sliders.harmony.value),
+                        rhythm: parseFloat(sliders.rhythm.value),
+                        gravity: parseFloat(sliders.gravity.value),
+                        spectral: parseFloat(sliders.spectral.value),
+                    };
+
+                    // 1. Harmony Fitness (is it in the scale?)
+                    const harmonyScore = SCALE.includes(this.pitch) ? 1 : 0;
+                    
+                    // 2. Rhythm Fitness (is it simple?)
+                    const rhythmScore = (this.rhythm === '8n' || this.rhythm === '4n') ? 1 : 0.5;
+
+                    // 3. Tonal Gravity (is it close to the root C?)
+                    const gravityScore = 1 - (SCALE.indexOf(this.pitch) / (SCALE.length - 1));
+
+                    // 4. Spectral Fitness (is the attack soft?)
+                    const spectralScore = 1 - (this.envelope.attack / 0.1);
+
+                    const totalFitness = (harmonyScore * env.harmony +
+                                        rhythmScore * env.rhythm +
+                                        gravityScore * env.gravity +
+                                        spectralScore * env.spectral) / (env.harmony + env.rhythm + env.gravity + env.spectral || 1);
+                    
+                    this.fitness = totalFitness;
+                }
+
+                update() {
+                    this.age++;
+                    this.evaluateFitness();
+                    
+                    // Update visual representation
+                    const size = 5 + this.fitness * 20;
+                    this.element.style.width = `${size}px`;
+                    this.element.style.height = `${size}px`;
+                    
+                    const hue = 180; // Cyan
+                    const saturation = 100;
+                    const lightness = 30 + this.fitness * 40; // Brighter = fitter
+                    const alpha = 0.2 + this.fitness * 0.8;
+                    this.element.style.backgroundColor = `hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+                    this.element.style.boxShadow = `0 0 ${this.fitness * 15}px hsla(${hue}, ${saturation}%, ${lightness}%, ${alpha})`;
+                    
+                    // Fade out old codons
+                    if (this.age > LIFESPAN * 0.75) {
+                        this.element.style.opacity = 1 - (this.age - LIFESPAN * 0.75) / (LIFESPAN * 0.25);
+                    }
+                }
+
+                play() {
+                    synth.triggerAttackRelease(this.pitch, this.rhythm, Tone.now(), this.fitness);
+                    synth.set({
+                        oscillator: { type: this.waveform },
+                        envelope: this.envelope
+                    });
+                }
+
+                destroy() {
+                    this.element.remove();
+                }
+            }
+
+            function updateUI() {
+                const popCount = genePool.length;
+                populationDisplay.textContent = popCount;
+                generationDisplay.textContent = generation;
+                
+                if (popCount > 0) {
+                    const avgFitness = genePool.reduce((sum, codon) => sum + codon.fitness, 0) / popCount;
+                    fitnessAvgDisplay.textContent = avgFitness.toFixed(2);
+                    mutationRateDisplay.textContent = (1 - avgFitness).toFixed(2);
+                } else {
+                    fitnessAvgDisplay.textContent = "0.00";
+                    mutationRateDisplay.textContent = "N/A";
+                }
+            }
+
+            function simulationLoop() {
+                generation++;
+                const nextGeneration = [];
+                const a_fitness = [];
+
+                // Update, play, and select for reproduction
+                genePool.forEach(codon => {
+                    codon.update();
+                    a_fitness.push(codon.fitness);
+                    
+                    // Play sound if fit
+                    if (codon.fitness > FITNESS_THRESHOLD_PLAY) {
+                        codon.play();
+                    }
+
+                    // Select for reproduction
+                    if (codon.fitness > FITNESS_THRESHOLD_REPRODUCE && Math.random() < codon.fitness) {
+                        if (genePool.length + nextGeneration.length < MAX_POPULATION) {
+                            nextGeneration.push(new Codon(codon.id, {
+                                pitch: codon.pitch,
+                                rhythm: codon.rhythm,
+                                waveform: codon.waveform,
+                                envelope: codon.envelope
+                            }));
+                        }
+                    }
+                });
+                
+                // Filter out the dead
+                const survivors = genePool.filter(codon => codon.age <= LIFESPAN && codon.fitness > 0.1);
+                const deadCodons = genePool.filter(codon => !survivors.includes(codon));
+                deadCodons.forEach(codon => codon.destroy());
+
+                genePool = [...survivors, ...nextGeneration];
+                
+                // Replenish population if it drops too low
+                while (genePool.length < 10) {
+                    genePool.push(new Codon());
+                }
+
+                updateUI();
+            }
+
+            function initialize() {
+                startOverlay.style.display = 'none';
+
+                // Setup Tone.js audio engine
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    volume: -12,
+                }).toDestination();
+                
+                // Populate initial gene pool
+                for (let i = 0; i < 20; i++) {
+                    genePool.push(new Codon());
+                }
+
+                // Start the evolution
+                setInterval(simulationLoop, SIMULATION_INTERVAL);
+            }
+
+            startButton.addEventListener('click', async () => {
+                await Tone.start();
+                console.log('Audio Context Started.');
+                initialize();
+            });
+        });
+    </script>
+</body>
+</html>

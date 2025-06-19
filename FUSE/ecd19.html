@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // PHORONOMIC ENGINE // v.78c</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Phoronomic Engine - GUI for Narrative Time-Space Manipulation
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: A chrono-symbolic plot designer that treats time and causality
+        *   as a sculptural, spiral-based medium.
+        */
+
+        :root {
+            --pe-bg: #1a1c20;
+            --pe-panel: #2c3138;
+            --pe-screen: #0a0c10;
+            --pe-text: #c0c5ce;
+            --pe-text-dim: #7c828d;
+            --pe-accent: #8be9fd; /* Cyan */
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+            
+            /* Tension Arc Colors */
+            --c-tension: #ff5555;
+            --c-release: #50fa7b;
+            --c-foreshadow: #f1fa8c;
+            --c-link: #8be9fd;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes ring-rotate-1 { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes ring-rotate-2 { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+        @keyframes ring-rotate-3 { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes singularity-pulse { 0%, 100% { r: 5px; opacity: 0.8; } 50% { r: 8px; opacity: 1; } }
+        @keyframes tautology-warning { 0%, 100% { stroke: var(--pe-text-dim); } 50% { stroke: var(--c-tension); box-shadow: 0 0 20px var(--c-tension); } }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--pe-text); user-select: none;
+        }
+        #engine-chassis {
+            width: 1600px; height: 900px; background-color: var(--pe-bg);
+            border: 1px solid #555; box-shadow: 0 0 30px rgba(139, 233, 253, 0.1);
+            padding: 20px; display: grid; grid-template-columns: 300px 1fr 300px;
+            gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--pe-panel); padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 1px solid var(--pe-text-dim);
+            padding-bottom: 5px; margin: 0 0 15px 0; color: var(--pe-accent);
+        }
+
+        /* --- LEFT PANEL: GLYPH PALETTE --- */
+        #left-panel { grid-column: 1 / 2; }
+        #glyph-palette {
+            flex-grow: 1; overflow-y: auto; display: grid;
+            grid-template-columns: 1fr 1fr; gap: 10px;
+        }
+        .glyph-item {
+            background-color: var(--pe-screen); border: 1px solid #444;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 10px; cursor: grab;
+        }
+        .glyph-item:active { cursor: grabbing; }
+        .glyph-item svg { width: 40px; height: 40px; }
+        .glyph-item .label { margin-top: 5px; font-size: 0.9rem; }
+        
+        /* --- CENTER PANEL: PHORONOMICON --- */
+        #center-panel { grid-column: 2 / 3; background-color: var(--pe-screen); position: relative; overflow: hidden; }
+        #phoronomicon { width: 100%; height: 100%; position: relative; }
+        .causality-ring {
+            position: absolute; top: 50%; left: 50%; border: 1px solid var(--pe-text-dim);
+            border-radius: 50%; transform: translate(-50%, -50%);
+            transition: all 0.5s;
+        }
+        .causality-ring.tautology { animation: tautology-warning 1s infinite; }
+        #ring-1 { width: 90%; height: 90%; animation: ring-rotate-1 120s linear infinite; }
+        #ring-2 { width: 65%; height: 65%; animation: ring-rotate-2 80s linear infinite; }
+        #ring-3 { width: 40%; height: 40%; animation: ring-rotate-3 50s linear infinite; }
+        
+        #singularity { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+        #singularity circle { animation: singularity-pulse 2s infinite ease-in-out; }
+        
+        #arc-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .tension-arc { fill: none; stroke-width: 2px; opacity: 0.7; }
+        
+        .event-glyph-instance {
+            position: absolute; width: 60px; height: 60px;
+            background: #1a1c20; border: 2px solid var(--pe-accent); border-radius: 50%;
+            display: grid; place-items: center; cursor: pointer;
+            box-shadow: 0 0 10px var(--pe-accent);
+        }
+        .event-glyph-instance svg { width: 30px; height: 30px; }
+        
+        /* --- RIGHT PANEL: FEEDBACK --- */
+        #right-panel { grid-column: 3 / 3; }
+        .gauge-module { margin-bottom: 25px; }
+        .gauge-container {
+            width: 100%; height: 30px; background: #1a1a1a; border: 1px solid #555;
+            padding: 3px;
+        }
+        .gauge-bar {
+            width: 0%; height: 100%; background: var(--color);
+            transition: width 0.5s ease-out;
+        }
+        .gauge-label { display: flex; justify-content: space-between; margin-top: 5px; }
+        #event-inspector { flex-grow: 1; background: #1a1c20; padding: 10px; }
+        .inspector-field { margin-bottom: 10px; }
+        .inspector-label { color: var(--pe-text-dim); }
+        .inspector-value { font-size: 1.2rem; color: var(--pe-accent); }
+
+    </style>
+</head>
+<body>
+    <div id="engine-chassis">
+        <!-- LEFT PANEL -->
+        <div class="panel" id="left-panel">
+            <h2 class="module-label">GLYPH PALETTE</h2>
+            <div id="glyph-palette"></div>
+            <button id="clear-btn" style="width:100%; padding:10px; margin-top:15px; background: #8c4a4a; color: #fff; border: none; font-size:1.1rem;">CLEAR STAGE</button>
+        </div>
+
+        <!-- CENTER PANEL -->
+        <div class="panel" id="center-panel">
+            <div id="phoronomicon">
+                <div class="causality-ring" id="ring-1" data-ring="1"></div>
+                <div class="causality-ring" id="ring-2" data-ring="2"></div>
+                <div class="causality-ring" id="ring-3" data-ring="3"></div>
+                <svg id="singularity" width="20" height="20"><circle cx="10" cy="10" r="5" fill="var(--pe-accent)" /></svg>
+                <div id="placed-glyphs"></div>
+                <svg id="arc-svg"></svg>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel" id="right-panel">
+            <h2 class="module-label">FEEDBACK</h2>
+            <div class="gauge-module">
+                <h3 class="module-label" style="font-size:1.2rem;">NARRATIVE STRETCH</h3>
+                <div class="gauge-container"><div id="stretch-bar" class="gauge-bar" style="--color: var(--c-link);"></div></div>
+                <div class="gauge-label"><span>LINEAR</span><span>NON-LINEAR</span></div>
+            </div>
+            <div class="gauge-module">
+                <h3 class="module-label" style="font-size:1.2rem;">MYTH DENSITY</h3>
+                <div class="gauge-container"><div id="density-bar" class="gauge-bar" style="--color: var(--c-foreshadow);"></div></div>
+                <div class="gauge-label"><span>LITERAL</span><span>SYMBOLIC</span></div>
+            </div>
+             <div class="gauge-module">
+                <h3 class="module-label" style="font-size:1.2rem;">REPETITION ECHO</h3>
+                <div class="gauge-container"><div id="echo-bar" class="gauge-bar" style="--color: var(--c-tension);"></div></div>
+                 <div class="gauge-label"><span>UNIQUE</span><span>RECURSIVE</span></div>
+            </div>
+            <h2 class="module-label" style="margin-top:20px;">EVENT INSPECTOR</h2>
+            <div id="event-inspector">
+                 <div style="text-align:center; color: var(--pe-text-dim); padding-top: 20px;">Select an event glyph.</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const PhoronomicEngine = {
+    // --- Data ---
+    GLYPHS: [
+        { type: 'GENESIS', symbol: 'M50 10 L50 90 M10 50 L90 50', color: '#50fa7b' },
+        { type: 'CONFLICT', symbol: 'M20 20 L80 80 M80 20 L20 80', color: '#ff5555' },
+        { type: 'REVELATION', symbol: 'M50 50m-15 0a15 15 0 1 0 30 0a15 15 0 1 0-30 0 M50 20 V80 M20 50 H80', color: '#f1fa8c' },
+        { type: 'RESOLUTION', symbol: 'M50 50m-30 0a30 30 0 1 0 60 0a30 30 0 1 0-60 0', color: '#50fa7b' },
+        { type: 'JOURNEY', symbol: 'M10 50 C 40 20, 60 80, 90 50', color: '#8be9fd' },
+        { type: 'APOTHEOSIS', symbol: 'M50 10 L10 90 H90Z', color: '#f1fa8c' },
+    ],
+    // Rules for tension arcs: [source_type, target_type, arc_color_var]
+    ARC_RULES: [
+        ['CONFLICT', 'RESOLUTION', '--c-tension'],
+        ['GENESIS', 'CONFLICT', '--c-foreshadow'],
+        ['REVELATION', 'APOTHEOSIS', '--c-release'],
+        ['JOURNEY', 'REVELATION', '--c-link']
+    ],
+
+    // --- DOM Elements ---
+    elems: {
+        palette: document.getElementById('glyph-palette'),
+        phoronomicon: document.getElementById('phoronomicon'),
+        placedGlyphsContainer: document.getElementById('placed-glyphs'),
+        arcSvg: document.getElementById('arc-svg'),
+        rings: document.querySelectorAll('.causality-ring'),
+        inspector: document.getElementById('event-inspector'),
+        clearBtn: document.getElementById('clear-btn'),
+        gauges: {
+            stretch: document.getElementById('stretch-bar'),
+            density: document.getElementById('density-bar'),
+            echo: document.getElementById('echo-bar'),
+        }
+    },
+    
+    // --- State ---
+    state: {
+        placedGlyphs: [], // { id, type, x, y, angle, ring, el }
+        nextId: 0,
+        selectedGlyph: null
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, place: null, select: null, error: null, hum: null, humGain: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.place = this.createSound(440, 0.1, 0.2, true);
+            this.select = this.createSound(880, 0.05, 0.1);
+            this.error = this.createSound(100, 0.2, 0.2);
+            this.hum = this.ctx.createOscillator(); this.humGain = this.ctx.createGain();
+            this.hum.type = 'sine'; this.hum.frequency.value = 50; this.humGain.gain.value = 0.05;
+            this.hum.connect(this.humGain); this.humGain.connect(this.ctx.destination);
+            this.hum.start();
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sine'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*1.5,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        },
+        setHumTautology(isTautology) { if(this.humGain) this.hum.frequency.setTargetAtTime(isTautology ? 75 : 50, this.ctx.currentTime, 0.2); }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.renderPalette();
+        this.addDragListeners();
+        // Lazy audio init
+        document.body.addEventListener('mousedown', () => { if (!this.audio.ctx) this.audio.init(); }, { once: true });
+    },
+
+    renderPalette() {
+        this.elems.palette.innerHTML = this.GLYPHS.map(g => `
+            <div class="glyph-item" draggable="true" data-type="${g.type}">
+                <svg viewBox="0 0 100 100">
+                    <path d="${g.symbol}" stroke="${g.color}" stroke-width="8" fill="none" />
+                </svg>
+                <div class="label" style="color:${g.color};">${g.type}</div>
+            </div>
+        `).join('');
+    },
+    
+    addDragListeners() {
+        // Drag from palette
+        this.elems.palette.addEventListener('dragstart', e => {
+            if (e.target.matches('.glyph-item')) {
+                e.dataTransfer.setData('text/plain', e.target.dataset.type);
+            }
+        });
+
+        // Drop on phoronomicon
+        this.elems.phoronomicon.addEventListener('dragover', e => e.preventDefault());
+        this.elems.phoronomicon.addEventListener('drop', e => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('text/plain');
+            if (!type) return;
+
+            const rect = this.elems.phoronomicon.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            this.placeGlyph(type, x, y);
+        });
+
+        this.elems.clearBtn.onclick = () => {
+            this.state.placedGlyphs = [];
+            this.state.nextId = 0;
+            this.elems.placedGlyphsContainer.innerHTML = '';
+            this.updateAll();
+        };
+    },
+
+    // --- Core Logic ---
+    placeGlyph(type, x, y) {
+        this.audio.place();
+        const phoroRect = this.elems.phoronomicon.getBoundingClientRect();
+        const cx = phoroRect.width / 2;
+        const cy = phoroRect.height / 2;
+        
+        const dx = x - cx;
+        const dy = y - cy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+        let ring = 0;
+        if (dist > phoroRect.width * 0.325) ring = 1;
+        if (dist < phoroRect.width * 0.325) ring = 2;
+        if (dist < phoroRect.width * 0.20) ring = 3;
+
+        const glyphData = this.GLYPHS.find(g => g.type === type);
+
+        const newGlyph = {
+            id: this.state.nextId++,
+            type: type,
+            color: glyphData.color,
+            symbol: glyphData.symbol,
+            x, y, angle, ring
+        };
+        
+        this.state.placedGlyphs.push(newGlyph);
+        this.renderGlyphInstance(newGlyph);
+        this.updateAll();
+    },
+
+    selectGlyph(glyph) {
+        this.audio.select();
+        this.state.selectedGlyph = glyph;
+        this.elems.placedGlyphsContainer.querySelectorAll('.event-glyph-instance').forEach(el => {
+            el.style.borderWidth = (el.dataset.id == glyph.id) ? '4px' : '2px';
+        });
+        this.updateInspector();
+    },
+
+    // --- Rendering & Updates ---
+    updateAll() {
+        this.drawTensionArcs();
+        this.updateFeedbackGauges();
+    },
+
+    renderGlyphInstance(glyph) {
+        const el = document.createElement('div');
+        el.className = 'event-glyph-instance';
+        el.dataset.id = glyph.id;
+        el.style.left = `${glyph.x - 30}px`;
+        el.style.top = `${glyph.y - 30}px`;
+        el.style.borderColor = glyph.color;
+        el.style.boxShadow = `0 0 10px ${glyph.color}`;
+        el.innerHTML = `<svg viewBox="0 0 100 100"><path d="${glyph.symbol}" stroke="${glyph.color}" stroke-width="8" fill="none" /></svg>`;
+        el.onclick = () => this.selectGlyph(glyph);
+        this.elems.placedGlyphsContainer.appendChild(el);
+        glyph.el = el;
+    },
+
+    drawTensionArcs() {
+        let svgHTML = '';
+        this.state.placedGlyphs.forEach(g1 => {
+            this.state.placedGlyphs.forEach(g2 => {
+                if (g1.id >= g2.id) return;
+                this.ARC_RULES.forEach(rule => {
+                    if ((rule[0] === g1.type && rule[1] === g2.type) || (rule[1] === g1.type && rule[0] === g2.type)) {
+                        const midX = (g1.x + g2.x) / 2;
+                        const midY = (g1.y + g2.y) / 2;
+                        const controlX = midX + (g2.y - g1.y) * 0.2;
+                        const controlY = midY + (g1.x - g2.x) * 0.2;
+                        svgHTML += `<path class="tension-arc" d="M ${g1.x} ${g1.y} Q ${controlX} ${controlY} ${g2.x} ${g2.y}" stroke="var(${rule[2]})" />`;
+                    }
+                });
+            });
+        });
+        this.elems.arcSvg.innerHTML = svgHTML;
+    },
+    
+    updateFeedbackGauges() {
+        const numGlyphs = this.state.placedGlyphs.length;
+        if (numGlyphs === 0) {
+            this.elems.gauges.stretch.style.width = '0%';
+            this.elems.gauges.density.style.width = '0%';
+            this.elems.gauges.echo.style.width = '0%';
+            this.elems.rings.forEach(r => r.classList.remove('tautology'));
+            return;
+        }
+
+        // Narrative Stretch
+        const ringCounts = [0,0,0];
+        this.state.placedGlyphs.forEach(g => ringCounts[g.ring - 1]++);
+        const stretch = ((ringCounts[1] * 0.5) + (ringCounts[2] * 1)) / numGlyphs;
+        this.elems.gauges.stretch.style.width = `${stretch * 100}%`;
+
+        // Myth Density
+        const density = ringCounts[2] / numGlyphs;
+        this.elems.gauges.density.style.width = `${density * 100}%`;
+        
+        // Repetition Echo
+        const typeCounts = this.state.placedGlyphs.reduce((acc, g) => {
+            acc[g.type] = (acc[g.type] || 0) + 1;
+            return acc;
+        }, {});
+        const repetitions = Object.values(typeCounts).reduce((acc, count) => acc + (count > 1 ? count - 1 : 0), 0);
+        const echo = repetitions / numGlyphs;
+        this.elems.gauges.echo.style.width = `${echo * 100}%`;
+
+        // Tautology Check
+        const isTautology = typeCounts['CONFLICT'] > 0 && typeCounts['RESOLUTION'] === undefined;
+        this.elems.rings.forEach(r => r.classList.toggle('tautology', isTautology));
+        if (this.audio.hum) this.audio.setHumTautology(isTautology);
+    },
+    
+    updateInspector() {
+        const glyph = this.state.selectedGlyph;
+        if (!glyph) {
+            this.elems.inspector.innerHTML = `<div style="text-align:center; color: var(--pe-text-dim); padding-top: 20px;">Select an event glyph.</div>`;
+            return;
+        }
+        this.elems.inspector.innerHTML = `
+            <div class="inspector-field">
+                <div class="inspector-label">EVENT ID</div>
+                <div class="inspector-value" style="color:${glyph.color};">${glyph.type}-${glyph.id}</div>
+            </div>
+            <div class="inspector-field">
+                <div class="inspector-label">CAUSALITY RING</div>
+                <div class="inspector-value">${glyph.ring === 1 ? 'THE KNOWN' : glyph.ring === 2 ? 'THE ECHO' : 'THE UNSEEN'}</div>
+            </div>
+             <div class="inspector-field">
+                <div class="inspector-label">TEMPORAL ANGLE</div>
+                <div class="inspector-value">${glyph.angle.toFixed(1)}°</div>
+            </div>
+        `;
+    }
+};
+
+PhoronomicEngine.init();
+</script>
+</body>
+</html>

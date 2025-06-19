@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // MYNDARCH // NARRATIVE INDEXER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: MYNDARCH - Memory-Dream Narrative Indexer (v1.1)
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: A system for indexing fragmented memory or dream logs into a
+        *   searchable structure with timeline estimation and symbolic analysis.
+        */
+
+        :root {
+            --my-bg: #20242a;
+            --my-panel: #dcd6c9;
+            --my-screen: #f0f5f9;
+            --my-text-dark: #1a1c20;
+            --my-text-light: #f0f5f9;
+            --my-accent: #b35a2d;
+            
+            /* JSON Colors */
+            --json-key: #9d5f2f;
+            --json-string: #6a8759;
+            --json-number: #6897bb;
+            --json-boolean: #cc7832;
+            --json-null: #808080;
+
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes blink-indicator { 0%, 100% { background: var(--my-accent); color: var(--my-text-light); } 50% { background: #b8c0c8; color: var(--my-text-dark); } }
+        
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--my-text-dark); user-select: none;
+        }
+        #myndarch-chassis {
+            width: 1600px; height: 900px; background-color: var(--my-bg);
+            border: 1px solid #777; box-shadow: 0 0 30px rgba(179, 90, 45, 0.2);
+            padding: 20px; display: grid; grid-template-columns: 500px 1fr 400px;
+            gap: 20px;
+        }
+        #myndarch-chassis.system-busy .panel:not(#center-panel) { opacity: 0.5; pointer-events: none; }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--my-panel); padding: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2); display: flex; flex-direction: column;
+            transition: opacity 0.5s;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 2px solid #b8c0c8;
+            padding-bottom: 5px; margin: 0 0 15px 0;
+        }
+        .placeholder-text { text-align:center; padding: 50px; color: #aaa; }
+
+        /* --- LEFT PANEL: INPUT --- */
+        #left-panel { grid-column: 1 / 2; }
+        #input-manifold {
+            flex-grow: 1; background: #fff; border: 1px solid #888; padding: 10px;
+            font-family: 'Courier New', monospace; font-size: 1rem; line-height: 1.6; resize: none;
+        }
+        #index-button {
+            width: 100%; padding: 15px; font-size: 1.5rem; font-family: var(--font-display);
+            margin-top: 20px; border: 2px solid var(--my-text-dark); background: #b8c0c8;
+            color: var(--my-text-dark); cursor: pointer; letter-spacing: 2px;
+        }
+        #index-button.processing { animation: blink-indicator 0.5s infinite; }
+        #index-button:disabled { background: #888; color: #555; cursor: not-allowed; }
+
+        /* --- CENTER PANEL: STRUCTURED INDEX --- */
+        #center-panel { grid-column: 2 / 3; background-color: var(--my-text-dark); }
+        #structured-index {
+            flex-grow: 1; overflow-y: auto; padding: 20px;
+            white-space: pre; font-size: 1.1rem;
+            color: var(--my-text-light);
+        }
+        .json-key { color: var(--json-key); }
+        .json-string { color: var(--json-string); }
+        .json-number { color: var(--json-number); }
+        .json-boolean { color: var(--json-boolean); }
+        .json-null { color: var(--json-null); }
+        .json-tag { font-style: italic; opacity: 0.7; }
+
+        /* --- RIGHT PANEL: CLUSTER MAP --- */
+        #right-panel { grid-column: 3 / 4; }
+        #cluster-map-canvas { width: 100%; flex-grow: 1; background: var(--my-text-dark); }
+
+    </style>
+</head>
+<body>
+    <div id="myndarch-chassis">
+        <!-- LEFT PANEL -->
+        <div class="panel" id="left-panel">
+            <h2 class="module-label">INPUT MANIFOLD</h2>
+            <textarea id="input-manifold" placeholder="Paste memory log or dream journal here..."></textarea>
+            <button id="index-button" disabled>INDEX</button>
+        </div>
+
+        <!-- CENTER PANEL -->
+        <div class="panel" id="center-panel">
+            <h2 class="module-label" style="color:var(--my-text-light); border-color:#555;">STRUCTURED INDEX</h2>
+            <div id="structured-index"><div class="placeholder-text">Awaiting data...</div></div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel" id="right-panel">
+            <h2 class="module-label">SYMBOL CO-OCCURRENCE MAP</h2>
+            <canvas id="cluster-map-canvas"></canvas>
+        </div>
+    </div>
+
+<script>
+const Myndarch = {
+    // --- Data: Simplified NLP Keywords ---
+    KEYWORDS: {
+        SYMBOLS: ['mirror', 'door', 'key', 'water', 'bird', 'staircase', 'forest', 'clock'],
+        FEELINGS: ['dread', 'joy', 'confusion', 'longing', 'serenity', 'panic'],
+        EVENTS: ['falling', 'running', 'searching', 'arrived', 'left', 'found'],
+        TIME_BEFORE: ['before', 'previously', 'first'],
+        TIME_AFTER: ['after', 'then', 'later'],
+    },
+    
+    // --- DOM Elements ---
+    elems: {
+        chassis: document.getElementById('myndarch-chassis'),
+        input: document.getElementById('input-manifold'),
+        indexBtn: document.getElementById('index-button'),
+        outputIndex: document.getElementById('structured-index'),
+        canvas: document.getElementById('cluster-map-canvas'),
+        ctx: null,
+    },
+    
+    // --- State ---
+    state: {
+        isIndexing: false,
+        analysisResult: null,
+        graph: { nodes: [], links: [] },
+        hoveredNode: null,
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, click: null, process: null, done: null,
+        // **FIX:** Create context on first user gesture, not on page load.
+        initContext() {
+            if (this.ctx) return;
+            this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.click = this.createSound(1200, 0.05, 0.1);
+            this.done = this.createSound(600, 0.2, 0.2, true);
+            let pOsc = this.ctx.createOscillator(), pGain = this.ctx.createGain();
+            pOsc.type='sawtooth'; pOsc.frequency.value=60; pGain.gain.value=0;
+            pOsc.connect(pGain); pGain.connect(this.ctx.destination); pOsc.start();
+            this.process = (on) => pGain.gain.setTargetAtTime(on ? 0.04 : 0, this.ctx.currentTime, 0.2);
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sine'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*1.5,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        },
+        // Wrapper functions that ensure context is initialized
+        play(sound) {
+            this.initContext();
+            this[sound]();
+        },
+        setProcessing(on) {
+            this.initContext();
+            this.process(on);
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.elems.ctx = this.elems.canvas.getContext('2d');
+        this.addEventListeners();
+        this.elems.input.value = "The rain had been falling for weeks. I saw a bird on the staircase.\n\nThen I was in the forest, searching for a key. I felt a sense of dread.\n\nBefore all this, I remember looking in a mirror. The clock showed the wrong time. I felt a deep longing.\n\nI was running from something in the forest. The bird was there again, by the water.";
+        this.checkCanIndex();
+        this.drawGraphLoop();
+    },
+    
+    addEventListeners() {
+        this.elems.input.oninput = () => this.checkCanIndex();
+        this.elems.indexBtn.onclick = () => this.runIndexing();
+        this.elems.canvas.addEventListener('mousemove', e => this.handleMouseMove(e));
+    },
+
+    checkCanIndex() {
+        this.elems.indexBtn.disabled = this.elems.input.value.trim().length === 0;
+    },
+    
+    // --- Core Logic ---
+    runIndexing() {
+        if (this.state.isIndexing) return;
+        this.state.isIndexing = true;
+        this.audio.setProcessing(true);
+        this.elems.chassis.classList.add('system-busy');
+        this.elems.indexBtn.classList.add('processing');
+        this.elems.indexBtn.disabled = true;
+        this.elems.outputIndex.innerHTML = `<div class="placeholder-text">ANALYZING...</div>`;
+        this.state.graph = { nodes: [], links: [] };
+
+        setTimeout(() => {
+            const text = this.elems.input.value;
+            this.state.analysisResult = this.analyze(text);
+            this.renderIndex(this.state.analysisResult);
+            this.buildGraph(this.state.analysisResult.fragments);
+            
+            this.state.isIndexing = false;
+            this.elems.chassis.classList.remove('system-busy');
+            this.elems.indexBtn.classList.remove('processing');
+            this.checkCanIndex();
+            this.audio.setProcessing(false);
+            this.audio.play('done');
+        }, 2000);
+    },
+
+    analyze(text) {
+        const fragments = text.split('\n').filter(line => line.trim() !== '');
+        const result = { fragments: [] };
+        let baseTimestamp = 10;
+        
+        // **FIX:** Use a standard for-loop or forEach to safely access previous elements.
+        fragments.forEach((fragText, i) => {
+            const words = fragText.toLowerCase().replace(/[.,]/g, '').split(/\s+/);
+            const fragment = {
+                id: `FRG-${String(i+1).padStart(3,'0')}`,
+                text: fragText,
+                tags: {
+                    symbols: [...new Set(words.filter(w => this.KEYWORDS.SYMBOLS.includes(w)))],
+                    feelings: [...new Set(words.filter(w => this.KEYWORDS.FEELINGS.includes(w)))],
+                    events: [...new Set(words.filter(w => this.KEYWORDS.EVENTS.includes(w)))]
+                },
+                timestamp: baseTimestamp,
+                dream_logic_warnings: []
+            };
+
+            // Timeline estimation
+            if (this.KEYWORDS.TIME_BEFORE.some(w => words.includes(w))) {
+                fragment.timestamp = baseTimestamp - 5;
+                const prevFragment = result.fragments[i-1];
+                if(prevFragment && fragment.timestamp <= prevFragment.timestamp) {
+                    fragment.dream_logic_warnings.push('chronology_error');
+                }
+            } else if (this.KEYWORDS.TIME_AFTER.some(w => words.includes(w))) {
+                fragment.timestamp = baseTimestamp + 5;
+            }
+            baseTimestamp = fragment.timestamp;
+            
+            // Check for recursion (safely)
+            const prevFragment = result.fragments[i-1];
+            if (prevFragment) {
+                if (fragment.tags.symbols.some(s => prevFragment.tags.symbols.includes(s))) {
+                    fragment.dream_logic_warnings.push('recursion');
+                }
+            }
+            
+            result.fragments.push(fragment);
+        });
+
+        return result;
+    },
+
+    buildGraph(fragments) {
+        const symbolCounts = {};
+        const coOccurrence = {};
+        
+        fragments.forEach(frag => {
+            const uniqueSymbols = frag.tags.symbols;
+            uniqueSymbols.forEach(s => { symbolCounts[s] = (symbolCounts[s] || 0) + 1; });
+            for (let i = 0; i < uniqueSymbols.length; i++) {
+                for (let j = i + 1; j < uniqueSymbols.length; j++) {
+                    const key = [uniqueSymbols[i], uniqueSymbols[j]].sort().join('|');
+                    coOccurrence[key] = (coOccurrence[key] || 0) + 1;
+                }
+            }
+        });
+
+        const w = this.elems.canvas.width;
+        const h = this.elems.canvas.height;
+        const numNodes = Object.keys(symbolCounts).length;
+        const nodes = Object.keys(symbolCounts).map((s, i) => {
+            // **IMPROVEMENT:** Place nodes in a circle initially
+            const angle = (i / numNodes) * 2 * Math.PI;
+            return {
+                id: s, count: symbolCounts[s],
+                x: w/2 + (w/3) * Math.cos(angle), y: h/2 + (h/3) * Math.sin(angle),
+                vx: 0, vy: 0,
+            };
+        });
+
+        const links = Object.keys(coOccurrence).map(key => {
+            const [source, target] = key.split('|');
+            return { source, target, weight: coOccurrence[key] };
+        });
+
+        this.state.graph = { nodes, links };
+    },
+
+    handleMouseMove(e) {
+        const rect = this.elems.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        let closest = null;
+        let min_d2 = 20*20;
+        this.state.graph.nodes.forEach(node => {
+            const d2 = (node.x-x)**2 + (node.y-y)**2;
+            if (d2 < min_d2) { min_d2 = d2; closest = node; }
+        });
+        this.state.hoveredNode = closest;
+    },
+
+    // --- Rendering ---
+    renderIndex(data) {
+        // This regex-based highlighter is a classic trick. It's complex but effective.
+        const syntaxHighlight = (json) => {
+            if (typeof json != 'string') json = JSON.stringify(json, undefined, 2);
+            json = json.replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, 
+            (match) => {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    cls = /:$/.test(match) ? 'json-key' : 'json-string';
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                if (cls === 'json-string' && /FRG-\d{3}/.test(match)) return `<span class="${cls} json-tag">${match}</span>`;
+                return `<span class="${cls}">${match}</span>`;
+            });
+        };
+        this.elems.outputIndex.innerHTML = syntaxHighlight(data);
+    },
+    
+    drawGraphLoop() {
+        requestAnimationFrame(() => this.drawGraphLoop());
+        if (!this.elems.ctx || !this.state.graph.nodes) return;
+        const { nodes, links } = this.state.graph;
+        const { ctx, canvas } = this.elems;
+        const w = canvas.width, h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+        
+        // Physics update (simple force-directed layout)
+        nodes.forEach(n1 => {
+            n1.vx *= 0.95; n1.vy *= 0.95; // Damping
+            n1.vx += (w/2 - n1.x) * 0.0001; n1.vy += (h/2 - n1.y) * 0.0001;
+            nodes.forEach(n2 => {
+                if (n1 === n2) return;
+                const dx = n2.x - n1.x, dy = n2.y - n1.y; let d = Math.sqrt(dx*dx + dy*dy);
+                if (d > 0) { const force = -50 / (d); n1.vx += dx/d * force; n1.vy += dy/d * force; }
+            });
+        });
+        
+        links.forEach(link => {
+            const n1 = nodes.find(n => n.id === link.source), n2 = nodes.find(n => n.id === link.target);
+            if (!n1 || !n2) return;
+            const dx = n2.x - n1.x, dy = n2.y - n1.y; let d = Math.sqrt(dx*dx + dy*dy);
+            if (d > 0) { const force = (d - 120) * 0.0005 * link.weight;
+            n1.vx += dx/d * force; n1.vy += dy/d * force; n2.vx -= dx/d * force; n2.vy -= dy/d * force; }
+        });
+        nodes.forEach(n => { n.x += n.vx; n.y += n.vy; });
+
+        // Draw links
+        ctx.strokeStyle = 'rgba(108, 112, 121, 0.3)'; ctx.lineWidth = 1;
+        links.forEach(link => {
+            const n1 = nodes.find(n => n.id === link.source), n2 = nodes.find(n => n.id === link.target);
+            if(n1 && n2) { ctx.beginPath(); ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y); ctx.stroke(); }
+        });
+        
+        // Draw hovered links
+        if (this.state.hoveredNode) {
+            ctx.strokeStyle = `rgba(179, 90, 45, 0.8)`; ctx.lineWidth = 2;
+            links.forEach(link => {
+                if (link.source === this.state.hoveredNode.id || link.target === this.state.hoveredNode.id) {
+                    const n1 = nodes.find(n => n.id === link.source), n2 = nodes.find(n => n.id === link.target);
+                    if(n1 && n2) { ctx.beginPath(); ctx.moveTo(n1.x, n1.y); ctx.lineTo(n2.x, n2.y); ctx.stroke(); }
+                }
+            });
+        }
+        
+        // Draw nodes
+        ctx.font = '12px "Share Tech Mono"';
+        nodes.forEach(node => {
+            const radius = 5 + node.count * 3;
+            ctx.beginPath(); ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = node === this.state.hoveredNode ? 'var(--my-accent)' : '#b8c0c8';
+            ctx.fill();
+            ctx.fillStyle = node === this.state.hoveredNode ? '#fff' : 'var(--my-text-dark)';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(node.id, node.x, node.y);
+        });
+    },
+};
+
+Myndarch.init();
+</script>
+</body>
+</html>

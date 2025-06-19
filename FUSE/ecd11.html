@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // litflow // NARRATIVE ANALYSIS SYSTEM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: litflow - Emotion-Linguistic Logic Flow Visualizer
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: An analysis console that generates a schematic of a text's
+        *   logical structure, emotional arc, and narrative energy.
+        */
+
+        :root {
+            --lf-bg: #1a1c20;
+            --lf-panel: #2c3138;
+            --lf-screen: #0a0c10;
+            --lf-text: #c0c5ce;
+            --lf-text-dim: #7c828d;
+            --lf-text-highlight: #e0e6f0;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+            
+            /* Color Palette */
+            --c-logic: #8be9fd; /* cyan */
+            --c-tension: #ff5555; /* red */
+            --c-resolution: #50fa7b; /* green */
+            --c-inversion: #f1fa8c; /* yellow */
+            --c-energy: #ffb86c; /* orange */
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes blink-indicator { 0%, 100% { background: var(--color); } 50% { background: #111; } }
+        
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--lf-text); user-select: none;
+        }
+        #litflow-chassis {
+            width: 1600px; height: 900px; background-color: var(--lf-bg);
+            border: 1px solid #555; box-shadow: 0 0 30px rgba(80, 250, 123, 0.1);
+            padding: 20px; display: grid; grid-template-columns: 350px 1fr;
+            grid-template-rows: 1fr; gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--lf-panel); padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 1px solid var(--lf-text-dim);
+            padding-bottom: 5px; margin: 0 0 15px 0; color: var(--lf-text-highlight);
+        }
+
+        /* --- LEFT PANEL: INPUT & STATUS --- */
+        #left-panel { grid-column: 1 / 2; }
+        #manuscript-library { flex-grow: 1; overflow-y: auto; }
+        .manuscript-button {
+            width: 100%; background: #3a3f44; border: 1px solid #1a1a1a;
+            padding: 12px; font-size: 1.1rem; margin-bottom: 8px; cursor: pointer;
+            text-align: left; transition: all 0.2s;
+        }
+        .manuscript-button:hover { background-color: #4a5057; }
+        .manuscript-button.active { background-color: var(--c-resolution); color: #000; font-weight: bold; }
+        
+        #status-panel { height: 250px; flex-shrink: 0; }
+        .status-field { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .status-nixie {
+            font-family: var(--font-display); font-size: 2.2rem; background: #111;
+            color: var(--c-energy); text-shadow: 0 0 8px var(--c-energy);
+            padding: 0 10px; text-align: right;
+        }
+        .indicator-light {
+            width: 15px; height: 15px; border-radius: 50%; background: #111;
+            border: 1px solid #000;
+        }
+        .indicator-light.processing { --color: var(--c-energy); animation: blink-indicator 0.5s infinite; }
+        .indicator-light.complete { background: var(--c-resolution); }
+
+        /* --- RIGHT PANEL: SCHEMATIC & TEXT SPOOL --- */
+        #right-panel { grid-column: 2 / 3; display: grid; grid-template-rows: 1fr 250px; gap: 15px; }
+        #schematic-display { position: relative; background: var(--lf-screen); }
+        #schematic-canvas { width: 100%; height: 100%; }
+        #scan-head {
+            position: absolute; top: 0; left: 0; width: 2px; height: 100%;
+            background: rgba(241, 250, 140, 0.7); /* yellow */
+            box-shadow: 0 0 10px 2px var(--c-inversion);
+            pointer-events: none; opacity: 0; transition: opacity 0.2s;
+        }
+        #schematic-display:hover #scan-head { opacity: 1; }
+        
+        #text-spool-module { overflow: hidden; }
+        #text-spool { height: 100%; overflow-y: auto; padding: 15px; background: #1a1c20; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div id="litflow-chassis">
+        <!-- LEFT PANEL -->
+        <div class="panel" id="left-panel">
+            <h2 class="module-label">MANUSCRIPT INPUT</h2>
+            <div id="manuscript-library"></div>
+            <div id="status-panel">
+                <h2 class="module-label" style="font-size:1.5rem; margin-top:20px;">SYSTEM STATUS</h2>
+                <div class="status-field">
+                    <span>DOCUMENT LENGTH:</span>
+                    <span class="status-nixie" id="status-length">0</span>
+                </div>
+                <div class="status-field">
+                    <span>PEAK TENSION:</span>
+                    <span class="status-nixie" id="status-tension">0.0</span>
+                </div>
+                <div class="status-field">
+                    <span>RECURSIVE LOOPS:</span>
+                    <span class="status-nixie" id="status-loops">0</span>
+                </div>
+                <div class="status-field">
+                    <span>ANALYSIS:</span>
+                    <div class="indicator-light" id="status-indicator"></div>
+                </div>
+            </div>
+        </div>
+        <!-- RIGHT PANEL -->
+        <div class="panel" id="right-panel">
+            <div id="schematic-display">
+                <canvas id="schematic-canvas"></canvas>
+                <div id="scan-head"></div>
+            </div>
+            <div class="panel" id="text-spool-module">
+                 <h2 class="module-label">TEXT SPOOL</h2>
+                 <div id="text-spool">NO MANUSCRIPT LOADED.</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const litflow = {
+    // --- Data ---
+    MANUSCRIPTS: [
+        { name: "Public Apology Ritual", text: "We gather in humility. An error was made. A trust was broken. We acknowledge the harm caused. This was a failure of oversight, not of intent. But intent does not erase consequence. We must ask: how did we arrive here? Was it pride? Was it haste? It was both. We must reflect. We offer this testimony as a gesture of repair. We accept the judgment of this body. We commit to a new path. This cycle of error must end now. Let this be the final word on the matter. We offer this testimony. We acknowledge the harm." },
+        { name: "Academic Peer Review", text: "The author presents a novel thesis. The methodology is sound. The data supports the primary claim. However, the literature review is insufficient. It omits several key studies. This is a significant oversight. What is the implication of these omissions? The conclusion, while compelling, feels premature. The framework needs more robust defense. The argument is circular in section three. I recommend revision. The thesis has merit, but the foundation is weak. The methodology is sound." },
+        { name: "Product Launch Keynote", text: "Today, we redefine connection. We unveil a new paradigm. This device is not a tool; it is an extension of will. It is seamless. It is intuitive. It is everything you have asked for. We have listened. We have built. We have perfected. Are you ready? The future is not coming. The future is here. Experience it now. It is seamless. It is everything." },
+    ],
+    // Simplified analysis keywords
+    KEYWORDS: {
+        tension: ['fail', 'broken', 'harm', 'error', 'weak', 'oversight', 'insufficient', 'not', 'however', 'omits'],
+        resolution: ['accept', 'commit', 'new', 'repair', 'merit', 'sound', 'supports', 'perfected', 'redefine'],
+        question: ['?', 'how', 'what'],
+        assertion: ['.', '!'],
+    },
+
+    // --- DOM Elements ---
+    elems: {
+        library: document.getElementById('manuscript-library'),
+        canvas: document.getElementById('schematic-canvas'),
+        ctx: null,
+        scanHead: document.getElementById('scan-head'),
+        textSpool: document.getElementById('text-spool'),
+        status: {
+            length: document.getElementById('status-length'),
+            tension: document.getElementById('status-tension'),
+            loops: document.getElementById('status-loops'),
+            indicator: document.getElementById('status-indicator'),
+        }
+    },
+    
+    // --- State ---
+    state: {
+        activeManuscript: null,
+        analysisData: null, // { sentences: [], logic: [], emotion: [], energy: [] }
+    },
+
+    // --- Audio ---
+    audio: {
+        ctx: null, load: null, process: null, click: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.load = this.createSound(100, 0.2, 'square');
+            this.click = this.createSound(1000, 0.05, 'sine');
+            let processOsc = this.ctx.createOscillator(); processOsc.type='sawtooth'; processOsc.frequency.value=50;
+            let processGain = this.ctx.createGain(); processGain.gain.value = 0;
+            processOsc.connect(processGain); processGain.connect(this.ctx.destination); processOsc.start();
+            this.process = (on) => processGain.gain.setTargetAtTime(on ? 0.05 : 0, this.ctx.currentTime, 0.1);
+        },
+        createSound(freq, dur, type) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type=type; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            g.gain.setValueAtTime(0.2,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.elems.ctx = this.elems.canvas.getContext('2d');
+        this.renderLibrary();
+        this.addEventListeners();
+        this.resizeCanvas(); window.onresize = () => this.resizeCanvas();
+    },
+
+    renderLibrary() {
+        this.elems.library.innerHTML = this.MANUSCRIPTS.map((m, i) => 
+            `<button class="manuscript-button" data-id="${i}">${m.name}</button>`
+        ).join('');
+    },
+    
+    addEventListeners() {
+        this.elems.library.addEventListener('click', e => {
+            if (e.target.matches('.manuscript-button')) {
+                this.loadManuscript(parseInt(e.target.dataset.id));
+            }
+        });
+        this.elems.canvas.parentElement.addEventListener('mousemove', e => this.handleScan(e));
+    },
+
+    // --- Core Logic ---
+    loadManuscript(id) {
+        this.audio.load();
+        this.state.activeManuscript = id;
+        document.querySelectorAll('.manuscript-button').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.manuscript-button[data-id="${id}"]`).classList.add('active');
+        
+        this.elems.status.indicator.className = 'indicator-light processing';
+        this.audio.process(true);
+
+        // Simulate analysis time
+        setTimeout(() => {
+            this.analyzeText(this.MANUSCRIPTS[id].text);
+            this.elems.status.indicator.className = 'indicator-light complete';
+            this.audio.process(false);
+            this.drawSchematic();
+        }, 1500);
+    },
+
+    analyzeText(text) {
+        const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+        const data = { sentences, logic: [], emotion: [], energy: [], annotations: [] };
+        
+        let lastEmotion = 0;
+        let peakTension = 0;
+        let loops = 0;
+        const recentSentences = [];
+        
+        sentences.forEach((s, i) => {
+            const words = s.toLowerCase().split(/\s+/);
+            
+            // Logic Analysis
+            let type = 'assertion';
+            if (this.KEYWORDS.question.some(k => s.includes(k))) type = 'question';
+            if (i > 0 && this.KEYWORDS.tension.some(k => s.includes(k) && sentences[i-1].includes('support'))) type = 'contradiction';
+            data.logic.push({ type });
+
+            // Check for loops
+            if(recentSentences.includes(s.trim())) {
+                loops++;
+                data.annotations.push({ type: 'recursion', index: i, text: `RECURSIVE LOOP` });
+            }
+            recentSentences.push(s.trim());
+            if (recentSentences.length > 5) recentSentences.shift();
+            
+            // Emotion Analysis
+            let tension = words.filter(w => this.KEYWORDS.tension.includes(w)).length;
+            let resolution = words.filter(w => this.KEYWORDS.resolution.includes(w)).length;
+            let currentEmotion = Math.max(-1, Math.min(1, (resolution - tension) / 3));
+            if (Math.abs(currentEmotion - lastEmotion) > 0.8) {
+                data.annotations.push({ type: 'inversion', index: i, text: `AFFECT INVERSION` });
+            }
+            data.emotion.push(currentEmotion);
+            if (-currentEmotion > peakTension) peakTension = -currentEmotion;
+            lastEmotion = currentEmotion;
+            
+            // Energy Analysis
+            let energy = (s.length / 150) + (words.length / 20);
+            data.energy.push(Math.min(1, energy));
+        });
+        
+        this.state.analysisData = data;
+        this.updateStatusPanel(sentences.length, peakTension, loops);
+    },
+
+    updateStatusPanel(length, tension, loops) {
+        this.elems.status.length.textContent = length;
+        this.elems.status.tension.textContent = tension.toFixed(2);
+        this.elems.status.loops.textContent = loops;
+    },
+
+    handleScan(e) {
+        if (!this.state.analysisData) return;
+        const rect = this.elems.canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        this.elems.scanHead.style.transform = `translateX(${x}px)`;
+        
+        const index = Math.floor((x / rect.width) * this.state.analysisData.sentences.length);
+        if (index >= 0 && index < this.state.analysisData.sentences.length) {
+            this.elems.textSpool.textContent = `[${index+1}/${this.state.analysisData.sentences.length}] ` + this.state.analysisData.sentences[index];
+        }
+    },
+    
+    // --- Canvas Drawing ---
+    resizeCanvas() {
+        this.elems.canvas.width = this.elems.canvas.offsetWidth;
+        this.elems.canvas.height = this.elems.canvas.offsetHeight;
+        if(this.state.analysisData) this.drawSchematic();
+    },
+
+    drawSchematic() {
+        const { ctx, canvas } = this.elems;
+        const { sentences, logic, emotion, energy, annotations } = this.state.analysisData;
+        const w = canvas.width, h = canvas.height;
+        const stepX = w / sentences.length;
+        
+        ctx.clearRect(0, 0, w, h);
+        
+        // --- 1. Draw Logic Flow (Top third) ---
+        const logicY = h / 6;
+        ctx.strokeStyle = `rgba(139, 233, 253, 0.5)`; // cyan
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, logicY);
+        logic.forEach((l, i) => ctx.lineTo(stepX * (i + 0.5), logicY));
+        ctx.stroke();
+        
+        logic.forEach((l, i) => {
+            const x = stepX * (i + 0.5);
+            ctx.fillStyle = 'var(--c-logic)';
+            if (l.type === 'question') {
+                ctx.beginPath(); ctx.arc(x, logicY, 5, 0, Math.PI * 2); ctx.fill();
+            } else if (l.type === 'contradiction') {
+                ctx.fillRect(x - 5, logicY - 5, 10, 10);
+            } else {
+                ctx.beginPath(); ctx.arc(x, logicY, 3, 0, Math.PI * 2); ctx.fill();
+            }
+        });
+        
+        // --- 2. Draw Emotion Contour (Middle third) ---
+        const emotionBaseY = h / 2;
+        const emotionH = h / 3;
+        // Resolution Area
+        ctx.fillStyle = 'rgba(80, 250, 123, 0.1)';
+        ctx.fillRect(0, emotionBaseY - emotionH/2, w, emotionH/2);
+        // Tension Area
+        ctx.fillStyle = 'rgba(255, 85, 85, 0.1)';
+        ctx.fillRect(0, emotionBaseY, w, emotionH/2);
+        
+        ctx.beginPath();
+        emotion.forEach((e, i) => {
+            const y = emotionBaseY - (e * emotionH / 2);
+            if (i === 0) ctx.moveTo(stepX * 0.5, y);
+            else ctx.lineTo(stepX * (i + 0.5), y);
+        });
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // --- 3. Draw Energy Profile (Bottom third) ---
+        const energyBaseY = h;
+        const energyH = h / 3;
+        ctx.fillStyle = 'rgba(255, 184, 108, 0.3)';
+        energy.forEach((e, i) => {
+            ctx.fillRect(stepX * i, energyBaseY - (e * energyH), stepX, e * energyH);
+        });
+
+        // --- 4. Draw Annotations ---
+        ctx.font = '12px "Share Tech Mono"';
+        annotations.forEach(an => {
+            const x = stepX * (an.index + 0.5);
+            let y, color;
+            if (an.type === 'inversion') { y = emotionBaseY; color = 'var(--c-inversion)'; }
+            else if (an.type === 'recursion') { y = logicY; color = 'var(--c-logic)'; }
+            
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x, y - 20); ctx.lineTo(x-5, y-25); ctx.lineTo(x+5, y-25);
+            ctx.closePath();
+            ctx.fill();
+            ctx.textAlign = 'center';
+            ctx.fillText(an.text, x, y - 30);
+        });
+    }
+};
+
+litflow.init();
+</script>
+</body>
+</html>

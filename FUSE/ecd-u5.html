@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧭 Unified Creative-Cybernetic System</title>
+    <style>
+        /* FONT IMPORTS */
+        @import url('https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=Roboto+Mono:wght@300;400;700&display=swap');
+
+        :root {
+            --bg-deep: #020308;
+            --bg-main: #0a0c14;
+            --panel-bg: #11141f;
+            --border-color: #2a314b;
+            --text-color: #c0c8e0;
+            --text-muted: #626c8b;
+            --accent-latent: #5f70a5;
+            --accent-active: #a7d1ff;
+            --accent-resonant: #f0c674;
+            --accent-critical: #f87a9b;
+            --font-body: 'Roboto Mono', monospace;
+            --font-display: 'Major Mono Display', monospace;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-deep);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            font-size: 14px;
+            user-select: none;
+        }
+
+        /* --- OVERLAY --- */
+        #system-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(2, 3, 8, 0.95);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: opacity 1.5s ease;
+        }
+        #system-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #system-overlay h1 {
+            font-family: var(--font-display);
+            font-size: 2em;
+            color: var(--accent-active);
+            margin: 0;
+            letter-spacing: 2px;
+        }
+        #system-overlay p {
+            max-width: 600px;
+            line-height: 1.7;
+            color: var(--text-muted);
+        }
+        #system-overlay button {
+            margin-top: 30px;
+            padding: 15px 30px;
+            font-family: var(--font-display);
+            font-size: 1.2em;
+            background: transparent;
+            border: 1px solid var(--accent-latent);
+            color: var(--accent-latent);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #system-overlay button:hover {
+            color: var(--accent-active);
+            border-color: var(--accent-active);
+            box-shadow: 0 0 15px var(--accent-active);
+        }
+
+        /* --- MAIN LAYOUT --- */
+        #unified-system {
+            display: grid;
+            grid-template-columns: 350px 1fr 400px;
+            grid-template-rows: 1fr 60px;
+            width: 100%;
+            height: 100%;
+            grid-template-areas:
+                "intention workspace artifact"
+                "status status status";
+        }
+
+        /* --- PANELS --- */
+        #intention-panel {
+            grid-area: intention;
+            background: var(--panel-bg);
+            padding: 20px;
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column;
+        }
+        #artifact-panel {
+            grid-area: artifact;
+            background: var(--panel-bg);
+            padding: 20px;
+            border-left: 1px solid var(--border-color);
+            display: flex; flex-direction: column; overflow-y: auto;
+        }
+        #workspace {
+            grid-area: workspace;
+            background: var(--bg-main);
+            position: relative;
+            overflow: hidden;
+            perspective: 2000px;
+        }
+        #status-bar {
+            grid-area: status;
+            background: #000;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 20px;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            color: var(--text-muted);
+            font-size: 1.1em;
+            padding-bottom: 10px;
+            margin: 0 0 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* --- INTENTION PANEL --- */
+        #intention-input {
+            width: 100%;
+            height: 150px;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-family: var(--font-body);
+            padding: 10px;
+            box-sizing: border-box;
+            resize: none;
+        }
+        #commit-button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            font-family: var(--font-display);
+            background: var(--accent-latent);
+            color: var(--bg-deep);
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+        }
+        #commit-button:disabled { background: var(--text-muted); cursor: not-allowed; }
+
+        /* --- WORKSPACE & CRUCIBLE --- */
+        #crucible-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform-style: preserve-3d;
+            transition: transform 1s ease-in-out;
+        }
+        #crucible {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            transform-style: preserve-3d;
+            cursor: grab;
+        }
+        #crucible.open { transform: scale(1.5); }
+        #crucible.active-drag { cursor: grabbing; }
+
+        .crucible-face {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            border: 1px solid var(--accent-latent);
+            background: rgba(17, 20, 31, 0.3);
+            backdrop-filter: blur(5px);
+            color: var(--accent-latent);
+            font-family: var(--font-display);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            transition: all 0.5s ease;
+        }
+        .crucible-face:hover {
+            border-color: var(--accent-active);
+            color: var(--accent-active);
+            background: rgba(167, 209, 255, 0.1);
+        }
+        .face-front  { transform: rotateY(0deg)   translateZ(100px); }
+        .face-back   { transform: rotateY(180deg) translateZ(100px); }
+        .face-right  { transform: rotateY(90deg)  translateZ(100px); }
+        .face-left   { transform: rotateY(-90deg) translateZ(100px); }
+        .face-top    { transform: rotateX(90deg)  translateZ(100px); }
+        .face-bottom { transform: rotateX(-90deg) translateZ(100px); }
+
+        #intention-core {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) translateZ(0px) scale(0);
+            background: var(--accent-active);
+            color: var(--bg-deep);
+            padding: 20px;
+            border-radius: 50%;
+            font-family: var(--font-display);
+            box-shadow: 0 0 30px var(--accent-active);
+            transition: transform 0.5s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #intention-core.visible { transform: translate(-50%, -50%) translateZ(0px) scale(1); opacity: 1; pointer-events: auto; cursor: grab; }
+        #intention-core.active-drag { cursor: grabbing; }
+        
+        /* --- ALIGNMENT TASKS --- */
+        .alignment-task {
+            position: absolute;
+            top:0; left:0; right:0; bottom:0;
+            background: rgba(2,3,8,0.8);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .alignment-task.active { display: flex; }
+        .alignment-prompt { font-family: var(--font-display); font-size: 1.5em; margin-bottom: 20px; }
+        
+        #rhythm-pulse { width: 100px; height: 100px; border-radius: 50%; background: var(--accent-latent); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(0.9); opacity: 0.7; } 50% { transform: scale(1.1); opacity: 1; } }
+        
+        #vocal-meter { width: 50%; height: 20px; border: 1px solid var(--accent-latent); }
+        #vocal-fill { width: 0%; height: 100%; background: var(--accent-resonant); transition: width 0.1s linear; }
+        
+        #symbolic-canvas { border: 1px solid var(--accent-latent); }
+
+        /* --- TRANSMUTATION NODES --- */
+        .transmutation-node {
+            position: absolute;
+            width: 100px; height: 100px;
+            border: 1px dashed var(--accent-latent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-latent);
+            font-size: 0.8em;
+            transition: all 0.5s ease;
+            opacity: 0;
+            transform: scale(0);
+            z-index: 50;
+        }
+        .transmutation-node.visible { opacity: 1; transform: scale(1); }
+        .transmutation-node.drop-target {
+            background: rgba(167, 209, 255, 0.2);
+            border-style: solid;
+            border-color: var(--accent-active);
+            transform: scale(1.2);
+        }
+
+        /* --- ARTIFACT PANEL --- */
+        .artifact-container {
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            background: var(--bg-main);
+            padding: 15px;
+            animation: fadeIn 0.5s ease;
+        }
+        .artifact-container:hover { border-color: var(--accent-active); }
+        .artifact-header {
+            font-family: var(--font-display);
+            color: var(--accent-resonant);
+            margin-bottom: 10px;
+            cursor: grab;
+        }
+        .artifact-content { font-size: 0.9em; white-space: pre-wrap; word-break: break-all; }
+        
+        #glyph-array { font-family: 'Major Mono Display', monospace; line-height: 1.2; font-size: 1.2em; letter-spacing: 5px; }
+        #cognitive-diagram { width: 100%; height: 150px; }
+        #video-dream { position: relative; height: 200px; background: #000; overflow: hidden; }
+        #video-dream img { width: 100%; height: 100%; object-fit: cover; opacity: 0.5; }
+        #video-dream::after { content: ''; position: absolute; top:0; left:0; right:0; bottom:0; background: repeating-linear-gradient(transparent, transparent 2px, rgba(0,0,0,0.5) 3px); animation: flicker 0.15s infinite; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes flicker { 0% { opacity: 0.6; } 50% { opacity: 0.8; } 100% { opacity: 0.6; } }
+
+        /* --- STATUS BAR --- */
+        .status-light { display: flex; align-items: center; gap: 10px; color: var(--text-muted); transition: color 0.5s; }
+        .status-light::before {
+            content: '';
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 5px currentColor;
+            transition: all 0.5s;
+        }
+        .status-light.unlocked { color: var(--accent-resonant); }
+
+    </style>
+</head>
+<body>
+
+    <div id="system-overlay">
+        <h1>Unified Creative-Cybernetic System</h1>
+        <p>This interface is a cognitive object. Any input—text, image, audio, concept, memory fragment, or emotional state—can be transformed into any other form. Interaction is not through buttons, but through ontological gestures, rhythmic alignment, and symbolic resonance. The system preserves and expands your intention, it does not reduce it.</p>
+        <button id="initiate-button">I N I T I A T E</button>
+    </div>
+
+    <div id="unified-system">
+        <aside id="intention-panel">
+            <h2>1. Ontological Intention</h2>
+            <textarea id="intention-input" placeholder="Seed a concept, a memory, a line of code, a dream fragment..."></textarea>
+            <button id="commit-button" disabled>C O M M I T</button>
+            <div id="log" style="margin-top:20px; font-size:0.8em; color: var(--text-muted); flex-grow:1; overflow-y:auto;">[System Log Initialized]</div>
+        </aside>
+
+        <main id="workspace">
+            <div id="crucible-container">
+                <div id="crucible">
+                    <div class="crucible-face face-front">SYMBOLIC</div>
+                    <div class="crucible-face face-back">RECURSIVE</div>
+                    <div class="crucible-face face-right">EMOTIONAL</div>
+                    <div class="crucible-face face-left">STRUCTURAL</div>
+                    <div class="crucible-face face-top">TEMPORAL</div>
+                    <div class="crucible-face face-bottom">ONTOLOGICAL</div>
+                </div>
+            </div>
+            <div id="intention-core">INTENTION</div>
+            <!-- Transmutation Nodes will be added here -->
+            <div id="rhythmic-alignment" class="alignment-task"><div class="alignment-prompt">[Align with the Rhythm: Tap SPACE on the pulse]</div><div id="rhythm-pulse"></div></div>
+            <div id="vocal-alignment" class="alignment-task"><div class="alignment-prompt">[Harmonize Vocally: Hold SPACE to sustain]</div><div id="vocal-meter"><div id="vocal-fill"></div></div></div>
+            <div id="symbolic-alignment" class="alignment-task"><div class="alignment-prompt">[Trace the Resonance: Connect the points]</div><canvas id="symbolic-canvas" width="300" height="300"></canvas></div>
+        </main>
+
+        <aside id="artifact-panel">
+            <h2>Transmuted Artifacts</h2>
+            <div id="artifact-output-container">
+                <div style="color:var(--text-muted); font-style:italic;">[Awaiting transmutation...]</div>
+            </div>
+        </aside>
+
+        <footer id="status-bar">
+            <div class="status-light" id="rhythm-status">RHYTHMIC LOCK</div>
+            <div class="status-light" id="vocal-status">VOCAL HARMONY</div>
+            <div class="status-light" id="symbolic-status">SYMBOLIC RESONANCE</div>
+        </footer>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- STATE MANAGEMENT ---
+    const STATE = {
+        LATENT: 'LATENT',
+        INTENTION_SET: 'INTENTION_SET',
+        ALIGNING_RHYTHM: 'ALIGNING_RHYTHM',
+        ALIGNING_VOCAL: 'ALIGNING_VOCAL',
+        ALIGNING_SYMBOLIC: 'ALIGNING_SYMBOLIC',
+        ALIGNED: 'ALIGNED',
+        TRANSMUTING: 'TRANSMUTING'
+    };
+    let currentState = STATE.LATENT;
+    let currentIntention = { text: '', id: null, element: null };
+    let alignmentLocks = { rhythm: false, vocal: false, symbolic: false };
+
+    // --- DOM ELEMENTS ---
+    const overlay = document.getElementById('system-overlay');
+    const initiateBtn = document.getElementById('initiate-button');
+    const intentionInput = document.getElementById('intention-input');
+    const commitBtn = document.getElementById('commit-button');
+    const log = document.getElementById('log');
+    const crucible = document.getElementById('crucible');
+    const crucibleContainer = document.getElementById('crucible-container');
+    const intentionCore = document.getElementById('intention-core');
+    const artifactOutput = document.getElementById('artifact-output-container');
+    
+    // Alignment Task Elements
+    const alignmentTasks = {
+        rhythm: document.getElementById('rhythmic-alignment'),
+        vocal: document.getElementById('vocal-alignment'),
+        symbolic: document.getElementById('symbolic-alignment')
+    };
+    const vocalFill = document.getElementById('vocal-fill');
+
+    // Status Lights
+    const statusLights = {
+        rhythm: document.getElementById('rhythm-status'),
+        vocal: document.getElementById('vocal-status'),
+        symbolic: document.getElementById('symbolic-status'),
+    };
+    
+    // --- Web Audio API for feedback ---
+    let audioCtx;
+    const playTone = (freq, duration, type='sine') => {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = freq;
+        osc.type = type;
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    };
+
+    // --- LOGGING ---
+    const logMsg = (msg) => {
+        log.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + log.innerHTML;
+    };
+
+    // --- APPLICATION FLOW ---
+    function setState(newState) {
+        logMsg(`STATE CHANGE: ${currentState} -> ${newState}`);
+        currentState = newState;
+
+        // Hide all alignment tasks by default
+        Object.values(alignmentTasks).forEach(task => task.classList.remove('active'));
+
+        switch (newState) {
+            case STATE.INTENTION_SET:
+                intentionCore.classList.add('visible');
+                intentionCore.textContent = currentIntention.text.substring(0, 8).toUpperCase() || 'INTENTION';
+                setTimeout(() => setState(STATE.ALIGNING_RHYTHM), 1000);
+                break;
+            case STATE.ALIGNING_RHYTHM:
+                alignmentTasks.rhythm.classList.add('active');
+                initRhythmAlignment();
+                break;
+            case STATE.ALIGNING_VOCAL:
+                alignmentTasks.vocal.classList.add('active');
+                initVocalAlignment();
+                break;
+            case STATE.ALIGNING_SYMBOLIC:
+                alignmentTasks.symbolic.classList.add('active');
+                initSymbolicAlignment();
+                break;
+            case STATE.ALIGNED:
+                logMsg('ALL LAYERS ALIGNED. SYSTEM RESONANT.');
+                playTone(523, 1.0, 'triangle');
+                crucible.classList.add('open');
+                intentionCore.style.cursor = 'grab';
+                intentionCore.addEventListener('mousedown', startTransmutationDrag);
+                createTransmutationNodes();
+                break;
+        }
+    }
+    
+    // --- INITIALIZATION ---
+    initiateBtn.addEventListener('click', () => {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        overlay.classList.add('hidden');
+        logMsg("System Initiated. Awaiting Ontological Intention.");
+    });
+    
+    intentionInput.addEventListener('input', () => {
+        commitBtn.disabled = intentionInput.value.trim().length === 0;
+    });
+
+    commitBtn.addEventListener('click', () => {
+        currentIntention = { text: intentionInput.value, id: `intent_${Date.now()}` };
+        commitBtn.disabled = true;
+        intentionInput.disabled = true;
+        logMsg(`INTENTION COMMITTED: "${currentIntention.text.substring(0, 30)}..."`);
+        playTone(220, 0.5, 'sawtooth');
+        setState(STATE.INTENTION_SET);
+    });
+
+    // --- CRUCIBLE INTERACTION ---
+    let isDraggingCrucible = false;
+    let rotX = -25, rotY = 35;
+    let lastMouseX, lastMouseY;
+
+    crucible.addEventListener('mousedown', (e) => {
+        isDraggingCrucible = true;
+        crucible.style.cursor = 'grabbing';
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!isDraggingCrucible) return;
+        const dx = e.clientX - lastMouseX;
+        const dy = e.clientY - lastMouseY;
+        rotY += dx * 0.2;
+        rotX -= dy * 0.2;
+        crucible.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => {
+        isDraggingCrucible = false;
+        crucible.style.cursor = 'grab';
+    });
+
+    // --- ALIGNMENT LOGIC ---
+    function completeAlignment(type) {
+        alignmentLocks[type] = true;
+        statusLights[type].classList.add('unlocked');
+        logMsg(`${type.toUpperCase()} LOCK ACQUIRED.`);
+        playTone(440, 0.3, 'sine');
+
+        if (type === 'rhythm') setState(STATE.ALIGNING_VOCAL);
+        else if (type === 'vocal') setState(STATE.ALIGNING_SYMBOLIC);
+        else if (type === 'symbolic') setState(STATE.ALIGNED);
+    }
+
+    // RHYTHM
+    let rhythmTimeout;
+    function initRhythmAlignment() {
+        const onRhythmTap = (e) => {
+            if (e.code === 'Space') {
+                const style = window.getComputedStyle(document.getElementById('rhythm-pulse'));
+                const scale = new DOMMatrix(style.transform).m11;
+                // successful tap is when pulse is near its max size
+                if (scale > 1.05) {
+                    window.removeEventListener('keydown', onRhythmTap);
+                    completeAlignment('rhythm');
+                } else {
+                    playTone(110, 0.1, 'square');
+                }
+            }
+        };
+        window.addEventListener('keydown', onRhythmTap);
+    }
+
+    // VOCAL
+    let vocalInterval;
+    function initVocalAlignment() {
+        let holdTime = 0;
+        const onVocalHold = (e) => {
+            if (e.code === 'Space' && !vocalInterval) {
+                vocalInterval = setInterval(() => {
+                    holdTime += 100;
+                    vocalFill.style.width = `${(holdTime / 3000) * 100}%`;
+                    if (holdTime >= 3000) {
+                        clearInterval(vocalInterval);
+                        window.removeEventListener('keydown', onVocalHold);
+                        window.removeEventListener('keyup', onVocalRelease);
+                        completeAlignment('vocal');
+                    }
+                }, 100);
+            }
+        };
+        const onVocalRelease = (e) => {
+            if (e.code === 'Space') {
+                clearInterval(vocalInterval);
+                vocalInterval = null;
+                holdTime = 0;
+                vocalFill.style.width = '0%';
+            }
+        };
+        window.addEventListener('keydown', onVocalHold);
+        window.addEventListener('keyup', onVocalRelease);
+    }
+    
+    // SYMBOLIC
+    function initSymbolicAlignment() {
+        const canvas = document.getElementById('symbolic-canvas');
+        const ctx = canvas.getContext('2d');
+        const points = [ {x:50,y:50}, {x:250,y:100}, {x:150,y:250}, {x:50,y:50} ];
+        let currentPoint = 0;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'var(--accent-latent)';
+            ctx.fillStyle = 'var(--accent-latent)';
+            
+            // Draw lines
+            for (let i = 0; i < currentPoint; i++) {
+                ctx.beginPath();
+                ctx.moveTo(points[i].x, points[i].y);
+                ctx.lineTo(points[i+1].x, points[i+1].y);
+                ctx.stroke();
+            }
+            // Draw points
+            points.forEach((p, i) => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
+                if (i === currentPoint) {
+                    ctx.fillStyle = 'var(--accent-active)';
+                    ctx.shadowColor = 'var(--accent-active)';
+                    ctx.shadowBlur = 10;
+                } else {
+                    ctx.fillStyle = i < currentPoint ? 'var(--accent-resonant)' : 'var(--accent-latent)';
+                    ctx.shadowBlur = 0;
+                }
+                ctx.fill();
+            });
+            ctx.shadowBlur = 0;
+        }
+
+        const onSymbolClick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const p = points[currentPoint];
+            const dist = Math.sqrt((x-p.x)**2 + (y-p.y)**2);
+            
+            if (dist < 15) {
+                playTone(261 + currentPoint * 100, 0.2, 'triangle');
+                currentPoint++;
+                draw();
+                if (currentPoint >= points.length - 1) {
+                    canvas.removeEventListener('click', onSymbolClick);
+                    completeAlignment('symbolic');
+                }
+            }
+        };
+        canvas.addEventListener('click', onSymbolClick);
+        draw();
+    }
+
+
+    // --- TRANSMUTATION ---
+    const TRANSMUTATIONS = [
+        { id: 'glyph', name: 'Glyph Array', x: '50%', y: '10%' },
+        { id: 'diagram', name: 'Cognitive Diagram', x: '90%', y: '50%' },
+        { id: 'sonic', name: 'Sonic Ritual', x: '50%', y: '90%' },
+        { id: 'video', name: 'Video Dream', x: '10%', y: '50%' },
+    ];
+    function createTransmutationNodes() {
+        TRANSMUTATIONS.forEach(t => {
+            const node = document.createElement('div');
+            node.className = 'transmutation-node';
+            node.dataset.transmuteId = t.id;
+            node.textContent = t.name;
+            node.style.left = t.x;
+            node.style.top = t.y;
+            node.style.transform = `translate(-50%, -50%) scale(0)`;
+            document.getElementById('workspace').appendChild(node);
+            setTimeout(() => node.classList.add('visible'), 200 * TRANSMUTATIONS.indexOf(t));
+        });
+    }
+
+    let isDraggingCore = false;
+    function startTransmutationDrag(e) {
+        if (currentState !== STATE.ALIGNED) return;
+        isDraggingCore = true;
+        intentionCore.classList.add('active-drag');
+        window.addEventListener('mousemove', onTransmutationDrag);
+        window.addEventListener('mouseup', endTransmutationDrag, {once: true});
+    }
+
+    function onTransmutationDrag(e) {
+        if (!isDraggingCore) return;
+        const workspaceRect = document.getElementById('workspace').getBoundingClientRect();
+        intentionCore.style.left = `${e.clientX - workspaceRect.left}px`;
+        intentionCore.style.top = `${e.clientY - workspaceRect.top}px`;
+
+        document.querySelectorAll('.transmutation-node').forEach(node => {
+            const nodeRect = node.getBoundingClientRect();
+            const isOver = e.clientX > nodeRect.left && e.clientX < nodeRect.right && e.clientY > nodeRect.top && e.clientY < nodeRect.bottom;
+            node.classList.toggle('drop-target', isOver);
+        });
+    }
+
+    function endTransmutationDrag(e) {
+        isDraggingCore = false;
+        intentionCore.classList.remove('active-drag');
+        const targetNode = document.querySelector('.transmutation-node.drop-target');
+        
+        if (targetNode) {
+            transmute(targetNode.dataset.transmuteId, currentIntention);
+        }
+        
+        // Reset core position
+        intentionCore.style.transition = 'all 0.5s ease';
+        intentionCore.style.left = '50%';
+        intentionCore.style.top = '50%';
+        setTimeout(() => intentionCore.style.transition = 'transform 0.5s ease', 500);
+        document.querySelectorAll('.transmutation-node').forEach(n => n.classList.remove('drop-target'));
+
+        window.removeEventListener('mousemove', onTransmutationDrag);
+    }
+    
+    // --- The 'AI' part: Generating outputs ---
+    function transmute(type, intention) {
+        logMsg(`TRANSMUTING INTENTION to ${type.toUpperCase()} artifact...`);
+        playTone(659, 0.5, 'square');
+        const container = document.createElement('div');
+        container.className = 'artifact-container';
+        container.dataset.intentionId = intention.id;
+        container.dataset.intentionText = intention.text;
+        container.dataset.artifactType = type;
+        
+        const header = document.createElement('div');
+        header.className = 'artifact-header';
+        header.textContent = `[${type.toUpperCase()}] > ${intention.text.substring(0,20)}...`;
+        header.draggable = true;
+        header.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                id: container.dataset.intentionId,
+                text: container.dataset.intentionText,
+                type: container.dataset.artifactType
+            }));
+            logMsg('RECURSION INITIATED: Artifact dragged as new intention.');
+        });
+        
+        const content = document.createElement('div');
+        content.className = 'artifact-content';
+
+        // Procedural generation based on type
+        switch(type) {
+            case 'glyph':
+                let glyphs = '';
+                for(let i=0; i<64; i++) {
+                    glyphs += String.fromCharCode(0x2200 + Math.floor(Math.random() * 200));
+                    if ((i+1) % 8 === 0) glyphs += '\n';
+                }
+                content.id = 'glyph-array';
+                content.textContent = glyphs;
+                break;
+            case 'sonic':
+                content.textContent = `
+// SONIC RITUAL SCRIPT //
+// SEED: ${intention.text.length} chars
+// HASH: ${Math.random().toString(36).substring(2, 10)}
+
+[BEGIN_SEQUENCE]
+  LAYER(1):
+    SOURCE: SINE
+    FREQ: ${80 + (intention.text.length % 100)} Hz
+    MOD: LFO(SQUARE, 0.2Hz) -> GAIN
+  LAYER(2):
+    SOURCE: NOISE(PINK)
+    FILTER: BPF(q=5, f=${400 + (intention.text.length*2 % 1000)})
+  LAYER(3):
+    CHANT: "${intention.text.split(' ')[0].toUpperCase()}_PRIME"
+    DELAY: 0.7s, feedback=0.6
+[END_SEQUENCE]`;
+                break;
+            case 'diagram':
+                content.innerHTML = `<svg id="cognitive-diagram" style="width:100%; height:150px;"></svg>`;
+                // This is a placeholder; a real one would use a force-directed graph library
+                setTimeout(() => {
+                    const svg = container.querySelector('svg');
+                    let points = '';
+                    for (let i=0; i<10; i++) { points += `<circle cx="${Math.random()*100}%" cy="${Math.random()*100}%" r="3" fill="var(--accent-active)" />`}
+                    svg.innerHTML = points;
+                }, 10);
+                break;
+            case 'video':
+                content.id = 'video-dream';
+                const img = document.createElement('img');
+                img.src = `https://picsum.photos/seed/${intention.id}/400/200`; // Placeholder image
+                content.appendChild(img);
+                break;
+        }
+        
+        container.appendChild(header);
+        container.appendChild(content);
+        if(artifactOutput.firstChild.textContent.startsWith('[')) artifactOutput.innerHTML = '';
+        artifactOutput.prepend(container);
+    }
+    
+    // Enable recursion by allowing artifacts to be dropped back on the input
+    intentionInput.addEventListener('dragover', e => e.preventDefault());
+    intentionInput.addEventListener('drop', e => {
+        e.preventDefault();
+        const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+        intentionInput.value = `RECURSIVE_SEED <${data.type}> :: ${data.text}`;
+        intentionInput.disabled = false;
+        commitBtn.disabled = false;
+        playTone(110, 0.5, 'triangle');
+    });
+
+});
+</script>
+
+</body>
+</html>

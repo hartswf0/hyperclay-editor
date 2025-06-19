@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUSE Project :: Genetic Information Ontology Model (Olog Explorer)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --font-main: 'Courier Prime', monospace;
+            --font-header: 'Roboto Condensed', sans-serif;
+            --bg-paper: #f4f1e9;
+            --text-main: #2c2c2c;
+            --text-secondary: #555;
+            --border-color: #d3c7b1;
+            --accent-color: #3d7a99;
+            --highlight-bg: rgba(61, 122, 153, 0.15);
+        }
+        body {
+            font-family: var(--font-main);
+            background-color: #e0e0e0;
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.7;
+        }
+        #olog-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background-color: var(--bg-paper);
+            padding: 2rem 3rem;
+            border: 1px solid #ccc;
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.2);
+        }
+        header h1 {
+            font-family: var(--font-header);
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+            border-bottom: 2px solid var(--text-main);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+        header p { text-align: center; color: var(--text-secondary); }
+        h2 {
+            font-family: var(--font-header);
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-top: 2rem;
+        }
+        h3 {
+            font-family: var(--font-header);
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+        }
+        .type-symbol {
+            display: inline-block;
+            border: 1px solid var(--text-main);
+            padding: 0 0.5em;
+            font-weight: bold;
+        }
+        .morphism { font-style: italic; color: #777; }
+        
+        #interactive-section {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+            border-top: 2px solid var(--text-main);
+            padding-top: 2rem;
+        }
+        #filter-panel h3 { margin-top: 0; }
+        .instance-list {
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.5);
+            padding: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .instance-item {
+            padding: 0.2rem 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .instance-item:hover { background-color: var(--highlight-bg); }
+        .instance-item.active { background-color: var(--accent-color); color: #fff; }
+        
+        #master-file-list { border-left: 1px solid var(--border-color); padding-left: 2rem; }
+        #file-table { width: 100%; border-collapse: collapse; }
+        #file-table th {
+            text-align: left;
+            font-family: var(--font-header);
+            font-size: 1.1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--text-main);
+        }
+        #file-table td { padding: 0.5rem 0.2rem; border-bottom: 1px dotted var(--border-color); }
+        #file-table a { color: var(--text-main); text-decoration: none; }
+        #file-table a:hover { text-decoration: underline; color: var(--accent-color); }
+        #file-table .file-id-col { font-weight: bold; }
+        #file-table .note-col { font-style: italic; color: var(--text-secondary); }
+
+    </style>
+</head>
+<body>
+    <div id="olog-container">
+        <header>
+            <h1>FUSE Project: Genetic Information Ontology Model</h1>
+            <p>This document outlines the information ontology of the FUSE project using a simplified Olog structure. It serves as both a formal definition and an interactive explorer for the project corpus.</p>
+        </header>
+
+        <section id="formal-definition">
+            <h2>I. Types (Distinctions ◻)</h2>
+            <p>These are the fundamental entities or categories of information within the project's genetic metaphor:</p>
+            <ol>
+                <li><span class="type-symbol">File</span>: Represents an individual document or resource, the basic unit of information.</li>
+                <li><span class="type-symbol">FileID</span>: A unique string identifier for a `◻ File` (e.g., "ecd1.html").</li>
+                <li><span class="type-symbol">URL</span>: The Uniform Resource Locator providing access to the content of a `◻ File`.</li>
+                <li><span class="type-symbol">Title</span>: The human-readable name or title of a `◻ File`.</li>
+                <li><span class="type-symbol">MacroStructureName</span>: A primary, high-level conceptual category (visualized as a "chromosome").</li>
+                <li><span class="type-symbol">CodonGroupName</span>: A secondary, more specific conceptual category (visualized as a "band").</li>
+                <li><span class="type-symbol">Note</span>: An optional textual annotation associated with a `◻ File`.</li>
+                <li><span class="type-symbol">Keyword</span>: An optional descriptive term or tag.</li>
+            </ol>
+
+            <h2>II. Aspects/Paths (Morphisms →)</h2>
+            <p>These define the relationships and mappings between the Types, forming the structure of the information:</p>
+            <ul>
+                <li><span class="morphism">A `◻ File` is identified by a `◻ FileID`.</span></li>
+                <li><span class="morphism">A `◻ File` is located at a `◻ URL`.</span></li>
+                <li><span class="morphism">A `◻ File` is titled as a `◻ Title`.</span></li>
+                <li><span class="morphism">A `◻ File` belongs to a `◻ MacroStructureName`.</span></li>
+                <li><span class="morphism">A `◻ File` is part of a `◻ CodonGroupName`.</span></li>
+                <li><span class="morphism">A `◻ CodonGroupName` is contained within a `◻ MacroStructureName`.</span></li>
+            </ul>
+        </section>
+
+        <section id="interactive-section">
+            <div id="filter-panel">
+                <h3>Instance Explorer</h3>
+                <p>Click on an instance below to filter the master file list.</p>
+                
+                <div id="filter-macrostructure">
+                    <h4>MacroStructure Names</h4>
+                    <div class="instance-list"></div>
+                </div>
+                
+                <div id="filter-codongroup">
+                    <h4>CodonGroup Names</h4>
+                    <div class="instance-list"></div>
+                </div>
+
+                <div id="filter-keywords">
+                    <h4>Keywords</h4>
+                    <div class="instance-list"></div>
+                </div>
+            </div>
+            <div id="master-file-list">
+                <h3 id="file-list-header">Master File List (All Files)</h3>
+                <div style="height: 600px; overflow-y: auto;">
+                    <table id="file-table">
+                        <thead><tr><th>FileID</th><th>Title</th><th>Note</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const CORPUS_DATA = {
+        files: { "ecd-fu-odd.html": { "macro_structure": "The FUSE Project (FU)", "codon_group": "FUSE INTERFACES (FU-I)", "note": null, "keyword": "FUSE" }, "ecd-u1.html": { "macro_structure": "Esoterica Cybernetics Division (ECD)", "codon_group": "ECD ONTOLOGICAL INTERFACES (ECD-O)", "note": "Concept", "keyword": "ECD" }, /* ...and so on for all files... */ },
+        file_titles: { "ecd-fu-odd.html": "BUREAU TECH FUSION INTERFACES", "ecd-u1.html": "3. 🧭 PHORONOMIC ENGINE", /* ...etc... */ },
+        macro_structures_order: [ "The GENOMIRE Project (GM)", "The FUSE Project (FU)", "Esoterica Cybernetics Division (ECD)", "The HOLOSOMES (Unified Environments)", "ORPHANED & CONCEPTUAL PROJECTS" ],
+        codon_groups_order: {
+            "The GENOMIRE Project (GM)": [ "GENOMIRE SCOPE (GM-S)", "GENOMIRE FIELD (GM-F)", "GENOSCOPE / GENOMA (GS/GG)" ],
+            "The FUSE Project (FU)": [ "FUSE INTERFACES (FU-I)", "FUSE CONCEPTS (FU-C)" ],
+            "Esoterica Cybernetics Division (ECD)": [ "ECD HARMONIZERS (ECD-H)", "ECD COMPOSITION & TRANSLATION (ECD-C)", "ECD ANALYSIS ENGINES (ECD-A)", "ECD ONTOLOGICAL INTERFACES (ECD-O)", "ECD RITUAL & AFFECTIVE SURFACES (ECD-R)" ],
+            "The HOLOSOMES (Unified Environments)": [ "SIGMADOS (Operating System)", "SIGMATIC FORGE / OWE (Ontological Weaving Engine)" ],
+            "ORPHANED & CONCEPTUAL PROJECTS": [ "CODONSYNTH (CS)", "MIRE (MI)", "GENERIC / UNTITLED (G)" ]
+        }
+    };
+    
+    const FULL_TITLE_LOOKUP = {"ecd-fu-odd.html":"BUREAU TECH FUSION INTERFACES","ecd-u1.html":"3. 🧭 PHORONOMIC ENGINE","ecd-u2.html":"5. 🪞 REFLECTION STACK","ecd-u3.html":"6. 🎙️ RITUAL OPERATING SURFACE","ecd-u4.html":"7. ⚙️ TRUTHWEAVER OS","ecd-u5.html":"🧭 Unified Creative-Cybernetic System","ecd1.html":"ECD // NOETIC KNOWLEDGE SYNTHESIZER // 78/C","ecd10.html":"ECD // siggrep // SEMANTIC ANALYSIS CONSOLE","ecd11.html":"ECD // litflow // NARRATIVE ANALYSIS SYSTEM","ecd12.html":"ECD // DREMUX // NARRATIVE RECOMPOSER","ecd13.html":"ECD // GLYPHTRAN // MODEL S-78","ecd14.html":"ECD // POLISIG // IDEOLOGICAL ANALYZER","ecd15.html":"ECD // EMOTOTYPE // AFFECTIVE SYNTHESIZER","ecd16.html":"ECD // SUBGLYPH DIFF // MODEL C-78","ecd17.html":"ECD // MYNDARCH // NARRATIVE INDEXER","ecd18.html":"ECD // AUREOLITHIC DESKTOP // ONTOLOGICAL TERRAIN","ecd19.html":"ECD // PHORONOMIC ENGINE // v.78c","ecd2.html":"ECD // ICONOTEXT CONVERTER // ITC-X78","ecd20.html":"ECD // ICONOSPHERIC FIELD // v.78d","ecd21.html":"ECD // REFLECTION STACK // v.78e","ecd22.html":"ECD // RITUAL OPERATING SURFACE // [INITIATION]","ecd23.html":"ECD // TRUTHWEAVER OS // v.78g","ecd3.html":"ECD // SCRIPT-CAD // C-78","ecd4.html":"ECD // CIRCUIT DRAMA-EDIT // CDE-1978a","ecd5.html":"ECD // EMOTOTYPE™ SYSTEM // V.4","ecd6.html":"SIGMADOS // KERNEL: LOGOSCORE","ecd7.html":"SIGMADOS // GRAPHICAL USER INTERFACE","ecd8.html":"ECD // semcode // RITUAL/LOGIC BUILDER","ecd9.html":"ECD // semcode // RITUAL/LOGIC BUILDER","f1.html":"CodonSynth - Evolutionary Music Ecology","f2.html":"CodonSynth: Evolutionary Music Ecology","f3.html":"CodonSynth - Ecological Modeler","f4.html":"CodonSynth - Biome Navigator","f5.html":"CodonSynth: Evolutionary Music Ecology","f6.html":"CodonSynth - Aural Bioreactor","f7.html":"CodonSynth - Musical Garden","fu1.html":"🧬 ECHO-GENESIS PROTOCOL","fu10.html":"ECD // NOETIC RESONANCE HARMONIZER // [CLASSIFIED]","fu11.html":"ECD // NOETIC SYNTHESIZER // 78/B [AUTHORIZED PERSONNEL ONLY]","fu2.html":"🕹️📡 FUSE: Trans-Temporal Information Interface","fu3.html":"🧬 KINETIC WEAVING","fu4.html":"FUSE // RADAR-GENOME INTERFACE [EXP-M-A-01]","fu5.html":"🕹️📡 FUSE: Trans-Temporal Information Interface (v2)","fu6.html":"FUSE // RADAR-GENOME INTERFACE [EXP-M-A-02]","fu7.html":"VISUAL ATLAS // RADAR FUSE INTERFACES","fu8.html":"GENOMIRE SCOPE v2.7","fu9.html":"SYSTEM BOOT // FUSE RADAR OS v.1.0","g1.html":"Universal Resonance Interface","g10.html":"Claymorphic Genome Phenotypes","g11.html":"FORMA OS: Post-File Operating System","g12.html":"Title tag not found or empty","g13.html":"🧬🖼️ PIXON: Genetic Ontology Engine","g2.html":"Synthetic Genomic Field","g3.html":"Universal Resonance Interface","g4.html":"Genome-Style Information Navigator","g5.html":"Genome-Style Information Navigator","g6.html":"Generative Heuristics for System Design","g7.html":"Silent Genome","g8.html":"🧬👁‍🗨 Silent Genome: Ambient Memory Interface","g9.html":"Codex Scroll","gf1.html":"GENOMIRE SCOPE — Genome Field","gf2.html":"GENOMIRE SCOPE // Fitts-Optimized Field","gf3.html":"GENOMIRE SCOPE // Memory Ecology","gf4.html":"GENOMIRE SCOPE // Synthesis","gf5.html":"GENOMIRE SCOPE // Fusion Models","gg1.html":"🧬 GENOMA: Functional Genomic Interface","gg2.html":"🧬 GENOMA v2: Functional Genomic Interface","gm-ooo.html":"GENOMIRE SCOPE v2.7 [SYSTEM CORE]","gm1.html":"🧬 GENOMIRE","gm10.html":"🧬 GENOMIRE SCOPE","gm2.html":"🧬🖥️🌊✨ GENOMIRE SCOPE","gm3.html":"🧬 GENOMIRE SCOPE","gm4.html":"🧬🖥️🌊✨ GENOMIRE SCOPE v2","gm5.html":"GENOMIRE SCOPE — Decodable Functional Interface","gm6.html":"🧬 GENOMIRE SCOPE","gm7.html":"GENOMIRE SCOPE","gm8.html":"🧬 GENOMIRE SCOPE","gm9.html":"GENOMIRE SCOPE :: Total Field","gs-dev.html":"GENOMA Suite (All-in-One)","gs1.html":"🧬 GENOSCOPE","gs2-base.html":"GENOMA Suite (All-in-One)","gs2-core.html":"GENOMA Suite (All-in-One)","gs2-plus.html":"GENOMA Suite (All-in-One)","gs2.html":"GENOMA Suite (All-in-One)","gs3.html":"GENOSCOPE: Tufteform Edition","gs4.html":"🧬 GENOSCOPE v1.1","index.html":"Project Genome Directory","m1.html":"MIRE: Multilayered Information Resonance Engine","m2.html":"MIRE: Multilayered Information Resonance Engine","m4.html":"MIRE: Prototyping Surface","owe-1.html":"ECD // ONTOLOGICAL WEAVING ENGINE // UNIFIED SYSTEM","owe2.html":"🧭 Unified Creative-Cybernetic System","owe3.html":"SIGMATIC FORGE [ECD-78-UI-MAP-001]","owe4.html":"ECD // SIGMATIC FORGE // RECURSIVE ONTOLOGICAL ENVIRONMENT","owe5.html":"SIGMATIC FORGE :: ECD-78","owe6.html":"SIGMATIC FORGE [ECD-78-RLE-001]","owe7.html":"ECD // SIGMATIC FORGE // ROE-78"};
+    CORPUS_DATA.file_titles = FULL_TITLE_LOOKUP;
+
+
+    // --- State Management ---
+    const state = {
+        filters: {
+            macro_structure: null,
+            codon_group: null,
+            keyword: null,
+        }
+    };
+    
+    // --- DOM Elements Cache ---
+    const elems = {
+        macroList: document.querySelector('#filter-macrostructure .instance-list'),
+        codonGroupList: document.querySelector('#filter-codongroup .instance-list'),
+        keywordList: document.querySelector('#filter-keywords .instance-list'),
+        fileTableBody: document.querySelector('#file-table tbody'),
+        fileListHeader: document.getElementById('file-list-header')
+    };
+    
+    // --- Data Processing ---
+    const allFiles = Object.keys(FULL_TITLE_LOOKUP);
+    const getOntology = (fileId) => {
+        // A placeholder for the actual (and currently partial) ontology data.
+        const partialOntology = {"ecd-fu-odd.html":{macro_structure:"The FUSE Project (FU)",codon_group:"FUSE INTERFACES (FU-I)",keyword:"FUSE"},"ecd-u1.html":{macro_structure:"Esoterica Cybernetics Division (ECD)",codon_group:"ECD ONTOLOGICAL INTERFACES (ECD-O)",note:"Concept",keyword:"ECD"}};
+        return partialOntology[fileId] || {};
+    };
+    
+    const processedFiles = allFiles.map(id => {
+        const ontology = getOntology(id);
+        return {
+            id,
+            title: FULL_TITLE_LOOKUP[id] || "Title Not Found",
+            macro_structure: ontology.macro_structure,
+            codon_group: ontology.codon_group,
+            keyword: ontology.keyword,
+            note: ontology.note
+        };
+    });
+
+    const uniqueMacroStructures = [...new Set(processedFiles.map(f => f.macro_structure).filter(Boolean))].sort();
+    const uniqueCodonGroups = [...new Set(processedFiles.map(f => f.codon_group).filter(Boolean))].sort();
+    const uniqueKeywords = [...new Set(processedFiles.map(f => f.keyword).filter(Boolean))].sort();
+
+    // --- Rendering Functions ---
+    function renderInstanceList(container, items, type) {
+        container.innerHTML = items.map(item => 
+            `<div class="instance-item" data-type="${type}" data-value="${item}">${item}</div>`
+        ).join('');
+        
+        container.querySelectorAll('.instance-item').forEach(el => {
+            el.addEventListener('click', handleFilterClick);
+        });
+    }
+
+    function renderFileTable() {
+        const filteredFiles = processedFiles.filter(file => {
+            return (!state.filters.macro_structure || file.macro_structure === state.filters.macro_structure) &&
+                   (!state.filters.codon_group || file.codon_group === state.filters.codon_group) &&
+                   (!state.filters.keyword || file.keyword === state.filters.keyword);
+        });
+
+        elems.fileListHeader.textContent = `File List (${filteredFiles.length} matches)`;
+        elems.fileTableBody.innerHTML = filteredFiles.map(file => `
+            <tr>
+                <td class="file-id-col"><a href="./${file.id}" target="_blank">${file.id.replace('.html', '')}</a></td>
+                <td><a href="./${file.id}" target="_blank">${file.title}</a></td>
+                <td class="note-col">${file.note || ''}</td>
+            </tr>
+        `).join('');
+    }
+
+    // --- Event Handlers ---
+    function handleFilterClick(event) {
+        const { type, value } = event.currentTarget.dataset;
+        
+        // Toggle filter
+        if (state.filters[type] === value) {
+            state.filters[type] = null;
+            event.currentTarget.classList.remove('active');
+        } else {
+            // Deactivate other active items in the same list
+            event.currentTarget.parentElement.querySelectorAll('.instance-item.active').forEach(el => el.classList.remove('active'));
+            state.filters[type] = value;
+            event.currentTarget.classList.add('active');
+        }
+        
+        renderFileTable();
+    }
+    
+    // --- Initial Population ---
+    renderInstanceList(elems.macroList, uniqueMacroStructures, 'macro_structure');
+    renderInstanceList(elems.codonGroupList, uniqueCodonGroups, 'codon_group');
+    renderInstanceList(elems.keywordList, uniqueKeywords, 'keyword');
+    renderFileTable();
+
+});
+</script>
+</body>
+</html>

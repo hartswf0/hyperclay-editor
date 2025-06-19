@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CodonSynth - Ecological Modeler</title>
+    <script src="https://unpkg.com/tone@14.7.77/build/Tone.js"></script>
+    <style>
+        :root {
+            --bg-color: #10121a;
+            --panel-bg: #1a1d29;
+            --border-color: #2a2f42;
+            --text-color: #c8d3f5;
+            --accent-color: #4d9de0;
+            --success-color: #3ddc97;
+            --fail-color: #e4572e;
+        }
+
+        body {
+            font-family: monospace, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        #start-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            font-size: 1.5rem;
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        #gene-pool {
+            flex-grow: 1;
+            position: relative;
+            background-color: var(--bg-color);
+            border-bottom: 2px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .codon-visual {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 1s ease-out;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(200, 211, 245, 0.3);
+        }
+
+        #control-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            background-color: var(--panel-bg);
+        }
+
+        .module {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .module h3 {
+            margin: 0 0 10px 0;
+            color: var(--accent-color);
+            font-size: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+
+        .module label {
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .module input[type="range"], .module select {
+            width: 100%;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        .info-line {
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .info-line span {
+            font-weight: bold;
+            color: var(--success-color);
+        }
+
+        #compliance-tracker p {
+            font-size: 0.75rem;
+            word-wrap: break-word;
+        }
+        
+        #compliance-tracker span {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <button id="start-button">START SYNTHESIS</button>
+        <div id="gene-pool"></div>
+        <div id="control-panels">
+            <div class="module" id="regulatory-patchboard">
+                <h3>Regulatory Patchboard</h3>
+                <label for="harmony-weight">Harmony Weight</label>
+                <input type="range" id="harmony-weight" min="0" max="1" step="0.1" value="1.0">
+                <label for="rhythm-weight">Rhythm Weight</label>
+                <input type="range" id="rhythm-weight" min="0" max="1" step="0.1" value="0.8">
+                <label for="gravity-weight">Gravity Weight</label>
+                <input type="range" id="gravity-weight" min="0" max="1" step="0.1" value="0.9">
+                <label for="scale-select">Scale</label>
+                <select id="scale-select">
+                    <option value="C-Lydian">C Lydian</option>
+                    <option value="G-Minor_Pentatonic">G Minor Pentatonic</option>
+                    <option value="D-Dorian">D Dorian</option>
+                </select>
+            </div>
+            <div class="module" id="workflow-module">
+                <h3>Workflow Module</h3>
+                <div class="info-line">Generation: <span id="generation-count">0</span></div>
+                <div class="info-line">Population: <span id="population-count">0</span></div>
+                <div class="info-line">Avg Fitness: <span id="avg-fitness">0.00</span></div>
+                <div class="info-line">Status: <span id="status">IDLE</span></div>
+            </div>
+            <div class="module" id="sop-control-panel">
+                <h3>SOP Control Panel</h3>
+                <label for="survival-threshold">Survival Threshold</label>
+                <input type="range" id="survival-threshold" min="0.1" max="0.9" step="0.05" value="0.6">
+                <label for="mutation-rate">Mutation Rate</label>
+                <input type="range" id="mutation-rate" min="0.1" max="1" step="0.1" value="0.5">
+                <p style="font-size:0.7rem; margin-top: auto;">Simulation controls are integrated into the main start button and runtime.</p>
+            </div>
+            <div class="module" id="compliance-tracker">
+                <h3>Compliance Tracker</h3>
+                <p>Tap a codon to view its genetic lineage.</p>
+                <p id="codon-info">ID: N/A</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENTS ---
+            const startButton = document.getElementById('start-button');
+            const genePoolEl = document.getElementById('gene-pool');
+            const generationCountEl = document.getElementById('generation-count');
+            const populationCountEl = document.getElementById('population-count');
+            const avgFitnessEl = document.getElementById('avg-fitness');
+            const statusEl = document.getElementById('status');
+            const codonInfoEl = document.getElementById('codon-info');
+
+            // --- UI CONTROLS ---
+            const harmonyWeightSlider = document.getElementById('harmony-weight');
+            const rhythmWeightSlider = document.getElementById('rhythm-weight');
+            const gravityWeightSlider = document.getElementById('gravity-weight');
+            const scaleSelect = document.getElementById('scale-select');
+            const survivalThresholdSlider = document.getElementById('survival-threshold');
+            const mutationRateSlider = document.getElementById('mutation-rate');
+
+            // --- GLOBAL STATE ---
+            let generation = 0;
+            let survivors = [];
+            let population = [];
+            let nextCodonId = 0;
+            let simulationInterval = null;
+
+            const synth = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.2 },
+            }).toDestination();
+
+            // --- MUSIC & GENETIC DEFINITIONS ---
+            const scales = {
+                'C-Lydian': ['C', 'D', 'E', 'F#', 'G', 'A', 'B'],
+                'G-Minor_Pentatonic': ['G', 'A#', 'C', 'D', 'F'],
+                'D-Dorian': ['D', 'E', 'F', 'G', 'A', 'B', 'C']
+            };
+            const rhythms = ['16n', '8n', '8t', '4n'];
+            const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+            const environment = {
+                survivalThreshold: 0.6,
+                mutationRate: 0.5,
+                harmonyBias: { scale: scales['C-Lydian'], weight: 1.0 },
+                rhythmicCohesion: { grid: ['8n', '16n'], weight: 0.8 },
+                tonalGravity: { tonic: 'C', weight: 0.9 }
+            };
+
+            // --- ENGINE FUNCTIONS ---
+
+            function createCodon(parentId = null) {
+                return {
+                    id: `c-${nextCodonId++}`,
+                    parentId,
+                    pitch: 'C4',
+                    rhythm: '8n',
+                    timbre: { waveform: 'sine' },
+                    age: 0,
+                    fitnessScore: 0
+                };
+            }
+
+            function mutate(parentCodon) {
+                const child = { ...parentCodon, id: `c-${nextCodonId++}`, parentId: parentCodon.id, age: 0 };
+                
+                if (Math.random() < environment.mutationRate) {
+                    const scaleNotes = environment.harmonyBias.scale;
+                    const newNote = scaleNotes[Math.floor(Math.random() * scaleNotes.length)];
+                    const octave = 3 + Math.floor(Math.random() * 3);
+                    child.pitch = `${newNote}${octave}`;
+                }
+
+                if (Math.random() < environment.mutationRate) {
+                    child.rhythm = rhythms[Math.floor(Math.random() * rhythms.length)];
+                }
+                
+                return child;
+            }
+
+            function getNoteValue(pitch) {
+                return notes.indexOf(pitch.slice(0, -1).toUpperCase());
+            }
+
+            function evaluateFitness(codon) {
+                // Harmony Score
+                const noteName = codon.pitch.slice(0, -1);
+                const harmonyScore = environment.harmonyBias.scale.includes(noteName) ? 1.0 : 0.0;
+
+                // Rhythm Score
+                const rhythmScore = environment.rhythmicCohesion.grid.includes(codon.rhythm) ? 1.0 : 0.0;
+
+                // Tonal Gravity Score
+                const tonicValue = notes.indexOf(environment.tonalGravity.tonic);
+                const codonValue = getNoteValue(codon.pitch);
+                const distance = Math.min(Math.abs(tonicValue - codonValue), 12 - Math.abs(tonicValue - codonValue));
+                const gravityScore = 1 / (1 + distance * 2); // Sharper falloff
+
+                // Final Weighted Score
+                const totalWeightedScore = (harmonyScore * environment.harmonyBias.weight) +
+                                           (rhythmScore * environment.rhythmicCohesion.weight) +
+                                           (gravityScore * environment.tonalGravity.weight);
+
+                const totalPossibleWeight = environment.harmonyBias.weight +
+                                            environment.rhythmicCohesion.weight +
+                                            environment.tonalGravity.weight;
+                
+                return totalPossibleWeight > 0 ? totalWeightedScore / totalPossibleWeight : 0;
+            }
+            
+            function playCodon(codon) {
+                const waveforms = ['sine', 'triangle', 'square'];
+                const waveform = waveforms[getNoteValue(codon.pitch) % 3]; // Map pitch to waveform for variety
+                synth.triggerAttackRelease(codon.pitch, codon.rhythm, Tone.now(), codon.fitnessScore);
+            }
+
+            function runGeneration() {
+                generation++;
+                population = [];
+
+                // 1. Reproduction & Mutation
+                if (survivors.length === 0) { // If all die, re-seed
+                    for(let i=0; i<5; i++) population.push(mutate(createCodon()));
+                } else {
+                    survivors.forEach(parent => {
+                        population.push(mutate(parent));
+                        if(parent.fitnessScore > 0.8) population.push(mutate(parent)); // High-fitness codons reproduce more
+                    });
+                }
+
+                // 2. Expression & Evaluation
+                const now = Tone.now();
+                population.forEach((codon, i) => {
+                    codon.fitnessScore = evaluateFitness(codon);
+                    // Stagger playback
+                    synth.triggerAttackRelease(codon.pitch, codon.rhythm, now + i * 0.1, Math.max(0.1, codon.fitnessScore));
+                });
+
+                // 3. Selection
+                const newSurvivors = [];
+                population.forEach(codon => {
+                    if (codon.fitnessScore >= environment.survivalThreshold) {
+                        const existingSurvivor = survivors.find(s => s.id === codon.parentId);
+                        codon.age = existingSurvivor ? existingSurvivor.age + 1 : 1;
+                        newSurvivors.push(codon);
+                    }
+                });
+                survivors = newSurvivors;
+
+                // 4. Update UI
+                updateDashboard();
+                updateGenePoolVisuals();
+            }
+
+            // --- UI UPDATE FUNCTIONS ---
+            function updateDashboard() {
+                populationCountEl.textContent = survivors.length;
+                generationCountEl.textContent = generation;
+                const totalFitness = survivors.reduce((sum, c) => sum + c.fitnessScore, 0);
+                const avgFitness = survivors.length > 0 ? (totalFitness / survivors.length).toFixed(2) : '0.00';
+                avgFitnessEl.textContent = avgFitness;
+                statusEl.textContent = "EVOLVING";
+                statusEl.style.color = 'var(--success-color)';
+            }
+            
+            function updateGenePoolVisuals() {
+                const existingVisuals = new Set(Array.from(genePoolEl.children).map(el => el.dataset.id));
+                const survivorIds = new Set(survivors.map(s => s.id));
+                
+                // Remove dead codons
+                existingVisuals.forEach(id => {
+                    if (!survivorIds.has(id)) {
+                        const elToRemove = genePoolEl.querySelector(`[data-id="${id}"]`);
+                        if (elToRemove) {
+                            elToRemove.style.opacity = '0';
+                            setTimeout(() => elToRemove.remove(), 1000);
+                        }
+                    }
+                });
+
+                // Add/update survivor codons
+                survivors.forEach(codon => {
+                    let visualEl = genePoolEl.querySelector(`[data-id="${codon.id}"]`);
+                    if (!visualEl) {
+                        visualEl = document.createElement('div');
+                        visualEl.className = 'codon-visual';
+                        visualEl.dataset.id = codon.id;
+                        visualEl.dataset.info = `ID: ${codon.id}\nParent: ${codon.parentId}\nAge: ${codon.age}\nFitness: ${codon.fitnessScore.toFixed(2)}`;
+                        genePoolEl.appendChild(visualEl);
+                    }
+                    
+                    // Map genetic traits to visual properties
+                    const pitchValue = getNoteValue(codon.pitch);
+                    const hue = (pitchValue / 12) * 360;
+                    const size = 10 + (codon.fitnessScore * 40);
+                    const x = (pitchValue / 11) * (genePoolEl.clientWidth - size);
+                    const y = (rhythms.indexOf(codon.rhythm) / (rhythms.length - 1)) * (genePoolEl.clientHeight - size);
+
+                    visualEl.style.width = `${size}px`;
+                    visualEl.style.height = `${size}px`;
+                    visualEl.style.backgroundColor = `hsl(${hue}, 80%, 60%)`;
+                    visualEl.style.left = `${x}px`;
+                    visualEl.style.top = `${y}px`;
+                    visualEl.style.opacity = 0.5 + (codon.age * 0.1);
+                    visualEl.dataset.info = `ID: ${codon.id} | Parent: ${codon.parentId} | Age: ${codon.age} | Fitness: ${codon.fitnessScore.toFixed(2)}`;
+                });
+            }
+
+            // --- EVENT LISTENERS ---
+            function updateEnvironmentFromUI() {
+                environment.survivalThreshold = parseFloat(survivalThresholdSlider.value);
+                environment.mutationRate = parseFloat(mutationRateSlider.value);
+                environment.harmonyBias.weight = parseFloat(harmonyWeightSlider.value);
+                environment.rhythmicCohesion.weight = parseFloat(rhythmWeightSlider.value);
+                environment.tonalGravity.weight = parseFloat(gravityWeightSlider.value);
+                
+                const selectedScale = scaleSelect.value;
+                environment.harmonyBias.scale = scales[selectedScale];
+                environment.tonalGravity.tonic = scales[selectedScale][0]; // Set tonic to the root of the scale
+            }
+
+            [harmonyWeightSlider, rhythmWeightSlider, gravityWeightSlider, scaleSelect, survivalThresholdSlider, mutationRateSlider].forEach(el => {
+                el.addEventListener('input', updateEnvironmentFromUI);
+            });
+            
+            genePoolEl.addEventListener('click', (e) => {
+                if (e.target.classList.contains('codon-visual')) {
+                    codonInfoEl.textContent = e.target.dataset.info;
+                }
+            });
+
+            startButton.addEventListener('click', async () => {
+                await Tone.start();
+                console.log('Audio context started.');
+                startButton.style.display = 'none';
+                
+                // Initialize first generation
+                for (let i = 0; i < 5; i++) {
+                    survivors.push(createCodon());
+                }
+                
+                updateEnvironmentFromUI();
+                runGeneration(); // Run once immediately
+                simulationInterval = setInterval(runGeneration, 2000); // Subsequent generations every 2 seconds
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬🖥️🌊✨ GENOMIRE SCOPE</title>
+    <style>
+        /* --- Tufte Principles & Core Aesthetics --- */
+        :root {
+            --phosphor-green: #39ff14;
+            --dark-background: #0a0a0c;
+            --soft-glow: 0 0 5px var(--phosphor-green), 0 0 10px rgba(57, 255, 20, 0.3);
+            --faint-glow: 0 0 3px rgba(57, 255, 20, 0.4);
+            
+            --font-main: 'IBM Plex Mono', 'Courier New', monospace;
+            
+            /* Codon Colors (like fluorescent dyes) */
+            --color-txt: #00aaff; /* Cy5 - Blue/Cyan */
+            --color-img: #ff4747; /* Texas Red */
+            --color-auc: #ffdd00; /* FITC - Yellow/Green */
+            --color-lnk: #ff00ff; /* Rhodamine - Magenta */
+            --color-src: #ffffff; /* DAPI - Bright White/UV */
+            --color-frg: #7c4dff; /* Alexa Fluor 405 - Violet */
+            --color-cmd: #ff9100; /* Orange */
+            --color-def: #555555; /* Default/Unknown */
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--dark-background);
+            color: var(--phosphor-green);
+            font-family: var(--font-main);
+            font-size: 16px;
+            overflow: hidden;
+        }
+        
+        /* --- 🌊 3. MIRE Field (Pixel Resonance Terrain) --- */
+        #mire-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            opacity: 0.15;
+            background: var(--dark-background);
+            filter: url(#mire-noise);
+        }
+
+        /* --- Unified System Layout --- */
+        #genomire-scope {
+            display: flex;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            padding: 1.5rem;
+            gap: 2rem;
+        }
+
+        /* --- 🧬 1. Electrophoresis Genome Columns --- */
+        #genome-columns {
+            flex: 0 0 auto;
+            display: flex;
+            gap: 12px;
+            padding-right: 1rem;
+            height: 100%;
+            overflow-y: auto;
+            /* Thin rule line separator (Tufte) */
+            border-right: 1px solid rgba(57, 255, 20, 0.2);
+        }
+        
+        .genome-strand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            cursor: pointer;
+            padding-bottom: 2rem; /* space for id */
+            position: relative;
+        }
+        
+        .genome-strand:hover .genome-id {
+            opacity: 1;
+            text-shadow: var(--soft-glow);
+        }
+
+        .genome-id {
+            position: absolute;
+            bottom: 0;
+            font-size: 0.75em;
+            color: var(--phosphor-green);
+            opacity: 0.6;
+            transition: opacity 0.3s, text-shadow 0.3s;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            white-space: nowrap;
+        }
+
+        .codon {
+            width: 14px;
+            height: 5px;
+            transition: opacity 0.5s ease-in-out, transform 0.3s;
+        }
+        
+        .genome-strand:hover .codon {
+            transform: scaleX(1.2);
+        }
+
+        /* Codon visualization as electrophoresis bands */
+        .codon-TXT { background: linear-gradient(90deg, transparent, var(--color-txt), transparent); }
+        .codon-IMG { background: linear-gradient(90deg, transparent, var(--color-img), transparent); }
+        .codon-AUC { background: linear-gradient(90deg, transparent, var(--color-auc), transparent); }
+        .codon-LNK { background: linear-gradient(90deg, transparent, var(--color-lnk), transparent); }
+        .codon-SRC { background: linear-gradient(90deg, transparent, var(--color-src), transparent); }
+        .codon-FRG { background: linear-gradient(90deg, transparent, var(--color-frg), transparent); }
+        .codon-CMD { background: linear-gradient(90deg, transparent, var(--color-cmd), transparent); }
+
+        /* --- 🖥️ 2. Phenotype Console --- */
+        #console {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #console-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 1rem;
+            word-wrap: break-word;
+        }
+
+        #console-output::-webkit-scrollbar, #genome-columns::-webkit-scrollbar {
+            width: 4px;
+        }
+        #console-output::-webkit-scrollbar-thumb, #genome-columns::-webkit-scrollbar-thumb {
+            background: rgba(57, 255, 20, 0.3);
+        }
+
+        #console-input-line {
+            display: flex;
+            flex-shrink: 0;
+        }
+
+        .prompt-glyph {
+            margin-right: 0.5em;
+            text-shadow: var(--soft-glow);
+        }
+        
+        #console-input {
+            flex-grow: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--phosphor-green);
+            font-family: var(--font-main);
+            font-size: 1em;
+            text-shadow: var(--soft-glow);
+        }
+        
+        /* Console output styling */
+        .log-input {
+            color: rgba(57, 255, 20, 0.6);
+        }
+        .log-response {
+            margin-bottom: 1em;
+            white-space: pre-wrap;
+        }
+        .log-error {
+            color: #ff4747;
+        }
+        .log-system {
+            color: #7c4dff;
+        }
+        .sparkline {
+            letter-spacing: 0;
+            text-shadow: var(--faint-glow);
+        }
+        .data-key {
+            color: rgba(57, 255, 20, 0.6);
+            display: inline-block;
+            width: 150px;
+        }
+        
+        /* --- Mobile Responsiveness --- */
+        @media (max-width: 768px) {
+            #genomire-scope {
+                flex-direction: column;
+                padding: 1rem;
+                gap: 1rem;
+            }
+            #genome-columns {
+                flex-direction: row;
+                flex-wrap: wrap;
+                flex: 0 0 auto;
+                width: 100%;
+                height: auto;
+                max-height: 25vh;
+                border-right: none;
+                border-bottom: 1px solid rgba(57, 255, 20, 0.2);
+                padding-bottom: 1rem;
+                padding-right: 0;
+                gap: 8px;
+            }
+            .genome-strand {
+                flex-direction: row;
+                width: auto;
+                height: 14px;
+                padding: 0;
+            }
+            .genome-id {
+                position: static;
+                writing-mode: horizontal-tb;
+                transform: none;
+                margin-left: 8px;
+                opacity: 0.8;
+            }
+            .codon {
+                width: 5px;
+                height: 14px;
+            }
+            .codon-TXT { background: linear-gradient(0deg, transparent, var(--color-txt), transparent); }
+            .codon-IMG { background: linear-gradient(0deg, transparent, var(--color-img), transparent); }
+            .codon-AUC { background: linear-gradient(0deg, transparent, var(--color-auc), transparent); }
+            .codon-LNK { background: linear-gradient(0deg, transparent, var(--color-lnk), transparent); }
+            .codon-SRC { background: linear-gradient(0deg, transparent, var(--color-src), transparent); }
+            .codon-FRG { background: linear-gradient(0deg, transparent, var(--color-frg), transparent); }
+            .codon-CMD { background: linear-gradient(0deg, transparent, var(--color-cmd), transparent); }
+
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="genomire-scope">
+        <!-- 🧬 1. Electrophoresis Genome Columns -->
+        <div id="genome-columns"></div>
+
+        <!-- 🖥️ 2. Phenotype Console -->
+        <div id="console">
+            <div id="console-output"></div>
+            <div id="console-input-line">
+                <span class="prompt-glyph">Σ></span>
+                <input type="text" id="console-input" autofocus autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+
+    <!-- 🌊 3. MIRE Field (SVG Filter) -->
+    <svg style="position:absolute; width:0; height:0;">
+        <defs>
+            <filter id="mire-noise">
+                <feTurbulence type="fractalNoise" baseFrequency="0.01 0.4" numOctaves="1" result="warp" />
+                <feDisplacementMap xChannelSelector="R" yChannelSelector="G" scale="30" in="SourceGraphic" in2="warp" />
+                <animate
+                    attributeName="baseFrequency"
+                    values="0.01 0.4;0.01 0.42;0.01 0.4"
+                    dur="15s"
+                    repeatCount="indefinite"
+                />
+            </filter>
+        </defs>
+    </svg>
+    <div id="mire-field"></div>
+
+
+    <script>
+        // --- 🧠 System Engine ---
+
+        // DOM Elements
+        const genomeColumns = document.getElementById('genome-columns');
+        const consoleOutput = document.getElementById('console-output');
+        const consoleInput = document.getElementById('console-input');
+
+        // Codon master list for mutations
+        const MASTER_CODONS = ["TXT", "IMG", "AUC", "LNK", "SRC", "FRG", "CMD"];
+        let nextGenomeId = 6;
+
+        // 🧬 JSON Data Schema - In-memory database
+        let genomeData = [
+            {
+                "genome_id": "scope-α1", "display_id": 1,
+                "codons": ["TXT", "FRG", "TXT", "LNK"],
+                "last_expressed": "2025-06-18T12:22:00Z",
+                "content": { "TXT": "The world is itself the proof of a possibility." }
+            },
+            {
+                "genome_id": "scope-β2", "display_id": 2,
+                "codons": ["IMG", "IMG", "FRG"],
+                "last_expressed": "2025-05-10T08:00:00Z",
+                "content": { "IMG": "A low-resolution satellite photo of a coastline." }
+            },
+            {
+                "genome_id": "scope-γ3", "display_id": 3,
+                "codons": ["AUC", "AUC", "AUC", "AUC", "FRG", "AUC", "TXT"],
+                "last_expressed": "2025-06-19T10:15:00Z",
+                "content": { "AUC": "Ambient recording of rain on a tin roof.", "TXT": "Note: file corrupted." }
+            },
+            {
+                "genome_id": "scope-δ4", "display_id": 4,
+                "codons": ["SRC", "CMD", "CMD", "SRC"],
+                "last_expressed": "2024-01-01T00:00:00Z",
+                "content": { "SRC": "function render() { ... }", "CMD": "init --v" }
+            },
+            {
+                "genome_id": "scope-ε5", "display_id": 5,
+                "codons": ["LNK", "TXT", "FRG"],
+                "last_expressed": "2025-06-17T23:11:00Z",
+                "content": { "LNK": "xref://scope-α1", "TXT": "A reference to an earlier thought." }
+            }
+        ];
+
+        // --- Core Functions ---
+
+        function logToConsole(html, type = 'response') {
+            const entry = document.createElement('div');
+            entry.className = `log-${type}`;
+            entry.innerHTML = html;
+            consoleOutput.appendChild(entry);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function calculateIntensity(isoTimestamp) {
+            const lastAccess = new Date(isoTimestamp);
+            const now = new Date();
+            const diffHours = Math.abs(now - lastAccess) / 36e5;
+            
+            // Newer = more intense. Fades over ~30 days.
+            const intensity = Math.max(0.3, 1 - (diffHours / (24 * 30)));
+            return intensity;
+        }
+
+        function renderGenomeColumns() {
+            genomeColumns.innerHTML = '';
+            genomeData.sort((a,b) => new Date(b.last_expressed) - new Date(a.last_expressed));
+
+            genomeData.forEach(genome => {
+                const strand = document.createElement('div');
+                strand.className = 'genome-strand';
+                strand.dataset.id = genome.display_id;
+                
+                const intensity = calculateIntensity(genome.last_expressed);
+                
+                genome.codons.forEach(codonType => {
+                    const codon = document.createElement('div');
+                    codon.className = `codon codon-${codonType}`;
+                    codon.style.opacity = intensity;
+                    strand.appendChild(codon);
+                });
+                
+                const idTag = document.createElement('div');
+                idTag.className = 'genome-id';
+                idTag.textContent = `${genome.display_id}`;
+                strand.appendChild(idTag);
+                
+                strand.addEventListener('click', () => {
+                    consoleInput.value = `express ${genome.display_id}`;
+                    handleCommand();
+                });
+
+                genomeColumns.appendChild(strand);
+            });
+        }
+        
+        function generateSparkline(length = 30) {
+            const bars = [' ', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+            let spark = '';
+            for (let i = 0; i < length; i++) {
+                spark += bars[Math.floor(Math.random() * bars.length)];
+            }
+            return `<span class="sparkline">${spark}</span>`;
+        }
+
+        function handleCommand() {
+            const commandText = consoleInput.value.trim();
+            if (commandText === '') return;
+
+            logToConsole(`Σ> ${commandText}`, 'input');
+            consoleInput.value = '';
+
+            const [command, ...args] = commandText.split(' ');
+
+            try {
+                switch (command) {
+                    case 'express':
+                        commandExpress(args[0]);
+                        break;
+                    case 'fuse':
+                        commandFuse(args[0]);
+                        break;
+                    case 'mutate':
+                        commandMutate(args[0]);
+                        break;
+                    case 'trace':
+                        commandTrace(args[0]);
+                        break;
+                    case 'echo':
+                        commandEcho(args.join(' '));
+                        break;
+                    case 'help':
+                        commandHelp();
+                        break;
+                    case 'clear':
+                        consoleOutput.innerHTML = '';
+                        break;
+                    default:
+                        throw new Error(`Command not found: ${command}`);
+                }
+            } catch (error) {
+                logToConsole(`▞ ERROR: ${error.message}`, 'error');
+            }
+        }
+
+        // --- Command Implementations ---
+
+        function findGenome(id) {
+            const genome = genomeData.find(g => g.display_id == id);
+            if (!genome) throw new Error(`Genome ID ${id} not found in sequence.`);
+            return genome;
+        }
+        
+        function updateTimestamp(genome) {
+            genome.last_expressed = new Date().toISOString();
+        }
+
+        function commandExpress(id) {
+            const genome = findGenome(id);
+            updateTimestamp(genome);
+            
+            let output = `[ EXPRESSING PHENOTYPE FOR GENOME ${genome.display_id} ]\n`;
+            output += `⌘ Sequence: ${genome.codons.join(' ')}\n\n`;
+
+            if (genome.content.TXT) output += `░ TXT: "${genome.content.TXT}"\n`;
+            if (genome.content.IMG) {
+                output += `░ IMG: ${genome.content.IMG}\n`;
+                output += `     ▗▄▄▄▄▄▄▄▄▄▄▄▖\n     ▐▗▄▄▄▄▄▄▄▄▄▖▌\n     ▐▐         ▌▌\n     ▐▐         ▌▌\n     ▐▝▀▀▀▀▀▀▀▀▀▘▌\n     ▝▀▀▀▀▀▀▀▀▀▀▘\n`;
+            }
+            if (genome.content.AUC) {
+                output += `░ AUC: ${genome.content.AUC}\n     ${generateSparkline()}\n`;
+            }
+            if (genome.content.LNK) output += `░ LNK: ${genome.content.LNK}\n`;
+            if (genome.content.SRC) output += `░ SRC: ${genome.content.SRC}\n`;
+            if (genome.content.CMD) output += `░ CMD: > ${genome.content.CMD}\n`;
+
+            logToConsole(output);
+            renderGenomeColumns();
+        }
+
+        function commandTrace(id) {
+            const genome = findGenome(id);
+            updateTimestamp(genome);
+            let output = `[ TRACE DATA FOR GENOME ${genome.display_id} ]\n`
+            output += `<span class="data-key">Internal ID</span>: ${genome.genome_id}\n`;
+            output += `<span class="data-key">Codon Sequence</span>: ${genome.codons.join(', ')}\n`;
+            output += `<span class="data-key">Last Expression</span>: ${new Date(genome.last_expressed).toLocaleString()}\n`;
+            logToConsole(output);
+            renderGenomeColumns();
+        }
+
+        function commandFuse(arg) {
+            if (!arg || !arg.includes('+')) throw new Error('Fuse requires two IDs separated by a "+". e.g., fuse 1+2');
+            const [id1, id2] = arg.split('+');
+            const genome1 = findGenome(id1);
+            const genome2 = findGenome(id2);
+
+            const newCodons = [...genome1.codons, ...genome2.codons].slice(0, 20); // Limit length
+            const newContent = {...genome1.content, ...genome2.content};
+            
+            const newGenome = {
+                "genome_id": `scope-fus${nextGenomeId}`,
+                "display_id": nextGenomeId++,
+                "codons": newCodons,
+                "last_expressed": new Date().toISOString(),
+                "content": newContent
+            };
+            
+            genomeData.push(newGenome);
+            logToConsole(`[ FUSION COMPLETE ]\n  Fused ${id1} + ${id2} -> New Genome ${newGenome.display_id}\n  New sequence: ${newCodons.join(' ')}`, 'system');
+            renderGenomeColumns();
+        }
+
+        function commandMutate(id) {
+            const genome = findGenome(id);
+            const mutationIndex = Math.floor(Math.random() * genome.codons.length);
+            const oldCodon = genome.codons[mutationIndex];
+            let newCodon = oldCodon;
+            while(newCodon === oldCodon) {
+                newCodon = MASTER_CODONS[Math.floor(Math.random() * MASTER_CODONS.length)];
+            }
+            genome.codons[mutationIndex] = newCodon;
+            updateTimestamp(genome);
+            
+            logToConsole(`[ MUTATION EVENT ]\n  Genome ${id}: Codon at index ${mutationIndex} changed from ${oldCodon} -> ${newCodon}`, 'system');
+            renderGenomeColumns();
+        }
+
+        function commandEcho(text) {
+            logToConsole(`ECHO: ${text}`);
+        }
+        
+        function commandHelp() {
+            const helpText = `[ GENOMIRE SCOPE :: HELP ]
+<span class="data-key">express <id></span>: Displays the media content of a genome.
+<span class="data-key">fuse <id1>+<id2></span>: Combines two genomes into a new one.
+<span class="data-key">mutate <id></span>: Randomly changes one codon in a genome.
+<span class="data-key">trace <id></span>: Shows the metadata for a genome.
+<span class="data-key">echo <text></span>: Prints text to the console.
+<span class="data-key">clear</span>: Clears the console output.
+<span class="data-key">help</span>: Displays this help message.
+
+Interaction: Click a genome strand to auto-fill 'express' command.
+Intensity of bands indicates age/relevance. Brighter is newer.`;
+            logToConsole(helpText);
+        }
+
+        // --- Initialization ---
+
+        consoleInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCommand();
+            }
+        });
+
+        function initialize() {
+            consoleOutput.innerHTML = '';
+            logToConsole('🧬🖥️🌊✨ GENOMIRE SCOPE');
+            logToConsole('Codified Multilayer Media Expression Engine v1.0');
+            logToConsole("Type 'help' for a list of commands.\n", 'system');
+            renderGenomeColumns();
+            consoleInput.focus();
+        }
+
+        initialize();
+    </script>
+</body>
+</html>

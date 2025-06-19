@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROJECT GENOME DIRECTORY // ARCHIVE-INDEX 78</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Genomic Archive-Index, Model 78
+        *   CONCEPT: A chromosomal/genomic interface fused with a 1970s bureaucratic,
+        *   manila folder aesthetic for navigating a structured corpus of work.
+        */
+        :root {
+            --bg-manila: #f3e9d2;
+            --text-typewriter: #3a3a3a;
+            --border-dark: #5a5a5a;
+            --highlight-bg: rgba(255, 251, 235, 0.8);
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+
+            /* Chromosome Band Colors (Amino Acids) */
+            --band-green: #77dd77; /* For Scopes, Interfaces, Concepts */
+            --band-yellow: #fdfd96; /* For Analysis, Authoring */
+            --band-blue: #89cff0; /* For Ontology, Holosomes */
+            --band-pink: #ffb3de; /* For Affect, Rituals */
+            --band-orange: #ffb347; /* For Harmonics, Synthesis */
+            --band-gray: #cfcfc4; /* For Archives, Precursors */
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #c8bda9;
+            margin: 0;
+            font-family: var(--font-main);
+            color: var(--text-typewriter);
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        #archive-container {
+            width: 1600px;
+            height: 900px;
+            background-color: var(--bg-manila);
+            background-image: linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+            background-size: 20px 20px;
+            border: 1px solid #aaa;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            display: grid;
+            grid-template-columns: 1fr 450px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        /* --- KARYOTYPE PANEL (Main View) --- */
+        #karyotype-panel {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 20px;
+            align-content: start;
+            overflow-y: auto;
+        }
+        .chromosome-pair { text-align: center; }
+        .chromosome-label {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+        .chromosome-symbol {
+            font-size: 2rem;
+            opacity: 0.5;
+        }
+        .chromosome {
+            position: relative;
+            width: 20px;
+            height: 250px;
+            background: #ccc;
+            border: 1px solid var(--border-dark);
+            border-radius: 10px;
+            margin: 10px auto;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+        .chromosome-band {
+            position: absolute;
+            width: 100%;
+            border-top: 1px solid rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chromosome-band:hover {
+            transform: scale(1.2);
+            z-index: 10;
+            border: 2px solid var(--text-typewriter);
+        }
+        
+        /* --- TOOLTIP / FILE TAB --- */
+        #file-tab-tooltip {
+            position: fixed;
+            background: #fff;
+            border: 1px solid var(--border-dark);
+            padding: 5px 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            border-top: 10px solid var(--color);
+        }
+
+        /* --- CODON SPOOL (Right Panel) --- */
+        #codon-spool {
+            background: #e6dac6;
+            border: 1px solid #aaa;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .spool-header {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            letter-spacing: 1px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-dark);
+            margin-bottom: 15px;
+        }
+        .spool-header-label {
+            display: block;
+            font-size: 1rem;
+            font-family: var(--font-main);
+            color: #777;
+        }
+        #codon-list {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .codon-item {
+            background-color: var(--bg-manila);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border: 1px solid #ccc;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+        }
+        .codon-filename {
+            font-weight: bold;
+            color: #000;
+        }
+        .codon-title {
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="archive-container">
+        <div id="karyotype-panel"></div>
+        <div id="codon-spool">
+            <div class="spool-header">
+                <span id="spool-title">CODON LIST</span>
+                <span class="spool-header-label">AMINO ACID</span>
+            </div>
+            <div id="codon-list">
+                <div style="text-align: center; padding: 50px; color: #888;">Select a colored band from a chromosome to view its files.</div>
+            </div>
+        </div>
+    </div>
+    <div id="file-tab-tooltip"></div>
+<script>
+const GenomicArchive = {
+    // --- Data: The structured corpus ---
+    CORPUS: {
+        "GENOSOME": {
+            symbol: "α",
+            aminoAcids: {
+                "GENOSCOPE": { color: 'var(--band-green)', codons: [ { id: "gs1.html", name: "GENOSCOPE" }, { id: "gs4.html", name: "GENOSCOPE v1.1" } ] },
+                "GENOMIRE": { color: 'var(--band-green)', codons: [ { id: "gm1.html", name: "GENOMIRE (Concept)" }, { id: "gf1.html", name: "GENOMIRE SCOPE — Genome Field" } ] },
+                "GENOMA": { color: 'var(--band-green)', codons: [ { id: "gg1.html", name: "GENOMA: Functional Genomic Interface" }, { id: "gs2.html", name: "GENOMA Suite (All-in-One)" } ] },
+                "FUSION": { color: 'var(--band-orange)', codons: [ { id: "fu1.html", name: "ECHO-GENESIS PROTOCOL" }, { id: "fu4.html", name: "FUSE // RADAR-GENOME INTERFACE" } ] }
+            }
+        },
+        "METASOME": {
+            symbol: "β",
+            aminoAcids: {
+                "HARMONICS": { color: 'var(--band-orange)', codons: [ { id: "fu10.html", name: "NOETIC RESONANCE HARMONIZER" }, { id: "fu11.html", name: "NOETIC SYNTHESIZER // 78/B" } ] },
+                "TRANSCRIPTION": { color: 'var(--band-yellow)', codons: [ { id: "ecd2.html", name: "ICONOTEXT CONVERTER" }, { id: "ecd3.html", name: "SCRIPT-CAD" } ] },
+                "ANALYSIS": { color: 'var(--band-yellow)', codons: [ { id: "ecd17.html", name: "MYNDARCH" }, { id: "ecd16.html", name: "SUBGLYPH DIFF" }, { id: "ecd14.html", name: "POLISIG" } ] },
+                "ONTOLOGY": { color: 'var(--band-blue)', codons: [ { id: "ecd18.html", name: "AUREOLITHIC DESKTOP" }, { id: "ecd23.html", name: "TRUTHWEAVER OS" } ] },
+                "RITUAL & AFFECT": { color: 'var(--band-pink)', codons: [ { id: "ecd22.html", name: "RITUAL OPERATING SURFACE" }, { id: "ecd15.html", name: "EMOTOTYPE" } ] }
+            }
+        },
+        "HOLOSOME": {
+            symbol: "Ω",
+            aminoAcids: {
+                "SIGMADOS": { color: 'var(--band-blue)', codons: [ { id: "ecd6.html", name: "SIGMADOS // KERNEL: LOGOSCORE (CLI)" }, { id: "ecd7.html", name: "SIGMADOS // GRAPHICAL USER INTERFACE" } ] },
+                "SEMCODE": { color: 'var(--band-yellow)', codons: [ { id: "ecd8.html", name: "SEMCODE // RITUAL/LOGIC BUILDER" } ] },
+                "SIGMATIC FORGE": { color: 'var(--band-blue)', codons: [ { id: "owe4.html", name: "SIGMATIC FORGE" }, { id: "owe-1.html", name: "ONTOLOGICAL WEAVING ENGINE" } ] }
+            }
+        },
+        "BIOSOME": {
+            symbol: "γ",
+            aminoAcids: {
+                "ECOSYNTH": { color: 'var(--band-green)', codons: [ { id: "f1.html", name: "CodonSynth - Evolutionary Music Ecology" } ] },
+                "BIO-INTERFACES": { color: 'var(--band-green)', codons: [ { id: "f4.html", name: "CodonSynth - Biome Navigator" }, { id: "f6.html", name: "CodonSynth - Aural Bioreactor" } ] }
+            }
+        },
+        "ARCHIVES": {
+            symbol: "∅",
+            aminoAcids: {
+                "PRECURSORS": { color: 'var(--band-gray)', codons: [ { id: "g1.html", name: "Universal Resonance Interface" }, { id: "m1.html", name: "MIRE" } ] },
+                "UNTITLED": { color: 'var(--band-gray)', codons: [ { id: "g12.html", name: "(Untitled Artifact)" }, { id: "g7.html", name: "Silent Genome" } ] }
+            }
+        }
+    },
+    // This is a simplified lookup for the full titles. A real app would have this in the main data object.
+    TITLE_LOOKUP: {"ecd-fu-odd.html":"BUREAU TECH FUSION INTERFACES","ecd-u1.html":"3. 🧭 PHORONOMIC ENGINE","ecd-u2.html":"5. 🪞 REFLECTION STACK","ecd-u3.html":"6. 🎙️ RITUAL OPERATING SURFACE","ecd-u4.html":"7. ⚙️ TRUTHWEAVER OS","ecd-u5.html":"🧭 Unified Creative-Cybernetic System","ecd1.html":"ECD // NOETIC KNOWLEDGE SYNTHESIZER // 78/C","ecd10.html":"ECD // siggrep // SEMANTIC ANALYSIS CONSOLE","ecd11.html":"ECD // litflow // NARRATIVE ANALYSIS SYSTEM","ecd12.html":"ECD // DREMUX // NARRATIVE RECOMPOSER","ecd13.html":"ECD // GLYPHTRAN // MODEL S-78","ecd14.html":"ECD // POLISIG // IDEOLOGICAL ANALYZER","ecd15.html":"ECD // EMOTOTYPE // AFFECTIVE SYNTHESIZER","ecd16.html":"ECD // SUBGLYPH DIFF // MODEL C-78","ecd17.html":"ECD // MYNDARCH // NARRATIVE INDEXER","ecd18.html":"ECD // AUREOLITHIC DESKTOP // ONTOLOGICAL TERRAIN","ecd19.html":"ECD // PHORONOMIC ENGINE // v.78c","ecd2.html":"ECD // ICONOTEXT CONVERTER // ITC-X78","ecd20.html":"ECD // ICONOSPHERIC FIELD // v.78d","ecd21.html":"ECD // REFLECTION STACK // v.78e","ecd22.html":"ECD // RITUAL OPERATING SURFACE // [INITIATION]","ecd23.html":"ECD // TRUTHWEAVER OS // v.78g","ecd3.html":"ECD // SCRIPT-CAD // C-78","ecd4.html":"ECD // CIRCUIT DRAMA-EDIT // CDE-1978a","ecd5.html":"ECD // EMOTOTYPE™ SYSTEM // V.4","ecd6.html":"SIGMADOS // KERNEL: LOGOSCORE","ecd7.html":"SIGMADOS // GRAPHICAL USER INTERFACE","ecd8.html":"ECD // semcode // RITUAL/LOGIC BUILDER","ecd9.html":"ECD // semcode // RITUAL/LOGIC BUILDER","f1.html":"CodonSynth - Evolutionary Music Ecology","f2.html":"CodonSynth: Evolutionary Music Ecology","f3.html":"CodonSynth - Ecological Modeler","f4.html":"CodonSynth - Biome Navigator","f5.html":"CodonSynth: Evolutionary Music Ecology","f6.html":"CodonSynth - Aural Bioreactor","f7.html":"CodonSynth - Musical Garden","fu1.html":"🧬 ECHO-GENESIS PROTOCOL","fu10.html":"ECD // NOETIC RESONANCE HARMONIZER // [CLASSIFIED]","fu11.html":"ECD // NOETIC SYNTHESIZER // 78/B [AUTHORIZED PERSONNEL ONLY]","fu2.html":"🕹️📡 FUSE: Trans-Temporal Information Interface","fu3.html":"🧬 KINETIC WEAVING","fu4.html":"FUSE // RADAR-GENOME INTERFACE [EXP-M-A-01]","fu5.html":"🕹️📡 FUSE: Trans-Temporal Information Interface (v2)","fu6.html":"FUSE // RADAR-GENOME INTERFACE [EXP-M-A-02]","fu7.html":"VISUAL ATLAS // RADAR FUSE INTERFACES","fu8.html":"GENOMIRE SCOPE v2.7","fu9.html":"SYSTEM BOOT // FUSE RADAR OS v.1.0","g1.html":"Universal Resonance Interface","g10.html":"Claymorphic Genome Phenotypes","g11.html":"FORMA OS: Post-File Operating System","g12.html":"Title tag not found or empty","g13.html":"🧬🖼️ PIXON: Genetic Ontology Engine","g2.html":"Synthetic Genomic Field","g3.html":"Universal Resonance Interface","g4.html":"Genome-Style Information Navigator","g5.html":"Genome-Style Information Navigator","g6.html":"Generative Heuristics for System Design","g7.html":"Silent Genome","g8.html":"🧬👁‍🗨 Silent Genome: Ambient Memory Interface","g9.html":"Codex Scroll","gf1.html":"GENOMIRE SCOPE — Genome Field","gf2.html":"GENOMIRE SCOPE // Fitts-Optimized Field","gf3.html":"GENOMIRE SCOPE // Memory Ecology","gf4.html":"GENOMIRE SCOPE // Synthesis","gf5.html":"GENOMIRE SCOPE // Fusion Models","gg1.html":"🧬 GENOMA: Functional Genomic Interface","gg2.html":"🧬 GENOMA v2: Functional Genomic Interface","gm-ooo.html":"GENOMIRE SCOPE v2.7 [SYSTEM CORE]","gm1.html":"🧬 GENOMIRE","gm10.html":"🧬 GENOMIRE SCOPE","gm2.html":"🧬🖥️🌊✨ GENOMIRE SCOPE","gm3.html":"🧬 GENOMIRE SCOPE","gm4.html":"🧬🖥️🌊✨ GENOMIRE SCOPE v2","gm5.html":"GENOMIRE SCOPE — Decodable Functional Interface","gm6.html":"🧬 GENOMIRE SCOPE","gm7.html":"GENOMIRE SCOPE","gm8.html":"🧬 GENOMIRE SCOPE","gm9.html":"GENOMIRE SCOPE :: Total Field","gs-dev.html":"GENOMA Suite (All-in-One)","gs1.html":"🧬 GENOSCOPE","gs2-base.html":"GENOMA Suite (All-in-One)","gs2-core.html":"GENOMA Suite (All-in-One)","gs2-plus.html":"GENOMA Suite (All-in-One)","gs2.html":"GENOMA Suite (All-in-One)","gs3.html":"GENOSCOPE: Tufteform Edition","gs4.html":"🧬 GENOSCOPE v1.1","index.html":"Project Genome Directory","m1.html":"MIRE: Multilayered Information Resonance Engine","m2.html":"MIRE: Multilayered Information Resonance Engine","m4.html":"MIRE: Prototyping Surface","owe-1.html":"ECD // ONTOLOGICAL WEAVING ENGINE // UNIFIED SYSTEM","owe2.html":"🧭 Unified Creative-Cybernetic System","owe3.html":"SIGMATIC FORGE [ECD-78-UI-MAP-001]","owe4.html":"ECD // SIGMATIC FORGE // RECURSIVE ONTOLOGICAL ENVIRONMENT","owe5.html":"SIGMATIC FORGE :: ECD-78","owe6.html":"SIGMATIC FORGE [ECD-78-RLE-001]","owe7.html":"ECD // SIGMATIC FORGE // ROE-78"},
+
+    // --- DOM Elements ---
+    elems: {
+        karyotypePanel: document.getElementById('karyotype-panel'),
+        spoolTitle: document.getElementById('spool-title'),
+        codonList: document.getElementById('codon-list'),
+        tooltip: document.getElementById('file-tab-tooltip'),
+    },
+
+    // --- Initialization ---
+    init() {
+        this.renderKaryotype();
+        document.addEventListener('mousemove', e => {
+            this.elems.tooltip.style.left = `${e.clientX + 15}px`;
+            this.elems.tooltip.style.top = `${e.clientY - 30}px`;
+        });
+    },
+
+    // --- Rendering Logic ---
+    renderKaryotype() {
+        let html = '';
+        for (const [proteinName, proteinData] of Object.entries(this.CORPUS)) {
+            const aminoAcids = Object.entries(proteinData.aminoAcids);
+            let totalCodons = 0;
+            aminoAcids.forEach(([_, data]) => totalCodons += data.codons.length);
+
+            let bandsHtml = '';
+            let currentPosition = 0;
+            aminoAcids.forEach(([aminoName, aminoData]) => {
+                const bandHeight = (aminoData.codons.length / totalCodons) * 100;
+                bandsHtml += `
+                    <div class="chromosome-band" 
+                         style="top: ${currentPosition}%; height: ${bandHeight}%; background-color: ${aminoData.color};"
+                         data-protein="${proteinName}"
+                         data-amino="${aminoName}">
+                    </div>
+                `;
+                currentPosition += bandHeight;
+            });
+
+            html += `
+                <div class="chromosome-pair">
+                    <div class="chromosome-label">${proteinName}</div>
+                    <div class="chromosome-symbol">${proteinData.symbol}</div>
+                    <div class="chromosome">${bandsHtml}</div>
+                </div>
+            `;
+        }
+        this.elems.karyotypePanel.innerHTML = html;
+        this.addEventListeners();
+    },
+
+    addEventListeners() {
+        this.elems.karyotypePanel.querySelectorAll('.chromosome-band').forEach(band => {
+            band.addEventListener('mouseenter', e => this.showTooltip(e.target));
+            band.addEventListener('mouseleave', () => this.hideTooltip());
+            band.addEventListener('click', e => this.showCodons(e.target));
+        });
+    },
+
+    showTooltip(bandElement) {
+        const aminoName = bandElement.dataset.amino;
+        this.elems.tooltip.textContent = aminoName;
+        this.elems.tooltip.style.display = 'block';
+        this.elems.tooltip.style.setProperty('--color', getComputedStyle(bandElement).backgroundColor);
+        setTimeout(() => this.elems.tooltip.style.opacity = 1, 10);
+    },
+
+    hideTooltip() {
+        this.elems.tooltip.style.opacity = 0;
+        setTimeout(() => this.elems.tooltip.style.display = 'none', 200);
+    },
+
+    showCodons(bandElement) {
+        const proteinName = bandElement.dataset.protein;
+        const aminoName = bandElement.dataset.amino;
+        const codons = this.CORPUS[proteinName].aminoAcids[aminoName].codons;
+
+        this.elems.spoolTitle.textContent = aminoName;
+        
+        this.elems.codonList.innerHTML = codons.map(codon => {
+            // Use the lookup table to get the full title
+            const fullTitle = this.TITLE_LOOKUP[codon.id] || codon.name;
+            return `
+                <div class="codon-item">
+                    <div class="codon-filename">${codon.id}</div>
+                    <div class="codon-title">${fullTitle}</div>
+                </div>
+            `;
+        }).join('');
+    },
+};
+
+GenomicArchive.init();
+</script>
+</body>
+</html>

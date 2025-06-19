@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬👁‍🗨 Silent Genome: Ambient Memory Interface</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000208;
+            cursor: none;
+            height: 100%;
+            width: 100%;
+        }
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="genomeCanvas"></canvas>
+
+    <script>
+    // 🧬👁‍🗨 ——— SILENT GENOME: AMBIENT MEMORY INTERFACE ——— 👁‍🗨🧬
+
+    // ——— SETUP & CONFIGURATION ———
+    const canvas = document.getElementById('genomeCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let width, height;
+    let strands = [];
+    let particles = [];
+    let mouse = { x: -1000, y: -1000, down: false };
+    let scrollY = 0;
+    let lastInteractionTime = Date.now();
+    let time = 0;
+
+    const CONFIG = {
+        NUM_STRANDS: 35,
+        STRAND_DRIFT_SPEED: 0.05,
+        GENE_BASE_WIDTH: 12,
+        GENE_MIN_HEIGHT: 4,
+        GENE_MAX_HEIGHT: 50,
+        GENE_SPACING: 3,
+        PULSE_FREQUENCY: 0.002,
+        GLOW_BASE: 5,
+        GLOW_HOVER: 20,
+        HOVER_RESONANCE_RADIUS: 200,
+        MUTATION_CHANCE: 0.0005,
+        IDLE_TIMEOUT: 10000, // 10 seconds
+        IDLE_DRIFT_SPEED: 0.1,
+        SCROLL_SENSITIVITY: 0.5,
+        BACKGROUND_ALPHA: 0.15,
+        MAX_STRANDS_RENDERED: 50,
+        VIRTUAL_HEIGHT: 10000, // How far down the content goes
+    };
+
+    // 🧬 Inspired by deep-sea bioluminescence and genetic sequencing readouts
+    const TYPE_COLORS = {
+        image:   { h: 200, s: 100, l: 60 }, // Cyan (Structure)
+        link:    { h: 280, s: 90, l: 65 },  // Violet (Connection)
+        phrase:  { h: 120, s: 100, l: 55 }, // Green (Semantic)
+        code:    { h: 240, s: 100, l: 70 }, // Blue (Logic)
+        quote:   { h: 50, s: 100, l: 60 },  // Gold (Wisdom)
+        gesture: { h: 0, s: 90, l: 65 },    // Red (Action)
+    };
+
+    // 🧪 ——— DATA SUBSTRATE (Embedded JSON) ———
+    // In a real system, this would be fetched or streamed.
+    const memoryData = Array.from({ length: 1500 }, (_, i) => ({
+        id: i,
+        type: Object.keys(TYPE_COLORS)[Math.floor(Math.random() * Object.keys(TYPE_COLORS).length)],
+        weight: Math.random(), // Affects height
+        intensity: 0.2 + Math.random() * 0.5, // Affects base glow/alpha
+        age: Math.random(), // Affects blinking
+        relatedness: Math.floor(Math.random() * CONFIG.NUM_STRANDS) // A simple grouping mechanism
+    }));
+
+
+    // 🔮 ——— AUDIOVISUAL SYNTHESIS ———
+    let audioCtx;
+    
+    const initAudio = () => {
+        if (!audioCtx) {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.warn("Web Audio API is not supported in this browser.");
+            }
+        }
+    };
+
+    const playBurstSound = (x, y) => {
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+        const gainNode = audioCtx.createGain();
+        gainNode.connect(audioCtx.destination);
+        
+        const oscillator = audioCtx.createOscillator();
+        const pitch = 200 + (1 - (y / height)) * 800; // Pitch based on vertical position
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(pitch, now);
+        oscillator.frequency.exponentialRampToValueAtTime(pitch / 2, now + 0.8);
+        
+        gainNode.gain.setValueAtTime(0.3, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
+
+        const panner = audioCtx.createStereoPanner();
+        panner.pan.value = (x / width) * 2 - 1; // Pan based on horizontal position
+        
+        oscillator.connect(panner);
+        panner.connect(gainNode);
+
+        oscillator.start(now);
+        oscillator.stop(now + 1);
+    };
+
+
+    // 🧠 ——— CORE CLASSES (Strands, Genes, Particles) ———
+
+    class Gene {
+        constructor(data, x, y, strandId) {
+            this.data = data;
+            this.x = x;
+            this.y = y;
+            this.strandId = strandId;
+            
+            this.height = CONFIG.GENE_MIN_HEIGHT + this.data.weight * (CONFIG.GENE_MAX_HEIGHT - CONFIG.GENE_MIN_HEIGHT);
+            this.color = TYPE_COLORS[this.data.type];
+            this.baseAlpha = 0.4 + this.data.intensity * 0.6;
+            this.currentAlpha = this.baseAlpha;
+
+            this.pulseOffset = Math.random() * Math.PI * 2;
+            this.blinkTimer = this.data.age * 500 + 200; // Slower blinks for older memories
+            this.lastBlink = time;
+        }
+
+        update(mouse, scrollY) {
+            // Pulsing based on time
+            const pulse = Math.sin(time * CONFIG.PULSE_FREQUENCY + this.pulseOffset) * 0.15 + 0.85;
+            this.currentAlpha = this.baseAlpha * pulse;
+
+            // Blinking based on age
+            if (time - this.lastBlink > this.blinkTimer) {
+                this.currentAlpha = 1;
+                this.lastBlink = time + (Math.random() - 0.5) * 100;
+                this.blinkTimer = this.data.age * 500 + 200 + (Math.random() * 200);
+            }
+
+            // Hover resonance
+            const screenY = this.y - scrollY;
+            const dx = this.x - mouse.x;
+            const dy = screenY + this.height / 2 - mouse.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            let resonance = 0;
+            if (dist < CONFIG.HOVER_RESONANCE_RADIUS) {
+                resonance = (1 - dist / CONFIG.HOVER_RESONANCE_RADIUS);
+                this.currentAlpha += resonance * 0.5;
+            }
+            
+            return resonance > 0.9; // Return true if directly hovered
+        }
+
+        draw(ctx, scrollY) {
+            const screenY = this.y - scrollY;
+            if (screenY < -CONFIG.GENE_MAX_HEIGHT || screenY > height) return;
+
+            const hslColor = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${Math.min(1, this.currentAlpha)})`;
+            
+            ctx.fillStyle = hslColor;
+            ctx.shadowColor = hslColor;
+            ctx.shadowBlur = CONFIG.GLOW_BASE + this.currentAlpha * 10;
+            
+            ctx.fillRect(this.x, screenY, CONFIG.GENE_BASE_WIDTH, this.height);
+        }
+
+        mutate() {
+            // A memory flickers, its type shifting momentarily
+            const originalType = this.data.type;
+            const newType = Object.keys(TYPE_COLORS)[Math.floor(Math.random() * Object.keys(TYPE_COLORS).length)];
+            this.data.type = newType;
+            this.color = TYPE_COLORS[this.data.type];
+            setTimeout(() => {
+                this.data.type = originalType;
+                this.color = TYPE_COLORS[this.data.type];
+            }, 300 + Math.random() * 500);
+        }
+    }
+
+    class Strand {
+        constructor(id, x) {
+            this.id = id;
+            this.x = x;
+            this.targetX = x;
+            this.genes = [];
+            this.yDrift = (Math.random() - 0.5) * CONFIG.STRAND_DRIFT_SPEED;
+
+            let currentY = Math.random() * -200;
+            memoryData.filter(d => d.relatedness === this.id % (CONFIG.NUM_STRANDS / 2)).forEach(data => {
+                this.genes.push(new Gene(data, this.x, currentY, this.id));
+                currentY += CONFIG.GENE_MAX_HEIGHT + CONFIG.GENE_SPACING;
+            });
+            this.totalHeight = currentY;
+        }
+
+        update(isIdle, mouse, scrollY) {
+            // Horizontal drift when idle
+            if (isIdle) {
+                this.x += (this.targetX - this.x) * 0.001;
+            }
+            // Vertical drift
+            this.genes.forEach(gene => {
+                gene.y += this.yDrift;
+                gene.x = this.x; // Keep genes aligned with strand
+            });
+
+            // Update genes and check for hover
+            let isAnyGeneHovered = false;
+            this.genes.forEach(gene => {
+                if (gene.update(mouse, scrollY)) {
+                    isAnyGeneHovered = true;
+                }
+            });
+
+            // Resonance ripple effect
+            if (isAnyGeneHovered) {
+                this.genes.forEach(gene => {
+                    gene.currentAlpha = Math.min(1, gene.currentAlpha + 0.15);
+                });
+            }
+        }
+
+        draw(ctx, scrollY) {
+            ctx.save();
+            this.genes.forEach(gene => gene.draw(ctx, scrollY));
+            ctx.restore();
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.size = Math.random() * 5 + 2;
+            this.life = 1;
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 4 + 1;
+            this.vx = Math.cos(angle) * speed;
+            this.vy = Math.sin(angle) * speed;
+        }
+
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.life -= 0.015;
+            this.vx *= 0.98;
+            this.vy *= 0.98;
+        }
+
+        draw(ctx) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, ${this.life})`;
+            ctx.shadowColor = `hsla(${this.color.h}, ${this.color.s}%, ${this.color.l}%, 1)`;
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * this.life, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    // ⚙️ ——— INITIALIZATION & EVENT LISTENERS ———
+    
+    function init() {
+        resize();
+        strands = [];
+        for (let i = 0; i < CONFIG.NUM_STRANDS; i++) {
+            const x = Math.random() * width;
+            strands.push(new Strand(i, x));
+        }
+        
+        // Ensure some content is visible at the start
+        scrollY = -height / 2;
+
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('mouseup', onMouseUp);
+        window.addEventListener('wheel', onScroll, { passive: false });
+        
+        animate();
+    }
+    
+    function resize() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    function onMouseMove(e) {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        lastInteractionTime = Date.now();
+    }
+
+    function onMouseDown(e) {
+        initAudio(); // Initialize audio on first user interaction
+        mouse.down = true;
+        lastInteractionTime = Date.now();
+
+        // Find clicked gene
+        for (const strand of strands) {
+            for (const gene of strand.genes) {
+                const screenY = gene.y - scrollY;
+                if (mouse.x > gene.x && mouse.x < gene.x + CONFIG.GENE_BASE_WIDTH &&
+                    mouse.y > screenY && mouse.y < screenY + gene.height) {
+                    
+                    // Create audiovisual burst
+                    for (let i = 0; i < 30; i++) {
+                        particles.push(new Particle(gene.x + CONFIG.GENE_BASE_WIDTH / 2, screenY + gene.height / 2, gene.color));
+                    }
+                    playBurstSound(gene.x, screenY);
+                    return; // Only one click at a time
+                }
+            }
+        }
+    }
+
+    function onMouseUp() {
+        mouse.down = false;
+    }
+
+    function onScroll(e) {
+        e.preventDefault();
+        scrollY += e.deltaY * CONFIG.SCROLL_SENSITIVITY;
+        // Clamp scroll to virtual bounds
+        scrollY = Math.max(-height, Math.min(scrollY, CONFIG.VIRTUAL_HEIGHT));
+        lastInteractionTime = Date.now();
+    }
+
+    function createCursor(ctx, x, y) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(150, 200, 255, 0.7)';
+        ctx.lineWidth = 1;
+        ctx.shadowColor = 'rgba(150, 200, 255, 1)';
+        ctx.shadowBlur = 8;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(150, 200, 255, 0.1)';
+        ctx.fill();
+        ctx.restore();
+    }
+
+
+    // ♾️ ——— ANIMATION LOOP & DYNAMIC BEHAVIOR ———
+
+    function animate() {
+        time++;
+        
+        // Clear canvas with trail effect
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = `rgba(0, 2, 8, ${CONFIG.BACKGROUND_ALPHA})`;
+        ctx.fillRect(0, 0, width, height);
+        
+        const isIdle = (Date.now() - lastInteractionTime > CONFIG.IDLE_TIMEOUT);
+
+        // Update and draw strands
+        strands.forEach(strand => {
+            strand.update(isIdle, mouse, scrollY);
+            strand.draw(ctx, scrollY);
+
+            // Mutation Heuristic
+            if (Math.random() < CONFIG.MUTATION_CHANCE) {
+                const randomGene = strand.genes[Math.floor(Math.random() * strand.genes.length)];
+                if(randomGene) randomGene.mutate();
+            }
+        });
+        
+        // Idle Reorganization Heuristic
+        if (isIdle) {
+            strands.forEach(strand => {
+                if(Math.abs(strand.x - strand.targetX) < 1) {
+                    strand.targetX = Math.random() * width;
+                }
+            });
+        }
+
+        // Infinite Scroll Illusion: Recycle strands that move off-screen
+        strands.forEach(strand => {
+            const bottomOfStrand = strand.genes.reduce((max, g) => Math.max(max, g.y), 0);
+            const topOfStrand = strand.genes.reduce((min, g) => Math.min(min, g.y), Infinity);
+
+            if(bottomOfStrand - scrollY < -height) { // Strand is fully above viewport
+                const verticalShift = CONFIG.VIRTUAL_HEIGHT + height * 2;
+                strand.genes.forEach(gene => gene.y += verticalShift);
+            } else if (topOfStrand - scrollY > height) { // Strand is fully below viewport
+                const verticalShift = CONFIG.VIRTUAL_HEIGHT + height * 2;
+                strand.genes.forEach(gene => gene.y -= verticalShift);
+            }
+        });
+
+        // Update and draw particles for click bursts
+        particles = particles.filter(p => p.life > 0);
+        particles.forEach(p => {
+            p.update();
+            p.draw(ctx);
+        });
+
+        // Draw custom cursor
+        createCursor(ctx, mouse.x, mouse.y);
+        
+        requestAnimationFrame(animate);
+    }
+
+    // Kick everything off
+    init();
+
+    </script>
+</body>
+</html>

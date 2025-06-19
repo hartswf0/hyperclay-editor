@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUSE Project :: Corpus Index</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+            --bg-paper: #f3efe6;
+            --bg-grid: rgba(0,0,0,0.04);
+            --text-dark: #4a4a4a;
+            --text-light: #fdfdfd;
+            --border-color: #d3c7b1;
+            --header-default-bg: #8B572A; /* Default Brown */
+            
+            /* Amino Acid Band Colors */
+            --c-green: #7ED321;
+            --c-yellow: #F8E71C;
+            --c-blue: #4A90E2;
+            --c-pink: #E91E63;
+            --c-orange: #F5A623;
+            --c-gray: #A9A9A9;
+            --c-red: #D0021B;
+            --c-purple: #9013FE;
+            --c-brown: #8B572A;
+            --c-cyan: #00BCD4;
+            --c-teal: #40826D;
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #dcd6c9;
+            margin: 0;
+            font-family: var(--font-main);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        #archive-container {
+            width: 800px;
+            background-color: var(--bg-paper);
+            border: 1px solid var(--border-color);
+            box-shadow: 3px 3px 10px rgba(0,0,0,0.2);
+            padding: 2rem;
+        }
+        
+        /* --- HEADER & CHROMOSOME DISPLAY --- */
+        header {
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        #project-title {
+            font-family: var(--font-display);
+            font-size: 3rem;
+            text-align: center;
+            letter-spacing: 1px;
+            margin: 0;
+            transition: color 0.3s;
+        }
+        #chromosome-display {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 300px;
+            padding: 20px 0;
+            background-image: linear-gradient(var(--bg-grid) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .chromosome-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .chromosome-label {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            color: #777;
+        }
+        .chromosome-bar {
+            width: 60px;
+            height: 250px;
+            background: #ccc;
+            border: 2px solid #555;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+        .chromosome-band {
+            width: 100%;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border-top: 1px solid rgba(0,0,0,0.3);
+        }
+        .chromosome-band:first-child { border-top: none; }
+        .chromosome-band.active {
+            transform: scale(1.1);
+            z-index: 10;
+            border: 2px solid #fff;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        /* --- CONTENT SPOOL --- */
+        #content-spool { margin-top: 20px; }
+        .amino-acid-header {
+            background-color: var(--color, var(--header-default-bg));
+            color: var(--text-dark);
+            padding: 15px 20px;
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+            transition: background-color 0.3s;
+        }
+        .amino-acid-header.dark-text { color: var(--text-light); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
+        .amino-acid-subtitle {
+            display: block;
+            font-size: 1rem;
+            font-family: var(--font-main);
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+        .codon-list { padding: 15px 0; }
+        .codon-item {
+            background: #e9e4d9;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            transition: background-color 0.2s;
+        }
+        .codon-item a { text-decoration: none; color: inherit; display: block; }
+        .codon-item:hover { background-color: #fff; }
+        .codon-item.special {
+            background-color: #f8f6f0;
+            display: flex;
+            align-items: center;
+        }
+        .codon-item .symbol { font-size: 1.5rem; margin-right: 10px; opacity: 0.7; }
+        .codon-item .note {
+            display: block;
+            font-size: 0.8rem;
+            color: #777;
+            font-style: italic;
+            text-transform: none;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="archive-container">
+        <header>
+            <h1 id="project-title">Project Corpus</h1>
+            <div id="chromosome-display"></div>
+        </header>
+        <main id="content-spool"></main>
+    </div>
+
+<script>
+const Archive = {
+    // --- Data: The complete, structured corpus ---
+    TITLE_LOOKUP: {"ecd-fu-odd.html":"BUREAU TECH FUSION INTERFACES","ecd-u1.html":"3. 🧭 PHORONOMIC ENGINE","ecd-u2.html":"5. 🪞 REFLECTION STACK","ecd-u3.html":"6. 🎙️ RITUAL OPERATING SURFACE","ecd-u4.html":"7. ⚙️ TRUTHWEAVER OS","ecd-u5.html":"🧭 Unified Creative-Cybernetic System","ecd1.html":"ECD // NOETIC KNOWLEDGE SYNTHESIZER // 78/C","ecd10.html":"ECD // siggrep // SEMANTIC ANALYSIS CONSOLE","ecd11.html":"ECD // litflow // NARRATIVE ANALYSIS SYSTEM","ecd12.html":"ECD // DREMUX // NARRATIVE RECOMPOSER","ecd13.html":"ECD // GLYPHTRAN // MODEL S-78","ecd14.html":"ECD // POLISIG // IDEOLOGICAL ANALYZER","ecd15.html":"ECD // EMOTOTYPE // AFFECTIVE SYNTHESIZER","ecd16.html":"ECD // SUBGLYPH DIFF // MODEL C-78","ecd17.html":"ECD // MYNDARCH // NARRATIVE INDEXER","ecd18.html":"ECD // AUREOLITHIC DESKTOP // ONTOLOGICAL TERRAIN","ecd19.html":"ECD // PHORONOMIC ENGINE // v.78c","ecd2.html":"ECD // ICONOTEXT CONVERTER // ITC-X78","ecd20.html":"ECD // ICONOSPHERIC FIELD // v.78d","ecd21.html":"ECD // REFLECTION STACK // v.78e","ecd22.html":"ECD // RITUAL OPERATING SURFACE // [INITIATION]","ecd23.html":"ECD // TRUTHWEAVER OS // v.78g","ecd3.html":"ECD // SCRIPT-CAD // C-78","ecd4.html":"ECD // CIRCUIT DRAMA-EDIT // CDE-1978a","ecd5.html":"ECD // EMOTOTYPE™ SYSTEM // V.4","ecd6.html":"SIGMADOS // KERNEL: LOGOSCORE","ecd7.html":"SIGMADOS // GRAPHICAL USER INTERFACE","ecd8.html":"ECD // semcode // RITUAL/LOGIC BUILDER","ecd9.html":"ECD // semcode // RITUAL/LOGIC BUILDER","f1.html":"CodonSynth - Evolutionary Music Ecology","f2.html":"CodonSynth: Evolutionary Music Ecology","f3.html":"CodonSynth - Ecological Modeler","f4.html":"CodonSynth - Biome Navigator","f5.html":"CodonSynth: Evolutionary Music Ecology","f6.html":"CodonSynth - Aural Bioreactor","f7.html":"CodonSynth - Musical Garden","fu1.html":"🧬 ECHO-GENESIS PROTOCOL","fu10.html":"ECD // NOETIC RESONANCE HARMONIZER // [CLASSIFIED]","fu11.html":"ECD // NOETIC SYNTHESIZER // 78/B [AUTHORIZED PERSONNEL ONLY]","fu2.html":"🕹️📡 FUSE: Trans-Temporal Information Interface","fu3.html":"🧬 KINETIC WEAVING","fu4.html":"FUSE // RADAR-GENOME INTERFACE [EXP-M-A-01]","fu5.html":"🕹️📡 FUSE: Trans-Temporal Information Interface (v2)","fu6.html":"FUSE // RADAR-GENOME INTERFACE [EXP-M-A-02]","fu7.html":"VISUAL ATLAS // RADAR FUSE INTERFACES","fu8.html":"GENOMIRE SCOPE v2.7","fu9.html":"SYSTEM BOOT // FUSE RADAR OS v.1.0","g1.html":"Universal Resonance Interface","g10.html":"Claymorphic Genome Phenotypes","g11.html":"FORMA OS: Post-File Operating System","g12.html":"Title tag not found or empty","g13.html":"🧬🖼️ PIXON: Genetic Ontology Engine","g2.html":"Synthetic Genomic Field","g3.html":"Universal Resonance Interface","g4.html":"Genome-Style Information Navigator","g5.html":"Genome-Style Information Navigator","g6.html":"Generative Heuristics for System Design","g7.html":"Silent Genome","g8.html":"🧬👁‍🗨 Silent Genome: Ambient Memory Interface","g9.html":"Codex Scroll","gf1.html":"GENOMIRE SCOPE — Genome Field","gf2.html":"GENOMIRE SCOPE // Fitts-Optimized Field","gf3.html":"GENOMIRE SCOPE // Memory Ecology","gf4.html":"GENOMIRE SCOPE // Synthesis","gf5.html":"GENOMIRE SCOPE // Fusion Models","gg1.html":"🧬 GENOMA: Functional Genomic Interface","gg2.html":"🧬 GENOMA v2: Functional Genomic Interface","gm-ooo.html":"GENOMIRE SCOPE v2.7 [SYSTEM CORE]","gm1.html":"🧬 GENOMIRE","gm10.html":"🧬 GENOMIRE SCOPE","gm2.html":"🧬🖥️🌊✨ GENOMIRE SCOPE","gm3.html":"🧬 GENOMIRE SCOPE","gm4.html":"🧬🖥️🌊✨ GENOMIRE SCOPE v2","gm5.html":"GENOMIRE SCOPE — Decodable Functional Interface","gm6.html":"🧬 GENOMIRE SCOPE","gm7.html":"GENOMIRE SCOPE","gm8.html":"🧬 GENOMIRE SCOPE","gm9.html":"GENOMIRE SCOPE :: Total Field","gs-dev.html":"GENOMA Suite (All-in-One)","gs1.html":"🧬 GENOSCOPE","gs2-base.html":"GENOMA Suite (All-in-One)","gs2-core.html":"GENOMA Suite (All-in-One)","gs2-plus.html":"GENOMA Suite (All-in-One)","gs2.html":"GENOMA Suite (All-in-One)","gs3.html":"GENOSCOPE: Tufteform Edition","gs4.html":"🧬 GENOSCOPE v1.1","index.html":"Project Genome Directory","m1.html":"MIRE: Multilayered Information Resonance Engine","m2.html":"MIRE: Multilayered Information Resonance Engine","m4.html":"MIRE: Prototyping Surface","owe-1.html":"ECD // ONTOLOGICAL WEAVING ENGINE // UNIFIED SYSTEM","owe2.html":"🧭 Unified Creative-Cybernetic System","owe3.html":"SIGMATIC FORGE [ECD-78-UI-MAP-001]","owe4.html":"ECD // SIGMATIC FORGE // RECURSIVE ONTOLOGICAL ENVIRONMENT","owe5.html":"SIGMATIC FORGE :: ECD-78","owe6.html":"SIGMATIC FORGE [ECD-78-RLE-001]","owe7.html":"ECD // SIGMATIC FORGE // ROE-78"},
+    CORPUS_DATA: { "The GENOMIRE Project (GM)": { label: "G", aminoAcids: { "GENOMIRE SCOPE (GM-S)":{color:"var(--c-blue)",codons:["gm2.html","gm3.html","gm4.html","gm6.html","gm7.html","gm8.html","gm9.html","gm10.html","gm-ooo.html","fu8.html"]}, "GENOMIRE FIELD (GM-F)":{color:"var(--c-blue)",codons:["gf1.html","gf2.html","gf3.html","g2.html"]}, "GENOSCOPE / GENOMA (GS/GG)":{color:"var(--c-green)",codons:["gs1.html","gs3.html","gs4.html","gg1.html","gg2.html","gs-dev.html","gs2.html","gs2-base.html","gs2-core.html","gs2-plus.html"]}}}, "The FUSE Project (FU)":{label:"F",aminoAcids:{"FUSE INTERFACES (FU-I)":{color:"var(--c-yellow)",codons:["fu2.html","fu5.html","fu4.html","fu6.html","fu7.html","fu9.html","ecd-fu-odd.html","gf4.html","gf5.html"],notes:{"gf4.html":"Cross-lineage","gf5.html":"Cross-lineage"}},"FUSE CONCEPTS (FU-C)":{color:"var(--c-orange)",codons:["fu1.html","fu3.html"]}}},"Esoterica Cybernetics Division (ECD)":{label:"E",aminoAcids:{"HARMONIZERS (ECD-H)":{color:"var(--c-orange)",codons:["fu10.html","fu11.html","ecd1.html"]},"COMPOSITION (ECD-C)":{color:"var(--c-red)",codons:["ecd2.html","ecd13.html","ecd3.html","ecd8.html","ecd9.html"]},"ANALYSIS (ECD-A)":{color:"var(--c-yellow)",codons:["ecd17.html","ecd16.html","ecd14.html","ecd10.html","ecd11.html","ecd12.html"]},"ONTOLOGY (ECD-O)":{color:"var(--c-purple)",codons:["ecd18.html","ecd21.html","ecd-u2.html","ecd23.html","ecd-u4.html","ecd19.html","ecd-u1.html"]},"RITUAL & AFFECT (ECD-R)":{color:"var(--c-pink)",codons:["ecd20.html","ecd22.html","ecd-u3.html","ecd5.html","ecd15.html","ecd4.html"]}}},"The HOLOSOMES (H)":{label:"H",aminoAcids:{"SIGMADOS (OS)":{color:"var(--c-purple)",codons:["ecd6.html","ecd7.html"]},"SIGMATIC FORGE / OWE":{color:"var(--c-brown)",codons:["owe-1.html","owe2.html","owe3.html","owe4.html","owe5.html","owe6.html","owe7.html","ecd-u5.html"],notes:{"owe2.html":"Concept","ecd-u5.html":"Alternate Title"}}}},"ORPHANED & CONCEPTUAL PROJECTS (R)":{label:"R",aminoAcids:{"CODONSYNTH (CS)":{color:"var(--c-green)",codons:["f1.html","f2.html","f3.html","f4.html","f5.html","f6.html","f7.html"]},"MIRE (MI)":{color:"var(--c-pink)",codons:["m1.html","m2.html","m4.html"]},"GENERIC / UNTITLED (G)":{color:"var(--c-gray)",codons:["g1.html","g3.html","g4.html","g5.html","g6.html","g7.html","g8.html","g9.html","g10.html","g11.html","g13.html","g12.html","index.html"]}}}},
+    
+    elems: {
+        title: document.getElementById('project-title'),
+        chromosomeDisplay: document.getElementById('chromosome-display'),
+        contentSpool: document.getElementById('content-spool'),
+    },
+    
+    audio: {
+        ctx: null, click: null,
+        init() {
+            if (this.ctx) return;
+            this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.click = this.createSound(220, 0.1, 0.15);
+        },
+        createSound(freq, dur, vol) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sine'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    init() {
+        document.body.addEventListener('click', () => this.audio.init(), { once: true });
+        this.render();
+    },
+
+    render() {
+        this.elems.chromosomeDisplay.innerHTML = Object.entries(this.CORPUS_DATA).map(([projectName, projectData]) => {
+            const allAminoAcids = Object.values(projectData.aminoAcids);
+            const totalCodons = allAminoAcids.reduce((sum, amino) => sum + amino.codons.length, 0);
+            if (totalCodons === 0) return '';
+            
+            const bandsHtml = allAminoAcids.map(aminoAcid => {
+                const height = (aminoAcid.codons.length / totalCodons) * 100;
+                return `<div class="chromosome-band" 
+                             style="height: ${height}%; background-color: ${aminoAcid.color};"
+                             data-amino='${JSON.stringify(aminoAcid)}'
+                             data-project-name="${projectName}"></div>`;
+            }).join('');
+            
+            return `<div class="chromosome-unit">
+                        <div class="chromosome-label">${projectData.label}</div>
+                        <div class="chromosome-bar">${bandsHtml}</div>
+                    </div>`;
+        }).join('');
+        
+        this.addEventListeners();
+
+        // Default to a specific view on load, e.g., the one from the image
+        const holosomes = this.CORPUS_DATA["The HOLOSOMES (H)"];
+        const sigmaticForgeAmino = holosomes.aminoAcids["SIGMATIC FORGE / OWE"];
+        if (sigmaticForgeAmino) {
+            this.renderCodonList(sigmaticForgeAmino, "The HOLOSOMES (H)");
+            this.updateActiveBand(sigmaticForgeAmino);
+        }
+    },
+    
+    addEventListeners() {
+        this.elems.chromosomeDisplay.querySelectorAll('.chromosome-band').forEach(band => {
+            band.onclick = e => {
+                if (this.audio.click) this.audio.click();
+                
+                const aminoData = JSON.parse(e.target.dataset.amino);
+                const projectName = e.target.dataset.projectName;
+
+                this.renderCodonList(aminoData, projectName);
+                this.updateActiveBand(aminoData);
+            };
+        });
+    },
+    
+    updateActiveBand(activeAmino) {
+        document.querySelectorAll('.chromosome-band').forEach(b => {
+            const bandData = JSON.parse(b.dataset.amino);
+            // Compare based on a unique property, like the first codon.
+            const isActive = bandData.codons[0] === activeAmino.codons[0];
+            b.classList.toggle('active', isActive);
+        });
+    },
+
+    renderCodonList(aminoAcid, projectName) {
+        this.elems.title.textContent = projectName;
+
+        // Find the proper name of the amino acid from the data structure
+        let aminoAcidName = "Unknown";
+        const project = Object.values(this.CORPUS_DATA).find(p => Object.values(p.aminoAcids).includes(aminoAcid));
+        if (project) {
+            for (const [name, data] of Object.entries(project.aminoAcids)) {
+                if (data === aminoAcid) {
+                    aminoAcidName = name;
+                    break;
+                }
+            }
+        }
+        
+        const isDarkBg = ['var(--c-brown)', 'var(--c-red)', 'var(--c-purple)'].includes(aminoAcid.color);
+        const headerTextColorClass = isDarkBg ? 'dark-text' : '';
+
+        let headerHtml = `<div class="amino-acid-header ${headerTextColorClass}" style="--color: ${aminoAcid.color};">
+                            ${aminoAcidName}
+                            <span class="amino-acid-subtitle">AMINO ACID</span>
+                          </div>`;
+
+        let codonsHtml = aminoAcid.codons.map(codonFile => {
+            const title = this.TITLE_LOOKUP[codonFile] || "Title Not Found";
+            const noteText = aminoAcid.notes?.[codonFile];
+            const symbol = (noteText === 'Concept' || noteText === 'Alternate Title') ? '🧭' : null;
+
+            let content;
+            if (noteText) {
+                content = `<div class="codon-item special">
+                                <span class="symbol">${symbol}</span>
+                                <div>
+                                    ${title}
+                                    <span class="note">${noteText}</span>
+                                </div>
+                           </div>`;
+            } else {
+                content = `<div class="codon-item">${title}</div>`;
+            }
+            return `<a href="./${codonFile}" target="_blank" title="Open ${codonFile}">${content}</a>`;
+        }).join('');
+
+        this.elems.contentSpool.innerHTML = headerHtml + `<div class="codon-list">${codonsHtml}</div>`;
+    },
+};
+
+Archive.init();
+</script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genome-Style Information Navigator</title>
+    <style>
+        :root {
+            --color-bg: #0a0a10;
+            --color-text: #e0e0ff;
+            --color-strand-bg: rgba(20, 20, 30, 0.5);
+            --type-text: #5c85d6; /* Blue */
+            --type-image: #6abf69; /* Green */
+            --type-link: #ffc53d;  /* Yellow */
+            --type-code: #ff6b6b;  /* Red */
+            --type-other: #a970e0; /* Purple */
+        }
+        body, html {
+            margin: 0; padding: 0;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+            overflow: hidden;
+        }
+        #navigator {
+            display: flex;
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-x: auto;
+            overflow-y: hidden;
+            gap: 10px;
+        }
+        .strand {
+            min-width: 150px;
+            height: 100%;
+            background: var(--color-strand-bg);
+            border-radius: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .codon {
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            border-left: 5px solid;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            position: relative;
+        }
+        .codon:hover {
+            transform: scale(1.05);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .codon-preview {
+            display: none;
+            position: absolute;
+            bottom: 110%;
+            left: 0;
+            background: #1a1a2a;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 10;
+            width: 250px;
+            font-size: 0.9em;
+            border: 1px solid #444;
+            pointer-events: none;
+        }
+        .codon:hover .codon-preview {
+            display: block;
+        }
+        #modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+        #modal-content {
+            background: var(--color-bg);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 80%;
+            max-height: 80%;
+            overflow: auto;
+            border: 1px solid #444;
+        }
+        #modal-close {
+            position: absolute;
+            top: 20px; right: 30px;
+            font-size: 2em;
+            cursor: pointer;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #111;
+            padding: 1em;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="navigator"></div>
+
+    <div id="modal">
+        <span id="modal-close">&times;</span>
+        <div id="modal-content"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const navigatorEl = document.getElementById('navigator');
+            const modalEl = document.getElementById('modal');
+            const modalContentEl = document.getElementById('modal-content');
+            const modalCloseEl = document.getElementById('modal-close');
+
+            // --- DATA SOURCE ---
+            const genomeData = [
+                {
+                    strandTitle: "Project Ideas",
+                    codons: [
+                        { type: 'text', title: 'Concept', content: 'A living archive of ideas, links, and media.' },
+                        { type: 'link', title: 'Inspiration', content: 'https://www.pinterest.com/pin/112692737692137/' },
+                        { type: 'code', title: 'Initial Snippet', content: 'document.addEventListener(\'DOMContentLoaded\', () => {\n  console.log("Genome loaded.");\n});' },
+                    ]
+                },
+                {
+                    strandTitle: "Media Assets",
+                    codons: [
+                        { type: 'image', title: 'Logo Concept', content: 'https://via.placeholder.com/150/6abf69/FFFFFF?text=Logo' },
+                        { type: 'text', title: 'Notes', content: 'The green color feels organic and fits the genome theme.' },
+                        { type: 'other', title: 'Audio Clip', content: 'ambient_soundscape.mp3' },
+                    ]
+                },
+                {
+                    strandTitle: "Research Links",
+                    codons: [
+                        { type: 'link', title: 'p5.js Docs', content: 'https://p5js.org/reference/' },
+                        { type: 'link', title: 'Tone.js Docs', content: 'https://tonejs.github.io/' },
+                        { type: 'text', title: 'Summary', content: 'Libraries for creative coding and web audio.' },
+                        { type: 'code', title: 'p5 Example', content: 'function setup() {\n  createCanvas(400, 400);\n}\n\nfunction draw() {\n  background(220);\n}' },
+                    ]
+                }
+            ];
+
+            const typeMap = {
+                text: { color: 'var(--type-text)' },
+                image: { color: 'var(--type-image)' },
+                link: { color: 'var(--type-link)' },
+                code: { color: 'var(--type-code)' },
+                other: { color: 'var(--type-other)' },
+            };
+
+            function renderGenome() {
+                navigatorEl.innerHTML = '';
+                genomeData.forEach(strandData => {
+                    const strandEl = document.createElement('div');
+                    strandEl.className = 'strand';
+                    
+                    const titleEl = document.createElement('h3');
+                    titleEl.textContent = strandData.strandTitle;
+                    strandEl.appendChild(titleEl);
+
+                    strandData.codons.forEach(codonData => {
+                        const codonEl = document.createElement('div');
+                        codonEl.className = 'codon';
+                        codonEl.style.borderColor = typeMap[codonData.type].color;
+
+                        codonEl.innerHTML = `
+                            ${codonData.title}
+                            <div class="codon-preview"><strong>${codonData.type.toUpperCase()}:</strong><br>${escapeHtml(codonData.content).substring(0, 100)}...</div>
+                        `;
+
+                        codonEl.addEventListener('click', () => showModal(codonData));
+                        strandEl.appendChild(codonEl);
+                    });
+                    navigatorEl.appendChild(strandEl);
+                });
+            }
+
+            function showModal(data) {
+                let contentHTML = `<h2>${data.title} (${data.type})</h2>`;
+                switch (data.type) {
+                    case 'image':
+                        contentHTML += `<img src="${data.content}" style="max-width: 100%;">`;
+                        break;
+                    case 'link':
+                        contentHTML += `<p><a href="${data.content}" target="_blank">${data.content}</a></p>`;
+                        break;
+                    case 'code':
+                        contentHTML += `<pre>${escapeHtml(data.content)}</pre>`;
+                        break;
+                    default:
+                        contentHTML += `<p>${escapeHtml(data.content)}</p>`;
+                }
+                modalContentEl.innerHTML = contentHTML;
+                modalEl.style.display = 'flex';
+            }
+
+            function escapeHtml(str) {
+                return str
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            modalCloseEl.addEventListener('click', () => modalEl.style.display = 'none');
+            modalEl.addEventListener('click', (e) => {
+                if (e.target === modalEl) {
+                    modalEl.style.display = 'none';
+                }
+            });
+
+            // --- START ---
+            renderGenome();
+        });
+    </script>
+</body>
+</html>

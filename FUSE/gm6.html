@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 GENOMIRE SCOPE</title>
+    <style>
+        :root {
+            --phosphor-green: #a2fca2;
+            --phosphor-green-dim: #3a683a;
+            --bg-black: #050805;
+            --font-console: 'Menlo', 'Monaco', 'Courier New', monospace;
+            --font-ui: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            /* New Electrophoresis Color Palette */
+            --color-txt: #6b8e23; /* Muted Green */
+            --color-img: #b8860b; /* Ochre */
+            --color-auc: #708090; /* Slate */
+            --color-lnk: #9370db; /* Lavender */
+            --color-frg: #ffbf00; /* Amber */
+            --color-cod: #c71585; /* Other */
+        }
+
+        /* --- Global & Tufte Principles --- */
+        * { box-sizing: border-box; }
+        html, body {
+            background-color: var(--bg-black);
+            color: var(--phosphor-green);
+            font-family: var(--font-console);
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0; padding: 0;
+            height: 100%; width: 100%;
+            overflow: hidden;
+        }
+
+        /* --- 🌊 Resonance Field --- */
+        #resonance-field {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            opacity: 0.6;
+            filter: blur(1px);
+        }
+
+        /* --- Main Layout --- */
+        #genomire-scope {
+            position: relative;
+            z-index: 1;
+            width: 100%; height: 100%;
+            display: flex;
+        }
+
+        /* --- 🧬 Electrophoresis Panel --- */
+        #electrophoresis-panel {
+            width: 300px;
+            height: 100%;
+            padding: 20px 10px;
+            overflow-y: auto;
+            display: flex;
+            gap: 15px;
+            flex-shrink: 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--phosphor-green-dim) var(--bg-black);
+            background: linear-gradient(to right, rgba(0, 10, 0, 0.5), rgba(0,0,0,0));
+        }
+
+        .strand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            width: 25px;
+            flex-shrink: 0;
+        }
+        
+        .strand-id {
+            font-family: var(--font-ui);
+            font-size: 12px;
+            color: var(--phosphor-green-dim);
+            margin-bottom: 10px;
+            transition: color 0.3s, text-shadow 0.3s;
+        }
+
+        .strand:hover .strand-id {
+            color: var(--phosphor-green);
+            text-shadow: 0 0 5px var(--phosphor-green-dim);
+        }
+
+        .gel-column {
+            width: 100%;
+            background: rgba(10, 20, 10, 0.1);
+            padding: 5px 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .codon-band {
+            width: 100%;
+            height: 5px;
+            transition: opacity 0.5s ease, box-shadow 0.3s ease;
+        }
+        
+        .strand:hover .codon-band {
+             box-shadow: 0 0 8px var(--color);
+        }
+
+        .codon-band.intron { opacity: 0.4; }
+        .codon-band[data-type="TXT"] { --color: var(--color-txt); background-color: var(--color-txt); }
+        .codon-band[data-type="IMG"] { --color: var(--color-img); background-color: var(--color-img); }
+        .codon-band[data-type="AUC"] { --color: var(--color-auc); background-color: var(--color-auc); }
+        .codon-band[data-type="LNK"] { --color: var(--color-lnk); background-color: var(--color-lnk); }
+        .codon-band[data-type="FRG"] { --color: var(--color-frg); background-color: var(--color-frg); }
+        .codon-band[data-type="COD"] { --color: var(--color-cod); background-color: var(--color-cod); }
+
+        /* --- 🖥️ Phenotype Console --- */
+        #console-wrapper {
+            flex-grow: 1;
+            height: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            cursor: text;
+        }
+        
+        #output {
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            scrollbar-width: thin;
+            scrollbar-color: var(--phosphor-green-dim) var(--bg-black);
+        }
+
+        #input-line { display: flex; }
+        #prompt { white-space: nowrap; }
+        #input {
+            flex-grow: 1;
+            background: transparent; border: none; outline: none;
+            color: var(--phosphor-green);
+            font: inherit;
+            padding: 0; margin: 0;
+        }
+        #caret {
+            display: inline-block;
+            width: 10px; height: 1.2em;
+            background: var(--phosphor-green);
+            animation: blink 1s step-end infinite;
+            vertical-align: bottom;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Expression Output Styles */
+        .output-block {
+            margin: 1.5em 0;
+            padding-top: 1em;
+            border-top: 1px solid var(--phosphor-green-dim);
+        }
+        .output-title {
+            color: var(--phosphor-green-dim);
+            font-family: var(--font-ui);
+            font-size: 0.9em;
+            margin-bottom: 0.5em;
+        }
+        .output-text {
+            font-family: 'Georgia', serif;
+            max-width: 70ch;
+            line-height: 1.7;
+            color: #d0ffd0;
+        }
+        .output-image {
+            filter: grayscale(1) contrast(1.1);
+            max-width: 120px;
+            display: block;
+            border: 1px solid var(--phosphor-green-dim);
+            padding: 2px;
+            background: var(--bg-black);
+        }
+        .output-sparkline { color: var(--phosphor-green-dim); }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            #genomire-scope { flex-direction: column; }
+            #electrophoresis-panel {
+                width: 100%;
+                height: 180px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                background: linear-gradient(to bottom, rgba(0, 10, 0, 0.5), rgba(0,0,0,0));
+            }
+            #console-wrapper { height: calc(100% - 180px); padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="resonance-field"></canvas>
+    
+    <div id="genomire-scope">
+        <div id="electrophoresis-panel"></div>
+        <div id="console-wrapper" onclick="document.getElementById('input').focus()">
+            <div id="output"></div>
+            <div id="input-line">
+                <span id="prompt">> </span>
+                <input type="text" id="input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                <span id="caret"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const GENOMIRE_SCOPE = {
+        // --- 🗂️ 1. Information Architecture (IA) ---
+        genome: [],
+        console: { output: null, input: null, history: [], historyIndex: -1 },
+        mire: {
+            canvas: null, ctx: null, imageData: null, pixels: null,
+            width: 0, height: 0, time: 0,
+            mutationEvents: [], // {x, y, z, intensity}
+        },
+        // For a real application, this would be backed by IndexedDB.
+        // For this artifact, we reset on reload.
+        
+        // --- 🧿 2. UI Components & Data ---
+        codonTypes: { "TXT":{}, "IMG":{}, "AUC":{}, "LNK":{}, "FRG":{}, "COD":{} },
+
+        generateInitialGenome: function() {
+            this.genome = [
+                {
+                    id: "g-021",
+                    codons: ["TXT", "IMG", "AUC", "LNK", "FRG"],
+                    exons: [0, 1, 2],
+                    introns: [3, 4],
+                    traits: { mutability: 0.05, accessCount: 23, origin: "user-drive" },
+                    resonance: { x: 0.3, y: 0.8, z: 0.5 },
+                    data: {
+                        TXT: "Initial data fragment from user drive. Contains multimodal sensory data and a link to a structural element.",
+                        IMG: "https://picsum.photos/seed/g-021/120/120",
+                        AUC: "Ambient noise profile, baseline frequency 60Hz with intermittent high-frequency chatter.",
+                        LNK: "g-030"
+                    }
+                },
+                {
+                    id: "g-030",
+                    codons: ["COD", "FRG"],
+                    exons: [0],
+                    introns: [1],
+                    traits: { mutability: 0.1, accessCount: 5, origin: "system-kernel" },
+                    resonance: { x: 0.5, y: 0.5, z: 0.9 },
+                    data: {
+                        COD: `// System Integrity Check\nfunction verify(hash) {\n  return hash === 'a7b3c9...';\n}`
+                    }
+                },
+                {
+                    id: "g-057",
+                    codons: ["FRG", "TXT"],
+                    exons: [1],
+                    introns: [0],
+                    traits: { mutability: 0.02, accessCount: 88, origin: "deep-archive" },
+                    resonance: { x: 0.7, y: 0.2, z: 0.2 },
+                    data: {
+                        TXT: "This is an archival record. Its structure is highly stable but its resonance signature is faint."
+                    }
+                }
+            ];
+        },
+        
+        // --- System Initialization ---
+        init: function() {
+            // Console
+            this.console.output = document.getElementById('output');
+            this.console.input = document.getElementById('input');
+            this.console.input.addEventListener('keydown', this.handleInput.bind(this));
+
+            // MIRE Field
+            this.mire.canvas = document.getElementById('resonance-field');
+            this.mire.ctx = this.mire.canvas.getContext('2d');
+            this.initMire();
+            window.addEventListener('resize', this.initMire.bind(this));
+            
+            // Core Logic
+            this.generateInitialGenome();
+            this.renderGenome();
+
+            // Welcome
+            this.logOutput(`GENOMIRE SCOPE :: System Initialized\nType 'help' for a list of commands.`);
+            
+            this.animate();
+        },
+
+        // --- Console Logic (Unchanged from previous versions) ---
+        handleInput: function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const command = this.console.input.value.trim();
+                if (command) {
+                    this.logOutput(`> ${command}`);
+                    this.console.history.push(command);
+                    this.console.historyIndex = this.console.history.length;
+                    this.processCommand(command);
+                }
+                this.console.input.value = '';
+                this.console.output.scrollTop = this.console.output.scrollHeight;
+            } else if (e.key === 'ArrowUp') {
+                if (this.console.historyIndex > 0) {
+                    this.console.historyIndex--;
+                    this.console.input.value = this.console.history[this.console.historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                 if (this.console.historyIndex < this.console.history.length - 1) {
+                    this.console.historyIndex++;
+                    this.console.input.value = this.console.history[this.console.historyIndex];
+                } else {
+                    this.console.historyIndex = this.console.history.length;
+                    this.console.input.value = '';
+                }
+            }
+        },
+
+        processCommand: function(command) {
+            const [cmd, ...args] = command.toLowerCase().split(/\s+/);
+            const fullArg = args.join(' ');
+            
+            switch(cmd) {
+                case 'help':
+                    this.logOutput(`Available commands:
+  express <id>          - Renders the phenotype from a strand's exons.
+  trace <id>            - Displays metadata and codon sequence of a strand.
+  fuse <id1>+<id2>        - Splices two strands to create a new one.
+  mutate <id> [rate=n]  - Induces random mutation in a strand.
+  echo "<label>"        - Creates a new data fragment with the given label.
+  clear                 - Clears the console output.`);
+                    break;
+                case 'express': this.commandExpress(args[0]); break;
+                case 'trace': this.commandTrace(args[0]); break;
+                case 'fuse': this.commandFuse(args[0]); break;
+                case 'mutate': this.commandMutate(args); break;
+                case 'echo': this.commandEcho(command); break;
+                case 'clear': this.console.output.innerHTML = ''; break;
+                default: this.logOutput(`Error: Command not recognized: '${cmd}'`);
+            }
+        },
+        
+        // --- ⚙️ 3. Interactions (Command Implementations) ---
+        findStrand: function(id_or_index) {
+            const index = parseInt(id_or_index);
+            if (!isNaN(index) && this.genome[index]) return {unit: this.genome[index], index: index};
+            const idStr = String(id_or_index);
+            const foundIndex = this.genome.findIndex(u => u.id.toLowerCase() === idStr.toLowerCase());
+            if (foundIndex > -1) return {unit: this.genome[foundIndex], index: foundIndex};
+            return {unit: null, index: -1};
+        },
+
+        commandExpress: function(targetId) {
+            if (!targetId) { this.logOutput("Error: 'express' requires a strand ID or index."); return; }
+            const { unit } = this.findStrand(targetId);
+            if (!unit) { this.logOutput(`Error: Strand '${targetId}' not found.`); return; }
+
+            let output = `<div class="output-block"><div class="output-title">EXPRESSION :: ${unit.id}</div>`;
+            
+            unit.exons.forEach(exonIndex => {
+                const codonType = unit.codons[exonIndex];
+                if(codonType && unit.data[codonType]) {
+                     output += this.getExpressionHTML(unit, codonType);
+                }
+            });
+            output += `</div>`;
+            this.logOutput(output, true);
+            unit.traits.accessCount++;
+        },
+        
+        commandTrace: function(targetId) {
+            if (!targetId) { this.logOutput("Error: 'trace' requires a strand ID or index."); return; }
+            const { unit } = this.findStrand(targetId);
+            if (!unit) { this.logOutput(`Error: Strand '${targetId}' not found.`); return; }
+            
+            let output = `[TRACING STRAND ${unit.id}]\n`;
+            output += `  Origin: ${unit.traits.origin}\n`;
+            output += `  Access Count: ${unit.traits.accessCount}\n`;
+            output += `  Mutability: ${unit.traits.mutability}\n`;
+            output += `  Resonance (x,y,z): ${unit.resonance.x.toFixed(2)}, ${unit.resonance.y.toFixed(2)}, ${unit.resonance.z.toFixed(2)}\n`;
+            output += `  Codon Sequence:\n`;
+            unit.codons.forEach((c, i) => {
+                const status = unit.exons.includes(i) ? 'EXON' : 'intron';
+                output += `    ${i}: [${c}] - ${status}\n`;
+            });
+            this.logOutput(output);
+            unit.traits.accessCount++;
+        },
+
+        commandMutate: function(args) {
+            const targetId = args[0];
+            if (!targetId) { this.logOutput("Error: 'mutate' requires a strand ID."); return; }
+            const { unit } = this.findStrand(targetId);
+            if (!unit) { this.logOutput(`Error: Strand '${targetId}' not found.`); return; }
+
+            let rateArg = args.find(a => a.startsWith('rate='));
+            let rate = rateArg ? parseFloat(rateArg.split('=')[1]) : unit.traits.mutability;
+            
+            this.logOutput(`Inducing mutation in ${unit.id} with probability ${rate}...`);
+            let mutationOccurred = false;
+            for(let i=0; i < unit.codons.length; i++) {
+                if (Math.random() < rate) {
+                    mutationOccurred = true;
+                    const originalCodon = unit.codons[i];
+                    const codonTypes = Object.keys(this.codonTypes);
+                    let newCodon;
+                    do { newCodon = codonTypes[Math.floor(Math.random() * codonTypes.length)]; } while (newCodon === originalCodon);
+                    unit.codons[i] = newCodon;
+                    this.logOutput(`  > Codon ${i} (${originalCodon}) mutated to (${newCodon})`);
+                }
+            }
+            if(mutationOccurred) {
+                this.mire.mutationEvents.push({ ...unit.resonance, intensity: 1.0 });
+                this.renderGenome();
+            } else { this.logOutput("No mutation occurred at current rate."); }
+        },
+
+        commandFuse: function(targetStr) {
+            if (!targetStr || !targetStr.includes('+')) { this.logOutput("Error: 'fuse' requires two IDs separated by '+'. (e.g., fuse g-021+g-057)"); return; }
+            const [id1, id2] = targetStr.split('+');
+            const { unit: u1 } = this.findStrand(id1);
+            const { unit: u2 } = this.findStrand(id2);
+            if (!u1 || !u2) { this.logOutput("Error: One or both strands for fusion not found."); return; }
+
+            const newId = `g-${(this.genome.length + 1).toString().padStart(3, '0')}`;
+            const newUnit = {
+                id: newId,
+                codons: u1.codons.concat(u2.codons),
+                exons: u1.exons.concat(u2.exons.map(e => e + u1.codons.length)),
+                introns: u1.introns.concat(u2.introns.map(i => i + u1.codons.length)),
+                traits: {
+                    mutability: (u1.traits.mutability + u2.traits.mutability) / 2,
+                    accessCount: 1,
+                    origin: `fusion(${u1.id},${u2.id})`
+                },
+                resonance: {
+                    x: (u1.resonance.x + u2.resonance.x) / 2,
+                    y: (u1.resonance.y + u2.resonance.y) / 2,
+                    z: (u1.resonance.z + u2.resonance.z) / 2
+                },
+                data: { ...u1.data, ...u2.data }
+            };
+            this.genome.push(newUnit);
+            this.logOutput(`Fusion complete. New strand ${newId} created.`);
+            this.renderGenome();
+        },
+        
+        commandEcho: function(command) {
+            const labelMatch = command.match(/"(.*?)"/);
+            if (!labelMatch) { this.logOutput('Error: echo requires a label in quotes. e.g., echo "my fragment"'); return; }
+            const label = labelMatch[1];
+            
+            const newId = `g-${(this.genome.length + 1).toString().padStart(3, '0')}`;
+            const newUnit = {
+                id: newId,
+                codons: ["FRG", "TXT"],
+                exons: [1], introns: [0],
+                traits: { mutability: 0.1, accessCount: 1, origin: "user-echo" },
+                resonance: { x: Math.random(), y: Math.random(), z: Math.random() },
+                data: { TXT: label }
+            };
+            this.genome.push(newUnit);
+            this.logOutput(`New fragment created: ${newId}`);
+            this.renderGenome();
+        },
+
+        // --- Rendering Logic ---
+        renderGenome: function() {
+            const container = document.getElementById('electrophoresis-panel');
+            container.innerHTML = '';
+            this.genome.forEach((unit, index) => {
+                const strandEl = document.createElement('div');
+                strandEl.className = 'strand';
+                strandEl.title = `${unit.id}\nClick to express`;
+                strandEl.onclick = () => {
+                    this.console.input.value = `express ${unit.id}`;
+                    this.console.input.focus();
+                };
+
+                const idEl = document.createElement('div');
+                idEl.className = 'strand-id';
+                idEl.textContent = `[${index}] ${unit.id}`;
+                
+                const gelEl = document.createElement('div');
+                gelEl.className = 'gel-column';
+
+                unit.codons.forEach((codonType, i) => {
+                    const bandEl = document.createElement('div');
+                    bandEl.className = 'codon-band';
+                    if (unit.introns.includes(i)) bandEl.classList.add('intron');
+                    bandEl.dataset.type = codonType;
+                    gelEl.appendChild(bandEl);
+                });
+
+                strandEl.appendChild(idEl);
+                strandEl.appendChild(gelEl);
+                container.appendChild(strandEl);
+            });
+        },
+        
+        getExpressionHTML: function(unit, codonType) {
+            let content = '';
+            const data = unit.data[codonType];
+            switch(codonType) {
+                case 'TXT': content = `<div class="output-text">${data}</div>`; break;
+                case 'IMG': content = `<img src="${data}" class="output-image" alt="[Image data]">`; break;
+                case 'AUC': content = `<div class="output-sparkline">▂▃▅▆▇▆▅▃▂ | ${data}</div>`; break;
+                case 'LNK': content = `<div>Link established -> ${data}</div>`; break;
+                case 'COD': content = `<div><code>${data}</code></div>`; break;
+            }
+            return `<div style="margin-top: 1em;">${content}</div>`;
+        },
+
+        logOutput: function(message, isHTML = false) {
+            const line = document.createElement('div');
+            if (isHTML) line.innerHTML = message;
+            else line.textContent = message;
+            this.console.output.appendChild(line);
+            this.console.output.scrollTop = this.console.output.scrollHeight;
+        },
+
+        // --- Resonance Field Logic ---
+        initMire: function() {
+            const scale = 0.2; // Render at lower resolution for performance
+            this.mire.width = Math.floor(window.innerWidth * scale);
+            this.mire.height = Math.floor(window.innerHeight * scale);
+            this.mire.canvas.width = this.mire.width;
+            this.mire.canvas.height = this.mire.height;
+            this.mire.imageData = this.mire.ctx.createImageData(this.mire.width, this.mire.height);
+            this.mire.pixels = this.mire.imageData.data;
+        },
+        
+        updateAndDrawMire: function() {
+            this.mire.time += 0.01;
+            const { pixels, width, height, time, mutationEvents } = this.mire;
+            
+            // Decay mutation events
+            for (let i = mutationEvents.length - 1; i >= 0; i--) {
+                mutationEvents[i].intensity -= 0.02;
+                if (mutationEvents[i].intensity <= 0) mutationEvents.splice(i, 1);
+            }
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = (y * width + x) * 4;
+                    const normX = x / width;
+                    const normY = y / height;
+
+                    // 1. Base noise (Blue channel for structural density)
+                    let b = (Math.sin(normX * 5 + time) + Math.cos(normY * 5 + time)) * 20 + 30;
+
+                    let r = 0, g = 0;
+
+                    // 2. Add influence from genome units
+                    this.genome.forEach(unit => {
+                        const dx = normX - unit.resonance.x;
+                        const dy = normY - unit.resonance.y;
+                        const distSq = dx * dx + dy * dy;
+                        
+                        if (distSq < 0.1) {
+                            const falloff = 1 - (distSq / 0.1);
+                            // Green for high-access
+                            g += (unit.traits.accessCount / 50) * 150 * falloff;
+                            // Blue for archival data
+                            if(unit.traits.origin === 'deep-archive') b += 80 * falloff;
+                        }
+                    });
+
+                    // 3. Add influence from mutation events (Red channel)
+                    mutationEvents.forEach(event => {
+                        const dx = normX - event.x;
+                        const dy = normY - event.y;
+                        const distSq = dx * dx + dy * dy;
+
+                        if(distSq < 0.05) {
+                            const falloff = 1 - (distSq / 0.05);
+                            r += event.intensity * 255 * falloff;
+                        }
+                    });
+
+                    pixels[i] = r;
+                    pixels[i + 1] = g;
+                    pixels[i + 2] = b;
+                    pixels[i + 3] = 255;
+                }
+            }
+            this.mire.ctx.putImageData(this.mire.imageData, 0, 0);
+        },
+        
+        // --- Main Animation Loop ---
+        animate: function() {
+            this.updateAndDrawMire();
+            requestAnimationFrame(this.animate.bind(this));
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => GENOMIRE_SCOPE.init());
+    document.getElementById('input').addEventListener('focus', () => document.getElementById('caret').style.display = 'inline-block');
+    document.getElementById('input').addEventListener('blur', () => document.getElementById('caret').style.display = 'none');
+    </script>
+</body>
+</html>

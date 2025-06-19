@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIRE: Prototyping Surface</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0a0a0e;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="mire-surface"></canvas>
+    <script>
+        // MIRE Prototype - Stage 1: Visual Substrate & Ambient Drift
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('mire-surface');
+            const ctx = canvas.getContext('2d');
+
+            let width, height;
+            function resize() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // --- 2. GENOMIC UNITS (The Data Seeds) ---
+            const genomicUnits = [];
+            
+            // Add more units for a denser field
+            for(let i = 0; i < 50; i++) {
+                const moods = [
+                    {name: 'nostalgia', color: 'rgba(255, 180, 90, 0.7)'},
+                    {name: 'static', color: 'rgba(180, 180, 200, 0.7)'},
+                    {name: 'anxiety', color: 'rgba(255, 90, 90, 0.7)'},
+                    {name: 'calm', color: 'rgba(90, 200, 255, 0.7)'}
+                ];
+                const mood = moods[Math.floor(Math.random() * moods.length)];
+                genomicUnits.push({
+                    id: `proc-unit-${i}`,
+                    genome: { strata: { "2": `mood=${mood.name}` } },
+                    x: Math.random() * width * 1.5 - width * 0.25, // Start off-screen too
+                    y: Math.random() * height * 1.5 - height * 0.25,
+                    vx: (Math.random() - 0.5) * 0.2,
+                    vy: (Math.random() - 0.5) * 0.2,
+                    radius: 15 + Math.random() * 25
+                });
+            }
+
+
+            // --- 3. RENDER ENGINE ---
+            const colorMap = {
+                'mood=nostalgia': 'rgba(255, 180, 90, 0.7)',
+                'mood=static': 'rgba(180, 180, 200, 0.7)',
+                'mood=anxiety': 'rgba(255, 90, 90, 0.7)',
+                'mood=calm': 'rgba(90, 200, 255, 0.7)'
+            };
+
+            function drawUnit(unit) {
+                const color = colorMap[unit.genome.strata['2']] || 'rgba(200, 200, 200, 0.5)';
+                ctx.beginPath();
+                
+                // Glowing effect
+                const gradient = ctx.createRadialGradient(unit.x, unit.y, 0, unit.x, unit.y, unit.radius);
+                const brightColor = color.replace('0.7', '0.9');
+                const transparentColor = color.replace('0.7', '0');
+                gradient.addColorStop(0, brightColor);
+                gradient.addColorStop(0.7, color);
+                gradient.addColorStop(1, transparentColor);
+
+                ctx.fillStyle = gradient;
+                ctx.arc(unit.x, unit.y, unit.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // --- 4. AMBIENT DRIFT ---
+            function update() {
+                ctx.clearRect(0, 0, width, height);
+
+                for (const unit of genomicUnits) {
+                    // Move
+                    unit.x += unit.vx;
+                    unit.y += unit.vy;
+
+                    // Wrap around edges for continuous drift
+                    if (unit.x - unit.radius > width) unit.x = -unit.radius;
+                    if (unit.x + unit.radius < 0) unit.x = width + unit.radius;
+                    if (unit.y - unit.radius > height) unit.y = -unit.radius;
+                    if (unit.y + unit.radius < 0) unit.y = height + unit.radius;
+
+                    drawUnit(unit);
+                }
+
+                requestAnimationFrame(update);
+            }
+
+            // --- INITIALIZATION ---
+            update();
+        });
+    </script>
+</body>
+</html>

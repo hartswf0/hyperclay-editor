@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // RITUAL OPERATING SURFACE // [INITIATION]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Ritual Operating Surface (Multi-modal Input Tablet)
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: An interface that is a ceremony, responding to simulated
+        *   chant, breath, and timed movement to unlock layers of interaction.
+        */
+
+        :root {
+            --ros-bg: #0d1018;
+            --ros-slab-bg: #1a1c20;
+            --ros-slab-border: #3c4250;
+            --ros-text: #c0c8d8;
+            --ros-text-dim: #6c7888;
+            --ros-glow: #8be9fd;
+            --ros-success: #50fa7b;
+            --ros-fail: #ff5555;
+            --font-main: 'Share Tech Mono', monospace;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes ripple {
+            from { transform: scale(0); opacity: 1; }
+            to { transform: scale(1); opacity: 0; }
+        }
+        @keyframes hum-pulse {
+            0% { filter: drop-shadow(0 0 8px var(--ros-glow)); }
+            50% { filter: drop-shadow(0 0 16px var(--ros-glow)); }
+            100% { filter: drop-shadow(0 0 8px var(--ros-glow)); }
+        }
+        @keyframes failure-shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; margin: 0; overflow: hidden;
+            font-family: var(--font-main); color: var(--ros-text);
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh;
+        }
+        #ritual-surface {
+            width: 800px; height: 800px;
+            background-color: var(--ros-slab-bg);
+            border: 2px solid var(--ros-slab-border);
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(139, 233, 253, 0.2), inset 0 0 30px #000;
+            position: relative; display: grid; place-items: center;
+        }
+
+        /* --- VISUAL FEEDBACK --- */
+        #focus-glyph-container {
+            width: 70%; height: 70%;
+            position: relative;
+        }
+        #focus-glyph-svg { width: 100%; height: 100%; }
+        .glyph-layer {
+            fill: none; stroke: var(--ros-glow); stroke-width: 3;
+            stroke-linecap: round; stroke-linejoin: round;
+            filter: drop-shadow(0 0 5px var(--ros-glow));
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            transition: stroke-dashoffset 1s ease-in-out;
+        }
+        .glyph-layer.unlocked { stroke-dashoffset: 0; }
+        #synthesis-flare {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 10px; height: 10px; border-radius: 50%; background: #fff;
+            box-shadow: 0 0 20px 10px #fff, 0 0 40px 20px var(--ros-glow);
+            opacity: 0; transition: opacity 0.5s;
+        }
+
+        #ripple-effect {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 50%; border: 2px solid var(--ros-glow);
+            pointer-events: none; opacity: 0;
+        }
+        #ripple-effect.active { animation: ripple 0.7s ease-out; }
+        
+        /* --- INTERACTION MODULES --- */
+        #interaction-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
+        .interaction-module {
+            display: none; width: 100%; height: 100%;
+            align-items: center; justify-content: center; flex-direction: column;
+        }
+        .interaction-module.active { display: flex; }
+        
+        /* Vocal Module */
+        #vocal-module button {
+            background: transparent; border: 1px solid var(--ros-glow); color: var(--ros-glow);
+            padding: 10px 20px; font-size: 1.2rem; cursor: pointer;
+        }
+        #vu-meter {
+            width: 50%; height: 10px; background: #000; border: 1px solid var(--ros-slab-border);
+            margin-top: 20px;
+        }
+        #vu-meter-fill {
+            width: 0%; height: 100%; background: var(--ros-glow); transition: width 0.05s linear;
+        }
+        
+        /* Symbolic Module */
+        #trace-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        }
+
+        /* Breath Module */
+        #breath-module #focus-point {
+            width: 100px; height: 100px; border: 2px solid var(--ros-text-dim);
+            border-radius: 50%; cursor: pointer; position: relative;
+            display: grid; place-items: center;
+        }
+        #breath-ring {
+            width: 100%; height: 100%; border-radius: 50%;
+            border: 5px solid var(--ros-glow); position: absolute;
+            clip-path: polygon(50% 0%, 100% 0%, 100% 100%, 50% 100%, 50% 50%);
+            transform: scale(0.9) rotate(-90deg);
+            transition: transform 3s linear;
+        }
+
+        /* --- STATUS LOG --- */
+        #status-log {
+            position: absolute; bottom: 10%; width: 60%;
+            text-align: center; font-size: 1.1rem; color: var(--ros-text-dim);
+        }
+    </style>
+</head>
+<body>
+    <div id="ritual-surface">
+        <div id="focus-glyph-container">
+            <svg id="focus-glyph-svg" viewBox="0 0 100 100">
+                <!-- Base shape -->
+                <circle class="glyph-layer" id="glyph-layer-1" cx="50" cy="50" r="40" />
+                <!-- Middle shape -->
+                <path class="glyph-layer" id="glyph-layer-2" d="M50 10 L90 50 L50 90 L10 50 Z" />
+                <!-- Inner shape -->
+                <path class.="glyph-layer" id="glyph-layer-3" d="M50 30 L70 70 L30 70 Z" />
+            </svg>
+            <div id="synthesis-flare"></div>
+        </div>
+
+        <div id="interaction-layer">
+            <div class="interaction-module" id="vocal-module">
+                <button id="enable-mic-btn">ENABLE VOCAL INPUT</button>
+                <div id="vu-meter" style="display:none;"><div id="vu-meter-fill"></div></div>
+            </div>
+            <div class="interaction-module" id="symbolic-module">
+                 <canvas id="trace-canvas"></canvas>
+            </div>
+            <div class="interaction-module" id="breath-module">
+                <div id="focus-point">
+                    <div id="breath-ring"></div>
+                    SUSTAIN
+                </div>
+            </div>
+        </div>
+
+        <div id="status-log">AWAITING INITIATION</div>
+        <div id="ripple-effect"></div>
+    </div>
+
+<script>
+const RitualSurface = {
+    // --- DOM Elements ---
+    elems: {
+        surface: document.getElementById('ritual-surface'),
+        log: document.getElementById('status-log'),
+        ripple: document.getElementById('ripple-effect'),
+        flare: document.getElementById('synthesis-flare'),
+        modules: {
+            vocal: document.getElementById('vocal-module'),
+            symbolic: document.getElementById('symbolic-module'),
+            breath: document.getElementById('breath-module'),
+        },
+        micBtn: document.getElementById('enable-mic-btn'),
+        vuMeterFill: document.getElementById('vu-meter-fill'),
+        traceCanvas: document.getElementById('trace-canvas'),
+        traceCtx: null,
+        breathPoint: document.getElementById('focus-point'),
+        breathRing: document.getElementById('breath-ring'),
+    },
+    
+    // --- State ---
+    state: {
+        stage: 'none', // 'vocal', 'symbolic', 'breath', 'complete'
+        audio: { ctx: null, analyser: null, source: null, dataArray: null },
+        vocal: { charge: 0, requiredCharge: 100 },
+        symbolic: { isTracing: false, path: [], targetPath: [ {x:0.25,y:0.75}, {x:0.5,y:0.25}, {x:0.75,y:0.75} ], tolerance: 0.1 },
+        breath: { timer: null, isHolding: false },
+    },
+    
+    // --- Audio (for sound effects) ---
+    sfx: {
+        ctx: null, success: null, failure: null, hum: null, humGain: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.success = this.createSound(880, 0.2, 0.2, true);
+            this.failure = this.createSound(100, 0.3, 0.2);
+            this.hum = this.ctx.createOscillator(); this.humGain = this.ctx.createGain();
+            this.hum.type = 'sine'; this.hum.frequency.value = 60; this.humGain.gain.value = 0.05;
+            this.hum.connect(this.humGain); this.humGain.connect(this.ctx.destination); this.hum.start();
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='triangle'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*1.5,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        },
+        setHum(stage) {
+            if (!this.humGain) return;
+            const freq = 60 + stage * 20;
+            const gain = 0.05 + stage * 0.02;
+            this.hum.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.5);
+            this.humGain.gain.setTargetAtTime(gain, this.ctx.currentTime, 0.5);
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.elems.traceCtx = this.elems.traceCanvas.getContext('2d');
+        this.resizeCanvas(); window.onresize = () => this.resizeCanvas();
+        this.elems.micBtn.onclick = () => {
+            // Lazy audio init for SFX
+            if(!this.sfx.ctx) this.sfx.init();
+            this.initVocalStage();
+        };
+        this.transitionToStage('vocal');
+    },
+
+    log(message) { this.elems.log.textContent = message; },
+
+    triggerRipple() {
+        this.elems.ripple.classList.remove('active');
+        void this.elems.ripple.offsetWidth; // Trigger reflow
+        this.elems.ripple.classList.add('active');
+    },
+
+    transitionToStage(stage) {
+        this.state.stage = stage;
+        Object.values(this.elems.modules).forEach(m => m.classList.remove('active'));
+        if (this.elems.modules[stage]) {
+            this.elems.modules[stage].classList.add('active');
+        }
+        switch(stage) {
+            case 'vocal': this.log('AWAITING VOCAL RESONANCE...'); break;
+            case 'symbolic': this.log('TRACE THE SYMBOL TO ALIGN...'); this.initSymbolicStage(); break;
+            case 'breath': this.log('FOCUS AND SUSTAIN BREATH...'); this.initBreathStage(); break;
+            case 'complete': this.log('SYNTHESIS ACHIEVED.'); this.achieveSynthesis(); break;
+        }
+    },
+
+    // --- Stage 1: Vocal ---
+    async initVocalStage() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.elems.micBtn.style.display = 'none';
+            document.getElementById('vu-meter').style.display = 'block';
+            this.state.audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.state.audio.analyser = this.state.audio.ctx.createAnalyser();
+            this.state.audio.source = this.state.audio.ctx.createMediaStreamSource(stream);
+            this.state.audio.source.connect(this.state.audio.analyser);
+            this.state.audio.analyser.fftSize = 256;
+            const bufferLength = this.state.audio.analyser.frequencyBinCount;
+            this.state.audio.dataArray = new Uint8Array(bufferLength);
+            this.checkVocal();
+        } catch (err) {
+            this.log('VOCAL INPUT DENIED. CANNOT PROCEED.');
+        }
+    },
+
+    checkVocal() {
+        if (this.state.stage !== 'vocal') return;
+        this.state.audio.analyser.getByteFrequencyData(this.state.audio.dataArray);
+        let sum = this.state.audio.dataArray.reduce((a, b) => a + b, 0);
+        let avg = sum / this.state.audio.dataArray.length;
+        
+        this.elems.vuMeterFill.style.width = `${Math.min(100, avg * 2)}%`;
+        
+        if (avg > 50) { // Threshold for "chanting"
+            this.state.vocal.charge++;
+        } else {
+            this.state.vocal.charge = Math.max(0, this.state.vocal.charge - 2);
+        }
+
+        if (this.state.vocal.charge >= this.state.vocal.requiredCharge) {
+            this.handleSuccess(1);
+        } else {
+            requestAnimationFrame(() => this.checkVocal());
+        }
+    },
+
+    // --- Stage 2: Symbolic ---
+    initSymbolicStage() {
+        this.drawTraceGuide();
+        const canvas = this.elems.traceCanvas;
+        canvas.onmousedown = e => {
+            this.state.symbolic.isTracing = true;
+            this.state.symbolic.path = [];
+            this.elems.traceCtx.beginPath();
+            const rect = canvas.getBoundingClientRect();
+            this.elems.traceCtx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        };
+        canvas.onmousemove = e => {
+            if (!this.state.symbolic.isTracing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            this.elems.traceCtx.lineTo(x, y);
+            this.elems.traceCtx.strokeStyle = `rgba(255,255,255,0.8)`;
+            this.elems.traceCtx.lineWidth = 4;
+            this.elems.traceCtx.stroke();
+            this.state.symbolic.path.push({ x: x / canvas.width, y: y / canvas.height });
+        };
+        canvas.onmouseup = () => {
+            this.state.symbolic.isTracing = false;
+            this.checkTrace();
+        };
+    },
+    drawTraceGuide() {
+        const { ctx, canvas } = this.elems;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = `rgba(139, 233, 253, 0.3)`;
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        const target = this.state.symbolic.targetPath;
+        ctx.moveTo(target[0].x * canvas.width, target[0].y * canvas.height);
+        for(let i=1; i<target.length; i++) {
+            ctx.lineTo(target[i].x * canvas.width, target[i].y * canvas.height);
+        }
+        ctx.stroke();
+    },
+    checkTrace() {
+        const { path, targetPath, tolerance } = this.state.symbolic;
+        if (path.length < targetPath.length) return this.handleFailure('INCOMPLETE TRACE.');
+        let totalDistance = 0;
+        for(let i=0; i<targetPath.length; i++) {
+            const pathPoint = path[Math.floor(i * (path.length / targetPath.length))];
+            const dist = Math.hypot(pathPoint.x - targetPath[i].x, pathPoint.y - targetPath[i].y);
+            totalDistance += dist;
+        }
+        const avgError = totalDistance / targetPath.length;
+        if(avgError < tolerance) this.handleSuccess(2);
+        else this.handleFailure(`TRACE MISALIGNED. ERROR: ${avgError.toFixed(3)}.`);
+    },
+
+    // --- Stage 3: Breath ---
+    initBreathStage() {
+        this.elems.breathPoint.onmousedown = () => {
+            if (this.state.isHolding) return;
+            this.state.isHolding = true;
+            this.elems.breathRing.style.transition = 'transform 3s linear';
+            this.elems.breathRing.style.transform = 'scale(0.9) rotate(270deg)';
+            this.state.breath.timer = setTimeout(() => this.handleSuccess(3), 3000);
+        };
+        this.elems.breathPoint.onmouseup = this.elems.breathPoint.onmouseleave = () => {
+            if (!this.state.isHolding) return;
+            this.state.isHolding = false;
+            clearTimeout(this.state.breath.timer);
+            this.handleFailure('FOCUS BROKEN. SUSTAIN LONGER.');
+        };
+    },
+
+    // --- Success, Failure, Synthesis ---
+    handleSuccess(layer) {
+        this.sfx.success();
+        document.getElementById(`glyph-layer-${layer}`).classList.add('unlocked');
+        this.sfx.setHum(layer);
+        this.triggerRipple();
+        if (layer === 1) this.transitionToStage('symbolic');
+        else if (layer === 2) this.transitionToStage('breath');
+        else if (layer === 3) this.transitionToStage('complete');
+    },
+
+    handleFailure(message) {
+        this.sfx.failure();
+        this.log(message);
+        this.elems.surface.style.animation = 'failure-shake 0.3s';
+        setTimeout(() => this.elems.surface.style.animation = '', 300);
+        // Reset current stage
+        if (this.state.stage === 'symbolic') this.drawTraceGuide();
+        if (this.state.stage === 'breath') {
+            this.elems.breathRing.style.transition = 'none';
+            this.elems.breathRing.style.transform = 'scale(0.9) rotate(-90deg)';
+        }
+    },
+
+    achieveSynthesis() {
+        this.sfx.setHum(4);
+        this.elems.flare.style.opacity = 1;
+        document.getElementById('focus-glyph-svg').style.animation = 'hum-pulse 1.5s infinite';
+    },
+
+    resizeCanvas() {
+        const size = this.elems.surface.offsetWidth;
+        this.elems.traceCanvas.width = size;
+        this.elems.traceCanvas.height = size;
+        if (this.state.stage === 'symbolic') this.drawTraceGuide();
+    }
+};
+
+RitualSurface.init();
+
+</script>
+</body>
+</html>

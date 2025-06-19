@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENOMIRE SCOPE — Genome Field</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* --- 0. Foundational & Theming --- */
+        :root {
+            --color-background: #0a0c10;
+            --color-text: #c9d1d9;
+            --color-glow: hsla(190, 100%, 75%, 0.4);
+            --color-selected: hsla(210, 100%, 80%, 0.15);
+            --color-hover: hsla(210, 100%, 80%, 0.05);
+
+            --font-family-mono: 'Fira Code', 'Courier New', monospace;
+
+            --column-width-edge: 50px;
+            --column-width-center: 80px; /* ~1.5x edge */
+            --codon-height: 48px;
+            --codon-padding-edge: 4px;
+            --codon-padding-center: 8px; /* 2x edge */
+
+            --animation-speed-fast: 150ms;
+            --animation-speed-smooth: 300ms;
+        }
+
+        /* Codon Type Colors */
+        .codon-band.type-txt { background-color: hsla(210, 50%, 50%, 0.5); }
+        .codon-band.type-img { background-color: hsla(120, 50%, 50%, 0.5); }
+        .codon-band.type-aud { background-color: hsla(280, 50%, 50%, 0.5); }
+        .codon-band.type-vec { background-color: hsla(30, 80%, 55%, 0.5); }
+        .codon-band.type-bin { background-color: hsla(0, 0%, 60%, 0.5); }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: var(--color-background);
+            color: var(--color-text);
+            font-family: var(--font-family-mono);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- 1. Main Layout: Field & Console --- */
+        .scope-container {
+            width: 100%;
+            max-width: 1800px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #genome-field {
+            flex-grow: 1;
+            display: flex;
+            align-items: center; /* Vertically center columns */
+            gap: 4px;
+            padding: 0 20px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            /* For mobile swipe-to-snap */
+            scroll-snap-type: x mandatory;
+            /* Hide scrollbar */
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+        #genome-field::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        #console {
+            height: 50px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        #console-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid rgba(120, 200, 255, 0.2);
+            border-radius: 4px;
+            color: var(--color-text);
+            font-family: var(--font-family-mono);
+            font-size: 1rem;
+            padding: 10px 15px;
+            outline: none;
+            transition: border-color var(--animation-speed-smooth);
+        }
+
+        #console-input:focus {
+            border-color: var(--color-glow);
+        }
+
+        /* --- 2. Genome Columns --- */
+        .genome-column {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: var(--codon-padding-edge);
+            height: 95%;
+            width: var(--column-width-edge);
+            padding: 10px 0;
+            border-radius: 6px;
+            background-color: transparent;
+            cursor: pointer;
+            scroll-snap-align: center;
+            /* Transitions for width, selection, and hover */
+            transition: 
+                width var(--animation-speed-smooth) ease,
+                background-color var(--animation-speed-smooth) ease,
+                box-shadow var(--animation-speed-smooth) ease,
+                transform var(--animation-speed-fast) linear; /* For gaze scaling */
+        }
+
+        /* State: Gaze Zone (Center of screen) */
+        .genome-column.in-gaze-zone {
+            width: var(--column-width-center);
+            gap: var(--codon-padding-center);
+        }
+
+        /* State: Hover (Optional Enhancement) */
+        .genome-column:hover {
+            background-color: var(--color-hover);
+            box-shadow: 0 0 20px 5px var(--color-glow);
+        }
+
+        /* State: Selected (on click) */
+        .genome-column.is-selected {
+            background-color: var(--color-selected);
+            box-shadow: 0 0 30px 8px var(--color-glow);
+        }
+
+        /* --- 3. Codon Bands --- */
+        .codon-band {
+            width: 100%;
+            height: var(--codon-height);
+            min-height: 36px;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 4px;
+            transition: transform var(--animation-speed-fast) ease-out;
+            user-select: none; /* Prevent text selection on click */
+        }
+        
+        .genome-column:hover .codon-band {
+            /* Subtle animation on hover to signal interactivity */
+            transform: scale(0.98);
+        }
+
+        /* --- 4. Responsive Adaptation --- */
+        @media (max-width: 768px) {
+            :root {
+                --column-width-edge: 60px;
+                --column-width-center: 90px;
+            }
+            .scope-container {
+                height: 70vh;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="scope-container">
+        <div id="genome-field">
+            <!-- Genome columns will be dynamically generated here -->
+        </div>
+        <div id="console">
+            <input id="console-input" type="text" value="> select a genome to express..." readonly>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const genomeField = document.getElementById('genome-field');
+        const consoleInput = document.getElementById('console-input');
+
+        // --- Mock Data ---
+        const CODON_TYPES = ['TXT', 'IMG', 'AUD', 'VEC', 'BIN'];
+        const generateRandomCodons = (count) => {
+            return Array.from({ length: count }, () => {
+                const type = CODON_TYPES[Math.floor(Math.random() * CODON_TYPES.length)];
+                return { type: type.toLowerCase(), label: type };
+            });
+        };
+
+        const generateGenomeData = (total) => {
+            return Array.from({ length: total }, (_, i) => ({
+                id: `G-${String(771 + i).padStart(3, '0')}-BXR-THETA`,
+                codons: generateRandomCodons(10)
+            }));
+        };
+
+        // --- Configuration ---
+        const TOTAL_GENOMES = 50;
+        const GAZE_ZONE_COLUMNS = 7; // Number of columns in the center to get wider base style
+        const GAZE_AMPLIFICATION = 1.15; // Max scale for column nearest to center (1.0 = no effect)
+        let genomes = generateGenomeData(TOTAL_GENOMES);
+        
+        /**
+         * 1. FIELD LAYOUT: Generate all columns and codons from data
+         */
+        function renderGenomeField() {
+            genomeField.innerHTML = ''; // Clear existing
+            genomes.forEach(genome => {
+                const columnEl = document.createElement('div');
+                columnEl.className = 'genome-column';
+                columnEl.dataset.genomeId = genome.id;
+
+                genome.codons.forEach(codon => {
+                    const bandEl = document.createElement('div');
+                    bandEl.className = `codon-band type-${codon.type}`;
+                    bandEl.textContent = codon.label;
+                    columnEl.appendChild(bandEl);
+                });
+                genomeField.appendChild(columnEl);
+            });
+        }
+
+        /**
+         * 2. SELECTION BEHAVIOR & GAZE-WEIGHTED AMPLIFICATION
+         *    This function handles both click selection and scroll-based visual effects.
+         */
+        function handleInteraction(event, isClick = false) {
+            const fieldRect = genomeField.getBoundingClientRect();
+            const fieldCenter = fieldRect.left + fieldRect.width / 2;
+
+            let clickedColumn = null;
+            if (isClick) {
+                const target = event.target.closest('.genome-column');
+                if (!target) return;
+                clickedColumn = target;
+            }
+
+            // Iterate over all columns to update their state
+            const columns = genomeField.querySelectorAll('.genome-column');
+            columns.forEach(column => {
+                const colRect = column.getBoundingClientRect();
+                const colCenter = colRect.left + colRect.width / 2;
+                const distanceFromCenter = Math.abs(fieldCenter - colCenter);
+                
+                // A) Gaze-Weighted Amplification (on scroll)
+                // Use an inverse function: scale is max at center, falls off with distance
+                const proximity = Math.max(0, 1 - distanceFromCenter / (fieldRect.width / 2));
+                const scale = 1 + (GAZE_AMPLIFICATION - 1) * Math.pow(proximity, 2);
+                column.style.transform = `scaleY(${scale})`;
+                
+                // B) Field Layout Optimization (Static Gaze Zone)
+                // Columns near center get wider base style and more padding
+                if (distanceFromCenter < (fieldRect.width / 3)) {
+                    column.classList.add('in-gaze-zone');
+                } else {
+                    column.classList.remove('in-gaze-zone');
+                }
+            });
+
+            // C) Selection Behavior (on click)
+            if (clickedColumn) {
+                // Remove selection from others
+                columns.forEach(col => col.classList.remove('is-selected'));
+                // Add selection to clicked column
+                clickedColumn.classList.add('is-selected');
+
+                // Auto-scroll the field to center this genome
+                const scrollOffset = (clickedColumn.getBoundingClientRect().left - fieldRect.left) 
+                                     - (fieldRect.width / 2) 
+                                     + (clickedColumn.getBoundingClientRect().width / 2);
+                
+                genomeField.scrollBy({ left: scrollOffset, behavior: 'smooth' });
+
+                // Auto-populate the console
+                consoleInput.value = `express ${clickedColumn.dataset.genomeId}`;
+                consoleInput.removeAttribute('readonly');
+            }
+        }
+        
+        // --- Event Listeners ---
+        genomeField.addEventListener('click', (e) => handleInteraction(e, true));
+        genomeField.addEventListener('scroll', handleInteraction);
+        window.addEventListener('resize', handleInteraction); // Recalculate on resize
+        
+        // --- Initial State ---
+        function initializeScope() {
+            renderGenomeField();
+            
+            // Pre-select and center the middle-ish genome to start
+            const initialColumnIndex = Math.floor(TOTAL_GENOMES / 2);
+            const initialColumn = genomeField.children[initialColumnIndex];
+            
+            if (initialColumn) {
+                // Manually scroll into position first (no animation)
+                const fieldRect = genomeField.getBoundingClientRect();
+                const initialRect = initialColumn.getBoundingClientRect();
+                const initialScroll = (initialRect.left - fieldRect.left) - (fieldRect.width / 2) + (initialRect.width / 2);
+                genomeField.scrollLeft += initialScroll;
+                
+                // Then trigger the selection logic
+                const pseudoEvent = { target: initialColumn };
+                handleInteraction(pseudoEvent, true);
+            } else {
+                handleInteraction(); // Run once to set initial scales
+            }
+        }
+
+        initializeScope();
+    });
+    </script>
+</body>
+</html>

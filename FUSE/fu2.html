@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🕹️📡 FUSE: Trans-Temporal Information Interface</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500&family=Orbitron:wght@400;700&display=swap');
+
+        :root {
+            --monitor-bg: #0a0e0a;
+            --text-glow: #3dff8a;
+            --text-color: #2dc46b;
+            --text-dim: #1a713e;
+            --border-color: #2a5a3e;
+            --accent-color: #ffb86c;
+            --accent-glow: #ffdca8;
+            --error-color: #ff5555;
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+            --font-display: 'Orbitron', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #111;
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #terminal-container {
+            width: 100%;
+            max-width: 1200px;
+            height: 90vh;
+            max-height: 800px;
+            background-color: var(--monitor-bg);
+            border: 3px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(61, 255, 138, 0.2), inset 0 0 25px rgba(0, 0, 0, 0.8);
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: auto 1fr auto;
+            grid-template-areas:
+                "header header"
+                "library main"
+                "footer footer";
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #terminal-container::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            animation: scanline 15s linear infinite;
+        }
+
+        @keyframes scanline {
+            from { background-position: 0 0; }
+            to { background-position: 0 -100vh; }
+        }
+
+        #header {
+            grid-area: header;
+            padding: 10px 20px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+        }
+
+        #header h1 {
+            font-family: var(--font-display);
+            margin: 0;
+            font-size: 1.5em;
+            color: var(--text-glow);
+            text-shadow: 0 0 8px var(--text-glow);
+            flex-grow: 1;
+        }
+        #header h1 .subtitle {
+            font-size: 0.5em;
+            font-family: var(--font-mono);
+            color: var(--text-color);
+            text-shadow: none;
+            display: block;
+            opacity: 0.8;
+        }
+        #status-light {
+            width: 12px;
+            height: 12px;
+            background-color: var(--text-glow);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--text-glow);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        #genome-library {
+            grid-area: library;
+            padding: 15px;
+            border-right: 2px solid var(--border-color);
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+        }
+
+        #genome-library h3, #details-panel h3 {
+            margin: 0 0 10px 0;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            font-size: 1em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+        
+        #genome-list { list-style: none; padding: 0; margin: 0; }
+        #genome-list li {
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: color 0.2s, background-color 0.2s;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        #genome-list li:hover {
+            background-color: var(--border-color);
+            color: var(--text-glow);
+        }
+        .genome-id { font-weight: bold; }
+        .genome-desc { font-size: 0.8em; color: var(--text-dim); }
+
+        #main-content {
+            grid-area: main;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #expression-bay {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+        #expression-bay:empty::before {
+            content: "PHENOTYPE EXPRESSION BAY [AWAITING FUSION]...";
+            color: var(--text-dim);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #details-panel {
+            padding: 15px;
+            height: 120px;
+            border-top: 2px solid var(--border-color);
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+        }
+        #details-panel:empty::before { content: "Click on a fused codon to view lineage."; color: var(--text-dim); }
+        #details-panel p { margin: 0 0 5px 0; }
+        #details-panel .prop { color: var(--accent-color); }
+        #details-panel .val { color: var(--text-glow); }
+        
+        #command-line {
+            grid-area: footer;
+            display: flex;
+            padding: 10px;
+            border-top: 2px solid var(--border-color);
+            background-color: #000;
+        }
+
+        #command-line span {
+            color: var(--accent-color);
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        #command-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-glow);
+            font-family: inherit;
+            font-size: 1em;
+            outline: none;
+            text-shadow: 0 0 5px var(--text-glow);
+        }
+
+        #fuse-button {
+            background-color: var(--accent-color);
+            color: var(--monitor-bg);
+            border: none;
+            padding: 5px 15px;
+            font-family: var(--font-display);
+            font-weight: bold;
+            cursor: pointer;
+            margin-left: 10px;
+            border-radius: 3px;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+        #fuse-button:hover {
+            background-color: var(--accent-glow);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .codon {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .codon:hover {
+            background-color: var(--border-color);
+            border-color: var(--text-color);
+            color: var(--text-glow);
+        }
+        .codon.selected {
+             background-color: var(--accent-color);
+             color: var(--monitor-bg);
+             border-color: var(--accent-glow);
+        }
+
+        .xanadu-view .codon::before {
+            content: attr(data-origin);
+            position: absolute;
+            top: -10px;
+            left: 2px;
+            font-size: 0.7em;
+            opacity: 0;
+            transition: opacity 0.3s;
+            padding: 1px 3px;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+        .xanadu-view .codon:hover::before { opacity: 0.7; }
+        .origin-g-021 { border-color: #4f86f7; background-color: rgba(79, 134, 247, 0.1); }
+        .origin-g-034 { border-color: #f7764f; background-color: rgba(247, 118, 79, 0.1); }
+        .origin-g-021::before { content: 'g-021'; color: #8cb0f7; }
+        .origin-g-034::before { content: 'g-034'; color: #f7a88c; }
+
+        .memex-marker {
+            display: block;
+            width: 80%;
+            margin: 15px auto;
+            text-align: center;
+            border: 0;
+            border-top: 1px dashed var(--border-color);
+        }
+        .memex-marker::before {
+            content: attr(data-timestamp);
+            position: relative;
+            top: -0.7em;
+            background: var(--monitor-bg);
+            padding: 0 10px;
+            color: var(--text-dim);
+            font-size: 0.8em;
+        }
+
+        .nls-generated {
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            margin-top: 10px;
+            background: rgba(0,0,0,0.1);
+        }
+        .nls-generated h4 { color: var(--accent-color); margin-top: 0;}
+        .nls-generated.styled { border-left: 5px solid var(--accent-color); font-style: italic; }
+
+        .overridden {
+            border-style: dashed;
+            animation: glow-override 1.5s infinite alternate;
+        }
+        @keyframes glow-override {
+            from { border-color: var(--accent-color); box-shadow: 0 0 5px var(--accent-color); }
+            to   { border-color: var(--border-color); box-shadow: none; }
+        }
+
+        #hypercard-stack {
+            position: relative;
+            width: 100%;
+            height: calc(100% - 40px);
+        }
+        .hypercard-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            background-color: var(--monitor-bg);
+            opacity: 0;
+            transform: translateX(20px);
+            transition: opacity 0.4s ease-in-out, transform 0.4s ease-in-out;
+            pointer-events: none;
+            overflow-y: auto;
+        }
+        .hypercard-card.active {
+            opacity: 1;
+            transform: translateX(0);
+            z-index: 10;
+            pointer-events: auto;
+        }
+        .hypercard-card h4 {
+            margin: 0 0 15px 0;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+        }
+        #hypercard-nav {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 11;
+        }
+         #hypercard-nav button {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 5px 10px;
+            margin: 0 5px;
+            cursor: pointer;
+         }
+         #hypercard-nav button:hover { background: var(--border-color); color: var(--text-glow); }
+         #hypercard-nav #card-indicator { display: inline-block; width: 50px; text-align: center; }
+
+    </style>
+</head>
+<body>
+
+    <div id="terminal-container">
+        <header id="header">
+            <h1>🕹️📡 FUSE <span class="subtitle">Trans-Temporal Information Interface</span></h1>
+            <div id="status-light"></div>
+        </header>
+
+        <aside id="genome-library">
+            <h3>GENOME LIBRARY</h3>
+            <ul id="genome-list"></ul>
+        </aside>
+
+        <main id="main-content">
+            <div id="expression-bay"></div>
+            <div id="details-panel"></div>
+        </main>
+
+        <footer id="command-line">
+            <span>></span>
+            <input type="text" id="command-input" placeholder="fuse g-021+g-034 using:xanadu" autocomplete="off">
+            <button id="fuse-button">FUSE</button>
+        </footer>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const commandInput = document.getElementById('command-input');
+        const fuseButton = document.getElementById('fuse-button');
+        const expressionBay = document.getElementById('expression-bay');
+        const detailsPanel = document.getElementById('details-panel');
+        const genomeList = document.getElementById('genome-list');
+
+        // --- DATA MODEL: GENOME DATABASE ---
+        const genomeDatabase = {
+            'g-021': {
+                description: 'Base structural template',
+                codons: [
+                    { type: 'structure', value: 'HEADER' },
+                    { type: 'visual', value: 'DEF_VIS' },
+                    { type: 'content', value: 'LOREM' },
+                    { type: 'behavior', value: 'STATIC' },
+                    { type: 'structure', value: 'FOOTER' },
+                ]
+            },
+            'g-034': {
+                description: 'Expressive visual override',
+                codons: [
+                    { type: 'visual', value: 'GLOW_FX' },
+                    { type: 'behavior', value: 'PULSE' },
+                ]
+            },
+            'log:ops': {
+                description: 'Procedural document commands',
+                codons: [
+                    { type: 'cmd', value: 'CREATE_DIV', params: { text: 'Procedurally generated content block.' } },
+                    { type: 'cmd', value: 'CREATE_H4', params: { text: 'NLS-style Augmentation' } },
+                    // ***** THIS WAS THE LINE WITH THE ERROR *****
+                    { type: 'cmd', value: 'STYLE_LAST', params: { class: 'styled' } },
+                    { type: 'cmd', value: 'LOG', params: { message: 'Document generation complete.' } }
+                ]
+            },
+            'g-001': { description: 'HyperCard: Title Page', codons: [{ type: 'media', value: 'TITLE' }, { type: 'text', value: 'Introduction to Media Fusion' }] },
+            'g-002': { description: 'HyperCard: Concept', codons: [{ type: 'media', value: 'DIAGRAM' }, { type: 'text', value: 'Shows intertwingled concepts' }] },
+            'g-003': { description: 'HyperCard: Example', codons: [{ type: 'media', value: 'ANIMATION' }, { type: 'text', value: 'Live demo of fusion process' }] },
+            'g-007': { description: 'HyperCard: Credits', codons: [{ type: 'media', value: 'ICON' }, { type: 'text', value: 'End of Stack.' }] },
+            'trail:today': {
+                description: 'Memex: A browsing journey',
+                isTrail: true,
+                path: ['g-001', 'g-034', 'g-002']
+            }
+        };
+
+        function initialize() {
+            populateGenomeLibrary();
+            commandInput.value = 'fuse g-021+g-034 using:smalltalk';
+            commandInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    fuseButton.click();
+                }
+            });
+            fuseButton.addEventListener('click', handleFuseCommand);
+        }
+
+        function populateGenomeLibrary() {
+            genomeList.innerHTML = '';
+            for (const id in genomeDatabase) {
+                const li = document.createElement('li');
+                li.innerHTML = `<span class="genome-id">${id}</span><br><span class="genome-desc">${genomeDatabase[id].description}</span>`;
+                li.addEventListener('click', () => {
+                    commandInput.value += id;
+                    commandInput.focus();
+                });
+                genomeList.appendChild(li);
+            }
+        }
+
+        function handleFuseCommand() {
+            const command = commandInput.value.trim();
+            const match = command.match(/fuse ([\w-:\.\[\],+]+) (?:using:|with:) (\w+)/);
+            
+            if (!match) {
+                displayError("Invalid command syntax. Use: fuse [genomes] using:[philosophy]");
+                return;
+            }
+
+            const [, genomesStr, philosophy] = match;
+            
+            clearInterface();
+
+            try {
+                const { fusedData, philosophy: usedPhilosophy } = fuse(genomesStr, philosophy);
+                express(fusedData, usedPhilosophy);
+            } catch (error) {
+                displayError(error.message);
+                console.error(error);
+            }
+        }
+
+        function displayError(message) {
+            expressionBay.innerHTML = `<p style="color: var(--error-color);">[ERROR] ${message}</p>`;
+            detailsPanel.innerHTML = '';
+        }
+        
+        function clearInterface() {
+             expressionBay.innerHTML = '';
+             detailsPanel.innerHTML = '';
+             expressionBay.className = '';
+             document.querySelectorAll('.codon.selected').forEach(el => el.classList.remove('selected'));
+        }
+
+        function fuse(genomesStr, philosophy) {
+            let fusedData;
+            
+            const cloneCodons = (id) => JSON.parse(JSON.stringify(genomeDatabase[id].codons)).map(c => ({...c, origin: id}));
+
+            switch (philosophy) {
+                case 'xanadu': {
+                    const [g1_id, g2_id] = genomesStr.split('+');
+                    if (!genomeDatabase[g1_id] || !genomeDatabase[g2_id]) throw new Error('Invalid genome IDs for Xanadu fusion.');
+                    const g1_codons = cloneCodons(g1_id);
+                    const g2_codons = cloneCodons(g2_id);
+                    fusedData = [];
+                    for (let i = 0; i < Math.max(g1_codons.length, g2_codons.length); i++) {
+                        if (g1_codons[i]) fusedData.push(g1_codons[i]);
+                        if (g2_codons[i]) fusedData.push(g2_codons[i]);
+                    }
+                    break;
+                }
+                
+                case 'memex': {
+                    const trail = genomeDatabase[genomesStr];
+                    if (!trail || !trail.isTrail) throw new Error('Invalid trail ID for Memex fusion.');
+                    fusedData = [];
+                    trail.path.forEach((id, index) => {
+                        fusedData.push(...cloneCodons(id));
+                        if (index < trail.path.length - 1) {
+                             fusedData.push({ type: 'marker', value: 'T-STOP', timestamp: new Date().toLocaleTimeString() });
+                        }
+                    });
+                    break;
+                }
+
+                case 'nls':
+                case 'engelbart': {
+                    if (!genomeDatabase[genomesStr]) throw new Error('Invalid log ID for NLS fusion.');
+                    fusedData = cloneCodons(genomesStr);
+                    philosophy = 'nls';
+                    break;
+                }
+
+                case 'smalltalk': {
+                    const [base_id, override_id] = genomesStr.split('+');
+                    if (!genomeDatabase[base_id] || !genomeDatabase[override_id]) throw new Error('Invalid genome IDs for Smalltalk fusion.');
+                    
+                    fusedData = cloneCodons(base_id);
+                    const override_codons = cloneCodons(override_id);
+
+                    override_codons.forEach(override_codon => {
+                        const indexToReplace = fusedData.findIndex(base_codon => base_codon.type === override_codon.type);
+                        if (indexToReplace !== -1) {
+                            const originalCodon = fusedData[indexToReplace];
+                            fusedData[indexToReplace] = {
+                                ...override_codon,
+                                inheritedFrom: { value: originalCodon.value, origin: originalCodon.origin }
+                            };
+                        } else {
+                            fusedData.push(override_codon);
+                        }
+                    });
+                    break;
+                }
+
+                case 'hypercard': {
+                    const match = genomesStr.match(/(\w+):(\w+)/);
+                    if (!match) throw new Error('Invalid stack syntax for Hypercard. Use: g-XXX:g-YYY');
+                    const [, start_id, end_id] = match;
+                    const all_ids = Object.keys(genomeDatabase).sort();
+                    const startIndex = all_ids.indexOf(start_id);
+                    const endIndex = all_ids.indexOf(end_id);
+                    if (startIndex === -1 || endIndex === -1 || startIndex > endIndex) throw new Error('Invalid range for HyperCard stack.');
+                    
+                    const stack_ids = all_ids.slice(startIndex, endIndex + 1);
+                    fusedData = stack_ids
+                        .filter(id => genomeDatabase[id] && !genomeDatabase[id].isTrail && genomeDatabase[id].codons)
+                        .map(id => ({ id, codons: cloneCodons(id) }));
+                    break;
+                }
+
+                default:
+                    throw new Error(`Unknown fusion philosophy: "${philosophy}"`);
+            }
+            
+            return { fusedData, philosophy };
+        }
+        
+        function express(data, philosophy) {
+            expressionBay.className = `${philosophy}-view`;
+
+            switch (philosophy) {
+                case 'xanadu':
+                case 'smalltalk':
+                case 'memex':
+                    let html = '';
+                    data.forEach(codon => {
+                        if (codon.type === 'marker') {
+                            html += `<hr class="memex-marker" data-timestamp="[${codon.timestamp}] SEMANTIC STOP">`;
+                        } else {
+                            let classes = 'codon';
+                            if (codon.origin) classes += ` origin-${codon.origin.replace(':', '')}`;
+                            if (codon.inheritedFrom) classes += ' overridden';
+                            html += `<span class="${classes}" data-codon='${JSON.stringify(codon)}'>${codon.value}</span>`;
+                        }
+                    });
+                    expressionBay.innerHTML = html;
+                    break;
+                
+                case 'nls':
+                    expressionBay.innerHTML = `<h4>Executing Macro Genome: log:ops</h4>`;
+                    let lastGeneratedElement = null;
+                    data.forEach(codon => {
+                        if(codon.type === 'cmd') {
+                            switch(codon.value) {
+                                case 'CREATE_H4':
+                                    const h4 = document.createElement('h4');
+                                    h4.textContent = codon.params.text;
+                                    const containerH4 = document.createElement('div');
+                                    containerH4.className = 'nls-generated';
+                                    containerH4.appendChild(h4);
+                                    expressionBay.appendChild(containerH4);
+                                    lastGeneratedElement = containerH4;
+                                    break;
+                                case 'CREATE_DIV':
+                                    const div = document.createElement('p');
+                                    div.textContent = codon.params.text;
+                                    const containerDiv = document.createElement('div');
+                                    containerDiv.className = 'nls-generated';
+                                    containerDiv.appendChild(div);
+                                    expressionBay.appendChild(containerDiv);
+                                    lastGeneratedElement = containerDiv;
+                                    break;
+                                case 'STYLE_LAST':
+                                     if(lastGeneratedElement) {
+                                        lastGeneratedElement.classList.add(codon.params.class);
+                                     }
+                                     break;
+                                case 'LOG':
+                                     console.log(`[NLS LOG] ${codon.params.message}`);
+                                     break;
+                            }
+                        }
+                    });
+                    break;
+
+                case 'hypercard':
+                    let cardHtml = `<div id="hypercard-stack">`;
+                    data.forEach((card, index) => {
+                         cardHtml += `<div class="hypercard-card ${index === 0 ? 'active' : ''}" data-index="${index}">
+                            <h4>Card: ${card.id}</h4>`;
+                         card.codons.forEach(codon => {
+                             cardHtml += `<span class="codon" data-codon='${JSON.stringify(codon)}'>${codon.value}</span> `;
+                         });
+                         cardHtml += `</div>`;
+                    });
+                    cardHtml += `</div>`;
+                    cardHtml += `<div id="hypercard-nav">
+                        <button id="prev-card">◀</button>
+                        <span id="card-indicator">1 / ${data.length}</span>
+                        <button id="next-card">▶</button>
+                    </div>`;
+                    expressionBay.innerHTML = cardHtml;
+                    setupHypercardNav(data.length);
+                    break;
+            }
+
+            document.querySelectorAll('.codon').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    document.querySelectorAll('.codon.selected').forEach(sel => sel.classList.remove('selected'));
+                    e.currentTarget.classList.add('selected');
+                    const codonData = JSON.parse(e.currentTarget.dataset.codon);
+                    showDetails(codonData);
+                });
+            });
+        }
+        
+        function showDetails(codon) {
+            let html = `<h3>CODON LINEAGE</h3>`;
+            html += `<p><span class="prop">Value:</span> <span class="val">${codon.value}</span></p>`;
+            html += `<p><span class="prop">Type:</span> <span class="val">${codon.type}</span></p>`;
+            html += `<p><span class="prop">Origin Genome:</span> <span class="val">${codon.origin}</span></p>`;
+            if (codon.inheritedFrom) {
+                html += `<p><span class="prop">Inherited From:</span> <span class="val">${codon.inheritedFrom.origin} (was ${codon.inheritedFrom.value})</span></p>`;
+            }
+             if (codon.timestamp) {
+                html += `<p><span class="prop">Timestamp:</span> <span class="val">${codon.timestamp}</span></p>`;
+            }
+            detailsPanel.innerHTML = html;
+        }
+
+        function setupHypercardNav(cardCount) {
+            let currentIndex = 0;
+            const cards = document.querySelectorAll('.hypercard-card');
+            const indicator = document.getElementById('card-indicator');
+            
+            const updateCards = () => {
+                cards.forEach((card, index) => {
+                    card.classList.toggle('active', index === currentIndex);
+                });
+                indicator.textContent = `${currentIndex + 1} / ${cardCount}`;
+            };
+
+            document.getElementById('prev-card').addEventListener('click', () => {
+                currentIndex = (currentIndex - 1 + cardCount) % cardCount;
+                updateCards();
+            });
+            document.getElementById('next-card').addEventListener('click', () => {
+                currentIndex = (currentIndex + 1) % cardCount;
+                updateCards();
+            });
+        }
+
+        // --- START THE MACHINE ---
+        initialize();
+    });
+    </script>
+
+</body>
+</html>

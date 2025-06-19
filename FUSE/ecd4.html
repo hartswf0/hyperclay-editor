@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // CIRCUIT DRAMA-EDIT // CDE-1978a</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@500&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: CIRCUIT DRAMA-EDIT (CDE-1978a)
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: Analog-digital hybrid system for composing sound-image-dream composites
+        *   by linking media to emotional markers and applying non-linear, mythological filters.
+        */
+
+        :root {
+            --cde-metal-dark: #3a3f44;
+            --cde-metal-light: #9a9faa;
+            --cde-text-light: #d8dde0;
+            --cde-screen-bg: #101210;
+            --cde-amber: #ffb833;
+            --cde-green: #44ffaa;
+            --cde-red: #ff5544;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes blink-active {
+            0%, 100% { background-color: var(--cde-green); }
+            50% { background-color: #1a4d33; }
+        }
+        @keyframes monitor-glitch {
+            0% { transform: translate(0,0); } 2% { transform: translate(-2px, 2px); }
+            4% { transform: translate(0,0); } 6% { transform: translate(2px, -2px); }
+            8% { transform: translate(0,0); } 98% { transform: translate(0,0); }
+            100% { transform: translate(2px, 2px); }
+        }
+        @keyframes lines-flicker {
+            0% { opacity: 0.1; } 50% { opacity: 0.2; } 100% { opacity: 0.1; }
+        }
+        
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #2a2a2a; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--cde-text-light); user-select: none;
+        }
+        #cde-chassis {
+            width: 1600px; height: 900px; background-color: var(--cde-metal-dark);
+            border: 2px solid #000; box-shadow: 0 0 40px rgba(0,0,0,0.5); padding: 20px;
+            display: grid; grid-template-columns: 350px 1fr;
+            grid-template-rows: 1fr 200px; gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: #22252a; padding: 15px;
+            box-shadow: inset 0 0 10px #000; display: flex; flex-direction: column; gap: 15px;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 1.8rem; letter-spacing: 2px;
+            text-align: center; border-bottom: 1px solid var(--cde-metal-dark);
+            padding-bottom: 5px; margin: 0 0 10px 0; color: var(--cde-metal-light);
+        }
+
+        /* --- MEDIA BAY (LEFT) --- */
+        #media-bay { grid-row: 1 / 3; }
+        .canister-rack { flex-grow: 1; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .canister {
+            background: linear-gradient(45deg, #555, #666); border: 1px solid #222; aspect-ratio: 1;
+            padding: 10px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between;
+            transition: all 0.2s; box-shadow: 2px 2px 5px #000;
+        }
+        .canister:hover { transform: translateY(-2px); box-shadow: 2px 4px 8px #000; }
+        .canister.selected { outline: 3px solid var(--cde-amber); outline-offset: -3px; }
+        .canister-label { font-size: 1.5rem; font-family: var(--font-display); }
+        .canister-icon svg { width: 50%; fill: var(--cde-text-light); opacity: 0.7; }
+
+        .load-button {
+            width: 100%; padding: 10px; font-size: 1.5rem; font-family: var(--font-display);
+            background-color: #2a2a2a; border: 1px solid #555; cursor: pointer;
+        }
+        #load-canister-btn { color: var(--cde-amber); }
+        #load-soundstrip-btn { color: var(--cde-green); }
+        .load-button:disabled { background: #1a1a1a; color: #555; cursor: not-allowed; }
+
+        /* --- MAIN EDITING AREA (CENTER) --- */
+        #main-panel { grid-row: 1 / 2; grid-column: 2 / 3; display: grid; grid-template-columns: 1fr 300px; gap: 15px; }
+        
+        /* Visual Logic Splicer */
+        #splicer-module { flex-grow: 1; }
+        #sequence-chain {
+            background: #1a1a1a; padding: 10px; height: 100%; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .chain-link {
+            display: flex; align-items: center; background: #2f343a; padding: 5px;
+            border-left: 5px solid var(--cde-metal-dark);
+        }
+        .chain-link.active { border-left-color: var(--cde-amber); background: #40464d; }
+        .link-moment { flex-grow: 1; }
+        .link-transition { width: 100px; text-align: center; color: var(--cde-metal-light); }
+        .link-marker { width: 100px; text-align: center; color: var(--cde-green); }
+
+        /* Preview Monitor & Emotive Filter */
+        #monitor-module { display: flex; flex-direction: column; align-items: center; }
+        #preview-monitor {
+            width: 100%; aspect-ratio: 4/3; background: var(--cde-screen-bg); position: relative;
+            box-shadow: inset 0 0 10px #000; overflow: hidden;
+        }
+        .monitor-image { width: 100%; height: 100%; object-fit: cover; }
+        .monitor-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .monitor-scanlines { background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%); background-size: 100% 4px; animation: lines-flicker 2s infinite; }
+        .monitor-glitch-layer { animation: monitor-glitch 5s infinite; }
+
+        .filter-dial-container { text-align: center; margin-top: 20px; }
+        .filter-dial { width: 150px; height: 150px; background: #1a1a1a; border: 3px solid #555; border-radius: 50%; position: relative; cursor: grab; }
+        .filter-dial:active { cursor: grabbing; }
+        .filter-dial-indicator { width: 4px; height: 40%; background: var(--cde-metal-light); position: absolute; top: 10%; left: calc(50% - 2px); transform-origin: center bottom; }
+        .filter-dial-labels { width: 100%; display: flex; justify-content: space-between; margin-top: 5px; }
+
+        /* --- SOUNDSTRIP SYNCHRONIZER (BOTTOM) --- */
+        #soundstrip-panel { grid-row: 2 / 3; grid-column: 2 / 3; }
+        #soundstrip-rack {
+            background: linear-gradient(#2a2a2a, #1a1a1a); height: 100%;
+            border: 2px solid #000; padding: 10px; display: flex; align-items: center; gap: 10px;
+        }
+        .harmonic-marker {
+            height: 80%; background: #333; border: 1px solid #111;
+            writing-mode: vertical-rl; text-orientation: mixed; text-align: center;
+            padding: 10px 5px; font-family: var(--font-display); font-size: 1.5rem;
+            color: var(--cde-text-light); cursor: pointer; transition: all 0.2s;
+        }
+        .harmonic-marker.selected { background: var(--cde-green); color: #000; }
+        .harmonic-marker.disabled { background: #222; color: #555; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div id="cde-chassis">
+        <div class="panel" id="media-bay">
+            <div class="module">
+                <h2 class="module-label">MEMORY CANISTERS</h2>
+                <div class="canister-rack" id="canister-rack"></div>
+                <button class="load-button" id="load-canister-btn" disabled>LOAD MOMENT</button>
+            </div>
+            <div class="module">
+                <h2 class="module-label">SOUNDSTRIPS</h2>
+                <div class="canister-rack" id="soundstrip-rack"></div>
+                <button class="load-button" id="load-soundstrip-btn" disabled>LOAD STRIP</button>
+            </div>
+        </div>
+        <div class="panel" id="main-panel">
+            <div class="panel" id="splicer-module">
+                <h2 class="module-label">VISUAL LOGIC SPLICER</h2>
+                <div id="sequence-chain"></div>
+            </div>
+            <div class="panel" id="monitor-module">
+                <h2 class="module-label">PREVIEW MONITOR</h2>
+                <div id="preview-monitor">
+                    <div class="monitor-glitch-layer">
+                        <img id="monitor-image-content" class="monitor-image" src="" alt="">
+                    </div>
+                    <div class="monitor-overlay monitor-scanlines"></div>
+                </div>
+                <div class="filter-dial-container">
+                    <div class="filter-dial" id="emotive-filter-dial">
+                        <div class="filter-dial-indicator"></div>
+                    </div>
+                    <div class="filter-dial-labels">
+                        <span>LITERAL</span>
+                        <span>MYTHOLOGICAL</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel" id="soundstrip-panel">
+            <div id="soundstrip-rack"></div>
+        </div>
+    </div>
+
+<script>
+const CDE = {
+    // --- Data ---
+    MEDIA_DATA: {
+        canisters: [
+            { id: 'C01', label: 'STATIC GEOMETRY', type: 'structure', icon: 'M10 10h80v80h-80z' },
+            { id: 'C02', label: 'FLOWING WATER', type: 'nature', icon: 'M10 20C40 0 60 40 90 20 M10 50C40 30 60 70 90 50' },
+            { id: 'C03', label: 'CROWDED STREET', type: 'social', icon: 'M20 20h10v60h-10z M50 20h10v60h-10z M80 20h10v60h-10z' },
+            { id: 'C04', label: 'CLOSE-UP EYE', type: 'intimate', icon: 'M50 50m-40 0a40 20 0 1 0 80 0a40 20 0 1 0-80 0 M50 50m-15 0a15 15 0 1 0 30 0a15 15 0 1 0-30 0' },
+            { id: 'C05', label: 'EMPTY CORRIDOR', type: 'structure', icon: 'M10 10L40 40V60L10 90z M90 10L60 40V60L90 90z' },
+            { id: 'C06', label: 'BURNING FIELD', type: 'nature', icon: 'M20 90S30 20 50 40S80 20 80 90z M40 90S50 40 60 60S90 40 90 90z' },
+        ],
+        soundstrips: [
+            { id: 'S01', label: 'RITUAL DRUM', markers: ['TENSION', 'BEAT', 'RELEASE', 'SILENCE'] },
+            { id: 'S02', label: 'AMBIENT DRONE', markers: ['REVERIE', 'SHIFT', 'ECHO', 'FADE'] },
+        ]
+    },
+
+    // --- DOM Elements ---
+    elems: {
+        canisterRack: document.getElementById('canister-rack'),
+        soundstripRack: document.getElementById('soundstrip-rack'),
+        loadCanisterBtn: document.getElementById('load-canister-btn'),
+        loadSoundstripBtn: document.getElementById('load-soundstrip-btn'),
+        sequenceChain: document.getElementById('sequence-chain'),
+        soundstripPanel: document.getElementById('soundstrip-rack'),
+        monitorImage: document.getElementById('monitor-image-content'),
+        monitorGlitchLayer: document.querySelector('.monitor-glitch-layer'),
+        emotiveFilterDial: document.getElementById('emotive-filter-dial'),
+        emotiveFilterIndicator: document.querySelector('.filter-dial-indicator'),
+    },
+    
+    // --- State ---
+    state: {
+        selectedCanister: null,
+        selectedSoundstrip: null,
+        loadedSoundstrip: null,
+        selectedMarker: null,
+        sequence: [], // {canisterId, marker, transition}
+        emotiveFilter: 0, // 0 = LITERAL, 1 = MYTHOLOGICAL
+        playback: { timer: null, currentIndex: 0, isPlaying: false }
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, load: null, click: null, hum: null, humGain: null,
+        init() { this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.load = this.createSound(100, 0.2, 'square');
+            this.click = this.createSound(1200, 0.05, 'sine');
+            this.hum = this.ctx.createOscillator(); this.humGain = this.ctx.createGain();
+            this.hum.type = 'sawtooth'; this.hum.frequency.value = 50;
+            this.humGain.gain.value = 0;
+            this.hum.connect(this.humGain); this.humGain.connect(this.ctx.destination);
+            this.hum.start();
+        },
+        createSound(freq, dur, type) { return () => { if (!this.ctx) return;
+            const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+            o.connect(g); g.connect(this.ctx.destination); o.type = type;
+            o.frequency.setValueAtTime(freq, this.ctx.currentTime);
+            g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + dur);
+            o.start(); o.stop(this.ctx.currentTime + dur); };
+        },
+        setHum(level) { if(this.humGain) this.humGain.gain.setTargetAtTime(level, this.ctx.currentTime, 0.5); }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.renderMediaBay();
+        this.addEventListeners();
+    },
+
+    renderMediaBay() {
+        this.elems.canisterRack.innerHTML = this.MEDIA_DATA.canisters.map(c => `
+            <div class="canister" data-id="${c.id}" title="${c.label}">
+                <div class="canister-label">${c.id}</div>
+                <div class="canister-icon"><svg viewBox="0 0 100 100"><path d="${c.icon}"/></svg></div>
+            </div>`).join('');
+        this.elems.soundstripRack.innerHTML = this.MEDIA_DATA.soundstrips.map(s => `
+            <div class="canister" data-id="${s.id}" title="${s.label}">
+                <div class="canister-label">${s.id}</div>
+            </div>`).join('');
+    },
+
+    addEventListeners() {
+        this.elems.canisterRack.addEventListener('click', e => this.selectCanister(e.target.closest('.canister')));
+        this.elems.soundstripRack.addEventListener('click', e => this.selectSoundstrip(e.target.closest('.canister')));
+        this.elems.loadCanisterBtn.onclick = () => this.addMomentToSequence();
+        this.elems.loadSoundstripBtn.onclick = () => this.loadSoundstrip();
+        
+        let isDragging = false;
+        this.elems.emotiveFilterDial.onmousedown = () => isDragging = true;
+        document.onmouseup = () => isDragging = false;
+        document.onmousemove = e => { if (isDragging && e.target.closest('#emotive-filter-dial')) this.updateEmotiveFilter(e.movementX); };
+    },
+
+    // --- Core Logic ---
+    selectCanister(el) { if (!el) return;
+        this.audio.click();
+        const id = el.dataset.id;
+        this.state.selectedCanister = this.state.selectedCanister === id ? null : id;
+        document.querySelectorAll('#canister-rack .canister').forEach(c => c.classList.remove('selected'));
+        if (this.state.selectedCanister) el.classList.add('selected');
+        this.updateButtons();
+    },
+
+    selectSoundstrip(el) { if (!el) return;
+        this.audio.click();
+        const id = el.dataset.id;
+        this.state.selectedSoundstrip = this.state.selectedSoundstrip === id ? null : id;
+        document.querySelectorAll('#soundstrip-rack .canister').forEach(s => s.classList.remove('selected'));
+        if (this.state.selectedSoundstrip) el.classList.add('selected');
+        this.updateButtons();
+    },
+
+    loadSoundstrip() {
+        if (!this.state.selectedSoundstrip) return;
+        this.audio.load();
+        this.state.loadedSoundstrip = this.MEDIA_DATA.soundstrips.find(s => s.id === this.state.selectedSoundstrip);
+        this.state.sequence = []; // Loading new soundstrip clears the sequence
+        this.elems.soundstripPanel.innerHTML = this.state.loadedSoundstrip.markers.map(m => `<div class="harmonic-marker" data-marker="${m}">${m}</div>`).join('');
+        
+        this.elems.soundstripPanel.querySelectorAll('.harmonic-marker').forEach(m => m.onclick = () => this.selectMarker(m));
+        this.renderSequence();
+        this.stopPlayback();
+    },
+    
+    selectMarker(el) { if (!el) return;
+        this.audio.click();
+        const marker = el.dataset.marker;
+        this.state.selectedMarker = this.state.selectedMarker === marker ? null : marker;
+        this.elems.soundstripPanel.querySelectorAll('.harmonic-marker').forEach(m => m.classList.remove('selected'));
+        if (this.state.selectedMarker) el.classList.add('selected');
+        this.updateButtons();
+    },
+    
+    addMomentToSequence() {
+        if (!this.state.selectedCanister || !this.state.selectedMarker) return;
+        this.audio.load();
+        const lastMoment = this.state.sequence.length > 0 ? this.state.sequence[this.state.sequence.length - 1] : null;
+        this.state.sequence.push({
+            canisterId: this.state.selectedCanister,
+            marker: this.state.selectedMarker,
+            transition: this.getTransitionLogic(lastMoment, this.state.selectedCanister)
+        });
+        this.renderSequence();
+        if(!this.state.playback.isPlaying) this.startPlayback();
+    },
+
+    getTransitionLogic(lastMoment, newCanisterId) {
+        if (!lastMoment) return 'FADE IN';
+        const lastType = this.MEDIA_DATA.canisters.find(c=>c.id === lastMoment.canisterId).type;
+        const newType = this.MEDIA_DATA.canisters.find(c=>c.id === newCanisterId).type;
+        if (lastType === newType) return 'DISSOLVE';
+        return 'HARD CUT';
+    },
+
+    updateButtons() {
+        this.elems.loadSoundstripBtn.disabled = !this.state.selectedSoundstrip;
+        this.elems.loadCanisterBtn.disabled = !this.state.selectedCanister || !this.state.selectedMarker;
+    },
+    
+    updateEmotiveFilter(deltaX) {
+        this.state.emotiveFilter = Math.max(0, Math.min(1, this.state.emotiveFilter + deltaX * 0.005));
+        const angle = this.state.emotiveFilter * 180 - 90;
+        this.elems.emotiveFilterIndicator.style.transform = `rotate(${angle}deg)`;
+        this.audio.setHum(this.state.emotiveFilter * 0.1);
+        this.elems.monitorGlitchLayer.style.opacity = this.state.emotiveFilter;
+    },
+    
+    // --- Playback & Rendering ---
+    renderSequence() {
+        this.elems.sequenceChain.innerHTML = this.state.sequence.map((link, i) => `
+            <div class="chain-link ${this.state.playback.currentIndex === i ? 'active' : ''}">
+                <div class="link-moment">${link.canisterId}: ${this.MEDIA_DATA.canisters.find(c=>c.id===link.canisterId).label}</div>
+                <div class="link-transition">${link.transition}</div>
+                <div class="link-marker">${link.marker}</div>
+            </div>`).join('');
+    },
+    
+    startPlayback() {
+        this.stopPlayback();
+        this.state.playback.isPlaying = true;
+        this.state.playback.timer = setInterval(() => this.playbackTick(), 2000);
+        this.playbackTick();
+    },
+
+    stopPlayback() {
+        clearInterval(this.state.playback.timer);
+        this.state.playback.isPlaying = false;
+    },
+
+    playbackTick() {
+        if (this.state.sequence.length === 0) {
+            this.elems.monitorImage.src = '';
+            return;
+        }
+
+        let nextIndex;
+        if (this.state.emotiveFilter < 0.2) { // Literal Playback
+            nextIndex = (this.state.playback.currentIndex + 1) % this.state.sequence.length;
+        } else { // Mythological Playback
+            nextIndex = this.getAssociativeNextIndex();
+        }
+        
+        this.state.playback.currentIndex = nextIndex;
+        const currentMoment = this.state.sequence[this.state.playback.currentIndex];
+        this.elems.monitorImage.src = `https://picsum.photos/seed/${currentMoment.canisterId}/400/300`;
+        this.renderSequence();
+    },
+
+    getAssociativeNextIndex() {
+        const currentType = this.MEDIA_DATA.canisters.find(c => c.id === this.state.sequence[this.state.playback.currentIndex].canisterId).type;
+        const potentialNext = [];
+        this.state.sequence.forEach((moment, index) => {
+            if (index === this.state.playback.currentIndex) return;
+            const momentType = this.MEDIA_DATA.canisters.find(c => c.id === moment.canisterId).type;
+            if (momentType === currentType) potentialNext.push(index);
+        });
+
+        if (potentialNext.length > 0 && Math.random() < this.state.emotiveFilter) {
+            return potentialNext[Math.floor(Math.random() * potentialNext.length)];
+        } else { // Fallback to linear if no association found or by chance
+            return (this.state.playback.currentIndex + 1) % this.state.sequence.length;
+        }
+    }
+};
+
+CDE.init();
+</script>
+</body>
+</html>

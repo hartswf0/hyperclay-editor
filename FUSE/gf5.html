@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GENOMIRE SCOPE // Fusion Models</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Source+Serif+Pro:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-background: #0a0c10;
+            --color-text: #c9d1d9;
+            --color-glow: hsla(190, 100%, 75%, 0.4);
+            --color-focus: hsla(210, 100%, 80%, 0.1);
+            --color-grid: rgba(40, 50, 70, 0.2);
+            --color-source-a: hsl(190, 50%, 50%);
+            --color-source-b: hsl(30, 60%, 50%);
+            --font-mono: 'Fira Code', monospace;
+            --font-serif: 'Source Serif Pro', serif;
+            --width-col: 60px;
+            --height-codon: 48px;
+            --anim-fast: 150ms;
+            --anim-smooth: 350ms;
+        }
+        .type-txt { --codon-color: hsl(210, 50%, 50%); }
+        .type-img { --codon-color: hsl(120, 50%, 50%); }
+        .type-aud { --codon-color: hsl(280, 50%, 50%); }
+
+        /* --- 1. CORE LAYOUT --- */
+        html, body {
+            height: 100%; margin: 0; background-color: var(--color-background);
+            color: var(--color-text); font-family: var(--font-mono); overflow: hidden;
+        }
+        #app-container { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; }
+        #genome-field-container { flex-grow: 1; display: flex; align-items: center; overflow-x: auto; scroll-behavior: smooth; }
+        #genome-field { position: relative; display: flex; align-items: center; gap: 4px; padding: 0 5vw; height: 100%; }
+        #console-container { padding: 10px 2vw; border-top: 1px solid var(--color-grid); }
+        #console-input { width: 100%; background: transparent; border: 1px solid var(--color-grid); border-radius: 4px; color: var(--color-text); font: 1rem var(--font-mono); padding: 10px 15px; outline: none; }
+        #console-input:focus { border-color: var(--color-glow); }
+
+        /* --- 2. GENOME COLUMN & SELECTION --- */
+        .genome-column {
+            flex-shrink: 0; display: flex; flex-direction: column; gap: 4px;
+            height: 95%; width: var(--width-col); padding: 10px 0;
+            border-radius: 6px; cursor: pointer;
+            border: 2px solid transparent;
+            transition: all var(--anim-smooth) ease;
+        }
+        .genome-column.is-selected { border-color: var(--color-glow); background-color: var(--color-focus); }
+        .codon-band { width: 100%; height: var(--height-codon); background: var(--codon-color); border-radius: 4px; }
+        
+        /* --- 3. FUSION MODAL --- */
+        #fusion-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 50;
+            background: rgba(10, 12, 16, 0.7); backdrop-filter: blur(8px);
+            display: none; align-items: center; justify-content: center;
+        }
+        #fusion-modal.visible { display: flex; }
+        .fusion-container {
+            width: 90%; height: 90%; max-width: 1200px;
+            background: var(--color-background); border: 1px solid var(--color-grid);
+            border-radius: 8px; display: flex; flex-direction: column;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+        .fusion-header { padding: 15px 20px; border-bottom: 1px solid var(--color-grid); }
+        .fusion-header h2 { margin: 0; font-size: 1.2rem; }
+        .fusion-header h2 .philosophy { color: var(--color-glow); font-weight: 500; }
+        .fusion-header .lineage span { padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+        .fusion-header .lineage .source-a { background: var(--color-source-a); color: black; }
+        .fusion-header .lineage .source-b { background: var(--color-source-b); color: black; }
+        #fusion-content { flex-grow: 1; padding: 20px; overflow: auto; position: relative; }
+        .close-fusion { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; }
+        .close-fusion:hover { color: var(--color-glow); }
+
+        /* --- 4. FUSION PHILOSOPHY STYLES --- */
+        .fused-item { margin-bottom: 10px; border-left: 3px solid; padding: 8px 12px; }
+        .fused-item.source-a { border-color: var(--color-source-a); }
+        .fused-item.source-b { border-color: var(--color-source-b); }
+        .fused-item .source-id { font-size: 0.7rem; opacity: 0.6; }
+        
+        /* Xanadu-Style */
+        #fusion-content.xanadu-view .fused-item { position: absolute; width: 45%; background: rgba(0,0,0,0.4); }
+        #fusion-content.xanadu-view .fused-item.source-a { left: 5%; }
+        #fusion-content.xanadu-view .fused-item.source-b { right: 5%; }
+        .xanadu-link { position: absolute; border-top: 1px dashed var(--color-glow); z-index: -1; }
+
+        /* Memex-Style */
+        #fusion-content.memex-view .fused-item { transition: background-color var(--anim-fast); }
+        #fusion-content.memex-view .fused-item:hover { background: var(--color-focus); }
+        #fusion-content.memex-view .trail-marker::before { content: '» '; color: var(--color-glow); }
+
+        /* Engelbart-Style */
+        #fusion-content.engelbart-view { font-family: var(--font-mono); }
+        .engelbart-view ol { padding-left: 20px; }
+        .engelbart-view li { margin-bottom: 5px; }
+
+        /* Smalltalk-Style */
+        .smalltalk-view .method.overridden .original { text-decoration: line-through; opacity: 0.5; }
+        .smalltalk-view .method .new-impl { background: var(--color-focus); border: 1px solid var(--color-grid); padding: 5px; }
+
+        /* HyperCard-Style */
+        #fusion-content.hypercard-view { perspective: 1000px; display: flex; align-items: center; justify-content: center; }
+        .hypercard-stack { position: relative; width: 60%; height: 80%; }
+        .hypercard-card {
+            position: absolute; width: 100%; height: 100%;
+            background: var(--color-focus); border: 1px solid var(--color-grid);
+            border-radius: 4px; padding: 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center;
+            opacity: 0; transform: rotateY(90deg);
+            transition: transform var(--anim-smooth), opacity var(--anim-smooth);
+        }
+        .hypercard-card.active { opacity: 1; transform: rotateY(0deg); z-index: 10; }
+        .hypercard-nav { position: absolute; bottom: 10px; width: 100%; text-align: center; z-index: 15; }
+        .hypercard-nav button { background: var(--color-grid); border: none; color: var(--color-text); padding: 5px 15px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div id="genome-field-container">
+            <div id="genome-field"></div>
+        </div>
+        <div id="console-container">
+            <input id="console-input" type="text" placeholder="> select 2 genomes and enter a fusion command...">
+        </div>
+    </div>
+
+    <div id="fusion-modal">
+        <div class="fusion-container">
+            <div class="fusion-header">
+                <span class="close-fusion" title="Close (Esc)">×</span>
+                <h2>Fusion Result: <span id="fusion-philosophy-title" class="philosophy"></span></h2>
+                <div class="lineage">Lineage: <span id="fusion-source-a"></span> + <span id="fusion-source-b"></span></div>
+            </div>
+            <div id="fusion-content"></div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const app = {
+            field: document.getElementById('genome-field'),
+            consoleInput: document.getElementById('console-input'),
+            modal: document.getElementById('fusion-modal'),
+            modalContent: document.getElementById('fusion-content'),
+            modalTitle: document.getElementById('fusion-philosophy-title'),
+            modalSourceA: document.getElementById('fusion-source-a'),
+            modalSourceB: document.getElementById('fusion-source-b'),
+        };
+
+        // --- State ---
+        let genomes = [];
+        let selectedGenomeIds = [];
+
+        // --- Mock Data Generation ---
+        const generateGenome = (id) => ({
+            id,
+            codons: Array.from({ length: 4 + Math.floor(Math.random() * 4) }, (_, i) => ({
+                type: ['TXT', 'IMG', 'AUD'][i % 3],
+                content: `Content for ${id}, codon ${i+1}`
+            }))
+        });
+
+        // --- Fusion Engine: The Core Logic ---
+        const FusionEngine = {
+            createArtifact(ids, philosophy) {
+                if (ids.length < 2) return null;
+                const genomeA = genomes.find(g => g.id === ids[0]);
+                const genomeB = genomes.find(g => g.id === ids[1]);
+                if (!genomeA || !genomeB) return null;
+
+                let structure = {};
+                switch(philosophy) {
+                    case 'xanadu': structure = this.xanadu(genomeA, genomeB); break;
+                    case 'memex': structure = this.memex(genomeA, genomeB); break;
+                    case 'engelbart': structure = this.engelbart(genomeA, genomeB); break;
+                    case 'smalltalk': structure = this.smalltalk(genomeA, genomeB); break;
+                    case 'hypercard': structure = this.hypercard(genomeA, genomeB); break;
+                    default: return null;
+                }
+                return { philosophy, sourceA: genomeA, sourceB: genomeB, structure };
+            },
+
+            xanadu: (a, b) => {
+                // Find a common codon type to link
+                let linkA = -1, linkB = -1;
+                for(let i = 0; i < a.codons.length; i++) {
+                    const foundIndex = b.codons.findIndex(bc => bc.type === a.codons[i].type);
+                    if (foundIndex !== -1) {
+                        linkA = i;
+                        linkB = foundIndex;
+                        break;
+                    }
+                }
+                return { codonsA: a.codons, codonsB: b.codons, linkA, linkB };
+            },
+
+            memex: (a, b) => {
+                // Create an associative trail, jumping between sources
+                let trail = [];
+                trail.push({ ...a.codons[0], source: 'a' });
+                trail.push({ ...a.codons[1], source: 'a' });
+                trail.push({ ...b.codons[Math.floor(b.codons.length/2)], source: 'b', marker: true });
+                trail.push({ ...b.codons[Math.floor(b.codons.length/2)+1], source: 'b' });
+                trail.push({ ...a.codons[a.codons.length-1], source: 'a', marker: true });
+                return { trail };
+            },
+            
+            engelbart: (a, b) => ({ // Hierarchical view
+                genomes: [a, b]
+            }),
+
+            smalltalk: (a, b) => { // a=superclass, b=subclass
+                let methods = [];
+                const typesInB = new Set(b.codons.map(c => c.type));
+                a.codons.forEach(codonA => {
+                    const overridingCodon = b.codons.find(codonB => codonB.type === codonA.type);
+                    if (overridingCodon) {
+                        methods.push({ type: codonA.type, original: codonA, overriddenBy: overridingCodon, inherited: false });
+                    } else {
+                        methods.push({ type: codonA.type, original: codonA, inherited: true });
+                    }
+                });
+                b.codons.forEach(codonB => { // Add new methods from B not in A
+                    if (!a.codons.find(cA => cA.type === codonB.type)) {
+                        methods.push({ type: codonB.type, original: codonB, inherited: false, isNew: true });
+                    }
+                });
+                return { methods };
+            },
+
+            hypercard: (a, b) => { // A stack of cards
+                const cards = a.codons.map(c => ({...c, source: 'a'}))
+                               .concat(b.codons.map(c => ({...c, source: 'b'})));
+                return { cards };
+            }
+        };
+
+        // --- Rendering Logic ---
+        function renderField() {
+            app.field.innerHTML = '';
+            genomes.forEach(genome => {
+                const columnEl = document.createElement('div');
+                columnEl.className = 'genome-column';
+                columnEl.dataset.id = genome.id;
+                if (selectedGenomeIds.includes(genome.id)) {
+                    columnEl.classList.add('is-selected');
+                }
+                genome.codons.forEach(codon => {
+                    const bandEl = document.createElement('div');
+                    bandEl.className = `codon-band type-${codon.type.toLowerCase()}`;
+                    columnEl.appendChild(bandEl);
+                });
+                app.field.appendChild(columnEl);
+            });
+        }
+        
+        function renderFusion(artifact) {
+            if (!artifact) {
+                app.consoleInput.value = "> Error: Invalid fusion parameters.";
+                return;
+            }
+            app.modalTitle.textContent = artifact.philosophy;
+            app.modalSourceA.textContent = artifact.sourceA.id;
+            app.modalSourceA.className = 'source-a';
+            app.modalSourceB.textContent = artifact.sourceB.id;
+            app.modalSourceB.className = 'source-b';
+
+            app.modalContent.innerHTML = '';
+            app.modalContent.className = `${artifact.philosophy}-view`;
+
+            // Call the specific renderer for the philosophy
+            const renderer = `render${artifact.philosophy.charAt(0).toUpperCase() + artifact.philosophy.slice(1)}`;
+            if (window[renderer]) {
+                window[renderer](artifact);
+            }
+
+            app.modal.classList.add('visible');
+        }
+
+        // --- Philosophy-Specific Renderers ---
+        window.renderXanadu = ({ structure, sourceA, sourceB }) => {
+            structure.codonsA.forEach((codon, i) => {
+                const el = document.createElement('div');
+                el.className = 'fused-item source-a';
+                el.style.top = `${5 + i * 20}%`;
+                el.innerHTML = `<strong>${codon.type}</strong>: ${codon.content} <span class="source-id">${sourceA.id}</span>`;
+                el.dataset.index = `a-${i}`;
+                app.modalContent.appendChild(el);
+            });
+            structure.codonsB.forEach((codon, i) => {
+                const el = document.createElement('div');
+                el.className = 'fused-item source-b';
+                el.style.top = `${15 + i * 20}%`;
+                el.innerHTML = `<strong>${codon.type}</strong>: ${codon.content} <span class="source-id">${sourceB.id}</span>`;
+                el.dataset.index = `b-${i}`;
+                app.modalContent.appendChild(el);
+            });
+
+            // Draw link
+            setTimeout(() => {
+                const elA = app.modalContent.querySelector(`[data-index="a-${structure.linkA}"]`);
+                const elB = app.modalContent.querySelector(`[data-index="b-${structure.linkB}"]`);
+                if (!elA || !elB) return;
+                const rectA = elA.getBoundingClientRect();
+                const rectB = elB.getBoundingClientRect();
+                const contentRect = app.modalContent.getBoundingClientRect();
+
+                const link = document.createElement('div');
+                link.className = 'xanadu-link';
+                link.style.left = `${rectA.right - contentRect.left}px`;
+                link.style.top = `${rectA.top - contentRect.top + rectA.height / 2}px`;
+                link.style.width = `${rectB.left - rectA.right}px`;
+                app.modalContent.appendChild(link);
+            }, 100);
+        };
+        
+        window.renderMemex = ({ structure }) => {
+            structure.trail.forEach(item => {
+                const el = document.createElement('div');
+                el.className = `fused-item source-${item.source}`;
+                el.innerHTML = `${item.marker ? '<span class="trail-marker"></span>' : ''}<strong>${item.type}</strong>: ${item.content}`;
+                app.modalContent.appendChild(el);
+            });
+        };
+
+        window.renderEngelbart = ({ structure }) => {
+            const ol = document.createElement('ol');
+            structure.genomes.forEach(genome => {
+                const liGenome = document.createElement('li');
+                liGenome.innerHTML = `<strong>STATEMENT: SOURCE ${genome.id}</strong>`;
+                const olCodons = document.createElement('ol');
+                genome.codons.forEach(codon => {
+                    const liCodon = document.createElement('li');
+                    liCodon.textContent = `${codon.type}: ${codon.content}`;
+                    olCodons.appendChild(liCodon);
+                });
+                liGenome.appendChild(olCodons);
+                ol.appendChild(liGenome);
+            });
+            app.modalContent.appendChild(ol);
+        };
+        
+        window.renderSmalltalk = ({ structure, sourceA, sourceB }) => {
+            const classDiv = document.createElement('div');
+            classDiv.innerHTML = `<h3>class ${sourceB.id} inherits-from ${sourceA.id}</h3>`;
+            structure.methods.forEach(method => {
+                const methodDiv = document.createElement('div');
+                methodDiv.className = 'method';
+                let content = `<h4>method: ${method.type}</h4>`;
+                if(method.isNew) {
+                    content += `<div class="new-impl"><strong>(New in ${sourceB.id})</strong> ${method.original.content}</div>`;
+                } else if (method.inherited) {
+                    content += `<div>(Inherited from ${sourceA.id}) ${method.original.content}</div>`;
+                } else {
+                    methodDiv.classList.add('overridden');
+                    content += `<div class="original">(From ${sourceA.id}) ${method.original.content}</div>`;
+                    content += `<div class="new-impl"><strong>(Overridden in ${sourceB.id})</strong> ${method.overriddenBy.content}</div>`;
+                }
+                methodDiv.innerHTML = content;
+                classDiv.appendChild(methodDiv);
+            });
+            app.modalContent.appendChild(classDiv);
+        };
+
+        window.renderHypercard = ({ structure }) => {
+            const stack = document.createElement('div');
+            stack.className = 'hypercard-stack';
+            structure.cards.forEach((card, i) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = `hypercard-card source-${card.source}`;
+                if (i === 0) cardEl.classList.add('active');
+                cardEl.innerHTML = `<h3>Card ${i+1} of ${structure.cards.length}</h3><p>${card.content}</p><span class="source-id">From ${card.source === 'a' ? 'Source A' : 'Source B'}</span>`;
+                stack.appendChild(cardEl);
+            });
+            app.modalContent.appendChild(stack);
+
+            const nav = document.createElement('div');
+            nav.className = 'hypercard-nav';
+            nav.innerHTML = `<button id="prev-card">‹ Prev</button> <button id="next-card">Next ›</button>`;
+            app.modalContent.appendChild(nav);
+
+            let currentIndex = 0;
+            const updateCards = () => {
+                stack.querySelectorAll('.hypercard-card').forEach((card, i) => {
+                    card.classList.toggle('active', i === currentIndex);
+                });
+            };
+            document.getElementById('prev-card').onclick = () => { currentIndex = (currentIndex > 0) ? currentIndex - 1 : structure.cards.length - 1; updateCards(); };
+            document.getElementById('next-card').onclick = () => { currentIndex = (currentIndex < structure.cards.length - 1) ? currentIndex + 1 : 0; updateCards(); };
+        };
+
+        // --- Event Listeners ---
+        app.field.addEventListener('click', e => {
+            const col = e.target.closest('.genome-column');
+            if (col) {
+                const id = col.dataset.id;
+                if (selectedGenomeIds.includes(id)) {
+                    selectedGenomeIds = selectedGenomeIds.filter(gid => gid !== id);
+                } else {
+                    if (selectedGenomeIds.length >= 2) {
+                        selectedGenomeIds.shift(); // Keep only 2 selections
+                    }
+                    selectedGenomeIds.push(id);
+                }
+                renderField();
+            }
+        });
+
+        app.consoleInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                const command = e.target.value.toLowerCase();
+                const match = command.match(/fuse\s+([\w\d-]+)[\s\+:]?([\w\d-]+)\s+(?:using|with):(\w+)/);
+                if (match) {
+                    const [, id1, id2, philosophy] = match;
+                    const artifact = FusionEngine.createArtifact([id1, id2], philosophy);
+                    renderFusion(artifact);
+                } else if (command.startsWith('fuse') && selectedGenomeIds.length === 2) {
+                     const philosophyMatch = command.match(/(?:using|with):(\w+)/);
+                     if (philosophyMatch) {
+                        const artifact = FusionEngine.createArtifact(selectedGenomeIds, philosophyMatch[1]);
+                        renderFusion(artifact);
+                     } else {
+                        app.consoleInput.value = "> Error: Missing fusion philosophy (e.g., 'using:xanadu').";
+                     }
+                } else {
+                    app.consoleInput.value = "> Error: Invalid command or not enough genomes selected.";
+                }
+            }
+        });
+
+        app.modal.querySelector('.close-fusion').onclick = () => app.modal.classList.remove('visible');
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && app.modal.classList.contains('visible')) {
+                app.modal.classList.remove('visible');
+            }
+        });
+
+        // --- Initialization ---
+        function init() {
+            genomes = Array.from({ length: 20 }, (_, i) => generateGenome(`g-${String(i+1).padStart(3, '0')}`));
+            renderField();
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>

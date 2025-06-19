@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // GENOMIC INTERFACE // CORPUS BROWSER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: Genomic Interface (Helix Viewer Model)
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: A visual browser for a corpus of experimental media artifacts,
+        *   structured as a navigable, rotating double helix.
+        */
+
+        :root {
+            --gi-bg: #0d1018;
+            --gi-panel-bg: #1a1c20;
+            --gi-border: #3c4250;
+            --gi-text: #c0c8d8;
+            --gi-text-dim: #6c7888;
+            --gi-helix: #8be9fd;
+            --gi-highlight: #ffb86c;
+            --gi-selection: #50fa7b;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+
+        /* --- KEYFRAMES --- */
+        @keyframes scanline-anim {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+        @keyframes helix-rotate {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; margin: 0; overflow: hidden;
+            font-family: var(--font-main); color: var(--gi-text);
+            user-select: none;
+        }
+        #genome-interface {
+            width: 100vw; height: 100vh;
+            background-color: var(--gi-bg);
+            display: grid; grid-template-columns: 300px 1fr 450px;
+            gap: 15px; padding: 15px; box-sizing: border-box;
+            position: relative;
+        }
+        #genome-interface::before { /* CRT Scanline Overlay */
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
+            background-size: 100% 4px; pointer-events: none; z-index: 1000;
+            animation: scanline-anim 20s linear infinite;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--gi-panel-bg); padding: 15px;
+            border: 1px solid var(--gi-border);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 1px solid var(--gi-border);
+            padding-bottom: 5px; margin: 0 0 15px 0; color: var(--gi-text);
+        }
+
+        /* --- LEFT PANEL: PROTEIN SELECTOR --- */
+        #protein-selector { flex-grow: 1; overflow-y: auto; }
+        .protein-item {
+            padding: 10px; margin-bottom: 5px; border-left: 3px solid var(--gi-border);
+            cursor: pointer; transition: all 0.2s;
+        }
+        .protein-item:hover { background: #2c3138; border-left-color: var(--gi-highlight); }
+        .protein-item.active { background: var(--gi-helix); color: #000; border-left-color: #fff; }
+        .protein-name { font-size: 1.2rem; }
+        .protein-desc { font-size: 0.9rem; color: #888; }
+        .protein-item.active .protein-desc { color: #222; }
+
+        /* --- CENTER PANEL: HELIX VIEWER --- */
+        #helix-viewport { perspective: 1500px; padding: 0; border: none; background: transparent; }
+        #helix-container {
+            width: 100%; height: 100%;
+            transform-style: preserve-3d;
+            animation: helix-rotate 60s linear infinite;
+        }
+        #helix-svg {
+            width: 100%; height: 100%;
+            overflow: visible;
+        }
+        .helix-strand { stroke: var(--gi-helix); stroke-width: 2px; fill: none; opacity: 0.3; }
+        .amino-acid-rung { cursor: pointer; }
+        .amino-acid-rung .rung-line { stroke: var(--gi-text-dim); stroke-width: 1px; transition: all 0.2s; }
+        .amino-acid-rung .rung-label {
+            font-family: var(--font-main); font-size: 12px;
+            fill: var(--gi-text-dim); text-anchor: middle;
+            transition: all 0.2s;
+        }
+        .amino-acid-rung:hover .rung-line { stroke: var(--gi-highlight); stroke-width: 3px; }
+        .amino-acid-rung:hover .rung-label { fill: var(--gi-highlight); font-size: 14px; }
+        .amino-acid-rung.selected .rung-line { stroke: var(--gi-selection); stroke-width: 3px; }
+        .amino-acid-rung.selected .rung-label { fill: var(--gi-selection); font-size: 14px; font-weight: bold; }
+        
+        #tooltip {
+            position: fixed; background: var(--gi-panel-bg); padding: 10px;
+            border: 1px solid var(--gi-highlight); pointer-events: none;
+            display: none; transition: opacity 0.2s; opacity: 0;
+            z-index: 2000;
+            max-width: 300px;
+        }
+        #tooltip h3 { margin: 0 0 5px 0; color: var(--gi-highlight); }
+        #tooltip ul { margin: 0; padding: 0; list-style-type: none; }
+        .codon-tooltip-item {
+            padding: 2px 5px;
+            cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .codon-tooltip-item:hover {
+             background-color: var(--gi-selection);
+             color: #000;
+        }
+
+        /* --- RIGHT PANEL: DATA SPOOL --- */
+        #data-spool { flex-grow: 1; overflow-y: auto; background: #0d1018; padding: 15px; }
+        .spool-field { margin-bottom: 15px; }
+        .spool-label { color: var(--gi-text-dim); }
+        .spool-value { font-size: 1.2rem; color: var(--gi-highlight); word-wrap: break-word; }
+        .spool-placeholder { text-align: center; color: var(--gi-text-dim); padding-top: 50px; }
+    </style>
+</head>
+<body>
+    <div id="genome-interface">
+        <div class="panel" id="protein-panel">
+            <h2 class="module-label">CHROMOSOMES</h2>
+            <div id="protein-selector"></div>
+        </div>
+        <div class="panel" id="helix-viewport">
+            <div id="helix-container">
+                <svg id="helix-svg"></svg>
+            </div>
+            <div id="tooltip"></div>
+        </div>
+        <div class="panel" id="data-spool-panel">
+            <h2 class="module-label">CODON DATA</h2>
+            <div id="data-spool">
+                <div class="spool-placeholder">SELECT A CODON FROM AN AMINO ACID ON THE HELIX.</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const GenomicInterface = {
+    // --- Data: The complete, structured corpus ---
+    CORPUS_DATA: {
+        "GENOSOME": {
+            description: "Data as a navigable, biological space.",
+            aminoAcids: {
+                "GENOSCOPE": { codons: [ "gs1.html", "gs3.html", "gs4.html", "gm10.html", "gm-ooo.html", "fu8.html" ] },
+                "GENOMIRE_FIELD": { codons: [ "gm1.html", "g2.html", "gf1.html", "gf2.html", "gf3.html" ] },
+                "GENOMA": { codons: [ "gg1.html", "gg2.html", "gs-dev.html", "gs2.html", "gs2-base.html", "gs2-core.html", "gs2-plus.html" ] },
+            }
+        },
+        "METASOME": {
+            description: "Ritual, symbolic, and metaphysical logic.",
+            aminoAcids: {
+                "HARMONICS": { codons: [ "fu10.html", "fu11.html", "ecd1.html" ] },
+                "TRANSCRIPTION": { codons: [ "ecd2.html", "ecd13.html", "ecd3.html", "ecd8.html", "ecd9.html" ] },
+                "ANALYSIS": { codons: [ "ecd17.html", "ecd16.html", "ecd14.html", "ecd10.html", "ecd11.html", "ecd12.html" ] },
+                "ONTOLOGY": { codons: [ "ecd18.html", "ecd21.html", "ecd-u2.html", "ecd23.html", "ecd-u4.html", "ecd19.html", "ecd-u1.html" ] },
+                "RITUAL_AFFECT": { codons: [ "ecd20.html", "ecd22.html", "ecd-u3.html", "ecd5.html", "ecd15.html", "ecd4.html" ] }
+            }
+        },
+        "HOLOSOME": {
+            description: "Unified operating environments.",
+            aminoAcids: {
+                "SIGMADOS": { codons: [ "ecd6.html", "ecd7.html" ] },
+                "SIGMATIC_FORGE": { codons: [ "owe-1.html", "owe2.html", "owe3.html", "owe4.html", "owe5.html", "owe6.html", "owe7.html", "ecd-u5.html" ] }
+            }
+        },
+        "BIOSOME": {
+            description: "Evolutionary & ecological models.",
+            aminoAcids: {
+                "CODONSYNTH": { codons: [ "f1.html", "f2.html", "f5.html" ] },
+                "BIO_INTERFACES": { codons: [ "f3.html", "f4.html", "f6.html", "f7.html" ] }
+            }
+        },
+        "ARCHIVES": {
+            description: "Precursors & conceptual outliers.",
+            aminoAcids: {
+                "FUSION": { codons: ["ecd-fu-odd.html", "fu1.html", "fu2.html", "fu3.html", "fu4.html", "fu5.html", "fu6.html", "fu7.html", "fu9.html", "gf4.html", "gf5.html"] },
+                "MIRE": { codons: [ "m1.html", "m2.html", "m4.html" ] },
+                "GENERIC_CONCEPTS": { codons: ["g1.html", "g3.html", "g4.html", "g5.html", "g6.html", "g7.html", "g8.html", "g9.html", "g10.html", "g11.html", "g13.html"] },
+                "UNTITLED": { codons: [ "g12.html", "index.html" ] },
+            }
+        }
+    },
+    TITLE_LOOKUP: {"ecd-fu-odd.html":"BUREAU TECH FUSION INTERFACES","ecd-u1.html":"3. 🧭 PHORONOMIC ENGINE","ecd-u2.html":"5. 🪞 REFLECTION STACK","ecd-u3.html":"6. 🎙️ RITUAL OPERATING SURFACE","ecd-u4.html":"7. ⚙️ TRUTHWEAVER OS","ecd-u5.html":"🧭 Unified Creative-Cybernetic System","ecd1.html":"ECD // NOETIC KNOWLEDGE SYNTHESIZER // 78/C","ecd10.html":"ECD // siggrep // SEMANTIC ANALYSIS CONSOLE","ecd11.html":"ECD // litflow // NARRATIVE ANALYSIS SYSTEM","ecd12.html":"ECD // DREMUX // NARRATIVE RECOMPOSER","ecd13.html":"ECD // GLYPHTRAN // MODEL S-78","ecd14.html":"ECD // POLISIG // IDEOLOGICAL ANALYZER","ecd15.html":"ECD // EMOTOTYPE // AFFECTIVE SYNTHESIZER","ecd16.html":"ECD // SUBGLYPH DIFF // MODEL C-78","ecd17.html":"ECD // MYNDARCH // NARRATIVE INDEXER","ecd18.html":"ECD // AUREOLITHIC DESKTOP // ONTOLOGICAL TERRAIN","ecd19.html":"ECD // PHORONOMIC ENGINE // v.78c","ecd2.html":"ECD // ICONOTEXT CONVERTER // ITC-X78","ecd20.html":"ECD // ICONOSPHERIC FIELD // v.78d","ecd21.html":"ECD // REFLECTION STACK // v.78e","ecd22.html":"ECD // RITUAL OPERATING SURFACE // [INITIATION]","ecd23.html":"ECD // TRUTHWEAVER OS // v.78g","ecd3.html":"ECD // SCRIPT-CAD // C-78","ecd4.html":"ECD // CIRCUIT DRAMA-EDIT // CDE-1978a","ecd5.html":"ECD // EMOTOTYPE™ SYSTEM // V.4","ecd6.html":"SIGMADOS // KERNEL: LOGOSCORE","ecd7.html":"SIGMADOS // GRAPHICAL USER INTERFACE","ecd8.html":"ECD // semcode // RITUAL/LOGIC BUILDER","ecd9.html":"ECD // semcode // RITUAL/LOGIC BUILDER","f1.html":"CodonSynth - Evolutionary Music Ecology","f2.html":"CodonSynth: Evolutionary Music Ecology","f3.html":"CodonSynth - Ecological Modeler","f4.html":"CodonSynth - Biome Navigator","f5.html":"CodonSynth: Evolutionary Music Ecology","f6.html":"CodonSynth - Aural Bioreactor","f7.html":"CodonSynth - Musical Garden","fu1.html":"🧬 ECHO-GENESIS PROTOCOL","fu10.html":"ECD // NOETIC RESONANCE HARMONIZER // [CLASSIFIED]","fu11.html":"ECD // NOETIC SYNTHESIZER // 78/B [AUTHORIZED PERSONNEL ONLY]","fu2.html":"🕹️📡 FUSE: Trans-Temporal Information Interface","fu3.html":"🧬 KINETIC WEAVING","fu4.html":"FUSE // RADAR-GENOME INTERFACE [EXP-M-A-01]","fu5.html":"🕹️📡 FUSE: Trans-Temporal Information Interface (v2)","fu6.html":"FUSE // RADAR-GENOME INTERFACE [EXP-M-A-02]","fu7.html":"VISUAL ATLAS // RADAR FUSE INTERFACES","fu8.html":"GENOMIRE SCOPE v2.7","fu9.html":"SYSTEM BOOT // FUSE RADAR OS v.1.0","g1.html":"Universal Resonance Interface","g10.html":"Claymorphic Genome Phenotypes","g11.html":"FORMA OS: Post-File Operating System","g12.html":"Title tag not found or empty","g13.html":"🧬🖼️ PIXON: Genetic Ontology Engine","g2.html":"Synthetic Genomic Field","g3.html":"Universal Resonance Interface","g4.html":"Genome-Style Information Navigator","g5.html":"Genome-Style Information Navigator","g6.html":"Generative Heuristics for System Design","g7.html":"Silent Genome","g8.html":"🧬👁‍🗨 Silent Genome: Ambient Memory Interface","g9.html":"Codex Scroll","gf1.html":"GENOMIRE SCOPE — Genome Field","gf2.html":"GENOMIRE SCOPE // Fitts-Optimized Field","gf3.html":"GENOMIRE SCOPE // Memory Ecology","gf4.html":"GENOMIRE SCOPE // Synthesis","gf5.html":"GENOMIRE SCOPE // Fusion Models","gg1.html":"🧬 GENOMA: Functional Genomic Interface","gg2.html":"🧬 GENOMA v2: Functional Genomic Interface","gm-ooo.html":"GENOMIRE SCOPE v2.7 [SYSTEM CORE]","gm1.html":"🧬 GENOMIRE","gm10.html":"🧬 GENOMIRE SCOPE","gm2.html":"🧬🖥️🌊✨ GENOMIRE SCOPE","gm3.html":"🧬 GENOMIRE SCOPE","gm4.html":"🧬🖥️🌊✨ GENOMIRE SCOPE v2","gm5.html":"GENOMIRE SCOPE — Decodable Functional Interface","gm6.html":"🧬 GENOMIRE SCOPE","gm7.html":"GENOMIRE SCOPE","gm8.html":"🧬 GENOMIRE SCOPE","gm9.html":"GENOMIRE SCOPE :: Total Field","gs-dev.html":"GENOMA Suite (All-in-One)","gs1.html":"🧬 GENOSCOPE","gs2-base.html":"GENOMA Suite (All-in-One)","gs2-core.html":"GENOMA Suite (All-in-One)","gs2-plus.html":"GENOMA Suite (All-in-One)","gs2.html":"GENOMA Suite (All-in-One)","gs3.html":"GENOSCOPE: Tufteform Edition","gs4.html":"🧬 GENOSCOPE v1.1","index.html":"Project Genome Directory","m1.html":"MIRE: Multilayered Information Resonance Engine","m2.html":"MIRE: Multilayered Information Resonance Engine","m4.html":"MIRE: Prototyping Surface","owe-1.html":"ECD // ONTOLOGICAL WEAVING ENGINE // UNIFIED SYSTEM","owe2.html":"🧭 Unified Creative-Cybernetic System","owe3.html":"SIGMATIC FORGE [ECD-78-UI-MAP-001]","owe4.html":"ECD // SIGMATIC FORGE // RECURSIVE ONTOLOGICAL ENVIRONMENT","owe5.html":"SIGMATIC FORGE :: ECD-78","owe6.html":"SIGMATIC FORGE [ECD-78-RLE-001]","owe7.html":"ECD // SIGMATIC FORGE // ROE-78"},
+
+    // --- DOM Elements ---
+    elems: {
+        proteinSelector: document.getElementById('protein-selector'),
+        helixSvg: document.getElementById('helix-svg'),
+        tooltip: document.getElementById('tooltip'),
+        dataSpool: document.getElementById('data-spool'),
+    },
+    
+    // --- State ---
+    state: {
+        activeProtein: null,
+        selectedAminoKey: null,
+    },
+    
+    // --- Audio ---
+    audio: {
+        ctx: null, click: null, hover: null, load: null, hum: null, humGain: null,
+        init() {
+            if (this.ctx) return;
+            this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.click = this.createSound(880, 0.05, 0.1);
+            this.hover = this.createSound(1200, 0.02, 0.05);
+            this.load = this.createSound(220, 0.2, 0.15, true);
+            this.hum = this.ctx.createOscillator(); this.humGain = this.ctx.createGain();
+            this.hum.type = 'sine'; this.hum.frequency.value = 40; this.humGain.gain.value = 0.05;
+            this.hum.connect(this.humGain); this.humGain.connect(this.ctx.destination);
+            this.hum.start();
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sine'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq/2,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        document.body.addEventListener('click', () => this.audio.init(), { once: true });
+        this.renderProteinSelector();
+        this.selectProtein(Object.keys(this.CORPUS_DATA)[0]); // Select the first protein by default
+    },
+
+    // --- Core Logic ---
+    renderProteinSelector() {
+        this.elems.proteinSelector.innerHTML = Object.entries(this.CORPUS_DATA).map(([key, data]) => `
+            <div class="protein-item" data-key="${key}">
+                <div class="protein-name">${key}</div>
+                <div class="protein-desc">${data.description}</div>
+            </div>
+        `).join('');
+        this.elems.proteinSelector.querySelectorAll('.protein-item').forEach(el => {
+            el.onclick = () => this.selectProtein(el.dataset.key);
+        });
+    },
+
+    selectProtein(key) {
+        this.audio.click();
+        this.state.activeProtein = key;
+        this.state.selectedAminoKey = null;
+        this.elems.proteinSelector.querySelectorAll('.protein-item').forEach(el => {
+            el.classList.toggle('active', el.dataset.key === key);
+        });
+        this.clearDataSpool();
+        this.renderHelix(this.CORPUS_DATA[key]);
+    },
+    
+    selectCodon(codonId) {
+        this.audio.load();
+        const title = this.TITLE_LOOKUP[codonId] || `Title not found for ${codonId}`;
+        this.elems.dataSpool.innerHTML = `
+            <div class="spool-field">
+                <div class="spool-label">CODON (FILENAME)</div>
+                <div class="spool-value">${codonId}</div>
+            </div>
+            <div class="spool-field">
+                <div class="spool-label">CONTENT (TITLE)</div>
+                <a href="./${codonId}" target="_blank" style="text-decoration: none;">
+                     <div class="spool-value" style="text-decoration: underline;">${title}</div>
+                </a>
+            </div>
+        `;
+    },
+    
+    // --- Rendering ---
+    renderHelix(proteinData) {
+        const aminoAcids = Object.entries(proteinData.aminoAcids);
+        const numRungs = aminoAcids.length;
+        this.elems.helixSvg.innerHTML = ''; // Clear previous
+
+        const width = this.elems.helixSvg.parentElement.offsetWidth;
+        const height = this.elems.helixSvg.parentElement.offsetHeight;
+        const amplitude = width * 0.2;
+        const yStep = height / (numRungs + 1);
+
+        let path1 = "M", path2 = "M";
+        let rungsHTML = "";
+
+        for (let i = 0; i < numRungs; i++) {
+            const y = yStep * (i + 1);
+            const angle = (y / height) * 5 * Math.PI; // More twists
+            const x1 = width/2 + Math.sin(angle) * amplitude;
+            const x2 = width/2 + Math.sin(angle + Math.PI) * amplitude;
+            
+            if (i === 0) { path1 += `${x1},${y}`; path2 += `${x2},${y}`; } 
+            else { path1 += ` L${x1},${y}`; path2 += ` L${x2},${y}`; }
+            
+            const [aminoKey, _] = aminoAcids[i];
+            rungsHTML += `
+                <g class="amino-acid-rung" data-amino-key="${aminoKey}">
+                    <line class="rung-line" x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" />
+                    <text class="rung-label" x="${width/2}" y="${y+4}">${aminoKey.replace('_', ' & ')}</text>
+                </g>
+            `;
+        }
+
+        this.elems.helixSvg.innerHTML = `
+            <path id="helix-strand-1" class="helix-strand" d="${path1}" />
+            <path id="helix-strand-2" class="helix-strand" d="${path2}" />
+            ${rungsHTML}
+        `;
+
+        this.addRungListeners(aminoAcids);
+    },
+
+    addRungListeners(aminoAcids) {
+        this.elems.helixSvg.querySelectorAll('.amino-acid-rung').forEach(rung => {
+            const aminoKey = rung.dataset.aminoKey;
+            const codons = aminoAcids.find(([key, _]) => key === aminoKey)[1].codons;
+            
+            rung.addEventListener('mouseenter', e => {
+                this.audio.hover();
+                this.showTooltip(e, aminoKey, codons);
+            });
+            rung.addEventListener('mouseleave', () => this.hideTooltip());
+        });
+    },
+    
+    showTooltip(event, aminoKey, codons) {
+        const tooltip = this.elems.tooltip;
+        tooltip.style.display = 'block';
+        tooltip.style.left = `${event.clientX + 15}px`;
+        tooltip.style.top = `${event.clientY + 15}px`;
+        tooltip.innerHTML = `<h3>${aminoKey.replace('_', ' & ')}</h3>
+            <ul>
+                ${codons.map(c => `<li class="codon-tooltip-item" data-codon-id="${c}">${c.replace('.html', '')}</li>`).join('')}
+            </ul>`;
+        
+        setTimeout(() => tooltip.style.opacity = 1, 10);
+
+        tooltip.querySelectorAll('.codon-tooltip-item').forEach(item => {
+            item.onclick = (e) => {
+                e.stopPropagation();
+                this.selectCodon(item.dataset.codonId);
+                this.hideTooltip();
+                document.querySelectorAll('.amino-acid-rung').forEach(r => r.classList.remove('selected'));
+                document.querySelector(`.amino-acid-rung[data-amino-key="${aminoKey}"]`).classList.add('selected');
+            };
+        });
+    },
+
+    hideTooltip() {
+        const tooltip = this.elems.tooltip;
+        tooltip.style.opacity = 0;
+        setTimeout(() => tooltip.style.display = 'none', 200);
+    },
+
+    clearDataSpool() {
+        this.elems.dataSpool.innerHTML = `<div class="spool-placeholder">SELECT A CODON FROM AN AMINO ACID ON THE HELIX.</div>`;
+    },
+};
+
+GenomicInterface.init();
+</script>
+</body>
+</html>

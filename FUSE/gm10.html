@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 GENOMIRE SCOPE</title>
+    <style>
+        :root {
+            --green: #4cff4c;
+            --green-dim: #2a7d2a;
+            --green-dark: #1a4d1a;
+            --bg: #020402;
+            --font-mono: 'Menlo', 'Monaco', 'Courier New', monospace;
+            /* Codon Palette */
+            --c-txt: #33a0ff; --c-img: #ffcc00; --c-auc: #ff4d4d;
+            --c-lnk: #be33ff; --c-frg: #7f7f7f; --c-cmd: #ff8c33;
+        }
+        /* --- Global --- */
+        * { box-sizing: border-box; }
+        html, body {
+            background-color: var(--bg); color: var(--green);
+            font-family: var(--font-mono); font-size: 16px; line-height: 1.6;
+            margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden;
+        }
+        canvas { display: block; }
+        .hidden { display: none !important; }
+        /* --- Screen Containers --- */
+        .screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; transition: opacity 0.5s ease;
+            display: flex; flex-direction: column; background-color: var(--bg);
+        }
+        .screen.active { opacity: 1; z-index: 10; }
+        /* --- Screen 1: Boot --- */
+        #boot-screen { justify-content: center; align-items: center; text-align: center; }
+        #boot-title { font-size: 2em; letter-spacing: 0.2em; }
+        #boot-subtitle { color: var(--green-dim); margin-top: 0.5em; }
+        #boot-loader { margin-top: 2em; height: 1.5em; font-size: 1.2em; }
+        #boot-prompt { margin-top: 3em; color: var(--green-dim); animation: blink 1.5s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        /* --- Screen 2: Genome Field View --- */
+        #genome-field-view { flex-direction: row; }
+        #left-panel { width: 30%; max-width: 400px; height: 100%; background: linear-gradient(to right, rgba(0,10,0,0.3), transparent); }
+        #right-panel { flex-grow: 1; height: 100%; position: relative; }
+        #field-resonance-canvas { width: 100%; height: 100%; }
+        #console-container {
+            position: absolute; bottom: 0; left: 0; width: 100%; padding: 10px 20px;
+            background: linear-gradient(to top, rgba(2, 4, 2, 0.9), transparent);
+        }
+        #input-line { display: flex; }
+        #prompt { white-space: nowrap; }
+        #input {
+            width: 100%; background: transparent; border: none; outline: none;
+            color: var(--green); font: inherit; padding-left: 0.5em;
+        }
+        /* --- Screen 3: Expression Overlay --- */
+        .overlay {
+            position: fixed; z-index: 20; background: rgba(2, 4, 2, 0.95);
+            padding: 40px; display: flex; justify-content: center; align-items: center;
+        }
+        .overlay-content {
+            width: 80%; max-width: 1200px; height: 80%; border: 1px solid var(--green-dim);
+            padding: 2em; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--green-dim) var(--bg);
+        }
+        .overlay-prompt {
+            position: absolute; bottom: 20px; left: 50%;
+            transform: translateX(-50%); color: var(--green-dim);
+        }
+        #expression-content .codon-block, #expression-content .phenotype-block {
+            border-left: 2px solid var(--green-dim);
+            padding-left: 1.5em; margin-bottom: 2em;
+        }
+        #expression-content .codon-glyph { color: var(--green-dim); margin-right: 1em; }
+        #expression-content .output-image { max-width: 150px; filter: grayscale(1); border: 1px solid var(--green-dark); }
+        .philosophy-title { color: var(--green-dim); border-bottom: 1px solid var(--green-dark); margin-bottom: 1em; padding-bottom: 0.5em;}
+        .xanadu-transclusion { border: 1px dotted var(--green-dim); padding: 1em; margin-top: 1em; }
+        .hypercard-nav { cursor: pointer; color: var(--green); text-decoration: underline; }
+        .memex-trail-item { margin-bottom: 0.5em; }
+    </style>
+</head>
+<body>
+
+    <div id="boot-screen" class="screen active">
+        <div>
+            <div id="boot-title">GENOMIRE SCOPE</div>
+            <div id="boot-subtitle">Codified Multilayer Media Expression Engine</div>
+            <div id="boot-loader"></div>
+            <div id="boot-prompt">PRESS ANY KEY</div>
+        </div>
+    </div>
+
+    <div id="genome-field-view" class="screen">
+        <div id="left-panel"><canvas id="electrophoresis-canvas"></canvas></div>
+        <div id="right-panel"><canvas id="field-resonance-canvas"></canvas></div>
+        <div id="console-container">
+            <div id="input-line">
+                <span id="prompt">> </span><input type="text" id="input" autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+
+    <div id="expression-overlay" class="screen overlay hidden">
+        <div id="expression-content" class="overlay-content"></div>
+        <div class="overlay-prompt">> collapse</div>
+    </div>
+
+
+    <script>
+    const GENOMIRE = {
+        state: {
+            mode: 'BOOT',
+            activeUnit: null,
+            booted: false,
+        },
+        genome: [],
+        dom: {},
+        colors: {},
+        codons: {
+            "TXT": { glyph: "▚" }, "IMG": { glyph: "▞" }, "AUC": { glyph: "♪" },
+            "LNK": { glyph: "ζ" }, "FRG": { glyph: "Σ" }, "CMD": { glyph: "⌘" }
+        },
+
+        init() {
+            this.dom.bootScreen = document.getElementById('boot-screen');
+            this.dom.bootLoader = document.getElementById('boot-loader');
+            this.dom.fieldView = document.getElementById('genome-field-view');
+            this.dom.electroCanvas = document.getElementById('electrophoresis-canvas');
+            this.dom.resonanceCanvas = document.getElementById('field-resonance-canvas');
+            this.dom.input = document.getElementById('input');
+            this.dom.expressionOverlay = document.getElementById('expression-overlay');
+            this.dom.expressionContent = document.getElementById('expression-content');
+            
+            this.dom.electroCtx = this.dom.electroCanvas.getContext('2d');
+            this.dom.resonanceCtx = this.dom.resonanceCanvas.getContext('2d');
+            
+            this.cacheColors();
+            this.generateInitialGenome();
+            this.addEventListeners();
+            
+            this.switchMode('BOOT');
+            this.animate();
+        },
+
+        cacheColors() {
+            const style = getComputedStyle(document.body);
+            this.colors.green = style.getPropertyValue('--green').trim();
+            this.colors.greenDim = style.getPropertyValue('--green-dim').trim();
+            this.colors.fontMono = style.getPropertyValue('--font-mono').trim();
+            for (const key in this.codons) {
+                this.codons[key].colorValue = style.getPropertyValue(`--c-${key.toLowerCase()}`).trim();
+            }
+        },
+
+        generateInitialGenome() {
+            this.genome = [
+                {
+                    id: "g-021", codons: ["TXT","IMG","AUC"], exons: [0,1],
+                    traits: { mutability:0.05, accessCount:23, origin:"user-drive", lastAccess: Date.now() - 100000 },
+                    data: {
+                        TXT: "The sky above the port was the color of television, tuned to a dead channel.",
+                        IMG: "https://picsum.photos/seed/g-021/200/200",
+                        AUC: "Static hum with intermittent carrier signal pulses.",
+                    }
+                },
+                {
+                    id: "g-034", codons: ["LNK", "CMD"], exons: [0,1],
+                    traits: { mutability:0.1, accessCount:5, origin:"system-kernel", lastAccess: Date.now() - 200000 },
+                    data: {
+                        LNK: "g-021",
+                        CMD: "verify_integrity('g-021')",
+                    }
+                },
+                {
+                    id: "g-057", codons: ["FRG", "TXT"], exons: [1],
+                    traits: { mutability:0.01, accessCount:2, origin:"archive-frag.β", lastAccess: Date.now() - 800000 },
+                    data: {
+                        TXT: "A forgotten echo from a deeper layer of the archive."
+                    }
+                }
+            ];
+            this.genome.forEach(u => {
+                u.resonance = {x: Math.random(), y: Math.random()};
+                u.history = [{ type: 'create', origin: u.traits.origin, timestamp: Date.now() - 1000000 }];
+            });
+        },
+
+        addEventListeners() {
+            window.addEventListener('keydown', (e) => {
+                if (this.state.mode === 'BOOT' && !this.state.booted) {
+                    this.state.booted = true;
+                    setTimeout(() => this.switchMode('FIELD'), 100);
+                } else if (e.key === 'Enter') {
+                    this.processCommand(this.dom.input.value);
+                    this.dom.input.value = '';
+                }
+            });
+            window.addEventListener('resize', () => this.resizeCanvases());
+        },
+        
+        resizeCanvases() {
+            const setSize = (canvas) => {
+                if (!canvas || !canvas.parentElement) return;
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            };
+            setSize(this.dom.electroCanvas);
+            setSize(this.dom.resonanceCanvas);
+        },
+
+        switchMode(newMode, data = {}) {
+            this.state.mode = newMode;
+            this.state.activeUnit = data.unit || null;
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+
+            switch(newMode) {
+                case 'BOOT':
+                    this.dom.bootScreen.classList.remove('hidden');
+                    if (!this.state.booted) {
+                        setTimeout(() => { if (!this.state.booted) this.switchMode('FIELD'); }, 4000);
+                    }
+                    break;
+                case 'FIELD':
+                    this.dom.fieldView.classList.remove('hidden');
+                    this.dom.input.focus();
+                    this.resizeCanvases();
+                    break;
+                case 'EXPRESSION':
+                    this.dom.fieldView.classList.remove('hidden');
+                    this.dom.expressionOverlay.classList.remove('hidden');
+                    this.renderPhenotype(this.state.activeUnit);
+                    break;
+            }
+        },
+
+        processCommand(cmdStr) {
+            if (!cmdStr) return;
+            const [cmd, ...args] = cmdStr.toLowerCase().split(/\s+/);
+
+            if (this.state.mode === 'EXPRESSION') {
+                if (cmd === 'collapse') this.switchMode('FIELD'); return;
+            }
+
+            switch(cmd) {
+                case 'express': this.commandExpress(args[0]); break;
+                case 'fuse': this.commandFuse(args); break;
+                case 'help': this.commandHelp(); break;
+                default: console.warn(`Unknown command: ${cmd}`);
+            }
+        },
+        
+        findUnit(id) { return this.genome.find(u => u.id === id); },
+
+        commandExpress(id) {
+            const unit = this.findUnit(id);
+            if (unit) {
+                unit.traits.accessCount++;
+                unit.traits.lastAccess = Date.now();
+                this.switchMode('EXPRESSION', { unit });
+            }
+        },
+
+        commandHelp() {
+            alert(`Commands:\n- express [id]\n- fuse [id1]+[id2] using:[philosophy]\n\nPhilosophies: default, smalltalk, xanadu, hypercard, memex, engelbart`);
+        },
+        
+        commandFuse(args) {
+            const usingIndex = args.findIndex(a => a.startsWith('using:'));
+            let philosophy = 'default';
+            let idsArg = args[0];
+
+            if (usingIndex > -1) {
+                philosophy = args[usingIndex].split(':')[1];
+                idsArg = args.slice(0, usingIndex).join('');
+            }
+            
+            if (!idsArg || !idsArg.includes('+')) return;
+            const [id1, id2] = idsArg.split('+');
+            const u1 = this.findUnit(id1);
+            const u2 = this.findUnit(id2);
+            if (!u1 || !u2) return;
+
+            let newUnit;
+            switch(philosophy) {
+                case 'smalltalk': newUnit = this.fuseWithSmalltalk(u1, u2); break;
+                case 'xanadu': newUnit = this.fuseWithXanadu(u1, u2); break;
+                case 'hypercard': newUnit = this.fuseWithHyperCard(u1, u2); break;
+                case 'memex': newUnit = this.fuseWithMemex(u1, u2); break;
+                case 'engelbart': newUnit = this.fuseWithEngelbart(u1, u2); break;
+                default: newUnit = this.fuseWithDefault(u1, u2);
+            }
+            this.genome.push(newUnit);
+            console.log(`Fusion complete. New unit ${newUnit.id} created.`);
+        },
+
+        // --- FUSION PHILOSOPHIES ---
+        createBaseFusedUnit(u1, u2, philosophy) {
+            return {
+                id: `g-${String(this.genome.length + 100).padStart(3, '0')}`,
+                fusionType: philosophy,
+                traits: {
+                    mutability: (u1.traits.mutability + u2.traits.mutability) / 2,
+                    accessCount: 1, origin: `fusion(${u1.id},${u2.id})`, lastAccess: Date.now()
+                },
+                history: [{ type: 'fuse', philosophy, from: [u1.id, u2.id], timestamp: Date.now() }],
+                resonance: { x: (u1.resonance.x + u2.resonance.x)/2, y: (u1.resonance.y + u2.resonance.y)/2 }
+            };
+        },
+
+        fuseWithDefault(u1, u2) {
+            const newUnit = this.createBaseFusedUnit(u1, u2, 'default');
+            newUnit.codons = u1.codons.concat(u2.codons);
+            newUnit.exons = u1.exons.concat(u2.exons.map(e => e + u1.codons.length));
+            newUnit.data = { ...u1.data, ...u2.data };
+            return newUnit;
+        },
+
+        fuseWithSmalltalk(u1, u2) {
+            const newUnit = this.createBaseFusedUnit(u1, u2, 'smalltalk');
+            newUnit.codons = ['CMD']; // Represents an instance object
+            newUnit.exons = [0];
+            newUnit.data = {
+                superclass: u1.id, // u1 is the "class"
+                instanceData: u2.data // u2 provides the instance's own data
+            };
+            return newUnit;
+        },
+
+        fuseWithXanadu(u1, u2) {
+            const newUnit = this.createBaseFusedUnit(u1, u2, 'xanadu');
+            newUnit.codons = ['TXT', 'FRG'];
+            newUnit.exons = [0, 1];
+            newUnit.data = {
+                // u1 provides the base text
+                baseText: u1.data.TXT || "Base document.",
+                // u2's codons are transcluded as overlays
+                transclusions: u2.codons.map((codon, index) => ({
+                    sourceUnit: u2.id,
+                    sourceCodonIndex: index
+                }))
+            };
+            return newUnit;
+        },
+
+        fuseWithHyperCard(u1, u2) {
+            const newUnit = this.createBaseFusedUnit(u1, u2, 'hypercard');
+            newUnit.codons = ['CMD']; // Represents the stack itself
+            newUnit.exons = [0];
+            newUnit.data = {
+                currentCard: 0,
+                cards: u1.codons.map((codon, index) => ({ unitId: u1.id, codonIndex: index }))
+                     .concat(u2.codons.map((codon, index) => ({ unitId: u2.id, codonIndex: index })))
+            };
+            return newUnit;
+        },
+
+        fuseWithMemex(u1, u2) {
+            const newUnit = this.createBaseFusedUnit(u1, u2, 'memex');
+            newUnit.codons = ['LNK']; // Represents the trail
+            newUnit.exons = [0];
+            newUnit.data = {
+                trail: [ // Build an associative trail
+                    { unitId: u1.id, codonIndex: 0 },
+                    { unitId: u2.id, codonIndex: 0 },
+                    { unitId: u1.id, codonIndex: u1.codons.length - 1 },
+                    { unitId: u2.id, codonIndex: u2.codons.length - 1 }
+                ].filter(item => this.findUnit(item.unitId).codons[item.codonIndex]) // Ensure links are valid
+            };
+            return newUnit;
+        },
+
+        fuseWithEngelbart(u1, u2) {
+            const newUnit = this.createBaseFusedUnit(u1, u2, 'engelbart');
+            newUnit.codons = ['CMD']; // A master command list
+            newUnit.exons = [0];
+            newUnit.data = {
+                // Create a procedural hierarchy of commands
+                viewspec: "1a1", // Default viewspec: show first statement of first unit
+                statements: [
+                    { id: '1', parent: null, content: `Operate on ${u1.id}` },
+                    { id: '1a', parent: '1', content: `Execute CMD codons from ${u1.id}` },
+                    { id: '2', parent: null, content: `Reference ${u2.id}` },
+                    { id: '2a', parent: '2', content: `Display TXT from ${u2.id} as reference` }
+                ]
+            };
+            return newUnit;
+        },
+
+
+        // --- PHENOTYPE RENDERING ---
+        renderPhenotype(unit) {
+            let html = `<h2 class="philosophy-title">Expression :: ${unit.id} :: ${unit.fusionType || 'Standard'}</h2>`;
+            switch(unit.fusionType) {
+                case 'smalltalk': html += this.renderSmalltalk(unit); break;
+                case 'xanadu': html += this.renderXanadu(unit); break;
+                case 'hypercard': html += this.renderHyperCard(unit); break;
+                case 'memex': html += this.renderMemex(unit); break;
+                case 'engelbart': html += this.renderEngelbart(unit); break;
+                default: html += this.renderDefault(unit);
+            }
+            this.dom.expressionContent.innerHTML = html;
+        },
+
+        renderDefault(unit) {
+            let html = '';
+            unit.exons.forEach(i => {
+                html += this.renderCodon(unit.id, i);
+            });
+            return html;
+        },
+
+        renderSmalltalk(unit) {
+            const superclass = this.findUnit(unit.data.superclass);
+            let html = `<div class="phenotype-block"><h3>Inherits from [${superclass.id}]</h3>`;
+            superclass.exons.forEach(i => {
+                // Check if instance data overrides superclass data for this codon type
+                const codonType = superclass.codons[i];
+                if (unit.data.instanceData[codonType]) {
+                    html += `<p><em>  [Overridden by instance]</em></p>`;
+                } else {
+                    html += this.renderCodon(superclass.id, i);
+                }
+            });
+            html += `</div><div class="phenotype-block"><h3>Instance Data</h3>`;
+            // Render the instance's own data
+            for(const key in unit.data.instanceData) {
+                 html += this.renderCodonWithData(key, unit.data.instanceData[key]);
+            }
+            html += `</div>`;
+            return html;
+        },
+
+        renderXanadu(unit) {
+            let html = `<div class="phenotype-block"><h3>Base Document</h3><p>${unit.data.baseText}</p></div>`;
+            html += `<div class="phenotype-block"><h3>Transclusions (Live Overlays)</h3>`;
+            unit.data.transclusions.forEach(t => {
+                html += `<div class="xanadu-transclusion">`;
+                html += `<p><em>Source: ${t.sourceUnit} | Codon: ${t.sourceCodonIndex}</em></p>`;
+                html += this.renderCodon(t.sourceUnit, t.sourceCodonIndex);
+                html += `</div>`;
+            });
+            html += `</div>`;
+            return html;
+        },
+        
+        navigateHyperCard(unitId, direction) {
+            const unit = this.findUnit(unitId);
+            if (!unit) return;
+            const cardCount = unit.data.cards.length;
+            if(direction === 'next') {
+                unit.data.currentCard = (unit.data.currentCard + 1) % cardCount;
+            } else {
+                unit.data.currentCard = (unit.data.currentCard - 1 + cardCount) % cardCount;
+            }
+            // Re-render the same overlay
+            this.renderPhenotype(unit);
+        },
+
+        renderHyperCard(unit) {
+            const card = unit.data.cards[unit.data.currentCard];
+            let html = `<div class="phenotype-block"><h3>HyperCard Stack: Card ${unit.data.currentCard + 1} of ${unit.data.cards.length}</h3>`;
+            html += this.renderCodon(card.unitId, card.codonIndex);
+            html += `<p>
+                <span class="hypercard-nav" onclick="GENOMIRE.navigateHyperCard('${unit.id}', 'prev')">[< PREV]</span>
+                <span class="hypercard-nav" onclick="GENOMIRE.navigateHyperCard('${unit.id}', 'next')">[NEXT >]</span>
+            </p></div>`;
+            return html;
+        },
+
+        renderMemex(unit) {
+            let html = `<div class="phenotype-block"><h3>Associative Trail</h3>`;
+            unit.data.trail.forEach((link, i) => {
+                html += `<div class="memex-trail-item">${i+1}: Link to [${link.unitId}] Codon [${link.codonIndex}]</div>`;
+                html += this.renderCodon(link.unitId, link.codonIndex);
+            });
+            html += `</div>`;
+            return html;
+        },
+        
+        renderEngelbart(unit) {
+             let html = `<div class="phenotype-block"><h3>NLS View</h3>`;
+             unit.data.statements.forEach(stmt => {
+                 const indent = stmt.parent ? '    ' : '';
+                 html += `<div>${indent}${stmt.id}. ${stmt.content}</div>`;
+             });
+             html += `</div>`;
+             return html;
+        },
+
+        renderCodon(unitId, codonIndex) {
+            const unit = this.findUnit(unitId);
+            if (!unit) return '';
+            const codonType = unit.codons[codonIndex];
+            const data = unit.data[codonType];
+            return this.renderCodonWithData(codonType, data);
+        },
+
+        renderCodonWithData(codonType, data) {
+            if(!codonType || !data) return '';
+            let content = '';
+            const glyph = this.codons[codonType].glyph;
+            switch(codonType) {
+                case 'TXT': content = `<span>${data}</span>`; break;
+                case 'IMG': content = `<img src="${data}" class="output-image">`; break;
+                case 'AUC': content = `<span>${data}</span>`; break;
+                case 'LNK': content = `<span>Link -> ${data}</span>`; break;
+                case 'CMD': content = `<code>${data}</code>`; break;
+                default: content = `<span>[Fragment Data]</span>`;
+            }
+            return `<div class="codon-block"><span class="codon-glyph">[${glyph} ${codonType}]</span>${content}</div>`;
+        },
+
+        renderBoot() {
+            const glyphs = ['░', '▒', '▓', '█', '⌘', 'Σ', 'ζ', '▞', '▚'];
+            this.dom.bootLoader.textContent = Array.from({length: 15}, () => glyphs[Math.floor(Math.random() * glyphs.length)]).join('');
+        },
+
+        renderFieldView() {
+            const ctx = this.dom.electroCtx, { width, height } = this.dom.electroCanvas;
+            ctx.clearRect(0, 0, width, height);
+            const colWidth = 30, gap = 15;
+            this.genome.forEach((unit, i) => {
+                const x = i * (colWidth + gap) + gap;
+                const recency = Math.exp(-(Date.now() - unit.traits.lastAccess) / (1000 * 60 * 5));
+                ctx.globalAlpha = 0.4 + 0.6 * recency;
+                unit.codons.forEach((codon, j) => {
+                    ctx.fillStyle = this.codons[codon].colorValue;
+                    ctx.fillRect(x, j * 8 + 20, colWidth, 5);
+                });
+                ctx.fillStyle = `rgba(76, 255, 76, ${0.4 + 0.6 * recency})`;
+                ctx.font = `14px ${this.colors.fontMono}`;
+                ctx.fillText(unit.id, x, 15);
+            });
+            ctx.globalAlpha = 1;
+
+            const rCtx = this.dom.resonanceCtx;
+            const rW = this.dom.resonanceCanvas.width, rH = this.dom.resonanceCanvas.height;
+            rCtx.clearRect(0,0,rW,rH);
+            this.genome.forEach(unit => {
+                const recency = Math.exp(-(Date.now() - unit.traits.lastAccess) / (1000 * 60 * 5));
+                rCtx.beginPath();
+                rCtx.arc(unit.resonance.x * rW, unit.resonance.y * rH, 5 + unit.traits.accessCount * 0.5, 0, 2*Math.PI);
+                rCtx.fillStyle = `rgba(76, 255, 76, ${0.1 + 0.4 * recency})`;
+                rCtx.fill();
+            });
+        },
+
+        animate() {
+            if(this.state.mode === 'BOOT') this.renderBoot();
+            else if(this.state.mode === 'FIELD') this.renderFieldView();
+            requestAnimationFrame(() => this.animate());
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => GENOMIRE.init());
+    </script>
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codex Scroll</title>
+    <style>
+        /* --- 🧬 RESET & CORE STYLES 📜 --- */
+        :root {
+            --bg-color: #2a2a2e;
+            --text-color: #e8e8e8;
+            --text-muted: #b0b0b0;
+            --modal-bg: #333337;
+            --modal-border: #4a4a4f;
+            --base-codon-height: 10px; /* Slightly thicker for a better feel */
+            --codon-width: 80%;
+            --codon-max-width: 450px;
+
+            /* Color-coding palette */
+            --color-text-start: #d4c9b5; --color-text-end: #e0d6c2;
+            --color-image-start: #5c85a1; --color-image-end: #7aa0b8;
+            --color-link-start: #b0936a; --color-link-end: #c8a980;
+            --color-quote-start: #888888; --color-quote-end: #a0a0a0;
+            --color-reference-start: #788a7c; --color-reference-end: #90a294;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; scroll-behavior: smooth; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            /* Subtle texture for a more organic feel */
+            background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23343438" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+
+        /* --- 🧬 THE GENOME STRAND 📜 --- */
+        #codex-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            padding: 5vh 0;
+            /* Give the container some extra vertical space for the effect */
+            margin: 50px 0;
+        }
+
+        #genome-strand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .codon {
+            position: relative; /* For containing the preview content */
+            width: var(--codon-width);
+            max-width: var(--codon-max-width);
+            min-height: var(--base-codon-height);
+            border-radius: 8px; /* Softer radius */
+            cursor: pointer;
+            overflow: hidden; /* Crucial for the expand effect */
+            will-change: min-height; /* Performance hint */
+
+            /* Claymorphic shadows for a soft, pressed look */
+            box-shadow: 
+                inset 4px 4px 8px rgba(0,0,0,0.3), 
+                inset -4px -4px 8px rgba(255,255,255,0.05);
+
+            /* JS handles height, so only transition shadow */
+            transition: box-shadow 0.3s ease;
+        }
+
+        .codon.expanded {
+            min-height: 150px; /* Expanded height */
+            box-shadow: 
+                inset 2px 2px 4px rgba(0,0,0,0.4), /* Deeper press */
+                inset -2px -2px 4px rgba(255,255,255,0.03);
+        }
+
+        /* Color-coding classes */
+        .type-text { background-image: linear-gradient(to right, var(--color-text-start), var(--color-text-end)); }
+        .type-image { background-image: linear-gradient(to right, var(--color-image-start), var(--color-image-end)); }
+        .type-link { background-image: linear-gradient(to right, var(--color-link-start), var(--color-link-end)); }
+        .type-quote { background-image: linear-gradient(to right, var(--color-quote-start), var(--color-quote-end)); }
+        .type-reference { background-image: linear-gradient(to right, var(--color-reference-start), var(--color-reference-end)); }
+        #scroll-sentinel { height: 50px; width: 100%; }
+
+        /* --- 🧬 INLINE PREVIEW CONTENT --- */
+        .codon-content {
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease 0.2s; /* Fade in after expand */
+            display: none; /* Hide until expanded */
+        }
+        .codon.expanded .codon-content {
+            opacity: 1;
+            display: block;
+        }
+        .codon-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        .codon-text {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+        .codon-text img {
+            max-width: 100%;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .codon-more-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 6px 14px;
+            background-color: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 5px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .codon-more-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        /* --- 🗺️ MINIMAP (Styles unchanged) --- */
+        #minimap-container { position: fixed; right: 0; top: 0; height: 100%; width: 25px; padding: 10px 5px; display: flex; justify-content: center; z-index: 1001; }
+        #minimap-canvas { width: 10px; height: 100%; cursor: pointer; }
+        #minimap-viewport { position: absolute; right: 5px; width: 10px; background-color: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); border-radius: 2px; pointer-events: none; }
+
+        /* --- 🧬 TOOLTIP & MODAL (Unchanged) 📜 --- */
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; padding: 20px; opacity: 0; visibility: hidden; transition: opacity 0.3s ease, visibility 0.3s ease; z-index: 998; }
+        #modal-overlay.visible { opacity: 1; visibility: visible; }
+        #modal-content { background-color: var(--modal-bg); padding: 2.5rem; border-radius: 8px; border: 1px solid var(--modal-border); width: 100%; max-width: 650px; max-height: 90vh; overflow-y: auto; position: relative; transform: scale(0.95); transition: transform 0.3s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #modal-overlay.visible #modal-content { transform: scale(1); }
+        .modal-close { position: absolute; top: 1rem; right: 1.25rem; font-size: 1.8rem; line-height: 1; color: var(--text-muted); cursor: pointer; transition: color 0.2s ease; }
+        .modal-close:hover { color: var(--text-color); }
+        #modal-body h2 { margin-bottom: 1rem; font-weight: 500; color: var(--text-color); }
+        #modal-body p { margin-bottom: 1rem; }
+        #modal-body img { max-width: 100%; height: auto; border-radius: 4px; margin-top: 0.5rem; }
+        #modal-body a { color: var(--color-link-end); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s ease; }
+        #modal-body a:hover { border-color: var(--color-link-end); }
+        #modal-body blockquote { border-left: 3px solid var(--color-quote-start); padding-left: 1.5rem; margin: 1.5rem 0; font-style: italic; color: var(--text-muted); }
+        #modal-body cite { display: block; text-align: right; margin-top: 0.5rem; font-style: normal; font-size: 0.9rem; }
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--bg-color); } ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body>
+
+    <div id="codex-container">
+        <main id="genome-strand"></main>
+    </div>
+
+    <div id="scroll-sentinel"></div>
+
+
+
+    <div id="minimap-container">
+        <canvas id="minimap-canvas"></canvas>
+        <div id="minimap-viewport"></div>
+    </div>
+
+    <div id="modal-overlay">
+        <div id="modal-content">
+            <span class="modal-close">×</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- 🧬 DATA SOURCE (Unchanged) 📜 ---
+            const codexData = [
+                { type: 'text', title: 'Project Inception', content: 'The core idea is to represent information not as pages, but as a continuous, living stream of thought—a manuscript of the mind.' },
+                { type: 'quote', title: 'Fitts\'s Law', content: 'The time to acquire a target is a function of the distance to and size of the target.', source: 'Paul Fitts' },
+                { type: 'image', title: 'Inspiration: Illuminated Manuscript', content: 'https://images.unsplash.com/photo-1618514368823-dd67b667a4d5?q=80&w=800' },
+                { type: 'link', title: 'Inspiration: DNA Gel Electrophoresis', content: 'https://en.wikipedia.org/wiki/Gel_electrophoresis' },
+                { type: 'text', title: 'On Minimalism', content: 'The design must be unobtrusive. Information reveals itself through interaction, not constant visual noise. The aesthetic prioritizes calm and focus.' },
+                { type: 'reference', title: 'CSS-Tricks: A Complete Guide to Flexbox', content: 'A foundational resource for modern web layouts.', source: 'css-tricks.com' },
+                { type: 'image', title: 'Architectural Sketch', content: 'https://images.unsplash.com/photo-1541848566-3783fa743845?q=80&w=800' },
+                { type: 'quote', title: 'Okkakura Kakuzō on Simplicity', content: 'In simplicity there is the sublime.', source: 'The Book of Tea' },
+                { type: 'text', title: 'Interaction Model', content: 'Hover to glimpse, click to explore. The codons now expand as the cursor approaches, making them easier to target. This creates a "wave" of focus.' },
+                { type: 'link', title: 'MDN: requestAnimationFrame', content: 'https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame' },
+                ...Array(250).fill(0).flatMap((_,i) => [
+                    { type: 'text', title: `Procedural Entry #${i+1}`, content: 'This is a procedurally generated text entry to demonstrate the infinite scroll capability.' },
+                    { type: 'image', title: `Procedural Image #${i+1}`, content: `https://picsum.photos/800/600?random=${i+1}` },
+                    { type: 'link', title: `Procedural Link #${i+1}`, content: 'https://example.com' },
+                ])
+            ];
+
+            // --- DOM & STATE VARIABLES 📜 ---
+            const strand = document.getElementById('genome-strand');
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalBody = document.getElementById('modal-body');
+            const modalClose = document.querySelector('.modal-close');
+            const sentinel = document.getElementById('scroll-sentinel');
+            const minimapCanvas = document.getElementById('minimap-canvas');
+            const minimapViewport = document.getElementById('minimap-viewport');
+            const minimapCtx = minimapCanvas.getContext('2d');
+
+            const itemsPerLoad = 20;
+            let currentDataIndex = 0;
+            let physicsCodons = []; // Array to hold codon elements and their physics state
+            let mouseY = -1000; // Initialize mouse Y off-screen
+            let viewportCenterY = window.innerHeight / 2;
+
+            // --- ✨ PHYSICS & ANIMATION CONSTANTS ✨ ---
+            const BASE_HEIGHT = 10;
+            const EXPANDED_HEIGHT = 150;
+            const WAVE_AMPLITUDE = 80; // Increased amplitude for a more dramatic effect
+            const WAVE_SPREAD = 250;   // Increased spread for a wider wave
+            const SPRING = 0.04;       // Slightly stronger spring
+            const DAMPING = 0.88;      // Adjusted damping
+
+            // --- 📜 CORE FUNCTIONS 🛠️ ---
+
+            function loadMoreItems() {
+                const fragment = document.createDocumentFragment();
+                const itemsToLoad = codexData.slice(currentDataIndex, currentDataIndex + itemsPerLoad);
+                
+                const newCodonElements = [];
+                itemsToLoad.forEach((item, index) => {
+                    const codon = document.createElement('div');
+                    codon.className = `codon type-${item.type}`;
+                    codon.dataset.index = currentDataIndex + index;
+
+                    const content = document.createElement('div');
+                    content.className = 'codon-content';
+                    let contentHTML = `<div class="codon-title">${item.title}</div><div class="codon-text">`;
+                    switch (item.type) {
+                        case 'image': contentHTML += `<img src="${item.content}" alt="Preview">`; break;
+                        case 'link': contentHTML += `🔗 ${item.content}`; break;
+                        default: contentHTML += item.content; break;
+                    }
+                    contentHTML += `</div><div class="codon-more-btn">More...</div>`;
+                    content.innerHTML = contentHTML;
+
+                    codon.appendChild(content);
+                    fragment.appendChild(codon);
+                    newCodonElements.push(codon);
+                });
+
+                strand.appendChild(fragment);
+                currentDataIndex += itemsToLoad.length;
+
+                // Add new codons to the physics simulation
+                requestAnimationFrame(() => {
+                    newCodonElements.forEach(el => {
+                        // No need to store y here, as we'll get it dynamically
+                        physicsCodons.push({
+                            element: el,
+                            height: BASE_HEIGHT,
+                            vy: 0,
+                            isExpanded: false
+                        });
+                    });
+                });
+            }
+
+            function showModal(item) { /* ... function is unchanged ... */ }
+            function hideModal() { /* ... function is unchanged ... */ }
+
+            // --- ✨ HYBRID INTERACTION LOGIC (PHYSICS + CLICK) ✨ ---
+            function handleInteraction(e) {
+                const targetCodonEl = e.target.closest('.codon');
+                if (!targetCodonEl) return;
+
+                const physicsCodon = physicsCodons.find(p => p.element === targetCodonEl);
+                if (!physicsCodon) return;
+
+                // If 'More...' button is clicked, show modal
+                if (e.target.classList.contains('codon-more-btn')) {
+                    const item = codexData[targetCodonEl.dataset.index];
+                    if (item) showModal(item);
+                    return;
+                }
+
+                // Collapse any currently expanded codon that isn't the one we just clicked
+                const currentlyExpanded = physicsCodons.find(p => p.isExpanded);
+                if (currentlyExpanded && currentlyExpanded !== physicsCodon) {
+                    currentlyExpanded.isExpanded = false;
+                }
+
+                // Toggle the clicked codon's expansion state
+                physicsCodon.isExpanded = !physicsCodon.isExpanded;
+            }
+
+            function updatePhysics() {
+                viewportCenterY = window.innerHeight / 2; // Update in case of resize
+
+                for (const codon of physicsCodons) {
+                    let targetHeight;
+
+                    if (codon.isExpanded) {
+                        targetHeight = EXPANDED_HEIGHT;
+                        codon.element.classList.add('expanded');
+                    } else {
+                        const rect = codon.element.getBoundingClientRect();
+                        const codonCenterY = rect.top + rect.height / 2;
+
+                        // 1. Calculate influence from scroll position (viewport center)
+                        const distFromCenter = Math.abs(viewportCenterY - codonCenterY);
+                        const scrollInfluence = Math.max(0, 1 - distFromCenter / WAVE_SPREAD);
+                        
+                        // 2. Calculate influence from mouse position
+                        const distFromMouse = Math.abs(mouseY - codonCenterY);
+                        const mouseInfluence = Math.max(0, 1 - distFromMouse / WAVE_SPREAD);
+
+                        // 3. Use the stronger of the two influences
+                        const influence = Math.max(scrollInfluence, mouseInfluence);
+
+                        targetHeight = BASE_HEIGHT + WAVE_AMPLITUDE * Math.pow(influence, 2);
+                        codon.element.classList.remove('expanded');
+                    }
+
+                    // Spring physics calculation
+                    const dy = targetHeight - codon.height;
+                    const ay = dy * SPRING;
+                    codon.vy += ay;
+                    codon.vy *= DAMPING;
+                    codon.height += codon.vy;
+
+                    // Apply the new height, only if it has changed significantly
+                    if (Math.abs(codon.height - parseFloat(codon.element.style.minHeight)) > 0.1) {
+                        codon.element.style.minHeight = `${codon.height}px`;
+                    }
+                }
+                requestAnimationFrame(updatePhysics);
+            }
+
+            // --- 🗺️ MINIMAP LOGIC (Unchanged) 🗺️ ---
+            function drawMinimap() { /* ... */ }
+            function updateMinimapViewport() { /* ... */ }
+            function handleMinimapScrub(e) { /* ... */ }
+
+            // --- 🧭 EVENT LISTENERS 🛠️ ---
+            strand.addEventListener('click', handleInteraction);
+            document.body.addEventListener('mousemove', e => { mouseY = e.clientY; });
+            document.body.addEventListener('mouseleave', () => { mouseY = -1000; }); // Move mouse off-screen
+
+            minimapCanvas.addEventListener('mousedown', (e) => { /* ... */ });
+            modalClose.addEventListener('click', hideModal);
+            modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) hideModal(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalOverlay.classList.contains('visible')) hideModal(); });
+            
+            const observer = new IntersectionObserver((entries) => { if (entries[0].isIntersecting && currentDataIndex < codexData.length) loadMoreItems(); }, { rootMargin: "200px" });
+            observer.observe(sentinel);
+
+            // --- 🚀 INITIALIZATION ---
+            loadMoreItems();
+            drawMinimap();
+            window.addEventListener('scroll', updateMinimapViewport, { passive: true });
+            updateMinimapViewport();
+            updatePhysics(); // Start the animation loop
+        });
+    </script>
+</body>
+</html>

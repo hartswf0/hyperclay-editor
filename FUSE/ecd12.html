@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECD // DREMUX // NARRATIVE RECOMPOSER</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /*
+        *   ARTIFACT: DREMUX - Narrative Thread Recomposer
+        *   DIVISION: ESOTERICA CYBERNETICS (ECD)
+        *   FUNCTION: Reconstructs coherent narratives from nonlinear fragments by
+        *   presenting parallel timeline versions based on different organizational logics.
+        */
+
+        :root {
+            --dr-bg: #1a1c20;
+            --dr-panel: #2c3138;
+            --dr-screen: #0a0c10;
+            --dr-text: #c0c5ce;
+            --dr-text-dim: #7c828d;
+            --dr-accent-blue: #8be9fd;
+            --dr-accent-green: #50fa7b;
+            --dr-accent-orange: #ffb86c;
+            --dr-accent-red: #ff5555;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-display: 'Teko', sans-serif;
+        }
+        
+        /* --- BASE LAYOUT --- */
+        body {
+            background-color: #000; display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; font-family: var(--font-main);
+            color: var(--dr-text); user-select: none;
+        }
+        #dremux-chassis {
+            width: 1600px; height: 900px; background-color: var(--dr-bg);
+            border: 1px solid #555; box-shadow: 0 0 30px rgba(80, 250, 123, 0.1);
+            padding: 20px; display: grid; grid-template-columns: 350px 1fr 400px;
+            gap: 20px;
+        }
+        
+        /* --- PANELS & MODULES --- */
+        .panel {
+            background-color: var(--dr-panel); padding: 15px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        }
+        .module-label {
+            font-family: var(--font-display); font-size: 2rem; letter-spacing: 1px;
+            text-align: center; border-bottom: 1px solid var(--dr-text-dim);
+            padding-bottom: 5px; margin: 0 0 15px 0; color: var(--dr-text);
+        }
+
+        /* --- LEFT PANEL: INPUT & MODE SELECT --- */
+        #left-panel { grid-column: 1 / 2; }
+        .canister-button {
+            width: 100%; background: #3a3f44; border: 1px solid #1a1a1a;
+            padding: 12px; font-size: 1.1rem; margin-bottom: 8px; cursor: pointer;
+            text-align: left; transition: all 0.2s;
+        }
+        .canister-button:hover { background-color: #4a5057; }
+        .canister-button.active { background-color: var(--dr-accent-green); color: #000; font-weight: bold; }
+        
+        #recomp-mode-selector { margin-top: auto; }
+        .mode-button {
+            width: 100%; background: var(--dr-panel); border: 2px solid var(--dr-accent-blue);
+            color: var(--dr-accent-blue); padding: 12px; font-size: 1.3rem; margin-top: 10px; cursor: pointer;
+        }
+        .mode-button.active { background: var(--dr-accent-blue); color: #000; }
+
+        /* --- CENTER PANEL: RECOMPOSITION STAGE --- */
+        #center-panel { grid-column: 2 / 3; background-color: var(--dr-screen); position: relative; }
+        #recomp-stage { width: 100%; height: 100%; position: relative; }
+        .fragment-node {
+            position: absolute; width: 150px; background: #222; border: 1px solid var(--dr-text-dim);
+            padding: 8px; cursor: pointer; transition: all 0.8s ease-in-out;
+            transform-origin: center center;
+        }
+        .fragment-node:hover { border-color: var(--dr-accent-orange); }
+        .fragment-node.selected { border-color: var(--dr-accent-orange); border-width: 2px; transform: scale(1.1); }
+        .frag-id { font-weight: bold; }
+        .frag-motif { color: var(--dr-accent-blue); }
+        .frag-emotion { font-style: italic; color: var(--dr-text-dim); }
+        .frag-marker {
+            position: absolute; top: -8px; right: -8px; width: 16px; height: 16px;
+            background: var(--dr-accent-red); border-radius: 50%;
+        }
+        .frag-marker.loop { background: var(--dr-accent-green); }
+
+        #connection-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #connection-svg path {
+            stroke-width: 1px; fill: none; stroke: var(--dr-text-dim); opacity: 0.5;
+            transition: all 0.8s ease-in-out;
+        }
+        #connection-svg path.highlight { stroke: var(--dr-accent-orange); stroke-width: 2px; opacity: 1; }
+
+        /* --- RIGHT PANEL: FRAGMENT DETAIL --- */
+        #right-panel { grid-column: 3 / 4; }
+        #fragment-detail { flex-grow: 1; background: #1a1c20; padding: 15px; line-height: 1.6; overflow-y: auto; }
+        .detail-header { font-family: var(--font-display); font-size: 1.8rem; color: var(--dr-accent-orange); margin-bottom: 10px; }
+        .detail-tag { display: inline-block; background: var(--dr-accent-blue); color: #000; padding: 2px 8px; margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div id="dremux-chassis">
+        <!-- LEFT PANEL -->
+        <div class="panel" id="left-panel">
+            <h2 class="module-label">DREAM LOG CANISTERS</h2>
+            <div id="canister-bay"></div>
+            <div id="recomp-mode-selector">
+                <h2 class="module-label" style="font-size:1.5rem; margin-top:20px;">RECOMPOSITION MODE</h2>
+                <button class="mode-button active" data-mode="chrono">CHRONOLOGICAL</button>
+                <button class="mode-button" data-mode="emotional">EMOTIONAL RESONANCE</button>
+                <button class="mode-button" data-mode="motif">MOTIF-DRIVEN</button>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL -->
+        <div class="panel" id="center-panel">
+            <div id="recomp-stage"></div>
+            <svg id="connection-svg"></svg>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel" id="right-panel">
+            <h2 class="module-label">FRAGMENT DETAIL</h2>
+            <div id="fragment-detail">
+                <div style="text-align:center; color: var(--dr-text-dim); padding-top: 20px;">LOAD A CANISTER TO BEGIN.</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const DREMUX = {
+    // --- Data ---
+    DREAM_LOGS: [
+        {
+            name: "Log 7B: The Sunken City",
+            fragments: [
+                { id: 'a', text: "The rain had been falling for what felt like weeks. I saw the bell tower first.", timestamp: 10, emotion: { tension: 0.8, serenity: 0.1 }, motifs: ['water', 'structures'] },
+                { id: 'b', text: "Then, the water began to rise up the steps of the library.", timestamp: 20, emotion: { tension: 0.9, dread: 0.5 }, motifs: ['water', 'structures'] },
+                { id: 'c', text: "Before all this, I remember the heat. A perfect, clear summer day.", timestamp: 1, emotion: { serenity: 0.9, nostalgia: 0.7 }, motifs: ['sky'] },
+                { id: 'd', text: "My reflection in the dark water was not my own. It was smiling.", timestamp: 30, emotion: { dread: 0.9, tension: 0.2 }, motifs: ['water', 'mirrors'] },
+                { id: 'e', text: "I looked up and the sky was a perfect, clear blue again.", timestamp: 50, emotion: { serenity: 0.9, resolution: 0.8 }, motifs: ['sky'] },
+                { id: 'f', text: "I swam towards the submerged library entrance. The smiling face in the water watched me go.", timestamp: 40, emotion: { dread: 0.8, resolution: 0.3 }, motifs: ['water', 'mirrors', 'structures'] },
+            ]
+        },
+        {
+            name: "Log X4: The Spiral Archive",
+            fragments: [
+                { id: 'g', text: "I'm falling, but the ground never gets closer. The air is full of whispers.", timestamp: 2, emotion: { dread: 0.9, tension: 0.7 }, motifs: ['falling', 'sound'] },
+                { id: 'h', text: "I found the same spiral staircase again. I know I've been here before.", timestamp: 4, emotion: { tension: 0.8, recursion: 0.9 }, motifs: ['structures', 'recursion'] },
+                { id: 'i', text: "A voice, clear as a bell, spoke my name from a book that was bound in my own skin.", timestamp: 5, emotion: { dread: 1.0, resolution: 0.2 }, motifs: ['sound', 'books'] },
+                { id: 'j', text: "It begins with a fall. It always begins with a fall.", timestamp: 1, emotion: { tension: 0.9, recursion: 0.8 }, motifs: ['falling', 'recursion'] },
+                { id: 'k', text: "At the top of the stairs, there's a book. It's waiting.", timestamp: 3, emotion: { tension: 0.6, serenity: 0.2 }, motifs: ['structures', 'books'] },
+            ]
+        }
+    ],
+    MOTIF_KEYWORDS: {
+        'water': ['rain', 'water', 'swam', 'submerged', 'ocean'],
+        'structures': ['city', 'tower', 'library', 'steps', 'entrance', 'staircase'],
+        'mirrors': ['reflection', 'face'],
+        'sky': ['sky', 'sun', 'clear', 'blue'],
+        'falling': ['falling', 'fall'],
+        'sound': ['whispers', 'voice', 'bell'],
+        'recursion': ['again', 'before', 'repeats'],
+        'books': ['book', 'archive'],
+    },
+
+    // --- DOM Elements ---
+    elems: {
+        canisterBay: document.getElementById('canister-bay'),
+        recompStage: document.getElementById('recomp-stage'),
+        connectionSvg: document.getElementById('connection-svg'),
+        fragmentDetail: document.getElementById('fragment-detail'),
+        modeButtons: document.querySelectorAll('.mode-button'),
+    },
+    
+    // --- State ---
+    state: {
+        loadedLog: null,
+        fragments: [], // processed fragments with positions
+        activeMode: 'chrono',
+        selectedFragmentId: null,
+    },
+    
+    // --- Audio ---
+    audio: { /* Simplified audio system */
+        ctx: null, load: null, click: null, switchMode: null,
+        init() { this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+            this.load = this.createSound(100, 0.3, 0.1, true);
+            this.click = this.createSound(1200, 0.05, 0.2);
+            this.switchMode = this.createSound(440, 0.15, 0.15);
+        },
+        createSound(freq, dur, vol, desc=false) { return () => { if(!this.ctx) return;
+            const o=this.ctx.createOscillator(), g=this.ctx.createGain(); o.connect(g);g.connect(this.ctx.destination);
+            o.type='sine'; o.frequency.setValueAtTime(freq,this.ctx.currentTime);
+            if(desc) o.frequency.exponentialRampToValueAtTime(freq*2,this.ctx.currentTime+dur);
+            g.gain.setValueAtTime(vol,this.ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur); o.start();o.stop(this.ctx.currentTime+dur); };
+        }
+    },
+
+    // --- Initialization ---
+    init() {
+        this.audio.init();
+        this.renderCanisterBay();
+        this.addEventListeners();
+    },
+
+    renderCanisterBay() {
+        this.elems.canisterBay.innerHTML = this.DREAM_LOGS.map((log, i) =>
+            `<button class="canister-button" data-id="${i}">${log.name}</button>`
+        ).join('');
+    },
+    
+    addEventListeners() {
+        this.elems.canisterBay.addEventListener('click', e => {
+            if (e.target.matches('.canister-button')) this.loadLog(parseInt(e.target.dataset.id));
+        });
+        this.elems.modeButtons.forEach(btn => {
+            btn.addEventListener('click', () => this.setRecompMode(btn.dataset.mode));
+        });
+    },
+
+    // --- Core Logic ---
+    loadLog(id) {
+        this.audio.load();
+        this.state.loadedLog = this.DREAM_LOGS[id];
+        this.state.selectedFragmentId = null;
+
+        document.querySelectorAll('.canister-button').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.canister-button[data-id="${id}"]`).classList.add('active');
+
+        // Process fragments to add analysis data
+        this.state.fragments = this.state.loadedLog.fragments.map(f => {
+            // Simple motif detection
+            const text = f.text.toLowerCase();
+            let primaryMotif = 'unknown';
+            for (const [motif, keywords] of Object.entries(this.MOTIF_KEYWORDS)) {
+                if (keywords.some(k => text.includes(k))) {
+                    primaryMotif = motif;
+                    break;
+                }
+            }
+            // Simple disruption/loop detection
+            let marker = null;
+            if (f.emotion.dread > 0.8 || f.emotion.tension > 0.9) marker = 'disruption';
+            if (f.emotion.recursion > 0.7) marker = 'loop';
+
+            return { ...f, primaryMotif, marker, pos: { x: 0, y: 0 } };
+        });
+        
+        this.setRecompMode('chrono', true); // Default to chronological on load
+    },
+
+    setRecompMode(mode, force = false) {
+        if (mode === this.state.activeMode && !force) return;
+        this.audio.switchMode();
+        this.state.activeMode = mode;
+        this.state.selectedFragmentId = null;
+
+        this.elems.modeButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+        
+        if (!this.state.loadedLog) return;
+        
+        this.calculateLayout();
+        this.renderStage();
+        this.renderFragmentDetail();
+    },
+    
+    calculateLayout() {
+        const stage = this.elems.recompStage.getBoundingClientRect();
+        const padding = 100;
+        const w = stage.width - padding * 2;
+        const h = stage.height - padding * 2;
+
+        const fragments = this.state.fragments;
+        const num = fragments.length;
+        
+        switch (this.state.activeMode) {
+            case 'chrono':
+                const sortedByTime = [...fragments].sort((a,b) => a.timestamp - b.timestamp);
+                sortedByTime.forEach((f, i) => {
+                    const node = this.state.fragments.find(n => n.id === f.id);
+                    node.pos = { x: padding + (i / (num-1)) * w, y: padding + h/2 };
+                });
+                break;
+            case 'emotional':
+                const sortedByEmotion = [...fragments].sort((a,b) => (a.emotion.tension || 0) - (b.emotion.tension || 0));
+                sortedByEmotion.forEach((f, i) => {
+                    const node = this.state.fragments.find(n => n.id === f.id);
+                    const angle = (i / (num-1)) * Math.PI * 1.5 - Math.PI * 1.25;
+                    node.pos = {
+                        x: stage.width / 2 + Math.cos(angle) * w * 0.5,
+                        y: stage.height * 0.8 + Math.sin(angle) * h * 0.7
+                    };
+                });
+                break;
+            case 'motif':
+                const motifs = [...new Set(fragments.map(f => f.primaryMotif))];
+                motifs.forEach((motif, i) => {
+                    const clusterFrags = fragments.filter(f => f.primaryMotif === motif);
+                    const angle = (i / motifs.length) * Math.PI * 2;
+                    const clusterCenterX = stage.width/2 + Math.cos(angle) * w * 0.35;
+                    const clusterCenterY = stage.height/2 + Math.sin(angle) * h * 0.35;
+                    clusterFrags.forEach((f, j) => {
+                         const node = this.state.fragments.find(n => n.id === f.id);
+                         node.pos = { 
+                             x: clusterCenterX + (Math.random()-0.5) * 150,
+                             y: clusterCenterY + (Math.random()-0.5) * 150
+                         };
+                    });
+                });
+                break;
+        }
+    },
+    
+    // --- Rendering ---
+    renderStage() {
+        this.elems.recompStage.innerHTML = this.state.fragments.map(f => `
+            <div class="fragment-node" data-id="${f.id}" style="left:${f.pos.x - 75}px; top:${f.pos.y - 40}px;">
+                <div class="frag-id">${f.id.toUpperCase()}</div>
+                <div class="frag-motif">${f.primaryMotif}</div>
+                <div class="frag-emotion">${Object.keys(f.emotion)[0]}</div>
+                ${f.marker ? `<div class="frag-marker ${f.marker}"></div>` : ''}
+            </div>
+        `).join('');
+
+        this.elems.recompStage.querySelectorAll('.fragment-node').forEach(el => {
+            el.onclick = () => {
+                this.audio.click();
+                this.state.selectedFragmentId = el.dataset.id;
+                this.renderFragmentDetail();
+                this.renderConnections();
+                this.elems.recompStage.querySelectorAll('.fragment-node').forEach(n => n.classList.remove('selected'));
+                el.classList.add('selected');
+            };
+        });
+        
+        this.renderConnections();
+    },
+    
+    renderConnections() {
+        let paths = '';
+        if (this.state.fragments.length < 2) {
+            this.elems.connectionSvg.innerHTML = '';
+            return;
+        }
+
+        const getPathData = (p1, p2) => {
+            const midX = (p1.x + p2.x) / 2;
+            const midY = (p1.y + p2.y) / 2;
+            const controlY = this.state.activeMode === 'emotional' ? midY - 100 : midY;
+            return `M ${p1.x} ${p1.y} Q ${midX} ${controlY} ${p2.x} ${p2.y}`;
+        };
+        
+        if (this.state.activeMode === 'chrono' || this.state.activeMode === 'emotional') {
+            const sorted = [...this.state.fragments].sort((a,b) => this.state.activeMode === 'chrono' ? a.timestamp - b.timestamp : (a.emotion.tension || 0) - (b.emotion.tension || 0));
+            for(let i = 0; i < sorted.length - 1; i++) {
+                const isHighlight = this.state.selectedFragmentId && (sorted[i].id === this.state.selectedFragmentId || sorted[i+1].id === this.state.selectedFragmentId);
+                paths += `<path class="${isHighlight ? 'highlight' : ''}" d="${getPathData(sorted[i].pos, sorted[i+1].pos)}" />`;
+            }
+        } else if (this.state.activeMode === 'motif' && this.state.selectedFragmentId) {
+            const selected = this.state.fragments.find(f => f.id === this.state.selectedFragmentId);
+            const related = this.state.fragments.filter(f => f.primaryMotif === selected.primaryMotif && f.id !== selected.id);
+            related.forEach(r => {
+                paths += `<path class="highlight" d="${getPathData(selected.pos, r.pos)}" />`;
+            });
+        }
+        
+        this.elems.connectionSvg.innerHTML = paths;
+    },
+
+    renderFragmentDetail() {
+        const frag = this.state.fragments.find(f => f.id === this.state.selectedFragmentId);
+        if (!frag) {
+            this.elems.fragmentDetail.innerHTML = `<div style="text-align:center; color: var(--dr-text-dim); padding-top: 20px;">SELECT A FRAGMENT.</div>`;
+            return;
+        }
+
+        this.elems.fragmentDetail.innerHTML = `
+            <div class="detail-header">FRAGMENT ${frag.id.toUpperCase()}</div>
+            <div><span class="detail-tag">${frag.primaryMotif}</span></div>
+            <p>${frag.text}</p>
+        `;
+    }
+};
+
+DREMUX.init();
+</script>
+</body>
+</html>

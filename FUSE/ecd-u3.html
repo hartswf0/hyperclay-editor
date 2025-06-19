@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6. 🎙️ RITUAL OPERATING SURFACE</title>
+    <style>
+        /* FONT IMPORT - Embedded for single-file portability */
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap');
+
+        :root {
+            --bg-color: #050508;
+            --slab-bg: #1a1a1f;
+            --slab-border: #333338;
+            --glyph-color: #7efdff;
+            --glow-color: rgba(126, 253, 255, 0.7);
+            --inactive-color: #4a5059;
+            --success-color: #a9ffcb;
+            --fail-color: #ff5c5c;
+            --font-main: 'Share Tech Mono', monospace;
+            --font-title: 'Orbitron', sans-serif;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--inactive-color);
+            font-family: var(--font-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        
+        /* --- OVERLAY & INSTRUCTIONS --- */
+        #initiation-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            transition: opacity 1s ease-out;
+            cursor: pointer;
+        }
+        #initiation-overlay h1 {
+            font-family: var(--font-title);
+            color: var(--glyph-color);
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 0 0 10px var(--glow-color);
+        }
+        #initiation-overlay p {
+            max-width: 600px;
+            color: #ccc;
+            line-height: 1.6;
+        }
+        #initiation-overlay .prompt {
+            margin-top: 30px;
+            font-size: 1.2em;
+            color: white;
+            animation: pulse-text 2s infinite;
+        }
+
+        /* --- THE RITUAL SLAB --- */
+        #ritual-slab {
+            width: 80vmin;
+            height: 80vmin;
+            max-width: 800px;
+            max-height: 800px;
+            background: radial-gradient(circle, #25252b, var(--slab-bg));
+            border: 2px solid var(--slab-border);
+            border-radius: 3%;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.6);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: default; /* Not a normal interface */
+        }
+        #ritual-slab::before { /* Noise texture */
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjxmZURpZmZ1c2VMaWdodGluZyBzdXJmYWNlU2NhbGU9IjEwIiBsaWdodGluZ0NvbG9yPSIjZmZmZmZmIiBkaWZmdXNlQ29uc3RhbnQ9IjEiPjxmZVNwb3RMaWdodCB4PSItMTAwIiB5PSItMTAwIiB6PSIyMDAiLz48L2ZlRGlmZnVzZExpZ2h0aW5nPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjMDAwMDAwIi8+PHJlY3Qgd2lkdGg9IjMwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiNmZmZmZmYiIGZpbHRlcj0idXJsKCNub2lzZSkwMCIgb3BhY2l0eT0iMC4xNSIvPjwvc3ZnPg==');
+            opacity: 0.1;
+            pointer-events: none;
+        }
+        
+        /* --- VISUALS & FEEDBACK --- */
+        #glyph-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        #main-glyph {
+            stroke: var(--glyph-color);
+            stroke-width: 3;
+            stroke-linecap: round;
+            fill: none;
+            filter: drop-shadow(0 0 8px var(--glow-color));
+            transition: opacity 1.5s ease, filter 1.5s ease;
+            stroke-dasharray: 2000;
+            stroke-dashoffset: 2000;
+        }
+
+        .symbol-point {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: var(--inactive-color);
+            border-radius: 50%;
+            transition: all 0.5s ease;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .symbol-point.active {
+            background: var(--glyph-color);
+            box-shadow: 0 0 15px var(--glow-color);
+            cursor: pointer;
+            animation: pulse-node 1.5s infinite;
+        }
+        
+        #ripple-canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* --- STATUS INDICATORS --- */
+        #status-display {
+            position: absolute;
+            bottom: 20px;
+            width: 80%;
+            display: flex;
+            justify-content: space-around;
+            font-size: 1.2em;
+        }
+        .status-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: color 0.5s ease, text-shadow 0.5s ease;
+        }
+        .status-indicator .icon {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        .status-indicator.unlocked {
+            color: var(--success-color);
+            text-shadow: 0 0 10px var(--success-color);
+        }
+        
+        #vocal-meter-container {
+            position: absolute;
+            top: 20px;
+            width: 50%;
+            height: 10px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--slab-border);
+            border-radius: 5px;
+            display: none; /* Hidden by default */
+        }
+        #vocal-meter-fill {
+            width: 0%;
+            height: 100%;
+            background: var(--glyph-color);
+            border-radius: 5px;
+            transition: width 0.1s linear;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes pulse-text {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+        @keyframes pulse-node {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 15px var(--glow-color); }
+            50% { transform: scale(1.2); box-shadow: 0 0 25px var(--glow-color); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="initiation-overlay">
+        <h1>🎙️ RITUAL OPERATING SURFACE</h1>
+        <p>The GUI is the ceremony. Interaction requires compliance with the ritual sequence.<br/>The system responds to vocalization, respiration, and symbolic tracing.</p>
+        <p>This experience requires microphone access to proceed.</p>
+        <p class="prompt">[ Click anywhere to begin the initiation ]</p>
+    </div>
+
+    <main id="ritual-slab">
+        <canvas id="ripple-canvas"></canvas>
+        <div id="vocal-meter-container"><div id="vocal-meter-fill"></div></div>
+        
+        <div id="glyph-container">
+            <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+                <path id="main-glyph" d="M 50,15 L 85,35 L 75,75 L 25,75 L 15,35 Z M 50,15 L 50,55 M 25,75 L 50,55 L 75,75 M 15,35 L 50,55 L 85,35" style="opacity: 0.1;"/>
+            </svg>
+        </div>
+        
+        <div id="symbol-points-container"></div>
+        
+        <div id="status-display">
+            <div class="status-indicator" id="vocal-status">
+                <div class="icon">🎙️</div>
+                <div>VOCAL</div>
+            </div>
+            <div class="status-indicator" id="breath-status">
+                <div class="icon">🌬️</div>
+                <div>BREATH</div>
+            </div>
+            <div class="status-indicator" id="symbolic-status">
+                <div class="icon">✋</div>
+                <div>SYMBOL</div>
+            </div>
+        </div>
+    </main>
+    
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM Elements ---
+    const overlay = document.getElementById('initiation-overlay');
+    const slab = document.getElementById('ritual-slab');
+    const mainGlyph = document.getElementById('main-glyph');
+    const symbolPointsContainer = document.getElementById('symbol-points-container');
+    const vocalStatus = document.getElementById('vocal-status');
+    const breathStatus = document.getElementById('breath-status');
+    const symbolicStatus = document.getElementById('symbolic-status');
+    const vocalMeterContainer = document.getElementById('vocal-meter-container');
+    const vocalMeterFill = document.getElementById('vocal-meter-fill');
+    const rippleCanvas = document.getElementById('ripple-canvas');
+    const rippleCtx = rippleCanvas.getContext('2d');
+
+    // --- Audio Context ---
+    let audioCtx;
+    let analyser;
+    let oscillator;
+    let gainNode;
+
+    // --- State Management ---
+    const RITUAL_STATE = {
+        IDLE: 'IDLE',
+        AWAITING_VOCAL: 'AWAITING_VOCAL',
+        AWAITING_BREATH: 'AWAITING_BREATH',
+        AWAITING_SYMBOLIC: 'AWAITING_SYMBOLIC',
+        COMPLETE: 'COMPLETE',
+        FAILED: 'FAILED'
+    };
+    let currentState = RITUAL_STATE.IDLE;
+    let animationFrameId;
+
+    // --- Ritual Parameters ---
+    const VOCAL_THRESHOLD = 140; // out of 255
+    const VOCAL_DURATION_MS = 3000;
+    const BREATH_DURATION_MS = 2500;
+    const SYMBOL_SEQUENCE = [
+        { x: '50%', y: '15%' }, { x: '85%', y: '35%' }, { x: '75%', y: '75%' },
+        { x: '25%', y: '75%' }, { x: '15%', y: '35%' }
+    ];
+    let vocalStartTime, breathStartTime;
+    let currentSymbolIndex = 0;
+    
+    // --- Ripple Effect ---
+    let ripples = [];
+    rippleCanvas.width = slab.clientWidth;
+    rippleCanvas.height = slab.clientHeight;
+
+    // ==========================================================
+    // INITIALIZATION & USER INTERACTION
+    // ==========================================================
+
+    overlay.addEventListener('click', init, { once: true });
+
+    async function init() {
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.style.display = 'none', 1000);
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            setupAudio(stream);
+            playAmbientTone();
+            setState(RITUAL_STATE.AWAITING_VOCAL);
+        } catch (err) {
+            console.error("Microphone access denied.", err);
+            alert("Microphone access is required for this ritual. Please refresh and allow access.");
+        }
+    }
+    
+    function setupAudio(stream) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+
+        gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.connect(audioCtx.destination);
+    }
+    
+    // ==========================================================
+    // STATE MACHINE
+    // ==========================================================
+    
+    function setState(newState) {
+        if (currentState === newState) return;
+        
+        // Exit old state
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        resetUIForState(currentState);
+
+        currentState = newState;
+        console.log("STATE:", currentState);
+        
+        // Enter new state
+        switch(currentState) {
+            case RITUAL_STATE.AWAITING_VOCAL:
+                vocalMeterContainer.style.display = 'block';
+                animationFrameId = requestAnimationFrame(vocalLoop);
+                break;
+            case RITUAL_STATE.AWAITING_BREATH:
+                window.addEventListener('keydown', handleBreath);
+                window.addEventListener('keyup', handleBreath);
+                break;
+            case RITUAL_STATE.AWAITING_SYMBOLIC:
+                setupSymbolicTrace();
+                break;
+            case RITUAL_STATE.COMPLETE:
+                playTone(440, 0.5, 'sine'); // A4
+                setTimeout(() => playTone(659, 0.5, 'sine'), 200); // E5
+                mainGlyph.style.strokeDashoffset = '0';
+                mainGlyph.style.filter = `drop-shadow(0 0 20px ${varToRgba('success-color')})`;
+                mainGlyph.style.stroke = 'var(--success-color)';
+                setTimeout(resetRitual, 5000);
+                break;
+            case RITUAL_STATE.FAILED:
+                playTone(150, 0.8, 'square');
+                mainGlyph.style.opacity = '0.1';
+                setTimeout(resetRitual, 2000);
+                break;
+        }
+    }
+    
+    function resetRitual() {
+        resetUIForState(currentState);
+        setState(RITUAL_STATE.AWAITING_VOCAL);
+    }
+    
+    function resetUIForState(state) {
+        switch(state) {
+            case RITUAL_STATE.AWAITING_VOCAL:
+                vocalMeterContainer.style.display = 'none';
+                vocalMeterFill.style.width = '0%';
+                break;
+            case RITUAL_STATE.AWAITING_BREATH:
+                window.removeEventListener('keydown', handleBreath);
+                window.removeEventListener('keyup', handleBreath);
+                break;
+            case RITUAL_STATE.AWAITING_SYMBOLIC:
+                symbolPointsContainer.innerHTML = '';
+                break;
+        }
+        if (state === RITUAL_STATE.COMPLETE || state === RITUAL_STATE.FAILED) {
+            vocalStatus.classList.remove('unlocked');
+            breathStatus.classList.remove('unlocked');
+            symbolicStatus.classList.remove('unlocked');
+            mainGlyph.style.transition = 'none'; // quick reset
+            mainGlyph.style.opacity = '0.1';
+            mainGlyph.style.strokeDashoffset = '2000';
+            mainGlyph.style.filter = `drop-shadow(0 0 8px var(--glow-color))`;
+            mainGlyph.style.stroke = 'var(--glyph-color)';
+            void mainGlyph.offsetWidth; // trigger reflow
+            mainGlyph.style.transition = 'opacity 1.5s ease, filter 1.5s ease, stroke-dashoffset 2s ease-in-out, stroke 0.5s ease';
+        }
+    }
+
+    // ==========================================================
+    // RITUAL STAGES
+    // ==========================================================
+    
+    function vocalLoop() {
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteTimeDomainData(dataArray);
+        let sum = 0;
+        for (const amplitude of dataArray) {
+            sum += Math.abs(amplitude - 128);
+        }
+        const average = sum / dataArray.length;
+        const volume = average * 10; // Amplify for better feel
+
+        if (volume > VOCAL_THRESHOLD) {
+            if (!vocalStartTime) vocalStartTime = Date.now();
+            const progress = (Date.now() - vocalStartTime) / VOCAL_DURATION_MS;
+            vocalMeterFill.style.width = `${Math.min(progress * 100, 100)}%`;
+            if (progress >= 1) {
+                vocalStatus.classList.add('unlocked');
+                playTone(330, 0.3, 'sine'); // E4
+                setState(RITUAL_STATE.AWAITING_BREATH);
+                return;
+            }
+        } else {
+            vocalStartTime = null;
+            vocalMeterFill.style.width = `0%`;
+        }
+        animationFrameId = requestAnimationFrame(vocalLoop);
+    }
+
+    function handleBreath(e) {
+        if (e.key !== ' ') return;
+
+        if (e.type === 'keydown' && !breathStartTime) {
+            breathStartTime = Date.now();
+            mainGlyph.style.opacity = '0.5';
+            playTone(220, 0.2, 'triangle', 0.2); // A3
+        } else if (e.type === 'keyup' && breathStartTime) {
+            const duration = Date.now() - breathStartTime;
+            if (duration >= BREATH_DURATION_MS) {
+                breathStatus.classList.add('unlocked');
+                playTone(392, 0.3, 'sine'); // G4
+                setState(RITUAL_STATE.AWAITING_SYMBOLIC);
+            } else {
+                setState(RITUAL_STATE.FAILED);
+            }
+            breathStartTime = null;
+            mainGlyph.style.opacity = '0.1';
+        }
+    }
+
+    function setupSymbolicTrace() {
+        currentSymbolIndex = 0;
+        symbolPointsContainer.innerHTML = '';
+        SYMBOL_SEQUENCE.forEach((pos, index) => {
+            const point = document.createElement('div');
+            point.className = 'symbol-point';
+            point.style.left = pos.x;
+            point.style.top = pos.y;
+            point.dataset.index = index;
+            point.addEventListener('click', handleSymbolClick);
+            symbolPointsContainer.appendChild(point);
+        });
+        updateActiveSymbol();
+    }
+    
+    function updateActiveSymbol() {
+        document.querySelectorAll('.symbol-point').forEach(p => p.classList.remove('active'));
+        const activePoint = symbolPointsContainer.querySelector(`[data-index='${currentSymbolIndex}']`);
+        if(activePoint) activePoint.classList.add('active');
+    }
+
+    function handleSymbolClick(e) {
+        const clickedIndex = parseInt(e.target.dataset.index, 10);
+        
+        // create ripple effect
+        const rect = slab.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        createRipple(x, y);
+
+        if (clickedIndex === currentSymbolIndex) {
+            playTone(261 + (currentSymbolIndex * 50), 0.2, 'sine'); // Ascending scale
+            mainGlyph.style.opacity = 0.3 + (0.7 * (currentSymbolIndex / SYMBOL_SEQUENCE.length));
+            currentSymbolIndex++;
+            if (currentSymbolIndex >= SYMBOL_SEQUENCE.length) {
+                symbolicStatus.classList.add('unlocked');
+                setState(RITUAL_STATE.COMPLETE);
+            } else {
+                updateActiveSymbol();
+            }
+        } else {
+            setState(RITUAL_STATE.FAILED);
+        }
+    }
+    
+    // ==========================================================
+    // AUDIO & VISUAL FEEDBACK
+    // ==========================================================
+    
+    function playTone(freq, duration, type, vol = 0.1) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        
+        osc.frequency.value = freq;
+        osc.type = type;
+        g.gain.setValueAtTime(vol, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+    
+    function playAmbientTone() {
+        if (!audioCtx) return;
+        oscillator = audioCtx.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(80, audioCtx.currentTime); // Low hum
+        oscillator.connect(gainNode);
+        oscillator.start();
+        gainNode.gain.linearRampToValueAtTime(0.05, audioCtx.currentTime + 2); // Fade in
+    }
+
+    function createRipple(x, y) {
+        ripples.push({ x, y, radius: 0, alpha: 1, width: 3 });
+        if (ripples.length === 1) requestAnimationFrame(drawRipples);
+    }
+
+    function drawRipples() {
+        rippleCtx.clearRect(0, 0, rippleCanvas.width, rippleCanvas.height);
+        for (let i = ripples.length - 1; i >= 0; i--) {
+            const r = ripples[i];
+            r.radius += 2;
+            r.alpha -= 0.02;
+            if (r.alpha <= 0) {
+                ripples.splice(i, 1);
+            } else {
+                rippleCtx.beginPath();
+                rippleCtx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+                rippleCtx.strokeStyle = `rgba(126, 253, 255, ${r.alpha})`;
+                rippleCtx.lineWidth = r.width;
+                rippleCtx.stroke();
+            }
+        }
+        if (ripples.length > 0) requestAnimationFrame(drawRipples);
+    }
+
+    function varToRgba(varName) {
+        return getComputedStyle(document.documentElement).getPropertyValue(`--${varName}`).trim();
+    }
+});
+</script>
+
+</body>
+</html>
