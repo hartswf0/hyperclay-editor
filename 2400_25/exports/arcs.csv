@@ -1,0 +1,5 @@
+id,title,weeks,clusters,capstone_prompt
+arc_A_foundations,A. Foundations & Lenses (Weeks 1–3),W1; W2; W3,cluster_foundations_extensions; cluster_augmentation_origins; cluster_images_apparatus,"Pick any everyday artifact and map its extensions, representations, and remediation chain."
+arc_B_infrastructure_power,"B. Infrastructure, Bias & Power (Weeks 4–7)",W4; W5; W6; W7,cluster_media_ecology_bias; cluster_platforms_power,"Audit a platform pipeline for time/space bias, attention capture, and failure modes."
+arc_C_culture_systems,C. Culture as System (Weeks 8–11),W8; W9; W10; W11,cluster_culture_interpretation; cluster_memes_myths,Produce a thick description that also diagrams cultural replication loops.
+arc_D_ai_method_making,"D. AI, Identity & Making (Weeks 12–15)",W12; W13; W14; W15,cluster_ai_identity_method; cluster_augmentation_origins,Design a small multimodal system; include an ethics/method appendix (‘how AI was used’).

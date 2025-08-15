@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VictorOS · Syntegration Chat — Agents-as-Thinkers</title>
+<style>
+  :root{
+    --bg:#0a0c12; --panel:#0e1421; --ink:#e8eefc; --muted:#9fb0ca; --rule:#1e2a44;
+    --canon:#66d9a3; --power:#ff8aa3; --film:#f4ce6a; --games:#7aa2ff; --xr:#9fd3c7; --platforms:#7bd3ff; --ai:#c792ea;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:13.5px/1.45 ui-sans-serif,system-ui,Inter,Segoe UI}
+  .app{display:grid;grid-template-columns:280px 1fr 360px;grid-template-rows:64px 1fr;grid-template-areas:"top top top" "left main right";height:100%}
+  header{grid-area:top;display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--rule);background:radial-gradient(900px 300px at 0% 0%, #0e213c 0%, transparent 60%), radial-gradient(800px 290px at 100% 0%, #1b2c46 0%, transparent 60%)}
+  header h1{margin:0;font-size:16px}
+  header .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#0c1526;border:1px solid var(--rule)}
+  header .dot{width:8px;height:8px;border-radius:50%;background:var(--canon)}
+  header .sig{margin-left:auto;display:flex;gap:8px}
+  button,input,select{background:#0b1324;border:1px solid #24314f;color:var(--ink);border-radius:10px;padding:8px}
+  button{cursor:pointer}
+  .ok{background:linear-gradient(90deg,var(--canon),var(--games));color:#0b1016;border:0;font-weight:700}
+  .left{grid-area:left;border-right:1px solid var(--rule);background:var(--panel);display:flex;flex-direction:column;min-height:0;padding:10px;gap:10px}
+  .right{grid-area:right;border-left:1px solid var(--rule);background:var(--panel);display:flex;flex-direction:column;min-height:0;padding:10px;gap:10px}
+  .main{grid-area:main;display:grid;grid-template-rows:260px 1fr;gap:10px;padding:10px;min-height:0}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:14px;display:flex;flex-direction:column;min-height:0}
+  .card h2{margin:0;padding:10px 12px;border-bottom:1px solid var(--rule);font-size:13px}
+  .body{padding:10px;overflow:auto}
+  .row{display:flex;gap:8px;align-items:center}
+  .col{display:flex;flex-direction:column;gap:8px}
+  .hint{color:var(--muted);font-size:12px}
+  canvas{background:#0a1221;border:1px solid var(--rule);border-radius:12px}
+  .tag{font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid #2b3654;background:#0e162a;color:#bcd0ef}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .chip{padding:2px 6px;border-radius:999px;border:1px solid #274064;background:#0c1426;cursor:pointer}
+  .chip.on{background:#14314b}
+  .chat{height:100%;display:flex;flex-direction:column}
+  .stream{flex:1;overflow:auto;border:1px solid var(--rule);border-radius:12px;padding:8px;background:#091021}
+  .msg{display:flex;gap:6px;margin-bottom:6px;align-items:flex-start}
+  .av{width:10px;height:10px;border-radius:50%;margin-top:6px}
+  .mrole{font-size:11px;color:#a8b7d2}
+  .mtext{background:#0d162c;border:1px solid #24345a;padding:6px 8px;border-radius:10px}
+  .flex{display:flex;gap:8px}
+  table{width:100%;border-collapse:collapse}
+  th,td{border-bottom:1px dashed #273454;padding:6px 4px;text-align:left;font-size:12px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="pill"><span class="dot"></span><b>VictorOS · Syntegration Chat</b></div>
+    <h1>Agents-as-Thinkers · Live Waveform Conference</h1>
+    <div class="sig">
+      <button id="btnPlay">▶︎ Play</button>
+      <button id="btnPause">❚❚ Pause</button>
+      <button id="btnSnapshot">Save Scenario</button>
+      <button id="btnExport" class="ok">Export</button>
+      <button id="btnImport">Import</button>
+    </div>
+  </header>
+
+  <aside class="left">
+    <div class="card">
+      <h2>What‑If Controls</h2>
+      <div class="body col">
+        <label class="hint">Theme Weights</label>
+        <div id="sliders" class="col"></div>
+        <div class="row"><span class="tag">Week</span><input type="range" id="wk" min="1" max="16" step="1" value="1"></div>
+        <div class="row"><span class="tag">Chat Rate</span><input type="range" id="rate" min="0.5" max="3" step="0.25" value="1"></div>
+        <div class="row"><span class="tag">Overlay</span><button id="btnOverlay">Toggle</button></div>
+        <div class="hint">Adjusting weights/presence updates waveforms, test readiness, and chat content live.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Presence Matrix</h2>
+      <div class="body" id="matrix"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <section class="card">
+      <h2>Theme Waveforms</h2>
+      <div class="body"><canvas id="waves" width="1200" height="230"></canvas></div>
+    </section>
+    <section class="card">
+      <h2>Syntegration Chat (Member · Critic · Observer)</h2>
+      <div class="body chat">
+        <div class="stream" id="stream"></div>
+        <div class="row">
+          <select id="agentPick"></select>
+          <input id="userMsg" placeholder="Inject a message as facilitator..." style="flex:1">
+          <button id="send">Send</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="right">
+    <div class="card">
+      <h2>⟦ Olog ⟧ Lenses</h2>
+      <div class="body" id="olog"></div>
+    </div>
+
+    <div class="card">
+      <h2>Evolution Tests</h2>
+      <div class="body">
+        <table><thead><tr><th>Test</th><th>Due</th><th>Readiness@W<span id="wkm"></span></th></tr></thead><tbody id="tests"></tbody></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Syntegration Roles</h2>
+      <div class="body" id="roles"></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/************ DATA ************/ 
+const THEMES = {
+  canon:{label:'Canon', color:getVar('--canon')},
+  power:{label:'Power/Bias', color:getVar('--power')},
+  film:{label:'Film', color:getVar('--film')},
+  games:{label:'Games', color:getVar('--games')},
+  xr:{label:'XR/VR', color:getVar('--xr')},
+  platforms:{label:'Platforms', color:getVar('--platforms')},
+  ai:{label:'AI', color:getVar('--ai')}
+};
+
+const WEEKS = Array.from({length:16},(_,i)=>i+1);
+const presence = Object.fromEntries(WEEKS.map(w=>[w, new Set()]));
+// seed presence from syllabus arc
+addPresence([1,2,3,4], 'canon');
+addPresence([5,6,8], 'power');
+addPresence([7], 'film');
+addPresence([9,10], 'games');
+addPresence([11], 'xr');
+addPresence([12], 'platforms');
+addPresence([13,14], 'ai');
+addPresence([15,16], 'canon');
+
+// Thinker agents (minimal demo set). role cycles per syntegration.
+const agents=[
+  A('mcluhan','Marshall McLuhan','canon', ['member','critic','observer']),
+  A('pacey','Pacey','canon', ['member','observer','critic']),
+  A('benjamin','Walter Benjamin','film', ['critic','member','observer']),
+  A('bazin','André Bazin','film', ['member','observer','critic']),
+  A('harrell','Harrell','power', ['member','critic','observer']),
+  A('noble','Safiya Noble','power', ['critic','member','observer']),
+  A('bogost','Ian Bogost','games', ['member','critic','observer']),
+  A('ruberg','Bonnie Ruberg','games', ['critic','member','observer']),
+  A('bolter','Jay Bolter','xr', ['member','observer','critic']),
+  A('brock','Andre Brock','platforms', ['member','critic','observer']),
+  A('turing','Alan Turing','ai', ['member','critic','observer'])
+];
+
+// Tests buckets
+const tests=[
+  {id:'sp1', name:'Short Paper 1', due:'2025-09-29', bucket:['canon','power']},
+  {id:'sp2', name:'Short Paper 2', due:'2025-10-27', bucket:['film','games','power']},
+  {id:'final', name:'Final Speculative Media', due:'2025-12-08', bucket:['xr','platforms','ai','power']}
+];
+
+/************ STATE ************/ 
+const state={
+  weights:Object.fromEntries(Object.keys(THEMES).map(k=>[k,1])),
+  week:1,
+  rate:1,
+  playing:false,
+  overlay:null, // snapshot
+  roleIndex:0
+}
+
+/************ HELPERS ************/ 
+function getVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function addPresence(weeks, theme){ weeks.forEach(w=>presence[w].add(theme)); }
+function A(id,name,theme,cycle){ return {id,name,theme,cycle, color:THEMES[theme].color}; }
+function choice(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+/************ UI: Sliders, Matrix, Roles ************/
+const sliders=document.getElementById('sliders');
+Object.entries(THEMES).forEach(([key,t])=>{
+  const wrap=document.createElement('div');
+  wrap.className='col';
+  wrap.innerHTML=`<div class='row'><span class='tag' style='border-color:#2f3e5e;background:#0b172c'><span style='display:inline-block;width:8px;height:8px;border-radius:50%;background:${t.color};margin-right:6px'></span>${t.label}</span><span class='hint' id='v_${key}'>1.00</span></div><input data-k='${key}' type='range' min='0' max='2' step='0.01' value='1'>`;
+  sliders.appendChild(wrap);
+});
+sliders.addEventListener('input',(e)=>{ if(e.target.matches('input[type=range]')){ const k=e.target.dataset.k; state.weights[k]=parseFloat(e.target.value); document.getElementById('v_'+k).textContent=state.weights[k].toFixed(2); draw(); renderTests(); }});
+
+const wk=document.getElementById('wk'); wk.addEventListener('input',e=>{ state.week=parseInt(e.target.value,10); draw(); renderTests(); });
+const rate=document.getElementById('rate'); rate.addEventListener('input',e=>{ state.rate=parseFloat(e.target.value); });
+
+// Presence matrix
+const matrix=document.getElementById('matrix');
+function renderMatrix(){
+  const tbl=document.createElement('table');
+  const thead=document.createElement('thead'); thead.innerHTML='<tr><th>Theme</th>'+WEEKS.map(w=>`<th>W${w}</th>`).join('')+'</tr>'; tbl.appendChild(thead);
+  const tbody=document.createElement('tbody');
+  Object.entries(THEMES).forEach(([k,t])=>{
+    const tr=document.createElement('tr'); tr.innerHTML=`<td>${t.label}</td>`;
+    WEEKS.forEach(w=>{
+      const on=presence[w].has(k);
+      const td=document.createElement('td');
+      td.innerHTML=`<span class='chip ${on?'on':''}' data-w='${w}' data-k='${k}'>${on?'●':'○'}</span>`;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  matrix.innerHTML=''; matrix.appendChild(tbl);
+}
+matrix.addEventListener('click',e=>{
+  const chip=e.target.closest('.chip'); if(!chip) return; const w=parseInt(chip.dataset.w,10); const k=chip.dataset.k;
+  if(presence[w].has(k)) presence[w].delete(k); else presence[w].add(k);
+  renderMatrix(); draw(); renderTests();
+});
+
+// Roles listing
+const rolesBox=document.getElementById('roles');
+function renderRoles(){
+  const tbl=document.createElement('table');
+  const thead=document.createElement('thead'); thead.innerHTML='<tr><th>Agent</th><th>Theme</th><th>Role@W'+state.week+'</th></tr>'; tbl.appendChild(thead);
+  const tbody=document.createElement('tbody');
+  agents.forEach(a=>{
+    const role=a.cycle[state.roleIndex % a.cycle.length];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${a.name}</td><td><span class='tag'>${THEMES[a.theme].label}</span></td><td>${role}</td>`;
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody); rolesBox.innerHTML=''; rolesBox.appendChild(tbl);
+}
+
+/************ Waveforms + Tests ************/
+const waves=document.getElementById('waves'); const wctx=waves.getContext('2d');
+function activation(){
+  const act={}; Object.keys(THEMES).forEach(k=>act[k]=Array(16).fill(0));
+  for(const w of WEEKS){ for(const k of Object.keys(THEMES)){ if(presence[w].has(k)) act[k][w-1]=state.weights[k]; }}
+  return act;
+}
+function draw(){
+  const act=activation();
+  wctx.clearRect(0,0,waves.width,waves.height);
+  const margin=28, H=waves.height-2*margin, W=waves.width-2*margin, step=W/15;
+  // grid
+  wctx.strokeStyle='#203154'; wctx.lineWidth=1; wctx.beginPath();
+  for(let i=0;i<16;i++){ const x=margin+i*step; wctx.moveTo(x,margin); wctx.lineTo(x,margin+H);} wctx.stroke();
+  // highlight week
+  const hi=state.week-1; wctx.fillStyle='rgba(124,180,255,0.08)'; wctx.fillRect(margin+hi*step-step/2,margin,W/16,H);
+  // lines
+  Object.entries(THEMES).forEach(([k,t])=>{
+    wctx.strokeStyle=t.color; wctx.lineWidth=2.0; wctx.beginPath();
+    act[k].forEach((v,i)=>{ const x=margin+i*step; const y=margin + H - (v/2)*H; if(i===0) wctx.moveTo(x,y); else wctx.lineTo(x,y); });
+    wctx.stroke();
+  });
+}
+
+function readiness(bucket){ const act=activation(); const w=state.week-1; let sum=0; bucket.forEach(k=>sum+=act[k][w]); return Math.min(1,(sum/bucket.length)/2); }
+function renderTests(){
+  document.getElementById('wkm').textContent=state.week;
+  const tb=document.getElementById('tests'); tb.innerHTML='';
+  tests.forEach(t=>{ const r=readiness(t.bucket); const pct=Math.round(r*100); const tr=document.createElement('tr'); tr.innerHTML=`<td>${t.name}</td><td>${t.due}</td><td><div style="height:8px;background:#0c1628;border:1px solid #253a61;border-radius:999px;overflow:hidden"><div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--canon),var(--games))"></div></div><div class='hint'>${pct}% ready</div></td>`; tb.appendChild(tr); });
+}
+
+/************ Olog ************/
+const ologBox=document.getElementById('olog');
+const ologs=[
+  ['Reading Response','stabilizes','Discussion Leader'],
+  ['Discussion Leader','amplifies','Short Paper 1'],
+  ['Short Paper 1','enables','Short Paper 2'],
+  ['Short Paper 2','prepares','Final Speculative Media'],
+  ['Participant','assumes','{member, critic, observer}'],
+  ['Reverberation info','influences','Subsequent Meetings']
+];
+function renderOlog(){ ologBox.innerHTML=''; ologs.forEach(([A,rel,B])=>{ const row=document.createElement('div'); row.className='row'; row.innerHTML=`<span class='tag'>⟦ ${A} ⟧</span><span class='hint'>${rel}</span><span class='tag'>⟦ ${B} ⟧</span>`; ologBox.appendChild(row); }); }
+
+/************ Chat Simulation ************/
+const stream=document.getElementById('stream');
+const agentPick=document.getElementById('agentPick'); agentPick.innerHTML=agents.map(a=>`<option value='${a.id}'>${a.name}</option>`).join('');
+const sendBtn=document.getElementById('send'); sendBtn.onclick=()=>{ const id=agentPick.value; const a=agents.find(x=>x.id===id); const text=document.getElementById('userMsg').value.trim(); if(text) pushMsg(a, text, 'facilitator'); document.getElementById('userMsg').value=''; };
+
+const memberLines={
+  canon:['The medium patterns perception, not the content.','Map the ground, not the figure.'],
+  power:['What defaults are encoded here?','Whose harm/benefit ledger have we drawn?'],
+  film:['Aura fractures under reproduction — how does that alter value?','Indexicality anchors truth-claims.'],
+  games:['What rule produces this outcome?','Mechanic → meaning → ideology.'],
+  xr:['Presence is constructed; what are its costs?','Latency and FOV modulate empathy claims.'],
+  platforms:['Show me the incentive gradient.','Trace the vernacular and its monetization.'],
+  ai:['Operationalize “intelligence” before we evaluate.','What are the failure modes under distribution?']
+};
+const criticLines={ power:['Name the bias; propose a redesign.'], canon:['Where is your medium-level evidence?'], games:['Describe the mechanic, not the plot.'] };
+const observerLines=['Logging resonance→ carrying to my other team.','Signal noted; will reverberate in adjacent topic.'];
+
+function pushMsg(agent, text, role){
+  const div=document.createElement('div'); div.className='msg';
+  const color=agent?agent.color:getVar('--platforms');
+  div.innerHTML=`<span class='av' style='background:${color}'></span><div><div class='mrole'><b>${agent?agent.name:'Facilitator'}</b> · ${role}</div><div class='mtext'>${text}</div></div>`;
+  stream.appendChild(div); stream.scrollTop=stream.scrollHeight;
+}
+
+function tickChat(){
+  if(!state.playing) return;
+  // choose agents whose theme is present this week
+  const activeThemes=[...presence[state.week]];
+  const pool=agents.filter(a=>activeThemes.includes(a.theme));
+  const n=Math.max(1, Math.round(activeThemes.length*state.rate));
+  for(let i=0;i<n;i++){
+    const a=choice(pool.length?pool:agents); const role=a.cycle[state.roleIndex % a.cycle.length];
+    let line=choice(memberLines[a.theme]||['—']);
+    if(role==='critic'){ line=choice(criticLines[a.theme]||['Offer a counterexample, then repair.']); }
+    if(role==='observer'){ line=choice(observerLines); }
+    // weight influences: amplify content intensity by theme weight
+    const amp = state.weights[a.theme];
+    const msg = (amp>1.5? '⚡ ':'')+line;
+    pushMsg(a,msg,role);
+  }
+  // next role cycle periodically
+  if(Math.random()<0.3){ state.roleIndex++; renderRoles(); }
+  // advance week with small chance during play to simulate progression
+  if(Math.random()<0.05){ state.week = 1 + (state.week % 16); wk.value=state.week; draw(); renderTests(); renderRoles(); }
+}
+
+/************ Overlay Snapshots ************/
+let snapshot=null; // {weights, presence}
+function saveSnapshot(){ snapshot={ weights:JSON.parse(JSON.stringify(state.weights)), presence:Object.fromEntries(Object.entries(presence).map(([w,set])=>[w,[...set]])) }; alert('Scenario saved. Use Overlay to compare.'); }
+function toggleOverlay(){
+  if(!snapshot){ alert('No snapshot saved. Click "Save Scenario" first.'); return; }
+  state.overlay = state.overlay? null : snapshot; draw();
+}
+
+/************ EXPORT/IMPORT ************/
+function exportJSON(){ const obj={weights:state.weights, presence:Object.fromEntries(Object.entries(presence).map(([w,set])=>[w,[...set]]))}; const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='victoros-synchat.json'; a.click(); }
+function importJSON(){ const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ try{ const obj=JSON.parse(r.result); state.weights=obj.weights||state.weights; for(const k in obj.presence){ presence[k]=new Set(obj.presence[k]); } syncSliders(); renderMatrix(); draw(); renderTests(); }catch(e){ alert('Invalid JSON'); } }; r.readAsText(f); }; inp.click(); }
+function syncSliders(){ Object.keys(THEMES).forEach(k=>{ const input=sliders.querySelector(`input[data-k="${k}"]`); input.value=state.weights[k]; document.getElementById('v_'+k).textContent=state.weights[k].toFixed(2); }); }
+
+/************ PLAYBACK LOOP ************/
+let loop=null; function play(){ if(state.playing) return; state.playing=true; loop=setInterval(()=>{ tickChat(); }, 900/state.rate); }
+function pause(){ state.playing=false; if(loop) clearInterval(loop); }
+
+/************ INIT ************/
+renderMatrix(); renderOlog(); renderTests(); renderRoles(); draw();
+
+document.getElementById('btnPlay').onclick=play; document.getElementById('btnPause').onclick=pause;
+document.getElementById('btnSnapshot').onclick=saveSnapshot; document.getElementById('btnOverlay').onclick=toggleOverlay;
+document.getElementById('btnExport').onclick=exportJSON; document.getElementById('btnImport').onclick=importJSON;
+
+</script>
+</body>
+</html>

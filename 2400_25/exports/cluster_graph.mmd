@@ -1,0 +1,29 @@
+flowchart-elk LR
+classDef default fill:#f8f8f8,stroke:#999,stroke-width:1px,color:#111;
+classDef rootNode fill:#eef6ff,stroke:#4a90e2,color:#0b3d91,stroke-width:1.5px;
+classDef categoryNode fill:#f5f0ff,stroke:#8a63d2,color:#402080,stroke-width:1.5px;
+classDef leafNode fill:#f0fff4,stroke:#2e8540,color:#0f3d1e,stroke-width:1px;
+
+cluster_foundations_extensions["cluster_foundations_extensions"]
+cluster_tech_philosophy["cluster_tech_philosophy"]
+cluster_media_ecology_bias["cluster_media_ecology_bias"]
+cluster_augmentation_origins["cluster_augmentation_origins"]
+cluster_culture_interpretation["cluster_culture_interpretation"]
+cluster_platforms_power["cluster_platforms_power"]
+cluster_images_apparatus["cluster_images_apparatus"]
+cluster_ai_identity_method["cluster_ai_identity_method"]
+cluster_memes_myths["cluster_memes_myths"]
+cluster_foundations_extensions -- "extensions→augmentation" --> cluster_augmentation_origins
+cluster_images_apparatus -- "apparatus under platforms" --> cluster_platforms_power
+cluster_media_ecology_bias -- "infrastructure→power" --> cluster_platforms_power
+cluster_culture_interpretation -- "interpretation→replication" --> cluster_memes_myths
+cluster_ai_identity_method -- "identity under platform logics" --> cluster_platforms_power
+class cluster_foundations_extensions categoryNode
+class cluster_tech_philosophy categoryNode
+class cluster_media_ecology_bias categoryNode
+class cluster_augmentation_origins categoryNode
+class cluster_culture_interpretation categoryNode
+class cluster_platforms_power categoryNode
+class cluster_images_apparatus categoryNode
+class cluster_ai_identity_method categoryNode
+class cluster_memes_myths categoryNode

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LMC 2400 — Structured Syllabus (Fall 2025)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --black:#000; --white:#fff; --text:#111827; --bg:#ffffff; --ink:#0f172a;
+  --border:#d0d5dc; --muted:#6b7280; --accent:#0f3d91; --soft:#f6f7f9; --chip:#eef2ff; --danger:#b91c1c; --warn:#b45309; --ok:#065f46;
+  --font-serif:'Crimson Pro',serif; --font-sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--font-sans);line-height:1.6;color:var(--text);background:var(--bg)}
+.container{max-width:1200px;margin:0 auto;padding:0 20px}
+.header{background:var(--bg);border-bottom:2px solid var(--border);padding:12px 0;position:sticky;top:0;z-index:20}
+.logo{font-size:20px;font-weight:700;font-family:var(--font-serif)}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.header-actions button{border:1px solid var(--border);background:var(--bg);padding:6px 10px;cursor:pointer;font-size:13px;border-radius:8px}
+.header-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.main{display:grid;grid-template-columns:1fr 300px;gap:24px;padding:20px 0}
+@media (max-width:1000px){.main{grid-template-columns:1fr}.sidebar{position:static}}
+.section{margin-bottom:22px}
+.section-header{display:flex;align-items:center;margin:24px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--border)}
+.section-number{background:var(--ink);color:var(--white);padding:4px 8px;font-weight:700;border-radius:6px}
+.section-title{margin-left:10px;font-family:var(--font-serif);font-size:1.45rem;font-weight:700}
+.sidebar{position:sticky;top:76px;height:fit-content}
+.sidebar-section{border:1px solid var(--border);padding:12px;margin-bottom:16px;border-radius:10px}
+.sidebar-title{font-weight:700;margin-bottom:6px}
+.toc-item{display:block;padding:4px 0;font-size:14px;text-decoration:none;color:var(--text)}
+.toc-item:hover{text-decoration:underline}
+.content-card{margin-bottom:14px;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card-head{display:flex;justify-content:space-between;align-items:center;background:#f8f8f8;padding:10px 12px;border-bottom:1px solid var(--border);font-weight:700}
+.card-body{padding:12px}
+.small{font-size:12px;color:var(--muted)}
+.badge{display:inline-block;background:var(--chip);border:1px solid #dbe5ff;color:#1f3a8a;border-radius:999px;padding:2px 8px;font-size:12px;margin-left:6px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:8px}
+.flag{padding:8px 10px;border-radius:10px;border:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.flag.ok{background:#ecfdf5;border-color:#a7f3d0}
+.flag.warn{background:#fffbeb;border-color:#fed7aa}
+.flag.danger{background:#fef2f2;border-color:#fecaca}
+.readings ul{margin-left:18px}
+.table{width:100%;border-collapse:collapse;margin-top:8px}
+.table th,.table td{border:1px solid var(--border);padding:6px;font-size:13px;vertical-align:top}
+.table th{background:#f6f7f9;text-align:left}
+.details{margin-bottom:10px}
+summary{cursor:pointer;font-weight:600}
+hr.div{border:none;border-top:2px dashed var(--border);margin:10px 0}
+/* Print */
+@media print{
+  .header,.sidebar,.controls button{display:none!important}
+  body{color:#000}
+  .content-card{box-shadow:none}
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="logo">LMC 2400 — Structured Syllabus (Fall 2025)</div>
+    <div class="header-actions">
+      <button id="expandAll">Expand All</button>
+      <button id="collapseAll">Collapse All</button>
+      <button class="primary" onclick="window.print()">Print</button>
+    </div>
+  </div>
+</header>
+<main class="container main">
+  <div class="content-area">
+
+    <!-- 1. OVERVIEW -->
+    <section id="overview" class="section">
+      <div class="section-header"><div class="section-number">1</div><div class="section-title">Overview</div></div>
+      <div class="content-card">
+        <div class="card-head">Course Shell</div>
+        <div class="card-body kv" id="course-shell">
+          <!-- filled by JS -->
+        </div>
+      </div>
+      <div class="content-card">
+        <div class="card-head">Learning Outcomes</div>
+        <div class="card-body">
+          <ul id="learning-outcomes" style="margin-left:18px"></ul>
+        </div>
+      </div>
+      <div class="content-card">
+        <div class="card-head">Validation Status</div>
+        <div class="card-body">
+          <div id="validation-flag" class="flag ok"><b>Status:</b> All references resolved.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. MODULES (Arcs) -->
+    <section id="modules" class="section">
+      <div class="section-header"><div class="section-number">2</div><div class="section-title">Modules & Readings Map</div></div>
+      <div class="content-card"><div class="card-body" id="arcs-list"></div></div>
+    </section>
+
+    <!-- 3. WEEKS -->
+    <section id="weeks" class="section">
+      <div class="section-header"><div class="section-number">3</div><div class="section-title">Weeks & Readings</div></div>
+      <div id="weeks-grid"></div>
+    </section>
+
+    <!-- 4. SOURCES -->
+    <section id="sources" class="section">
+      <div class="section-header"><div class="section-number">4</div><div class="section-title">Sources Library</div></div>
+      <div class="content-card">
+        <div class="card-head">Sources (by ID)</div>
+        <div class="card-body">
+          <table class="table" id="sources-table"><thead><tr>
+            <th>ID</th><th>Title</th><th>Authors</th><th>Type</th><th>Tags</th><th>Status</th>
+          </tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. CLUSTERS -->
+    <section id="clusters" class="section">
+      <div class="section-header"><div class="section-number">5</div><div class="section-title">Clusters</div></div>
+      <div class="content-card"><div class="card-body" id="clusters-list"></div></div>
+    </section>
+
+    <!-- 6. ASSESSMENTS -->
+    <section id="assessments" class="section">
+      <div class="section-header"><div class="section-number">6</div><div class="section-title">Assessments</div></div>
+      <div class="content-card"><div class="card-body" id="assessments-list"></div></div>
+    </section>
+
+    <!-- 7. DEBATES -->
+    <section id="debates" class="section">
+      <div class="section-header"><div class="section-number">7</div><div class="section-title">Debates</div></div>
+      <div class="content-card"><div class="card-body" id="debates-list"></div></div>
+    </section>
+
+  </div>
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">On this page</div>
+      <a class="toc-item" href="#overview">Overview</a>
+      <a class="toc-item" href="#modules">Modules</a>
+      <a class="toc-item" href="#weeks">Weeks</a>
+      <a class="toc-item" href="#sources">Sources</a>
+      <a class="toc-item" href="#clusters">Clusters</a>
+      <a class="toc-item" href="#assessments">Assessments</a>
+      <a class="toc-item" href="#debates">Debates</a>
+    </div>
+  </aside>
+</main>
+
+<script>
+(function(){
+  const $ = (sel, ctx=document) => ctx.querySelector(sel);
+  const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+
+  // Expand/Collapse
+  $('#expandAll').addEventListener('click', ()=>{
+    $$('details').forEach(d=>d.open=true);
+  });
+  $('#collapseAll').addEventListener('click', ()=>{
+    $$('details').forEach(d=>d.open=false);
+  });
+
+  fetch('rel.structured.json')
+    .then(r=>r.json())
+    .then(data => renderAll(data))
+    .catch(err => {
+      console.error('Failed to load rel.structured.json', err);
+      $('#validation-flag').className = 'flag danger';
+      $('#validation-flag').innerHTML = '<b>Status:</b> Could not load structured data.';
+    });
+
+  function renderAll(data){
+    renderCourse(data);
+    renderArcs(data);
+    renderWeeks(data);
+    renderSources(data);
+    renderClusters(data);
+    renderAssessments(data);
+    renderDebates(data);
+    renderValidation(data);
+  }
+
+  function renderCourse(data){
+    const course = data.course || {};
+    const shell = $('#course-shell');
+    shell.innerHTML = `
+      <div>Title</div><div><strong>${course.code || '—'}</strong></div>
+      <div>Term</div><div>${course.term || '—'}</div>
+      <div>Design Note</div><div>${course.design_note || '—'}</div>
+    `;
+    const lo = course.learning_outcomes || [];
+    const ul = $('#learning-outcomes');
+    ul.innerHTML = lo.map(o=>`<li><b>${escapeHtml(o.label||o.id)}</b> — ${escapeHtml(o.description||'')}</li>`).join('');
+  }
+
+  function renderArcs(data){
+    const arcs = data.arcs || [];
+    const box = $('#arcs-list');
+    if(!arcs.length){ box.innerHTML = '<p class="small">No arcs defined.</p>'; return; }
+    const frag = document.createElement('div');
+    arcs.forEach((a,i)=>{
+      const det = document.createElement('details');
+      if(i===0) det.open = true;
+      det.className = 'details';
+      det.innerHTML = `
+        <summary>${escapeHtml(a.title||a.id)} <span class="badge">${(a.weeks||[]).join(', ')}</span></summary>
+        <div class="small" style="margin:.25rem 0 .5rem">${escapeHtml(a.capstone_prompt||'')}</div>
+        <div class="readings"><h4>Clusters</h4><ul>${(a.clusters||[]).map(c=>`<li><code>${escapeHtml(c)}</code></li>`).join('')}</ul></div>
+      `;
+      frag.appendChild(det);
+    });
+    box.innerHTML=''; box.appendChild(frag);
+  }
+
+  function renderWeeks(data){
+    const weeks = data.weeks || {};
+    const grid = $('#weeks-grid');
+    grid.className = 'cal-grid';
+    const keys = Object.keys(weeks);
+    if(!keys.length){ grid.innerHTML = '<p class="small">No weeks defined.</p>'; return; }
+    const frag = document.createDocumentFragment();
+    keys.forEach(k=>{
+      const w = weeks[k];
+      const card = document.createElement('div');
+      card.className = 'cal-card';
+      card.innerHTML = `
+        <div class="cal-head"><div class="cal-title">${k} — ${escapeHtml(w.topic||'')}</div>
+          <div class="cal-sub">Sources: ${(w.sources||[]).length}</div></div>
+        <div class="cal-body">
+          <div class="readings"><h4>Readings</h4>
+            <ul>${(w.sources||[]).map(s=>`<li><code>${escapeHtml(s)}</code></li>`).join('')}</ul>
+          </div>
+        </div>
+      `;
+      frag.appendChild(card);
+    });
+    grid.innerHTML=''; grid.appendChild(frag);
+  }
+
+  function renderSources(data){
+    const byId = (data.sources && data.sources.by_id) || {};
+    const tbody = $('#sources-table tbody');
+    const rows = Object.entries(byId).map(([id,s])=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><code>${escapeHtml(id)}</code></td>
+        <td>${escapeHtml(s.title||'')}</td>
+        <td>${(s.authors||[]).map(a=>escapeHtml(a)).join('; ')}</td>
+        <td>${escapeHtml(s.type||'')}</td>
+        <td>${(s.tags||[]).map(t=>`<span class="badge">${escapeHtml(t)}</span>`).join(' ')}</td>
+        <td>${escapeHtml(s.status||'')}</td>
+      `;
+      return tr;
+    });
+    tbody.innerHTML=''; rows.forEach(r=>tbody.appendChild(r));
+  }
+
+  function renderClusters(data){
+    const clusters = data.clusters || [];
+    const box = $('#clusters-list');
+    if(!clusters.length){ box.innerHTML = '<p class="small">No clusters.</p>'; return; }
+    const frag = document.createElement('div');
+    clusters.forEach(c=>{
+      const det = document.createElement('details');
+      det.className='details';
+      det.innerHTML = `
+        <summary>${escapeHtml(c.title||c.id)} <span class="badge">Difficulty: ${escapeHtml(String(c.difficulty||'-'))}</span></summary>
+        <div class="small" style="margin:.25rem 0 .5rem">${escapeHtml(c.purpose||'')}</div>
+        <div><b>Primary</b>: ${(c.primary_sources||[]).map(s=>`<code>${escapeHtml(s)}</code>`).join(', ')}</div>
+        <div><b>Companions</b>: ${(c.companions||[]).map(s=>`<code>${escapeHtml(s)}</code>`).join(', ')}</div>
+      `;
+      frag.appendChild(det);
+    });
+    box.innerHTML=''; box.appendChild(frag);
+  }
+
+  function renderAssessments(data){
+    const assessments = data.assessments || [];
+    const box = $('#assessments-list');
+    if(!assessments.length){ box.innerHTML = '<p class="small">No assessments.</p>'; return; }
+    const frag = document.createElement('div');
+    assessments.forEach(a=>{
+      const det = document.createElement('details');
+      det.className='details';
+      det.innerHTML = `
+        <summary>${escapeHtml(a.name||a.id)} <span class="badge">${escapeHtml(a.kind||'')}</span></summary>
+        <div class="kv" style="margin:.5rem 0 0">
+          <div>Clusters</div><div>${(a.clusters||[]).map(s=>`<code>${escapeHtml(s)}</code>`).join(', ')}</div>
+          <div>Methods</div><div>${(a.required_methods||[]).map(m=>`<span class="badge">${escapeHtml(m)}</span>`).join(' ')}</div>
+          <div>Due Week</div><div>${escapeHtml(a.due_week||'—')}</div>
+          <div>Points</div><div>${escapeHtml(String(a.points||'—'))}</div>
+          <div>Rubric</div><div><code>${escapeHtml(a.rubric_ref||'—')}</code></div>
+        </div>
+      `;
+      frag.appendChild(det);
+    });
+    box.innerHTML=''; box.appendChild(frag);
+  }
+
+  function renderDebates(data){
+    const debates = data.debates || [];
+    const box = $('#debates-list');
+    if(!debates.length){ box.innerHTML = '<p class="small">No debates.</p>'; return; }
+    const frag = document.createElement('div');
+    debates.forEach(d=>{
+      const det = document.createElement('details');
+      det.className='details';
+      det.innerHTML = `
+        <summary>${escapeHtml(d.question||'Question')}</summary>
+        <div class="kv" style="margin:.5rem 0 0">
+          <div>Pairings</div><div>${(d.pairings||[]).map(s=>`<code>${escapeHtml(s)}</code>`).join(', ')}</div>
+          <div>Use</div><div>${escapeHtml(d.use||'')}</div>
+          <div>Deliverable</div><div><span class="badge">${escapeHtml((d.deliverable||{}).kind||'')}</span> ${escapeHtml((d.deliverable||{}).length_min? (d.deliverable.length_min + ' min') : (d.deliverable||{}).length_words? (d.deliverable.length_words + ' words') : '')} — rubric <code>${escapeHtml((d.deliverable||{}).rubric_ref||'')}</code></div>
+        </div>
+      `;
+      frag.appendChild(det);
+    });
+    box.innerHTML=''; box.appendChild(frag);
+  }
+
+  function renderValidation(data){
+    const v = data.validation || {};
+    const ok = (!v.unresolved_source_refs || v.unresolved_source_refs.length===0)
+            && (!v.unresolved_cluster_refs || v.unresolved_cluster_refs.length===0)
+            && (!v.missing_rubrics || v.missing_rubrics.length===0);
+    const flag = $('#validation-flag');
+    flag.className = 'flag ' + (ok? 'ok' : 'warn');
+    flag.innerHTML = `<b>Status:</b> ${ok? 'All references resolved.' : 'Warnings'} ${v.notes? '— ' + escapeHtml(v.notes) : ''}`;
+  }
+
+  function escapeHtml(str){
+    return String(str||'')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#39;');
+  }
+})();
+</script>
+</body>
+</html>

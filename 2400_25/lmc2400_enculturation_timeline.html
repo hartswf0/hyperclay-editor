@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LMC 2400 · Week-by-Week Enculturation Timeline</title>
+<style>
+  :root {
+    --bg:#0b0c10; --panel:#121621; --ink:#e9ecf1; --muted:#8fa1b9; --accent:#3aa7ff; --ok:#28d07f; --warn:#ffcc00;
+    --rule:#20283a;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 ui-sans-serif, system-ui, Segoe UI, Inter, Roboto; }
+  header { padding:16px 20px; border-bottom:1px solid var(--rule); background:linear-gradient(180deg,#0f1420,#0b0c10); position:sticky; top:0; z-index:10; }
+  h1 { margin:0; font-size:18px; letter-spacing:.3px; }
+  main { max-width:1100px; margin:0 auto; padding:20px; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+  .card { background:var(--panel); border:1px solid var(--rule); border-radius:14px; padding:14px; transition:transform .12s ease, box-shadow .12s ease; cursor:pointer; }
+  .card:hover { transform: translateY(-2px); box-shadow:0 6px 24px rgba(0,0,0,.35); }
+  .week { font-weight:700; font-size:13px; color:var(--muted); }
+  .date { font-size:12px; color:var(--muted); }
+  .themes { margin:6px 0 8px; font-weight:600; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+  .chip { border:1px solid var(--rule); padding:2px 8px; border-radius:999px; font-size:12px; }
+  dialog { width:min(820px, 92vw); border:none; border-radius:16px; padding:0; background:var(--panel); color:var(--ink); }
+  .dlg-head { padding:14px 16px; border-bottom:1px solid var(--rule); display:flex; justify-content:space-between; align-items:center; }
+  .dlg-body { padding:16px; display:grid; gap:12px; }
+  .row { display:grid; grid-template-columns: 160px 1fr; gap:8px; }
+  .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
+  button.close { all:unset; border:1px solid var(--rule); padding:6px 10px; border-radius:8px; cursor:pointer; }
+  .footer { padding:10px 16px; border-top:1px solid var(--rule); display:flex; justify-content:flex-end; gap:8px; }
+  @media (max-width:600px) {
+    .row { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>LMC 2400 · Week-by-Week Enculturation Timeline</h1>
+</header>
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+
+<dialog id="dlg">
+  <div class="dlg-head">
+    <div id="dlg-title" style="font-weight:700"></div>
+    <button class="close" onclick="document.getElementById('dlg').close()">Close</button>
+  </div>
+  <div class="dlg-body" id="dlg-body"></div>
+  <div class="footer">
+    <button class="close" onclick="document.getElementById('dlg').close()">Close</button>
+  </div>
+</dialog>
+
+<script>
+const data = [
+  {
+    "week": 1,
+    "date_range": "Aug 18\u2013Aug 24",
+    "themes": [
+      "Orientation",
+      "Why Media Studies"
+    ],
+    "geertz_components": [
+      "System of Symbols",
+      "Moods/Motivations"
+    ],
+    "symbolic_triggers": [
+      "Syllabus_PDF",
+      "Schedule_Calendar",
+      "Course_Overview"
+    ],
+    "authority_sources": [
+      "Instructor_Authority",
+      "University_Assessment_Structure"
+    ],
+    "activities": [
+      "Syllabus walkthrough",
+      "Expectations setting"
+    ],
+    "readings": [
+      "Intro overview; framing notes"
+    ],
+    "outcomes": [
+      "Legibility of course symbols",
+      "Curiosity + mild intimidation"
+    ]
+  },
+  {
+    "week": 2,
+    "date_range": "Aug 25\u2013Aug 31",
+    "themes": [
+      "Canon Entry: Benjamin",
+      "Reproduction & Aura"
+    ],
+    "geertz_components": [
+      "System of Symbols",
+      "Aura of Factuality"
+    ],
+    "symbolic_triggers": [
+      "Benjamin_Work_of_Art",
+      "Reading_Rubric",
+      "Perusall_Onboarding"
+    ],
+    "authority_sources": [
+      "Canonical_Authors",
+      "Instructor_Authority"
+    ],
+    "activities": [
+      "Perusall annotations",
+      "Class discussion"
+    ],
+    "readings": [
+      "Walter Benjamin, Work of Art"
+    ],
+    "outcomes": [
+      "Aura/factuality linkage recognized",
+      "Annotation norms established"
+    ]
+  },
+  {
+    "week": 3,
+    "date_range": "Sep 1\u2013Sep 7",
+    "themes": [
+      "McLuhan: Medium/Message"
+    ],
+    "geertz_components": [
+      "Conceptions of Order"
+    ],
+    "symbolic_triggers": [
+      "McLuhan_Medium_Message",
+      "Slide_Deck_Media_Bias"
+    ],
+    "authority_sources": [
+      "Canonical_Authors"
+    ],
+    "activities": [
+      "Mini-lecture",
+      "Prompt design"
+    ],
+    "readings": [
+      "Marshall McLuhan, selected chapter"
+    ],
+    "outcomes": [
+      "Bias-of-medium concept internalized"
+    ]
+  },
+  {
+    "week": 4,
+    "date_range": "Sep 8\u2013Sep 14",
+    "themes": [
+      "Pacey: Culture of Technology"
+    ],
+    "geertz_components": [
+      "Conceptions of Order",
+      "Moods/Motivations"
+    ],
+    "symbolic_triggers": [
+      "Pacey_Culture_of_Technology",
+      "Reading_Responses"
+    ],
+    "authority_sources": [
+      "Canonical_Authors",
+      "Grading_Rubric"
+    ],
+    "activities": [
+      "Response post",
+      "Small group debate"
+    ],
+    "readings": [
+      "Arnold Pacey, Culture of Technology (excerpt)"
+    ],
+    "outcomes": [
+      "Social-technical frames linked to personal tech use"
+    ]
+  },
+  {
+    "week": 5,
+    "date_range": "Sep 15\u2013Sep 21",
+    "themes": [
+      "Short Paper 1 Workshop"
+    ],
+    "geertz_components": [
+      "Aura of Factuality",
+      "System of Symbols"
+    ],
+    "symbolic_triggers": [
+      "SP1_Prompt",
+      "MLA_Citation_Requirements"
+    ],
+    "authority_sources": [
+      "University_Assessment_Structure",
+      "Instructor_Authority"
+    ],
+    "activities": [
+      "Outline critique",
+      "Citation clinic"
+    ],
+    "readings": [
+      "Writing guide; sample analyses"
+    ],
+    "outcomes": [
+      "Rubric becomes truth-anchor",
+      "Procedural rhetoric of grading felt"
+    ]
+  },
+  {
+    "week": 6,
+    "date_range": "Sep 22\u2013Sep 28",
+    "themes": [
+      "Noble: Algorithms of Oppression"
+    ],
+    "geertz_components": [
+      "Aura of Factuality",
+      "Conceptions of Order"
+    ],
+    "symbolic_triggers": [
+      "Noble_Algorithms_of_Oppression",
+      "Search_Examples"
+    ],
+    "authority_sources": [
+      "Canonical_Authors",
+      "External_Case_Studies"
+    ],
+    "activities": [
+      "Case analysis",
+      "Perusall thread"
+    ],
+    "readings": [
+      "Safiya Umoja Noble, intro"
+    ],
+    "outcomes": [
+      "Metrics as truth-claims problematized"
+    ]
+  },
+  {
+    "week": 7,
+    "date_range": "Sep 29\u2013Oct 5",
+    "themes": [
+      "SP1 Due; Peer Dialogue"
+    ],
+    "geertz_components": [
+      "Moods/Motivations",
+      "Aura of Factuality"
+    ],
+    "symbolic_triggers": [
+      "SP1_Submission",
+      "Peer_Feedback"
+    ],
+    "authority_sources": [
+      "Grading_Rubric",
+      "Peer_Recognition"
+    ],
+    "activities": [
+      "Submission debrief",
+      "Class share-out"
+    ],
+    "readings": [
+      "N/A"
+    ],
+    "outcomes": [
+      "Peer culture begins reinforcing norms"
+    ]
+  },
+  {
+    "week": 8,
+    "date_range": "Oct 6\u2013Oct 12",
+    "themes": [
+      "Film/Media Theory: Bazin or Halberstam"
+    ],
+    "geertz_components": [
+      "Conceptions of Order"
+    ],
+    "symbolic_triggers": [
+      "Bazin_Ontology",
+      "Halberstam_Queer_Art_of_Failure"
+    ],
+    "authority_sources": [
+      "Canonical_Authors"
+    ],
+    "activities": [
+      "Comparative reading",
+      "Theory mapping"
+    ],
+    "readings": [
+      "Bazin and/or Halberstam excerpts"
+    ],
+    "outcomes": [
+      "Multiple theoretical orders juxtaposed"
+    ]
+  },
+  {
+    "week": 9,
+    "date_range": "Oct 13\u2013Oct 19",
+    "themes": [
+      "Bogost: Procedural Rhetoric"
+    ],
+    "geertz_components": [
+      "Moods/Motivations",
+      "System of Symbols"
+    ],
+    "symbolic_triggers": [
+      "Bogost_Procedural_Rhetoric",
+      "Syllabus_Procedures"
+    ],
+    "authority_sources": [
+      "Canonical_Authors",
+      "Course_Procedures"
+    ],
+    "activities": [
+      "Mechanics-as-meaning exercise"
+    ],
+    "readings": [
+      "Ian Bogost, chapter"
+    ],
+    "outcomes": [
+      "Procedural meaning recognized in course rituals"
+    ]
+  },
+  {
+    "week": 10,
+    "date_range": "Oct 20\u2013Oct 26",
+    "themes": [
+      "Short Paper 2 Workshop"
+    ],
+    "geertz_components": [
+      "Aura of Factuality"
+    ],
+    "symbolic_triggers": [
+      "SP2_Prompt",
+      "Assessment_Criteria"
+    ],
+    "authority_sources": [
+      "University_Assessment_Structure"
+    ],
+    "activities": [
+      "Draft review",
+      "Rubric alignment"
+    ],
+    "readings": [
+      "N/A"
+    ],
+    "outcomes": [
+      "Authority of criteria normalized"
+    ]
+  },
+  {
+    "week": 11,
+    "date_range": "Oct 27\u2013Nov 2",
+    "themes": [
+      "Digital Culture: Social Platforms"
+    ],
+    "geertz_components": [
+      "Moods/Motivations",
+      "Conceptions of Order"
+    ],
+    "symbolic_triggers": [
+      "Platform_Case_Studies",
+      "Ethics_Frameworks"
+    ],
+    "authority_sources": [
+      "External_Case_Studies",
+      "Instructor_Authority"
+    ],
+    "activities": [
+      "Case deconstruction",
+      "Ethical scenarios"
+    ],
+    "readings": [
+      "Articles/cases selected by instructor"
+    ],
+    "outcomes": [
+      "Platform logics seen as cultural orders"
+    ]
+  },
+  {
+    "week": 12,
+    "date_range": "Nov 3\u2013Nov 9",
+    "themes": [
+      "AI Foundations: Turing / Parisi / Case Studies"
+    ],
+    "geertz_components": [
+      "Conceptions of Order",
+      "Aura of Factuality"
+    ],
+    "symbolic_triggers": [
+      "Turing_1950",
+      "Parisi_AI_Overview",
+      "Tay_Case"
+    ],
+    "authority_sources": [
+      "Canonical_Authors",
+      "External_Case_Studies"
+    ],
+    "activities": [
+      "AI debate",
+      "Historical framing"
+    ],
+    "readings": [
+      "Turing excerpt; Parisi; Tay case"
+    ],
+    "outcomes": [
+      "AI framed through canonical and empirical lenses"
+    ]
+  },
+  {
+    "week": 13,
+    "date_range": "Nov 10\u2013Nov 16",
+    "themes": [
+      "Speculative Media Exercise"
+    ],
+    "geertz_components": [
+      "Uniquely Realistic",
+      "Moods/Motivations"
+    ],
+    "symbolic_triggers": [
+      "Speculative_Frameworks",
+      "Creative_Params"
+    ],
+    "authority_sources": [
+      "Peer_Recognition",
+      "Instructor_Authority"
+    ],
+    "activities": [
+      "Workshop future artifacts"
+    ],
+    "readings": [
+      "N/A"
+    ],
+    "outcomes": [
+      "Students as apprentice authorities"
+    ]
+  },
+  {
+    "week": 14,
+    "date_range": "Nov 17\u2013Nov 23",
+    "themes": [
+      "Speculative Readout; SP2 due earlier"
+    ],
+    "geertz_components": [
+      "Uniquely Realistic"
+    ],
+    "symbolic_triggers": [
+      "Public_Presentations",
+      "Rubric_Check"
+    ],
+    "authority_sources": [
+      "Peer_Recognition",
+      "Grading_Rubric"
+    ],
+    "activities": [
+      "Presentations",
+      "Group critique"
+    ],
+    "readings": [
+      "N/A"
+    ],
+    "outcomes": [
+      "Critical lens experienced as default reality"
+    ]
+  },
+  {
+    "week": 15,
+    "date_range": "Nov 24\u2013Dec 2",
+    "themes": [
+      "Final Class / Work Time"
+    ],
+    "geertz_components": [
+      "All Components"
+    ],
+    "symbolic_triggers": [
+      "Final_Speculative_Analysis"
+    ],
+    "authority_sources": [
+      "Instructor_Authority",
+      "University_Assessment_Structure"
+    ],
+    "activities": [
+      "Studio time",
+      "1:1 check-ins"
+    ],
+    "readings": [
+      "N/A"
+    ],
+    "outcomes": [
+      "Closure; identity as critical media citizen"
+    ]
+  }
+];
+
+const grid = document.getElementById('grid');
+const dlg = document.getElementById('dlg');
+const dlgTitle = document.getElementById('dlg-title');
+const dlgBody = document.getElementById('dlg-body');
+
+function chip(txt) { return `<span class="chip">${txt}</span>`; }
+
+function cardHTML(item) {
+  return `<div class="card" data-week="${item.week}">
+    <div class="week">Week ${item.week} <span class="date">· ${item.date_range}</span></div>
+    <div class="themes">${item.themes.join(' · ')}</div>
+    <div class="chips">${item.geertz_components.map(chip).join('')}</div>
+    <div class="chips">${item.symbolic_triggers.map(chip).join('')}</div>
+  </div>`;
+}
+
+function row(label, content) {
+  return `<div class="row">
+    <div class="label">${label}</div>
+    <div>${content}</div>
+  </div>`;
+}
+
+function openDialog(item) {
+  dlgTitle.textContent = `Week ${item.week} · ${item.date_range}`;
+  const body = [
+    row("Themes", item.themes.join('; ')),
+    row("Geertz Components", item.geertz_components.join(', ')),
+    row("Symbolic Triggers", item.symbolic_triggers.join(', ')),
+    row("Authority Sources", item.authority_sources.join(', ')),
+    row("Activities", item.activities.join('; ')),
+    row("Readings", item.readings.join('; ')),
+    row("Outcomes", item.outcomes.join('; ')),
+  ].join('');
+  dlgBody.innerHTML = body;
+  dlg.showModal();
+}
+
+function init() {
+  grid.innerHTML = data.map(cardHTML).join('');
+  grid.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx = parseInt(card.getAttribute('data-week'), 10) - 1;
+      openDialog(data[idx]);
+    });
+  });
+}
+
+init();
+</script>
+</body>
+</html>

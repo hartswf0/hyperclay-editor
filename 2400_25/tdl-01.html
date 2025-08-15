@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Course OS — Spencer‑Brown Olog Builder</title>
+<style>
+  :root{
+    --bg:#0b0c10;--panel:#101625;--ink:#e9ecf1;--mute:#9aabc7;--rule:#1f2738;--chip:#1b2334;--accent:#3aa7ff;--ok:#28d07f;--warn:#f3c211;--bad:#e74c3c;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:13.5px/1.45 ui-sans-serif,system-ui,Segoe UI,Inter,Roboto}
+  .row{display:flex;gap:10px;height:100%;}
+  .col{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:10px;overflow:auto}
+  #left{width:320px}
+  #center{flex:1;display:flex;flex-direction:column}
+  #right{width:360px}
+  header{display:flex;align-items:center;gap:12px;padding:10px 12px;background:#0f131c;border-bottom:1px solid var(--rule)}
+  header h1{font-size:16px;margin:0;font-weight:700}
+  .bar{display:flex;align-items:center;gap:8px;margin-left:auto}
+  .btn{background:var(--chip);border:1px solid var(--rule);padding:6px 10px;border-radius:10px;color:var(--ink);cursor:pointer}
+  .btn:hover{background:#202b40}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:#142038;border:1px solid var(--rule);padding:4px 8px;border-radius:999px;margin:2px 3px}
+  .sect{margin-bottom:12px}
+  h2{font-size:13px;margin:0 0 6px 0;color:var(--mute);text-transform:uppercase;letter-spacing:.08em}
+  .slot{border:1px dashed var(--rule);border-radius:10px;padding:6px;margin:4px 0}
+  .card{display:flex;justify-content:space-between;align-items:center;background:var(--chip);border:1px solid var(--rule);border-radius:10px;padding:6px 8px;margin:6px 0}
+  .tiny{font-size:12px;color:var(--mute)}
+  input,select{background:#0f1526;border:1px solid var(--rule);color:var(--ink);padding:6px 8px;border-radius:8px}
+  textarea{background:#0f1526;border:1px solid var(--rule);color:var(--ink);padding:8px;border-radius:10px;width:100%;height:90px}
+  .rowline{display:flex;gap:8px;align-items:center}
+  .badge{background:#0f192e;border:1px solid var(--rule);padding:2px 6px;border-radius:8px;color:var(--mute)}
+  .kbd{background:#0d1220;border:1px solid var(--rule);padding:1px 6px;border-radius:6px}
+  .hr{height:1px;background:var(--rule);margin:8px 0}
+  .scroll{max-height:210px;overflow:auto}
+  .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+</style>
+</head>
+<body>
+<header>
+  <h1>Course OS — Spencer‑Brown Olog Builder</h1>
+  <div class="bar">
+    <span class="badge">Weeks: <span id="weeksTotal">14</span></span>
+    <span class="badge">Midterm: wk <span id="midW">7</span></span>
+    <span class="badge">Final: wk <span id="finW">14</span></span>
+    <span class="badge">Weights: P10 / R25 / L10 / M25 / F35</span>
+    <button class="btn" id="exportBtn">Export .json</button>
+    <button class="btn" id="resetBtn">Reset</button>
+  </div>
+</header>
+<div class="row" style="height:calc(100% - 52px)">
+  <!-- LEFT: REGISTERS -->
+  <div class="col" id="left">
+    <div class="sect">
+      <h2>Registers (◻)</h2>
+      <div class="tiny">These are first-order <b>distinctions</b> with slot capacities inspired by your symbol ledger. Click a plus to spawn a card into the workspace.</div>
+    </div>
+
+    <div class="sect" id="reg-frames">
+      <div class="rowline"><strong>𓉗 ×10 — Frames</strong><span class="tiny">(core lenses)</span></div>
+      <div id="framesList" class="scroll"></div>
+    </div>
+
+    <div class="sect" id="reg-methods">
+      <div class="rowline"><strong>𓃑 ×6 — Methods</strong><span class="tiny">(ways of knowing)</span></div>
+      <div id="methodsList" class="scroll"></div>
+    </div>
+
+    <div class="sect" id="reg-weeks">
+      <div class="rowline"><strong>░/▒/▓ ×14 — Weekly Ledgers</strong><span class="tiny">(reflection / seminar / practice)</span></div>
+      <div class="grid tiny" id="weeksGrid"></div>
+    </div>
+
+    <div class="sect" id="reg-ops">
+      <div class="rowline"><strong>⿰⿱⿲⿳⿴⿵⿶⿷⿸⿹⿺⿻ — Composition Ops</strong><span class="tiny">(choose when linking)</span></div>
+      <div class="tiny">⿰ side‑by‑side · ⿱ over‑under · ⿲ interleave · ⿳ triple‑stack · ⿴ enclosure · ⿵ top‑enclose · ⿶ bottom‑enclose · ⿷ left‑enclose · ⿸ corner‑enclose · ⿹ sweep · ⿺ follow‑tail · ⿻ overlay</div>
+    </div>
+
+    <div class="sect" id="reg-forms">
+      <div class="rowline"><strong>❏❐❑❒ — Artifact Forms</strong><span class="tiny">(note, sketch, essay, media)</span></div>
+      <div id="formsList" class="scroll"></div>
+    </div>
+
+    <div class="sect" id="reg-instruments">
+      <div class="rowline"><strong>⌸⌹⍁⍂⍃⍄ — Instruments</strong><span class="tiny">(timeline, hypertext, graph, matrix, tree, flow)</span></div>
+      <div id="instList" class="scroll"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: WORKSPACE (STATE) -->
+  <div class="col" id="center">
+    <div class="sect">
+      <h2>State Workspace — Week <span id="weekLabel">1</span></h2>
+      <div class="tiny">Spawn cards here, then link ◻ → ◻ using an operator to build your <b>olog</b> for this week’s teaching reality.</div>
+      <div class="hr"></div>
+      <div id="workspace" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;min-height:180px"></div>
+    </div>
+    <div class="sect">
+      <h2>Olog (objects ◻ and morphisms →)</h2>
+      <div class="rowline tiny">
+        <select id="fromSel"></select>
+        <span>→</span>
+        <select id="toSel"></select>
+        <select id="opSel"></select>
+        <button class="btn" id="linkBtn">Add Morphism</button>
+      </div>
+      <div class="hr"></div>
+      <div id="ologList" class="scroll"></div>
+    </div>
+    <div class="sect">
+      <h2>Notes</h2>
+      <textarea id="notes" placeholder="Observations, δ (surprises), planned policy tweak for week t+1..."></textarea>
+    </div>
+  </div>
+
+  <!-- RIGHT: INSPECTOR / INDEX -->
+  <div class="col" id="right">
+    <div class="sect">
+      <h2>Inspector</h2>
+      <div id="inspector">Select a card to see/edit metadata.</div>
+    </div>
+    <div class="sect">
+      <h2>Spencer‑Brown Index</h2>
+      <div class="tiny">Formal first distinctions and indications for this OS.</div>
+      <div class="hr"></div>
+      <div class="mono tiny" id="sbIndex"></div>
+    </div>
+    <div class="sect">
+      <h2>Ledger</h2>
+      <div id="ledger" class="tiny"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======== Data model ========
+const CONFIG = {
+  weeks:14, midterm:7, final:14,
+  weights:{participation:0.10, reflections:0.25, leader:0.10, midterm:0.25, final:0.35}
+};
+
+const FRAMES = [
+  'Medium-as-Extension 𓉗1','Culture/Meaning 𓉗2','Mythos/Ideology 𓉗3','Bias/Format 𓉗4','Interface/Protocol 𓉗5',
+  'Platform/Network 𓉗6','Algorithm/Data 𓉗7','Infrastructure 𓉗8','Authorship/Agency 𓉗9','Attention/Economy 𓉗10'
+];
+const METHODS = ['Close Reading 𓃑1','Thick Description 𓃑2','Systems Mapping 𓃑3','TD Learning 𓃑4','Form/Content 𓃑5','Ethnography 𓃑6'];
+const FORMS = ['❏ Note','❐ Sketch','❑ Essay','❒ Media'];
+const INSTRUMENTS = ['⌸ Timeline','⌹ Hypertext','⍁ Graph','⍂ Matrix','⍃ Tree','⍄ Flow'];
+const OPS = ['⿰ side-by-side','⿱ over-under','⿲ interleave','⿳ triple-stack','⿴ enclosure','⿵ top-enclose','⿶ bottom-enclose','⿷ left-enclose','⿸ corner','⿹ sweep','⿺ follow','⿻ overlay'];
+
+// per-week state
+let STATE = Array.from({length:CONFIG.weeks},()=>({cards:[], olog:[], notes:''}));
+let WEEK = 1;
+let CARD_ID = 0;
+
+function $(id){return document.getElementById(id)}
+
+// ======== Registers UI ========
+function renderRegisters(){
+  const mkRow=(label, arr, mountId)=>{
+    const mount=$(mountId); mount.innerHTML='';
+    arr.forEach(name=>{
+      const row=document.createElement('div'); row.className='card';
+      row.innerHTML=`<span>${name}</span><button class="btn" data-spawn="${name}">＋</button>`;
+      mount.appendChild(row);
+    });
+    mount.addEventListener('click',e=>{
+      const t=e.target.closest('button[data-spawn]'); if(!t) return; spawnCard(t.dataset.spawn);
+    });
+  }
+  mkRow('Frames', FRAMES, 'framesList');
+  mkRow('Methods', METHODS, 'methodsList');
+  mkRow('Forms', FORMS, 'formsList');
+  mkRow('Instruments', INSTRUMENTS, 'instList');
+
+  // weeks mini-grid
+  const wg=$('weeksGrid'); wg.innerHTML='';
+  for(let i=1;i<=CONFIG.weeks;i++){
+    const b=document.createElement('button'); b.className='btn'; b.textContent=i; b.style.padding='6px 0'; b.onclick=()=>{WEEK=i; $('weekLabel').textContent=WEEK; renderWorkspace(); renderOlog(); renderLedger();};
+    wg.appendChild(b);
+  }
+}
+
+// ======== Workspace ========
+function spawnCard(label){
+  const id = `c${++CARD_ID}`;
+  const card = {id,label,meta:{role:'◻',form:null,instrument:null,week:WEEK}};
+  STATE[WEEK-1].cards.push(card);
+  renderWorkspace(); renderOlog(); renderInspector(card); renderLedger();
+}
+
+function renderWorkspace(){
+  const area=$('workspace'); area.innerHTML='';
+  const cards=STATE[WEEK-1].cards;
+  cards.forEach(c=>{
+    const el=document.createElement('div'); el.className='card'; el.dataset.id=c.id;
+    el.innerHTML=`<div><strong>◻ ${c.label}</strong><div class="tiny">id:${c.id} · wk ${c.meta.week}</div></div>
+    <div class="rowline tiny">
+      <select data-form>
+        <option value="">— form —</option>
+        ${FORMS.map(f=>`<option ${c.meta.form===f?'selected':''}>${f}</option>`).join('')}
+      </select>
+      <select data-inst>
+        <option value="">— instrument —</option>
+        ${INSTRUMENTS.map(f=>`<option ${c.meta.instrument===f?'selected':''}>${f}</option>`).join('')}
+      </select>
+      <button class="btn" data-del>Delete</button>
+    </div>`;
+    el.onclick=()=>renderInspector(c);
+    el.querySelector('[data-del]').onclick=(e)=>{ e.stopPropagation(); removeCard(c.id); };
+    el.querySelector('[data-form]').onchange=(e)=>{ c.meta.form=e.target.value||null; renderInspector(c); };
+    el.querySelector('[data-inst]').onchange=(e)=>{ c.meta.instrument=e.target.value||null; renderInspector(c); };
+    area.appendChild(el);
+  });
+}
+
+function removeCard(id){
+  STATE[WEEK-1].cards = STATE[WEEK-1].cards.filter(c=>c.id!==id);
+  STATE.forEach(w=>{ w.olog = w.olog.filter(m=>m.from!==id && m.to!==id); });
+  renderWorkspace(); renderOlog(); renderInspector(null); renderLedger();
+}
+
+// ======== Olog builder ========
+function renderOlog(){
+  const cards=STATE[WEEK-1].cards;
+  const fromSel=$('fromSel'), toSel=$('toSel'), opSel=$('opSel');
+  fromSel.innerHTML = cards.map(c=>`<option value="${c.id}">◻ ${c.label} (${c.id})</option>`).join('');
+  toSel.innerHTML = fromSel.innerHTML;
+  opSel.innerHTML = OPS.map(o=>`<option>${o}</option>`).join('');
+
+  $('linkBtn').onclick=()=>{
+    if(!cards.length) return;
+    const from=fromSel.value, to=toSel.value, op=opSel.value;
+    if(from===to) return alert('Pick two different objects.');
+    STATE[WEEK-1].olog.push({from,to,op});
+    renderOlogList(); renderLedger();
+  };
+  renderOlogList();
+}
+
+function renderOlogList(){
+  const mount=$('ologList'); mount.innerHTML='';
+  const cards=Object.fromEntries(STATE[WEEK-1].cards.map(c=>[c.id,c]));
+  STATE[WEEK-1].olog.forEach((m,i)=>{
+    const row=document.createElement('div'); row.className='card';
+    const a=cards[m.from]?.label||m.from, b=cards[m.to]?.label||m.to;
+    row.innerHTML=`<span>◻ ${a} <b>→</b> ◻ ${b} <span class="tiny">(${m.op})</span></span>
+                   <button class="btn" data-i="${i}">Remove</button>`;
+    row.querySelector('button').onclick=()=>{ STATE[WEEK-1].olog.splice(i,1); renderOlogList(); renderLedger(); };
+    mount.appendChild(row);
+  });
+}
+
+// ======== Inspector ========
+function renderInspector(card){
+  const box=$('inspector');
+  if(!card){ box.textContent='Select a card to see/edit metadata.'; return; }
+  box.innerHTML = `<div class="mono">id: ${card.id}</div>
+  <div><b>Label:</b> ${card.label}</div>
+  <div><b>Week:</b> ${card.meta.week}</div>
+  <div><b>Form:</b> ${card.meta.form||'—'}</div>
+  <div><b>Instrument:</b> ${card.meta.instrument||'—'}</div>
+  <div class="hr"></div>
+  <div class="tiny">Spencer‑Brown: this card is a <b>marked form</b> ◻ within this week’s distinction. Use morphisms (→) to indicate how it composes with others via an operator (⿰ etc.).</div>`;
+}
+
+// ======== SB Index + Ledger ========
+function renderSBIndex(){
+  const text = `First Distinction (◻): Week state.\n`+
+  `Mark (◻) classes:\n`+
+  `  𓉗 Frames ×10  → lenses for interpreting artifacts.\n`+
+  `  𓃑 Methods ×6  → procedures for knowing.\n`+
+  `  ❏❐❑❒ Forms    → externalizations.\n`+
+  `  ⌸⌹⍁⍂⍃⍄ Instruments → ways of arranging evidence.\n`+
+  `Indications (→): Morphisms typed by ops (⿰/⿱/…/⿻) that compose ◻ to ◻ to form an olog.\n`+
+  `Composites: (Frame ◻) ⟶ (Method ◻) ⟶ (Form ◻) ⟶ (Instrument ◻) ⟶ Artifact ◻.\n`+
+  `Evaluation: mapped to weekly ledgers ░ reflection / ▒ seminar / ▓ practice.`;
+  $('sbIndex').textContent = text;
+}
+
+function renderLedger(){
+  const w = STATE[WEEK-1];
+  const parts = [
+    `◻ objects: ${w.cards.length}`,
+    `→ morphisms: ${w.olog.length}`,
+    `notes chars: ${(w.notes||'').length}`
+  ];
+  $('ledger').innerHTML = parts.map(p=>`<div>• ${p}</div>`).join('');
+}
+
+// ======== Export/Reset/Notes ========
+$('exportBtn').onclick=()=>{
+  const out = {config:CONFIG, state:STATE};
+  const blob = new Blob([JSON.stringify(out,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'course-os-olog.json'; a.click();
+};
+$('resetBtn').onclick=()=>{ if(confirm('Reset workspace?')) location.reload(); };
+$('notes').addEventListener('input', e=>{ STATE[WEEK-1].notes = e.target.value; renderLedger(); });
+
+// ======== Init ========
+(function init(){
+  $('weekLabel').textContent = WEEK;
+  renderRegisters();
+  renderWorkspace();
+  renderOlog();
+  renderSBIndex();
+  renderLedger();
+})();
+</script>
+</body>
+</html>

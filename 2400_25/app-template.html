@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App Template · CourseOS Module</title>
+  <style>
+    :root{
+      --bg:#0e1116; --panel:#121722; --ink:#e7ebf2; --muted:#98a6bf; --rule:#20283a; --acc:#30d17b;
+    }
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Inter,Roboto,Helvetica,Arial}
+    *{box-sizing:border-box}
+    .wrap{min-height:100%;display:flex;flex-direction:column}
+    header{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--rule);background:linear-gradient(180deg,#111724,#0e1420)}
+    header .title{font-weight:700}
+    header .muted{color:var(--muted);margin-left:auto;font-size:12px}
+    main{flex:1;max-width:1000px;margin:0 auto;padding:16px;display:grid;gap:12px}
+    .card{background:#0f1622;border:1px solid var(--rule);border-radius:12px;padding:12px}
+    .btn{background:#121a27;border:1px solid var(--rule);color:var(--ink);padding:8px 10px;border-radius:10px;cursor:pointer}
+    .btn:hover{border-color:#334059}
+    code{background:#0b1018;border:1px solid #1b2332;border-radius:6px;padding:2px 6px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">App Template · Module Name</div>
+    <div class="muted">Drop-in app for embedding via CourseOS App Launcher</div>
+  </header>
+  <main>
+    <div class="card">
+      <h3>How to integrate</h3>
+      <ol>
+        <li>Save this file with a new name, e.g., <code>my-app-v1.html</code>.</li>
+        <li>Add an entry to the registry in <code>os-dope-00.html</code>: <code>{ id:'myapp', label:'My App v1', path:'my-app-v1.html' }</code>.</li>
+        <li>Open App Launcher in the OS and select your app.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h3>Live signal</h3>
+      <p>This app reports its title and time to the parent window (if embedded) using <code>postMessage</code>.</p>
+      <button class="btn" id="ping">Ping Parent</button>
+      <pre id="log" style="white-space:pre-wrap"></pre>
+    </div>
+  </main>
+</div>
+<script>
+(function(){
+  const log = document.getElementById('log');
+  function out(msg){ log.textContent += (msg+'\n'); }
+  // Send a hello when loaded (useful when inside the iframe)
+  try{
+    window.parent && window.parent !== window && window.parent.postMessage({type:'app:hello', title:document.title, ts:Date.now()}, '*');
+    out('Hello sent to parent.');
+  }catch(e){ out('postMessage failed: '+e.message) }
+  document.getElementById('ping').addEventListener('click',()=>{
+    try{ window.parent && window.parent !== window && window.parent.postMessage({type:'app:ping', ts:Date.now()}, '*'); out('Ping sent.'); }catch(e){ out('Ping failed: '+e.message) }
+  });
+  // Listen for messages from parent (optional)
+  window.addEventListener('message', (e)=>{ out('Parent message: '+JSON.stringify(e.data)); });
+})();
+</script>
+</body>
+</html>

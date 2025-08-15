@@ -1,0 +1,1934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMC 2400 – Living Evolutionary Ecology OS</title>
+    <!-- Mermaid.js for rendering graph TD diagrams (still used for static triad views) -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <style>
+        /* Global Styles & Variables */
+        :root {
+            --bg-color: #1a1a2e; /* Dark background */
+            --text-color: #e0e0e0; /* Light text */
+            --accent-color: #00bcd4; /* Cyan/Turquoise for highlights */
+            --secondary-accent: #ff9800; /* Orange for specific elements */
+            --border-color: #3f3f5a; /* Slightly lighter dark for borders */
+            --header-bg: #0f0f1c; /* Even darker for header */
+            --nav-bg: #2b2b40; /* Slightly lighter than main bg for nav */
+            --hover-color: #00798a; /* Darker cyan for hover */
+            --active-nav-color: #00bcd4; /* Active nav item */
+            --card-bg: #2a2a47; /* Background for content cards */
+            --mermaid-bg: #1a1a2e; /* Mermaid background to match OS */
+            --mermaid-text: #e0e0e0; /* Mermaid text to match OS */
+            --code-bg: #33334f; /* Background for code snippets/tables */
+            --code-border: #4a4a6b;
+
+            /* Simulation Specific Colors */
+            --agent-color: #a3e635; /* Green for agents */
+            --knowledge-node-color: #9333ea; /* Purple for knowledge nodes */
+            --learned-node-color: #6d28d9; /* Darker purple for learned nodes */
+            --grid-line-color: rgba(63, 63, 90, 0.3); /* Faded grid lines */
+            --sim-bg: #22223b; /* Slightly different dark for simulation background */
+            --sim-highlight: #7c3aed; /* Highlight for simulation */
+            --log-bg: #1f1f2e;
+            --log-border: #3f3f5a;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Prevent body scroll, allow inner container scroll */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #lmc-os-container {
+            display: flex;
+            flex-direction: column;
+            width: 95vw;
+            height: 95vh;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            background-color: var(--bg-color);
+            overflow: hidden; /* Ensure inner scroll works */
+            border-radius: 8px;
+        }
+
+        /* Header Styling */
+        .os-header {
+            background-color: var(--header-bg);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .os-title {
+            margin: 0;
+            font-size: 1.4em;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .os-status {
+            font-size: 0.9em;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        #system-status {
+            color: var(--secondary-accent);
+            font-weight: bold;
+        }
+
+        /* Main Layout */
+        #lmc-os-container {
+            display: flex;
+            flex-direction: row; /* Nav on left, content on right */
+            height: 95vh; /* Fixed height for the OS window */
+            width: 95vw;
+        }
+
+        /* Navigation (Lineage Nexus) */
+        .lineage-nexus {
+            width: 250px;
+            background-color: var(--nav-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 20px 0;
+            overflow-y: auto; /* Scroll for nav if content is too long */
+            flex-shrink: 0;
+        }
+
+        .nexus-header {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: var(--accent-color);
+            padding: 0 20px 15px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .nexus-nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nexus-nav-list li {
+            margin-bottom: 5px;
+        }
+
+        .nexus-nav-list li a {
+            display: block;
+            padding: 8px 20px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: background-color 0.2s, color 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .nexus-nav-list li a:hover {
+            background-color: var(--hover-color);
+            border-left-color: var(--accent-color);
+        }
+
+        .nexus-nav-list li a.active-nav {
+            background-color: var(--hover-color);
+            color: var(--active-nav-color);
+            border-left-color: var(--active-nav-color);
+            font-weight: bold;
+        }
+
+        .nav-separator {
+            border-top: 1px solid var(--border-color);
+            margin: 15px 0;
+        }
+
+        .nexus-category {
+            font-size: 0.85em;
+            color: var(--secondary-accent);
+            padding: 5px 20px;
+            text-transform: uppercase;
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+
+        /* Computational Display (Main Content) */
+        .computational-display {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto; /* Scroll for content */
+            background-color: var(--bg-color);
+        }
+
+        .display-section {
+            display: none; /* Hide all by default, show active */
+        }
+
+        .display-section.active {
+            display: block;
+        }
+
+        .section-title {
+            color: var(--accent-color);
+            font-size: 1.8em;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .section-subtitle {
+            color: var(--secondary-accent);
+            font-size: 1.2em;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        .section-description {
+            font-size: 1em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid-item {
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+        }
+
+        .grid-item h3 {
+            color: var(--accent-color);
+            margin-top: 0;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .grid-item ul {
+            list-style: square;
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        .grid-item ol {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        .grid-item li {
+            margin-bottom: 5px;
+            line-height: 1.5;
+            font-size: 0.95em;
+        }
+
+        .section-footer {
+            font-style: italic;
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-top: 30px;
+            text-align: center;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 15px;
+        }
+
+        /* Triad specific content styles */
+        .triad-readings ul {
+            list-style: disc;
+            padding-left: 20px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .triad-readings li {
+            margin-bottom: 5px;
+        }
+
+        .seed-roles p, .read-interpretation p, .unlocks-next p {
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .blaze-pass h3 {
+            color: var(--secondary-accent);
+            border-bottom: 1px dashed var(--border-color);
+            padding-bottom: 5px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+
+        .blaze-pass ul {
+            list-style: disc;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .blaze-pass ul li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .blaze-pass ul li span { /* For the ◻ symbols */
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .model-table table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+            background-color: var(--code-bg);
+            border: 1px solid var(--code-border);
+        }
+
+        .model-table th, .model-table td {
+            border: 1px solid var(--code-border);
+            padding: 10px;
+            text-align: left;
+        }
+
+        .model-table th {
+            background-color: var(--nav-bg);
+            color: var(--accent-color);
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .model-table tr:nth-child(even) {
+            background-color: var(--card-bg);
+        }
+
+        .rubric-hook {
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .rubric-hook strong {
+            color: var(--secondary-accent);
+        }
+
+        /* Mermaid Graph Container */
+        .mermaid-graph-container {
+            background-color: var(--mermaid-bg);
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            margin-top: 20px;
+            text-align: center; /* Center the graph */
+            overflow-x: auto; /* Allow horizontal scroll for wide graphs */
+        }
+        .mermaid-graph-container .mermaid {
+            /* Mermaid specific overrides */
+            fill: var(--mermaid-bg); /* Node background */
+            color: var(--mermaid-text); /* Node text color */
+        }
+        .mermaid-graph-container .node rect, .mermaid-graph-container .node circle, .mermaid-graph-container .node polygon {
+            fill: var(--card-bg) !important;
+            stroke: var(--accent-color) !important;
+        }
+        .mermaid-graph-container .edgePath .path {
+            stroke: var(--border-color) !important;
+        }
+        .mermaid-graph-container .edgeLabel {
+            background-color: var(--mermaid-bg) !important;
+        }
+        .mermaid-graph-container .edgeLabel span {
+            color: var(--mermaid-text) !important;
+        }
+        .mermaid-graph-container .node text {
+            fill: var(--mermaid-text) !important;
+        }
+        .mermaid-graph-container .cluster rect {
+            fill: var(--card-bg) !important;
+            stroke: var(--border-color) !important;
+        }
+        .mermaid-graph-container .cluster text {
+            fill: var(--text-color) !important;
+        }
+
+        /* Specific styles for seed nodes in Mermaid */
+        .mermaid-graph-container .seed rect, .mermaid-graph-container .seed circle, .mermaid-graph-container .seed polygon {
+            fill: #4e005d !important; /* Darker, distinctive fill for seed nodes */
+            stroke: #ff00ff !important; /* Brighter stroke for seed nodes */
+        }
+        .mermaid-graph-container .seed text {
+            fill: #ffffff !important; /* White text for seed nodes */
+        }
+
+        .full-blaze-tree-summary ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .full-blaze-tree-summary li {
+            margin-bottom: 10px;
+        }
+        .full-blaze-tree-summary strong {
+            color: var(--accent-color);
+        }
+        .system-summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+        }
+        .system-summary-grid h3 {
+            color: var(--secondary-accent);
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .system-summary-grid ul {
+            list-style: square;
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        /* Simulation Specific Styles */
+        #simulation-section {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background-color: var(--sim-bg);
+        }
+
+        #simulation-controls {
+            display: flex;
+            gap: 10px;
+            padding: 10px 20px;
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        #simulation-controls button {
+            background-color: var(--accent-color);
+            color: var(--header-bg);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+
+        #simulation-controls button:hover {
+            background-color: var(--hover-color);
+        }
+
+        #simulation-main {
+            display: flex;
+            flex-grow: 1;
+            overflow: hidden;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        #simulation-canvas-container {
+            flex-grow: 1;
+            background-color: var(--sim-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            overflow: hidden; /* Important for canvas */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #simulationCanvas {
+            display: block; /* Remove extra space below canvas */
+            background-color: var(--sim-bg);
+        }
+
+        #simulation-log {
+            width: 300px; /* Fixed width for the log */
+            background-color: var(--log-bg);
+            border: 1px solid var(--log-border);
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 0.8em;
+            overflow-y: auto;
+            color: rgba(224, 224, 224, 0.7);
+            line-height: 1.4;
+            flex-shrink: 0;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+        }
+        .log-entry.info { color: var(--accent-color); }
+        .log-entry.event { color: var(--secondary-accent); }
+        .log-entry.critical { color: #f00; }
+
+    </style>
+</head>
+<body>
+    <div id="lmc-os-container">
+        <header class="os-header">
+            <h1 class="os-title">LMC 2400 – Living Evolutionary Ecology OS</h1>
+            <div class="os-status">Status: <span id="system-status">Operational - Initializing System Protocols</span></div>
+        </header>
+
+        <nav class="lineage-nexus">
+            <div class="nexus-header">Computational Pathways</div>
+            <ul class="nexus-nav-list">
+                <li><a href="#" data-view="simulation" class="active-nav">Living Ecology Simulation</a></li>
+                <li class="nav-separator"></li>
+                <li class="nexus-category">Triadic Evolutions:</li>
+                <li><a href="#" data-view="triad-1">Triad 1: Foundational Catalysts</a></li>
+                <li><a href="#" data-view="triad-2">Triad 2: Noise & Presence</a></li>
+                <li><a href="#" data-view="triad-3">Triad 3: Machine Reflexivity</a></li>
+                <li><a href="#" data-view="triad-4">Triad 4: Play & World-building</a></li>
+                <li><a href="#" data-view="triad-5">Triad 5: Immersion & Empathy</a></li>
+                <li><a href="#" data-view="triad-6">Triad 6: Network & Viral</a></li>
+                <li><a href="#" data-view="triad-7">Triad 7: Identity & Power</a></li>
+                <li><a href="#" data-view="triad-8">Triad 8: Speculative Futures</a></li>
+                <li class="nav-separator"></li>
+                <li class="nexus-category">Cumulative Genealogies:</li>
+                <li><a href="#" data-view="full-blaze-tree">Full Blaze-Tree Map</a></li>
+            </ul>
+        </nav>
+
+        <main class="computational-display" id="computational-display">
+            <!-- Dynamic content or simulation will be loaded here by JavaScript -->
+            <section id="simulation-section" class="display-section active">
+                <h2 class="section-title">Living Ecology Simulation: Agent-Based Knowledge Evolution</h2>
+                <div id="simulation-controls">
+                    <button id="startStopSimBtn">Start Simulation</button>
+                    <button id="resetSimBtn">Reset Simulation</button>
+                    <button id="addAgentBtn">Add New Agent (Mutation)</button>
+                    <button id="addNodeBtn">Inject New Knowledge Node</button>
+                </div>
+                <div id="simulation-main">
+                    <div id="simulation-canvas-container">
+                        <canvas id="simulationCanvas"></canvas>
+                    </div>
+                    <div id="simulation-log">
+                        <div class="log-entry info">System Log: Initiating simulation protocols...</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Static triad content sections will be generated dynamically or remain hidden -->
+            <!-- Placeholder for other sections, they will be activated by JS -->
+        </main>
+    </div>
+
+    <script>
+        // Mermaid initialization, configured for dark theme and security
+        mermaid.initialize({ startOnLoad: true, theme: 'dark', securityLevel: 'loose' });
+
+        // --- Core Data Structures (from previous responses, condensed) ---
+        const conceptMap = {
+            // Triad 1
+            'T1-McLuhan': 'McLuhan: Medium as Operator',
+            'T1-Ong': 'Ong: Orality as Redundancy/Code',
+            'T1-Higgins': 'Higgins: Intermedia Merge Rule',
+            'T1-Bazin': 'Bazin: Image Ontology', // Bazin added here for simulation purposes, though originally in Week 6 with Auslander. Sim needs individual concepts.
+            // Triad 2
+            'T2-Gitelman': 'Gitelman: New Media Publics',
+            'T2-Dutchen': 'Dutchen: Noise & Health',
+            'T2-Enright': 'Enright: War Against Noise',
+            'T2-Auslander': 'Auslander: Liveness', // Auslander moved here from Week 6 for simulation granularity
+            'T2-BazinMyth': 'Bazin: Myth of Total Cinema', // Separate from T1 Bazin for simulation clarity
+            // Triad 3
+            'T3-Turing': 'Turing: Computing & Intelligence',
+            'T3-Buolamwini': 'Buolamwini: AI, Ain\'t I a Woman?',
+            'T3-Kantayya': 'Kantayya: Coded Bias',
+            // Triad 4
+            'T4-MontfortBogost': 'Montfort & Bogost: Stella (Procedural Rhetoric)',
+            'T4-Boellstorff': 'Boellstorff: Second Life (Virtual Worlds)',
+            // Triad 5
+            'T5-Milk': 'Milk: VR Empathy Machine',
+            'T5-Rouse': 'Rouse: Against Instrumentalization of Empathy',
+            'T5-Bolter': 'Bolter: Reality Media',
+            // Triad 6
+            'T6-Brock': 'Brock: Twitter as Cultural Conversation',
+            'T6-Maguire': 'Maguire: Girls & Viral Economies',
+            // Triad 7
+            'T7-Lovelock': 'Lovelock: Queerness in Reality TV',
+            'T7-Benjamin': 'Benjamin: Race After Technology',
+            // Triad 8
+            'T8-Metaverse': 'Emerging Metaverse',
+            'T8-SpeculativeProjects': 'Student Speculative Projects'
+        };
+
+        const triadConceptMapping = {
+            'triad-1': ['T1-McLuhan', 'T1-Ong', 'T1-Higgins', 'T1-Bazin'],
+            'triad-2': ['T2-Gitelman', 'T2-Dutchen', 'T2-Enright', 'T2-Auslander', 'T2-BazinMyth'],
+            'triad-3': ['T3-Turing', 'T3-Buolamwini', 'T3-Kantayya'],
+            'triad-4': ['T4-MontfortBogost', 'T4-Boellstorff'],
+            'triad-5': ['T5-Milk', 'T5-Rouse', 'T5-Bolter'],
+            'triad-6': ['T6-Brock', 'T6-Maguire'],
+            'triad-7': ['T7-Lovelock', 'T7-Benjamin'],
+            'triad-8': ['T8-Metaverse', 'T8-SpeculativeProjects']
+        };
+
+        const allConceptIds = Object.keys(conceptMap);
+
+        const triadData = {
+            'triad-1': {
+                title: 'Triad 1: Foundational Catalysts',
+                readings: ['McLuhan (Medium is the Message)', 'Ong (Orality of Language)', 'Higgins (Intermedia)', 'Bazin (Ontology of the Photographic Image)'],
+                seedRoles: `
+                    <p><strong>McLuhan, “The Medium is the Message”</strong> → installs the boundary condition: medium = operator transforming attention and social computation.</p>
+                    <p><strong>Ong, “The Orality of Language (ch.1)”</strong> → exposes pre-literate code paths (redundancy, formulae, mnemonic constraints) as error-control in cultural memory.</p>
+                    <p><strong>Higgins, “Intermedia”</strong> → introduces merge rules: categories are porous; creative systems evolve by crossing media rather than splitting.</p>
+                    <p><strong>Bazin, “Ontology of the Photographic Image”</strong> → anchors image as a medium with its own truth-claiming computation.</p>
+                    <p><em>(These are assigned early in the course and function as the base constraint set for later phases.)</em></p>
+                `,
+                mermaidGraph: `
+                    graph TD
+                    M["McLuhan: medium = operator"]:::seed
+                    O["Ong: orality = redundancy/code"]:::seed
+                    H["Higgins: intermedia = merge rule"]:::seed
+                    B["Bazin: image ontology"]:::seed
+                    M --> X["X1: Medium as Algorithmic Constraint"]
+                    O --> X
+                    H --> X
+                    B --> X
+                    X --> Y["Y1: Intermedial Computation (message = path through media)"]
+                    X --> Z["Y2: Cultural Error-Correction (redundancy as design)"]
+                    classDef seed fill:#222,stroke:#555,color:#fff;
+                `,
+                readInterpretation: `
+                    <p><strong>X1</strong> = McLuhan’s boundary + Ong’s code + Higgins’ merge + Bazin’s ontology → the course now treats media choices as algorithm selection (what computation the culture will run).</p>
+                    <p><strong>Y1</strong> = When media merge, meaning emerges from the transitions, not the containers.</p>
+                    <p><strong>Y2</strong> = Orality’s redundancy becomes a design pattern for reliability across media hybrids.</p>
+                `,
+                blazePass: `
+                    <h3>B — Boundary Distinctions (first cuts)</h3>
+                    <ul>
+                        <li><span>◻</span> Container vs computation → reject “content first”; adopt medium-as-operator.</li>
+                        <li><span>◻</span> Literacy vs orality → not a ladder; a codec family with different error models.</li>
+                        <li><span>◻</span> Medium categories vs intermedia → treat categories as temporary caches, not ontologies.</li>
+                        <li><span>◻</span> Image as mirror vs image as truth-claim → treat image as an ontological computation.</li>
+                    </ul>
+                    <h3>L — Levels of Learning (phase operations)</h3>
+                    <ul>
+                        <li>Foundational: identify medium-operators in any artifact (what they amplify/attenuate).</li>
+                        <li>Strategic: select/chain operators to achieve effects (intermedia composition).</li>
+                        <li>Emergent: detect unintended computations (biases, virality, ritualization).</li>
+                    </ul>
+                    <h3>A — Action Protocols (what to do next, concretely)</h3>
+                    <ul>
+                        <li>Extract a 1-sentence operator spec for each medium present in a chosen artifact.</li>
+                        <li>Draw a path graph of the artifact’s intermedia flow (e.g., text→video→platform→chat).</li>
+                        <li>Swap one node; predict deltas in attention, memory, error-rate (hypothesis = message).</li>
+                    </ul>
+                    <h3>Z — Constraints & Redundancies (stability layer)</h3>
+                    <ul>
+                        <li>Use Reading Reflections (weekly, 2 skips) to rehearse the operator spec pattern (error-correction by repetition).</li>
+                        <li>Discussion Leader posts synopsis + questions the day before; this ritual anchors the merge logic in public, shared redundancy.</li>
+                        <li>The Syllabus cadence + deadlines serve as rate limiters to prevent overfit and drift.</li>
+                    </ul>
+                    <h3>E — Emergence / Expected Phase Shift</h3>
+                    <ul>
+                        <li>Students start seeing messages not as payloads but as computed trajectories through media.</li>
+                        <li>Early measurable: reflections shift from “what it says” → “what computation it runs” (operator language appears in notes).</li>
+                    </ul>
+                `,
+                modelTable: `
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Model-OF (representation)</th><th>Model-FOR (prescription)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>McLuhan</td><td>Media as operators altering scale/pace/pattern</td><td>Name each operator; predict transformation it induces</td></tr>
+                            <tr><td>Ong</td><td>Orality as redundancy schema for memory & social sync</td><td>Add redundancy where failure costs are high</td></tr>
+                            <tr><td>Higgins</td><td>Intermedia as merge engine</td><td>Compose across media; place meaning in the transition</td></tr>
+                            <tr><td>Bazin</td><td>Image as ontological claim</td><td>Analyze the "truth" or "reality" computation in images</td></tr>
+                        </tbody>
+                    </table>
+                `,
+                rubricHook: `
+                    <p><strong>Reading Reflection:</strong> 3 moves → (operator named) · (merge traced) · (redundancy identified).</p>
+                    <p><strong>Discussion Leader:</strong> 1 slide per reading with (boundary, merge, constraint); post T-1 day.</p>
+                `,
+                unlocksNext: `
+                    <p>This triad primes the system to handle noise (Week 5) and presence/liveness (Week 6) as computations, not topics—so the next triad can test whether redundancy (Ong) + operator (McLuhan) + merge (Higgins) are sufficient to stabilize perturbation and simulate presence under media change.</p>
+                `
+            },
+            'triad-2': {
+                title: 'Triad 2: Noise & Presence Layer',
+                readings: [
+                    'Gitelman (New Media Publics)',
+                    'Dutchen (Noise & Health)',
+                    'Enright (War Against Noise)',
+                    'Auslander (Liveness in a Mediatized Culture)',
+                    'Bazin (Myth of Total Cinema)'
+                ],
+                seedRoles: `
+                    <p><strong>Gitelman</strong> → frames media as infrastructures + publics, making noise central to how communication stabilizes.</p>
+                    <p><strong>Dutchen</strong> → introduces the biological/affective dimension of noise as a health input/output.</p>
+                    <p><strong>Enright</strong> → historicizes noise as a contested cultural phenomenon, often subject to "wars" of control.</p>
+                    <p><strong>Auslander</strong> → insists liveness is always already mediatized, shattering the “pure presence” ideal.</p>
+                    <p><strong>Bazin</strong> → mythologizes cinema as an asymptotic drive toward total capture (myth of total presence).</p>
+                    <p>Together, these readings force the class to compute presence not as essence but as an error-managed hallucination sustained by infrastructures + myths, often battling "noise" as a system perturbation.</p>
+                `,
+                mermaidGraph: `
+                    graph TD
+                    G["Gitelman: publics = infrastructures of noise"]:::seed
+                    D["Dutchen: noise = health/affect"]:::seed
+                    E["Enright: noise = cultural war"]:::seed
+                    A["Auslander: liveness = mediatized presence"]:::seed
+                    B["Bazin: cinema = myth of total capture"]:::seed
+
+                    G --> X["X2: Presence as Negotiated Infrastructure/Combat"]
+                    D --> X
+                    E --> X
+                    A --> X
+                    B --> X
+
+                    X --> Y["Y3: Noise-Stabilized Presence (infrastructures manage error & conflict)"]
+                    X --> Z["Y4: Mythic Horizon (presence framed as endless completion & contested control)"]
+
+                    classDef seed fill:#222,stroke:#555,color:#fff;
+                `,
+                readInterpretation: `
+                    <p><strong>X2</strong> = Merging publics (Gitelman) + health (Dutchen) + cultural war (Enright) + liveness (Auslander) + myth (Bazin) → presence becomes a computation of social belief + technical mediation, often negotiated through noise management and cultural conflict.</p>
+                    <p><strong>Y3</strong> = Noise isn’t just interference; it’s a stabilizer, since publics “agree” to filter noise into meaning, but also a battleground for defining reality.</p>
+                    <p><strong>Y4</strong> = The myth of “total presence” (cinema, VR, live-streams) functions as a guiding attractor, even though it’s never achieved, and its pursuit often generates new forms of noise and control conflicts.</p>
+                `,
+                blazePass: `
+                    <h3>B — Boundary Distinctions</h3>
+                    <ul>
+                        <li><span>◻</span> Noise vs signal = infrastructural negotiation, not objective cut; now also health/cultural battleground.</li>
+                        <li><span>◻</span> Live vs mediatized = false binary; liveness = simulation through mediation, not pure essence.</li>
+                        <li><span>◻</span> Cinema vs reality = cinema projects mythic completion, not reproduction; this myth is perpetuated in new media.</li>
+                    </ul>
+                    <h3>L — Levels of Learning</h3>
+                    <ul>
+                        <li>Foundational: detect infrastructural traces (who filters noise? what publics are produced?).</li>
+                        <li>Strategic: analyze how “live” or “present” effects are constructed and how noise is managed or weaponized.</li>
+                        <li>Emergent: see myths of totality driving technological hype (cinema → VR → metaverse) and the constant "war against noise."</li>
+                    </ul>
+                    <h3>A — Action Protocols</h3>
+                    <ul>
+                        <li>Choose an artifact (TikTok live, Twitch stream, concert, VR film).</li>
+                        <li>Map its noise-handling infrastructure (moderators, codecs, protocols) and any "war on noise" strategies.</li>
+                        <li>Identify its myth of total presence (authentic live? total immersion?).</li>
+                        <li>Analyze the affective/health impact of its noise or its suppression.</li>
+                    </ul>
+                    <h3>Z — Constraints & Redundancies</h3>
+                    <ul>
+                        <li>Weekly reading reflections force noise-filtering: student “signals” (insights) emerge against background chatter.</li>
+                        <li>Discussion leader = role of infrastructural filter (they pre-process, compress, then re-present reading to class) and noise auditor.</li>
+                        <li>Assignments (Media Analysis) = myth test: analyze a medium’s claim of presence vs its actual computational mediation and noise ecology.</li>
+                    </ul>
+                    <h3>E — Emergence / Phase Shift</h3>
+                    <ul>
+                        <li>Students no longer treat presence or “the live” as givens; they see noise as an inherent, often contested, part of media ecologies.</li>
+                        <li>They start detecting the infrastructural, mythic, and conflictual computations behind all claims of authenticity.</li>
+                        <li>This sets up for the next triad (Turing + Buolamwini + Kantayya) where the “live” is not just presence, but judgment by machine vision and the inherent biases within the "noise" of data.</li>
+                    </ul>
+                `,
+                modelTable: `
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Model-OF (representation)</th><th>Model-FOR (prescription)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Gitelman</td><td>Publics as infrastructures that filter noise</td><td>Identify what infrastructural filters make “sense” possible</td></tr>
+                            <tr><td>Dutchen</td><td>Noise as health/affective input</td><td>Analyze the physiological impact of media noise exposure</td></tr>
+                            <tr><td>Enright</td><td>Noise as cultural combat</td><td>Map the contested boundaries of acceptable sound/signal</td></tr>
+                            <tr><td>Auslander</td><td>Liveness as simulation of presence</td><td>Ask: “what mediations stage this liveness?”</td></tr>
+                            <tr><td>Bazin</td><td>Cinema as mythic asymptote of presence</td><td>Track the myth of “total media” behind new hype cycles</td></tr>
+                        </tbody>
+                    </table>
+                `,
+                rubricHook: `
+                    <p><strong>Reflection:</strong> every post must identify 1 noise filter, 1 staged presence, 1 mythic attractor, and 1 contested noise boundary.</p>
+                    <p><strong>Discussion Leader:</strong> chart an artifact → show its infrastructure, its staging, its myth horizon, and how noise is implicated.</p>
+                `,
+                unlocksNext: `
+                    <p>This triad primes students to confront AI + Bias readings (Turing, Buolamwini, Kantayya).</p>
+                    <p>Because once presence is seen as myth+infrastructure and noise as a contested domain, the next move is: what happens when the infrastructure is machine judgment itself, and its "noise" is bias?</p>
+                `
+            },
+            'triad-3': {
+                title: 'Triad 3: Machine Reflexivity Layer',
+                readings: [
+                    'Turing (Computing Machinery & Intelligence)',
+                    'Buolamwini (AI, Ain’t I a Woman?)',
+                    'Kantayya (Coded Bias)'
+                ],
+                seedRoles: `
+                    <p><strong>Turing</strong> → provides the proto-algorithmic frame: machine intelligence defined by imitation & test.</p>
+                    <p><strong>Buolamwini</strong> → exposes the hidden constraint: AI is not neutral, it reproduces social bias coded into data.</p>
+                    <p><strong>Kantayya</strong> → translates this into public critique & collective awareness through documentary and journalism.</p>
+                    <p>Together, they force the course to confront that media systems don’t just mediate — they judge and reproduce power.</p>
+                `,
+                mermaidGraph: `
+                    graph TD
+                    T["Turing: intelligence = imitation game"]:::seed
+                    B["Buolamwini: bias = coded into recognition"]:::seed
+                    K["Kantayya: critique = public mobilization"]:::seed
+                    T --> X["X3: Machine Judgment as Cultural Test"]
+                    B --> X
+                    K --> X
+                    X --> Y["Y5: Bias Exposure as Phase Shift (machine mirrors social prejudice)"]
+                    X --> Z["Y6: Public Critique as Feedback Loop (documentary, activism, policy)"]
+                    classDef seed fill:#222,stroke:#555,color:#fff;
+                `,
+                readInterpretation: `
+                    <p><strong>X3</strong> = Turing’s test + Buolamwini’s exposure + Kantayya’s critique → the imitation game becomes a mirror test for society itself.</p>
+                    <p><strong>Y5</strong> = Every claim of intelligence exposes who gets misrecognized; error becomes political signal.</p>
+                    <p><strong>Y6</strong> = Critique feeds back into public discourse, producing new constraints (ethics, law, activism).</p>
+                `,
+                blazePass: `
+                    <h3>B — Boundary Distinctions</h3>
+                    <ul>
+                        <li><span>◻</span> Human vs machine → reframed as interactional test.</li>
+                        <li><span>◻</span> Accuracy vs error → reframed as bias exposure.</li>
+                        <li><span>◻</span> Technical problem vs social problem → reframed as public critique.</li>
+                    </ul>
+                    <h3>L — Levels of Learning</h3>
+                    <ul>
+                        <li>Foundational: recognize AI judgments as designed protocols, not natural cognition.</li>
+                        <li>Strategic: analyze who is excluded/misread by the system.</li>
+                        <li>Emergent: trace how critique cycles back into policy, art, and cultural narratives (feedback loop).</li>
+                    </ul>
+                    <h3>A — Action Protocols</h3>
+                    <ul>
+                        <li>Pick an AI-mediated artifact (face ID, recommendation system, predictive policing).</li>
+                        <li>Identify its test logic (what does it imitate / classify?).</li>
+                        <li>Document its bias exposure points (who/what is misrecognized).</li>
+                        <li>Analyze its public critique channels (articles, films, activism).</li>
+                    </ul>
+                    <h3>Z — Constraints & Redundancies</h3>
+                    <ul>
+                        <li>Assignments serve as error-check: Media Analysis requires applying a theorist’s lens — here students must confront systemic bias.</li>
+                        <li>Discussion leaders function as public translators, like Kantayya, reframing dense technical issues for a collective audience.</li>
+                        <li>Syllabus deadlines prevent deferral of critique — bias cannot be “put off”; it must be recognized as it emerges.</li>
+                    </ul>
+                    <h3>E — Emergence / Phase Shift</h3>
+                    <ul>
+                        <li>Students begin to see AI as cultural mirrors rather than neutral tools.</li>
+                        <li>System evolves into reflexive critique — not just “what media do” but “how media judge.”</li>
+                        <li>This sets up the next triad (Montfort + Boellstorff + Play/World-building) where computation shifts from judging humans to world-simulating environments.</li>
+                    </ul>
+                `,
+                modelTable: `
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Model-OF (representation)</th><th>Model-FOR (prescription)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Turing</td><td>Intelligence as a test protocol</td><td>Ask: what’s being tested, and who defines success?</td></tr>
+                            <tr><td>Buolamwini</td><td>Bias as systemic misrecognition</td><td>Identify error patterns → treat them as cultural signals</td></tr>
+                            <tr><td>Kantayya</td><td>Public critique as feedback loop</td><td>Translate technical findings into social discourse and change</td></tr>
+                        </tbody>
+                    </table>
+                `,
+                rubricHook: `
+                    <p><strong>Reflection:</strong> identify one test, one bias exposure, one public critique channel.</p>
+                    <p><strong>Discussion Leader:</strong> bring a contemporary AI artifact, show how it tests, fails, and circulates critique.</p>
+                `,
+                unlocksNext: `
+                    <p>This triad prepares the system for games & VR:</p>
+                    <p>From machine judgment (Turing/Buolamwini) → to player agency (Montfort/Bogost) → to world simulation (Boellstorff).</p>
+                    <p>The system pivots from “can machines think?” → “what worlds can machines stage?”</p>
+                `
+            },
+            'triad-4': {
+                title: 'Triad 4: Play & Game Layer',
+                readings: [
+                    'Montfort & Bogost (Stella)',
+                    'Boellstorff (Second Life) (optional)'
+                ],
+                seedRoles: `
+                    <p><strong>Montfort/Bogost</strong> → expose games as procedural systems, where meaning is in rules and constraints, not narrative alone.</p>
+                    <p><strong>Boellstorff</strong> → frames virtual worlds as anthropological sites, with their own culture, economy, and identity rituals.</p>
+                    <p>Together, they push the course to see computation as world-making practice — not just analysis of representation, but construction of living systems.</p>
+                `,
+                mermaidGraph: `
+                    graph TD
+                    M["Montfort: code = medium"]:::seed
+                    B["Bogost: procedural rhetoric"]:::seed
+                    Bo["Boellstorff: virtual worlds = cultures"]:::seed
+                    M --> X["X4: Rules as Generators of Meaning"]
+                    B --> X
+                    Bo --> X
+                    X --> Y["Y7: Play as Computation (agency encoded in constraints)"]
+                    X --> Z["Y8: World-Building as Culture (anthropology of code)"]
+                    classDef seed fill:#222,stroke:#555,color:#fff;
+                `,
+                readInterpretation: `
+                    <p><strong>X4</strong> = merging Montfort/Bogost’s focus on rules with Boellstorff’s worlds → rules become cultural generators.</p>
+                    <p><strong>Y7</strong> = Play = computation in action: rules are executed through human agents.</p>
+                    <p><strong>Y8</strong> = Worlds = computational environments that host culture; anthropology shifts from villages → virtual platforms.</p>
+                `,
+                blazePass: `
+                    <h3>B — Boundary Distinctions</h3>
+                    <ul>
+                        <li><span>◻</span> Narrative vs rule → narrative = surface; rules = computation beneath.</li>
+                        <li><span>◻</span> Virtual vs real → both are cultural systems; virtual is not unreal.</li>
+                        <li><span>◻</span> Player vs system → agency emerges at the interface of constraint + exploration.</li>
+                    </ul>
+                    <h3>L — Levels of Learning</h3>
+                    <ul>
+                        <li>Foundational: identify rulesets in a media artifact.</li>
+                        <li>Strategic: show how those rules produce rhetorical meaning (procedural rhetoric).</li>
+                        <li>Emergent: analyze how virtual cultures evolve, merge, or diverge from physical ones.</li>
+                    </ul>
+                    <h3>A — Action Protocols</h3>
+                    <ul>
+                        <li>Pick a simple game (Pac-Man, Wordle, Among Us).</li>
+                        <li>Map its procedural rules as operators.</li>
+                        <li>Identify its cultural outputs (memes, communities, norms).</li>
+                        <li>Connect to Boellstorff: how does culture stabilize around the system?</li>
+                    </ul>
+                    <h3>Z — Constraints & Redundancies</h3>
+                    <ul>
+                        <li>Media Analysis assignment now crucial: analyze a medium you use daily through a theorist. If a student picks TikTok, Montfort/Bogost → procedural rhetoric, Boellstorff → community anthropology.</li>
+                        <li>Discussion leader acts as game master: they set rules/questions, and others play through the discussion.</li>
+                        <li>Reflections are iterative runs — students replay rules on different artifacts until convergence.</li>
+                    </ul>
+                    <h3>E — Emergence / Phase Shift</h3>
+                    <ul>
+                        <li>Students stop treating media as static texts; they now see them as rule-driven ecologies.</li>
+                        <li>Culture is understood as a computational game: rules, constraints, strategies, communities.</li>
+                        <li>This primes the next triad (Milk · Rouse · Bolter) where the focus shifts to immersion, empathy, and the myth of total presence in XR.</li>
+                    </ul>
+                `,
+                modelTable: `
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Model-OF (representation)</th><th>Model-FOR (prescription)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Montfort</td><td>Code as text + medium</td><td>Treat code paths as rhetorical structures</td></tr>
+                            <tr><td>Bogost</td><td>Procedural rhetoric = argument via rules</td><td>Ask: what claim is encoded in the rules?</td></tr>
+                            <tr><td>Boellstorff</td><td>Virtual worlds as anthropological sites</td><td>Study communities as cultural systems, not fictions</td></tr>
+                        </tbody>
+                    </table>
+                `,
+                rubricHook: `
+                    <p><strong>Reflection:</strong> identify 1 rule, 1 rhetorical claim, 1 cultural output.</p>
+                    <p><strong>Discussion Leader:</strong> frame a media object as a “game” — show how rules encode social/cultural claims.</p>
+                `,
+                unlocksNext: `
+                    <p>This triad evolves smoothly into XR / VR immersion:</p>
+                    <p>From rules → play → worlds (Montfort/Bogost/Boellstorff),</p>
+                    <p>To immersion → empathy → critique (Milk/Rouse/Bolter).</p>
+                    <p>The system moves from building procedural worlds → interrogating the affective traps of immersion.</p>
+                `
+            },
+            'triad-5': {
+                title: 'Triad 5: Immersion & Empathy Layer',
+                readings: [
+                    'Milk (VR Empathy Machine, TED)',
+                    'Rouse (Against Instrumentalization of Empathy)',
+                    'Bolter, Engberg & MacIntyre (Reality Media)'
+                ],
+                seedRoles: `
+                    <p><strong>Milk</strong> → evangelizes VR as a medium = empathy operator, promising presence → compassion.</p>
+                    <p><strong>Rouse</strong> → dismantles that claim, showing empathy-as-instrument can manipulate or flatten otherness.</p>
+                    <p><strong>Bolter</strong> → reframes XR as continuum of reality media, not transcendence but a recalibration of mediation itself.</p>
+                    <p>Together, they force the recognition that immersion isn’t neutral — it’s an engineered affective computation with contested politics.</p>
+                `,
+                mermaidGraph: `
+                    graph TD
+                    Mi["Milk: VR = empathy operator"]:::seed
+                    R["Rouse: empathy = critique of instrumentalization"]:::seed
+                    Bo["Bolter: XR = reality media continuum"]:::seed
+                    Mi --> X["X5: Immersion as Affective Computation"]
+                    R --> X
+                    Bo --> X
+                    X --> Y["Y9: Empathy as Algorithm (engineered affect, contested)"]
+                    X --> Z["Y10: Presence as Calibration (reality reframed, not transcended)"]
+                    classDef seed fill:#222,stroke:#555,color:#fff;
+                `,
+                readInterpretation: `
+                    <p><strong>X5</strong> = merging Milk’s evangelism, Rouse’s critique, Bolter’s continuum → immersion becomes a computation on affect.</p>
+                    <p><strong>Y9</strong> = empathy functions like an algorithm: selective, instrumental, manipulable.</p>
+                    <p><strong>Y10</strong> = XR presence isn’t transcendence — it’s calibration across media filters.</p>
+                `,
+                blazePass: `
+                    <h3>B — Boundary Distinctions</h3>
+                    <ul>
+                        <li><span>◻</span> Empathy vs manipulation → empathy can be coded as design feature, not innate response.</li>
+                        <li><span>◻</span> VR vs reality → VR belongs to a continuum of mediations, not an outside.</li>
+                        <li><span>◻</span> Immersion vs critique → immersion is both experience and ideology.</li>
+                    </ul>
+                    <h3>L — Levels of Learning</h3>
+                    <ul>
+                        <li>Foundational: detect how immersion is engineered (visual cues, interactivity, narrative framing).</li>
+                        <li>Strategic: analyze what empathic “effect” is claimed, and whose perspective is centered/excluded.</li>
+                        <li>Emergent: critique immersion as affective politics, not just media tech.</li>
+                    </ul>
+                    <h3>A — Action Protocols</h3>
+                    <ul>
+                        <li>Select a VR/AR/XR artifact (VR film, AR museum app, metaverse demo).</li>
+                        <li>Identify its empathy claim (what affect is promised).</li>
+                        <li>Trace its critique vector (what gets simplified, erased, instrumentalized).</li>
+                        <li>Place it along Bolter’s reality continuum (how mediation is recalibrated).</li>
+                    </ul>
+                    <h3>Z — Constraints & Redundancies</h3>
+                    <ul>
+                        <li>Speculative Media Final Project begins to loom: students will now be equipped to build futures without naively importing empathy rhetoric.</li>
+                        <li>Reading reflections here act as affective calibration logs — each student recording how immersion/critique landed.</li>
+                        <li>Discussion leader becomes an empathy auditor: stage the hype, then break it apart for peers.</li>
+                    </ul>
+                    <h3>E — Emergence / Phase Shift</h3>
+                    <ul>
+                        <li>Students stop seeing VR as “magic” → start treating immersion as engineered computation on feeling.</li>
+                        <li>This opens the path for networked virality (Brock, Maguire) and identity/power critiques (Lovelock, Benjamin), where affect isn’t just individual → it scales socially and politically.</li>
+                    </ul>
+                `,
+                modelTable: `
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Model-OF (representation)</th><th>Model-FOR (prescription)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Milk</td><td>Empathy as VR operator</td><td>Ask: what affective transformation is being promised?</td></tr>
+                            <tr><td>Rouse</td><td>Empathy as instrumental critique</td><td>Ask: who benefits from this empathy framing? who is flattened?</td></tr>
+                            <tr><td>Bolter</td><td>XR as continuum of mediation</td><td>Place immersion within a chain, not as escape from mediation</td></tr>
+                        </tbody>
+                    </table>
+                `,
+                rubricHook: `
+                    <p><strong>Reflection:</strong> every student must log 1 engineered empathy operator, 1 critique vector, 1 continuum placement.</p>
+                    <p><strong>Discussion Leader:</strong> pick an XR artifact → chart its empathy claim, critique, and continuum position.</p>
+                `,
+                unlocksNext: `
+                    <p>This triad destabilizes empathy → prepares for network/viral triad (Brock · Maguire).</p>
+                    <p>The arc: presence → affect → network contagion.</p>
+                    <p>From VR as empathy → to Twitter as cultural conversation → to virality as autocatalytic instruction.</p>
+                `
+            },
+            'triad-6': {
+                title: 'Triad 6: Network & Viral Layer',
+                readings: [
+                    'Brock (Twitter as Cultural Conversation)',
+                    'Maguire (Girls and Viral Economies)',
+                    'TikTok article (“Without Radical Changes, TikTok Could Vanish…”) (implied)'
+                ],
+                seedRoles: `
+                    <p><strong>Brock</strong> → defines Twitter as Black digital practice, where conversation = cultural computation, not noise.</p>
+                    <p><strong>Maguire</strong> → dissects viral economies, showing how small signals (eyebrows, micro-trends) scale into markets of attention.</p>
+                    <p><strong>TikTok analysis</strong> → situates platform-level constraints: algorithms mediate whose virality is viable, who gets suppressed.</p>
+                    <p>Together, they pivot the class toward networks as autocatalytic ecologies: conversations and memes replicate, mutate, and survive as cultural code.</p>
+                `,
+                mermaidGraph: `
+                    graph TD
+                    Br["Brock: Twitter = cultural conversation"]:::seed
+                    Ma["Maguire: virality = micro-economies of attention"]:::seed
+                    Tt["TikTok: platform constraint on virality"]:::seed
+                    Br --> X["X6: Networks as Computational Ecologies"]
+                    Ma --> X
+                    Tt --> X
+                    X --> Y["Y11: Virality as Autocatalytic Instruction (memes replicate & mutate)"]
+                    X --> Z["Y12: Platform Governance as Selective Pressure (who/what survives)"]
+                    classDef seed fill:#222,stroke:#555,color:#fff;
+                `,
+                readInterpretation: `
+                    <p><strong>X6</strong> = merging Brock + Maguire + TikTok → networks are not just carriers, but evolutionary ecologies.</p>
+                    <p><strong>Y11</strong> = virality = replication rule (memes as self-modifying code).</p>
+                    <p><strong>Y12</strong> = platforms = environments applying fitness functions (selective pressures: algorithmic boosts/suppressions).</p>
+                `,
+                blazePass: `
+                    <h3>B — Boundary Distinctions</h3>
+                    <ul>
+                        <li><span>◻</span> Conversation vs noise → Black Twitter shows conversation = cultural computation.</li>
+                        <li><span>◻</span> Virality vs community → virality is rule-driven replication, but always embedded in community norms.</li>
+                        <li><span>◻</span> Algorithm vs user agency → algorithm as fitness function, shaping what replicates.</li>
+                    </ul>
+                    <h3>L — Levels of Learning</h3>
+                    <ul>
+                        <li>Foundational: log how a meme/topic moves across network.</li>
+                        <li>Strategic: identify how platform design shapes replication speed & reach.</li>
+                        <li>Emergent: see virality as a cultural evolutionary system with mutation, drift, extinction.</li>
+                    </ul>
+                    <h3>A — Action Protocols</h3>
+                    <ul>
+                        <li>Pick a viral artifact (meme, TikTok, hashtag).</li>
+                        <li>Map its replication rules (formats, hashtags, sounds).</li>
+                        <li>Identify its mutation paths (remixes, ironic twists, subculture uptake).</li>
+                        <li>Trace platform constraints (algorithm changes, moderation).</li>
+                    </ul>
+                    <h3>Z — Constraints & Redundancies</h3>
+                    <ul>
+                        <li>Reading reflections become viral mini-essays → short bursts that replicate across Canvas discussions.</li>
+                        <li>Discussion leaders function as “amplifiers” → they seed questions that replicate in class.</li>
+                        <li>Assignments act as selective pressures — only well-structured analyses survive to grading.</li>
+                    </ul>
+                    <h3>E — Emergence / Phase Shift</h3>
+                    <ul>
+                        <li>Students start thinking of memes, hashtags, and posts as code fragments in a cultural evolutionary system.</li>
+                        <li>Class identity itself starts to feel viral — participation = replication.</li>
+                        <li>Prepares for next triad (Lovelock + Benjamin), where identity & power cut across viral systems, making survival unequal.</li>
+                    </ul>
+                `,
+                modelTable: `
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Model-OF (representation)</th><th>Model-FOR (prescription)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Brock</td><td>Twitter as cultural computation</td><td>Treat conversation as signal, not noise</td></tr>
+                            <tr><td>Maguire</td><td>Virality as attention economy</td><td>Identify micro-signals → predict amplification</td></tr>
+                            <tr><td>TikTok (article)</td><td>Platform as fitness function</td><td>Ask: what traits are algorithmically selected/suppressed?</td></tr>
+                        </tbody>
+                    </table>
+                `,
+                rubricHook: `
+                    <p><strong>Reflection:</strong> identify 1 replication rule, 1 mutation path, 1 selective pressure.</p>
+                    <p><strong>Discussion Leader:</strong> bring a viral artifact → map its replication, mutation, selection.</p>
+                `,
+                unlocksNext: `
+                    <p>This triad sets the stage for critical constraint injection: Lovelock (queerness) + Benjamin (race/tech).</p>
+                    <p>Evolutionary map: from presence (XR) → virality (network) → now identity/power as constraint.</p>
+                    <p>The system is ready to confront fitness functions as biased & unjust selectors.</p>
+                `
+            },
+            'triad-7': {
+                title: 'Triad 7: Identity & Power Layer',
+                readings: [
+                    'Lovelock (Queerness as Authenticity in Reality TV)',
+                    'Benjamin (Race After Technology)'
+                ],
+                seedRoles: `
+                    <p><strong>Lovelock</strong> → shows “authenticity” in media is not natural, but a constructed performance that encodes norms of queerness.</p>
+                    <p><strong>Benjamin</strong> → demonstrates race is coded into technology, making bias a structural design principle, not a bug.</p>
+                    <p><strong>Tie-back to Brock/Maguire</strong> → virality and visibility are stratified: not all memes/voices replicate equally.</p>
+                    <p>Together, they shift the class from neutral virality to biased survival: which cultural forms get to endure depends on encoded constraints of power.</p>
+                `,
+                mermaidGraph: `
+                    graph TD
+                    Lo["Lovelock: authenticity = constructed queerness"]:::seed
+                    Be["Benjamin: race = coded constraint"]:::seed
+                    Vi["Virality context: visibility as fitness"]:::seed
+                    Lo --> X["X7: Identity as Computed Authenticity"]
+                    Be --> X
+                    Vi --> X
+                    X --> Y["Y13: Authenticity as Algorithm (who counts as 'real')"]
+                    X --> Z["Y14: Bias as Constraint (power encoded in replication rules)"]
+                    classDef seed fill:#222,stroke:#555,color:#fff;
+                `,
+                readInterpretation: `
+                    <p><strong>X7</strong> = merging Lovelock + Benjamin + viral context → identity becomes an algorithmic test: authentic vs fake, visible vs erased.</p>
+                    <p><strong>Y13</strong> = authenticity functions like an algorithm → it classifies, admits, excludes.</p>
+                    <p><strong>Y14</strong> = bias is not accidental → it is the constraint shaping which cultural forms replicate.</p>
+                `,
+                blazePass: `
+                    <h3>B — Boundary Distinctions</h3>
+                    <ul>
+                        <li><span>◻</span> Queer vs authentic → authenticity is constructed, not inherent.</li>
+                        <li><span>◻</span> Race vs technology → race is coded into systems, not separate from them.</li>
+                        <li><span>◻</span> Visibility vs erasure → virality is selective, not neutral.</li>
+                    </ul>
+                    <h3>L — Levels of Learning</h3>
+                    <ul>
+                        <li>Foundational: recognize that “authentic” media personas are staged constructions.</li>
+                        <li>Strategic: identify how tech mediates race, gender, sexuality through bias.</li>
+                        <li>Emergent: trace power as the hidden selective pressure in all media ecologies.</li>
+                    </ul>
+                    <h3>A — Action Protocols</h3>
+                    <ul>
+                        <li>Take a media artifact (reality TV show, TikTok trend, AI tool).</li>
+                        <li>Identify its authenticity claim (who/what is “real”).</li>
+                        <li>Analyze its bias encoding (who/what is erased).</li>
+                        <li>Map its fitness function: who gets to replicate culturally?</li>
+                    </ul>
+                    <h3>Z — Constraints & Redundancies</h3>
+                    <ul>
+                        <li>Final Group Project constraint injection: speculative futures must wrestle with bias, not just celebrate novelty.</li>
+                        <li>Reading reflections serve as cultural error-correction logs: spotting hidden bias, re-inserting erased perspectives.</li>
+                        <li>Discussion leaders become bias auditors: they expose hidden constraints in the readings/media.</li>
+                    </ul>
+                    <h3>E — Emergence / Phase Shift</h3>
+                    <ul>
+                        <li>Students shift from seeing media as “open” to seeing it as power-coded systems.</li>
+                        <li>Bias, authenticity, and race become constraints in the computational evolution of culture.</li>
+                        <li>Prepares for final speculative arc: Metaverse & Futures (what comes after, once identity/power are acknowledged?).</li>
+                    </ul>
+                `,
+                modelTable: `
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Model-OF (representation)</th><th>Model-FOR (prescription)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Lovelock</td><td>Authenticity as staged computation</td><td>Ask: what rules define “realness” here?</td></tr>
+                            <tr><td>Benjamin</td><td>Race as structural code</td><td>Identify where power is baked into design</td></tr>
+                            <tr><td>Viral Context</td><td>Visibility as fitness function</td><td>Map who survives vs who is erased</td></tr>
+                        </tbody>
+                    </table>
+                `,
+                rubricHook: `
+                    <p><strong>Reflection:</strong> identify 1 authenticity claim, 1 bias encoding, 1 survival test.</p>
+                    <p><strong>Discussion Leader:</strong> bring artifact → show how identity/power constrain its replication.</p>
+                `,
+                unlocksNext: `
+                    <p>This triad closes the constraint arc: identity & power = hard-coded system rules.</p>
+                    <p>Next triad (Metaverse + student speculation) reopens future evolution: what happens when students design new worlds knowing these constraints?</p>
+                    <p>Arc moves: medium (McLuhan) → presence (Bazin/Auslander) → judgment (Turing) → world-building (Montfort/Boellstorff) → virality (Brock/Maguire) → constraint (Benjamin/Lovelock) → speculative self-modeling.</p>
+                `
+            },
+            'triad-8': {
+                title: 'Triad 8: Speculative Futures Layer',
+                readings: [
+                    '“The Emerging Metaverse” (assigned text + class discussion)',
+                    'Student speculative projects (Final Group Assignment)',
+                    'In-class workdays (weeks 13–16) as incubation periods'
+                ],
+                seedRoles: `
+                    <p><strong>Metaverse reading</strong> → introduces the mythic attractor of a fully immersive world, echoing Bazin’s “total cinema” but updated for XR/VR.</p>
+                    <p><strong>Speculative projects</strong> → force students to author their own autocatalytic instructions, not just analyze others’.</p>
+                    <p><strong>Workdays & presentations</strong> → enact collective self-modeling, where the class narrates its own future trajectory.</p>
+                    <p>Together, this triad completes the evolutionary cycle: from media as operator → to media as speculative future → to the class itself as a cultural-computational system.</p>
+                `,
+                mermaidGraph: `
+                    graph TD
+                    Me["Metaverse: myth of total immersion"]:::seed
+                    Sp["Speculative Projects: students as designers"]:::seed
+                    Wd["Workdays: iterative feedback loops"]:::seed
+                    Me --> X["X8: Futures as Attractors"]
+                    Sp --> X
+                    Wd --> X
+                    X --> Y["Y15: Speculation as Autocatalytic Instruction (designing new media)"]
+                    X --> Z["Y16: Collective Self-Modeling (class narrates its trajectory)"]
+                    classDef seed fill:#222,stroke:#555,color:#fff;
+                `,
+                readInterpretation: `
+                    <p><strong>X8</strong> = Metaverse + speculation + iteration → futures act as strange attractors, pulling discourse forward.</p>
+                    <p><strong>Y15</strong> = Speculation itself becomes a recursive instruction that regenerates the system.</p>
+                    <p><strong>Y16</strong> = The class produces its own higher-order model: “what LMC 2400 is, and what it could be.”</p>
+                `,
+                blazePass: `
+                    <h3>B — Boundary Distinctions</h3>
+                    <ul>
+                        <li><span>◻</span> Metaverse hype vs actual mediation → treat hype as myth, not fact.</li>
+                        <li><span>◻</span> Speculation vs prediction → speculation = design practice, not forecast.</li>
+                        <li><span>◻</span> Individual vs collective → projects are co-authored, encoding group identity.</li>
+                    </ul>
+                    <h3>L — Levels of Learning</h3>
+                    <ul>
+                        <li>Foundational: identify metaverse narratives as continuons of older myths (total cinema, VR empathy).</li>
+                        <li>Strategic: design speculative artifacts that critique or extend these myths.</li>
+                        <li>Emergent: reflect on the class itself as a computational ecology, producing instructions for future cohorts.</li>
+                    </ul>
+                    <h3>A — Action Protocols</h3>
+                    <ul>
+                        <li>Build a speculative media prototype or presentation.</li>
+                        <li>Explicitly link it to at least one prior theorist (e.g., McLuhan operator, Benjamin bias constraint).</li>
+                        <li>Frame it as a model-for the future: what instructions does it add to cultural computation?</li>
+                    </ul>
+                    <h3>Z — Constraints & Redundancies</h3>
+                    <ul>
+                        <li>Final Group Project = the stabilizer → ensures speculation is tethered to course readings.</li>
+                        <li>Workdays = redundancy cycles (iteration prevents collapse into fantasy).</li>
+                        <li>Presentation Day = ritual closure; the class narrates itself back to itself.</li>
+                    </ul>
+                    <h3>E — Emergence / Phase Shift</h3>
+                    <ul>
+                        <li>Students collectively enact self-modeling — the final recursive turn.</li>
+                        <li>The syllabus closes by producing a new generation of instructions (speculative projects) that will survive into future discourse.</li>
+                        <li>The system demonstrates full computational-evolutionary closure: input → constraints → perturbations → speculation → new outputs.</li>
+                    </ul>
+                `,
+                modelTable: `
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Model-OF (representation)</th><th>Model-FOR (prescription)</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Metaverse</td><td>Mythic horizon of total immersion</td><td>Treat as attractor, not reality</td></tr>
+                            <tr><td>Speculative Project</td><td>Autocatalytic instruction authored by students</td><td>Generate futures that recompute course concepts</td></tr>
+                            <tr><td>Workdays/Presentations</td><td>Class as self-modeling system</td><td>Narrate course identity, update instructions</td></tr>
+                        </tbody>
+                    </table>
+                `,
+                rubricHook: `
+                    <p><strong>Reflection (final weeks):</strong> must identify 1 myth attractor, 1 speculative instruction, 1 self-modeling loop.</p>
+                    <p><strong>Final Group Presentation:</strong> explicitly frame project as new operator in the computational evolution of media.</p>
+                `,
+                unlocksNext: `
+                    <h3>Evolutionary Closure: Arc Recap</h3>
+                    <ul>
+                        <li><strong>Triad 1: Operators</strong> (McLuhan/Ong/Higgins/Bazin)</li>
+                        <li><strong>Triad 2: Presence/Myth</strong> (Gitelman/Dutchen/Enright/Auslander/BazinMyth)</li>
+                        <li><strong>Triad 3: Machine Judgment</strong> (Turing/Buolamwini/Kantayya)</li>
+                        <li><strong>Triad 4: Rules/Worlds</strong> (Montfort/Bogost/Boellstorff)</li>
+                        <li><strong>Triad 5: Immersion/Affect</strong> (Milk/Rouse/Bolter)</li>
+                        <li><strong>Triad 6: Virality</strong> (Brock/Maguire/TikTok)</li>
+                        <li><strong>Triad 7: Constraint</strong> (Lovelock/Benjamin)</li>
+                        <li><strong>Triad 8: Futures & Self-Modeling</strong> (Metaverse/Speculation/Student projects)</li>
+                    </ul>
+                    <p>The syllabus has completed its cycle: from medium as operator → to identity & power constraints → to speculative recursion.</p>
+                `
+            }
+        };
+
+        const fullBlazeTreeGraph = `
+            graph TD
+            %% TRIAD 1
+            M1["McLuhan: medium = operator"]:::seed
+            O1["Ong: orality = redundancy/code"]:::seed
+            H1["Higgins: intermedia = merge logic"]:::seed
+            B1["Bazin: image ontology"]:::seed
+            M1 --> A1["Operators as Algorithmic Constraint"]
+            O1 --> A1
+            H1 --> A1
+            B1 --> A1
+            %% TRIAD 2
+            G2["Gitelman: publics = infrastructures"]:::seed
+            D2["Dutchen: noise = health/affect"]:::seed
+            E2["Enright: noise = cultural war"]:::seed
+            A2_Live["Auslander: liveness = mediatized presence"]:::seed
+            B2_Myth["Bazin: myth of total cinema"]:::seed
+            G2 --> A2_Merge["Presence as Infrastructural Negotiation/Combat"]
+            D2 --> A2_Merge
+            E2 --> A2_Merge
+            A2_Live --> A2_Merge
+            B2_Myth --> A2_Merge
+            %% TRIAD 3
+            T3["Turing: test = imitation game"]:::seed
+            B3["Buolamwini: bias = misrecognition"]:::seed
+            K3["Kantayya: critique = public loop"]:::seed
+            T3 --> A3_Merge["Machine Judgment as Cultural Mirror"]
+            B3 --> A3_Merge
+            K3 --> A3_Merge
+            %% TRIAD 4
+            M4["Montfort: code = medium"]:::seed
+            B4["Bogost: procedural rhetoric"]:::seed
+            Bf4["Boellstorff: worlds as cultures"]:::seed
+            M4 --> A4_Merge["Rules as Generators of Meaning"]
+            B4 --> A4_Merge
+            Bf4 --> A4_Merge
+            %% TRIAD 5
+            M5["Milk: VR = empathy operator"]:::seed
+            R5["Rouse: critique = against empathy-instrument"]:::seed
+            Bol5["Bolter: XR = continuum of mediation"]:::seed
+            M5 --> A5_Merge["Immersion as Affective Computation"]
+            R5 --> A5_Merge
+            Bol5 --> A5_Merge
+            %% TRIAD 6
+            Br6["Brock: Twitter = cultural conversation"]:::seed
+            Ma6["Maguire: virality = attention economy"]:::seed
+            Tt6["TikTok: platform constraint"]:::seed
+            Br6 --> A6_Merge["Networks as Evolutionary Ecologies"]
+            Ma6 --> A6_Merge
+            Tt6 --> A6_Merge
+            %% TRIAD 7
+            Lo7["Lovelock: queerness = constructed authenticity"]:::seed
+            Be7["Benjamin: race = coded constraint"]:::seed
+            Vi7["Viral Context: visibility = fitness function"]:::seed
+            Lo7 --> A7_Merge["Identity as Algorithmic Constraint"]
+            Be7 --> A7_Merge
+            Vi7 --> A7_Merge
+            %% TRIAD 8
+            Me8["Metaverse: myth horizon"]:::seed
+            Sp8["Student Speculation: futures as instruction"]:::seed
+            Wd8["Workdays: iterative loop"]:::seed
+            Me8 --> A8_Merge["Speculation as Autocatalytic Instruction"]
+            Sp8 --> A8_Merge
+            Wd8 --> A8_Merge
+            %% CONNECTIONS ACROSS TRIADS (A-nodes are the merged concepts for each Triad)
+            A1 --> A2_Merge
+            A2_Merge --> A3_Merge
+            A3_Merge --> A4_Merge
+            A4_Merge --> A5_Merge
+            A5_Merge --> A6_Merge
+            A6_Merge --> A7_Merge
+            A7_Merge --> A8_Merge
+            classDef seed fill:#222,stroke:#555,color:#fff;
+        `;
+
+        // --- Simulation Engine Variables & Classes ---
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const simulationLog = document.getElementById('simulation-log');
+
+        const GRID_SIZE = 40; // 40x40 grid
+        let CELL_SIZE; // Calculated based on canvas size
+
+        let agents = [];
+        let knowledgeNodes = [];
+        let simulationPaused = true;
+        let animationFrameId;
+        let frameCount = 0;
+        const INITIAL_AGENTS = 10;
+        const INITIAL_KNOWLEDGE_NODES = 25; // Roughly half the total concepts
+
+        const AGENT_RADIUS = 0.4; // Percentage of CELL_SIZE
+        const NODE_SIZE = 0.8; // Percentage of CELL_SIZE
+        const MAX_ENERGY = 100;
+        const ENERGY_DECAY_RATE = 0.05; // Energy lost per frame
+        const ENERGY_GAIN_LEARN = 30;
+        const ENERGY_GAIN_SHARE = 5;
+
+        class Agent {
+            constructor(id, x, y, initialKnowledge = new Set()) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.knowledge = new Set(initialKnowledge); // Set of concept IDs
+                this.color = this.generateColor();
+                this.energy = MAX_ENERGY;
+                this.targetX = x;
+                this.targetY = y;
+                this.path = []; // For simple pathfinding/movement
+            }
+
+            generateColor() {
+                // A dynamic color based on knowledge level or initial seed
+                const hue = (this.knowledge.size / allConceptIds.length) * 120; // Greenish when knowledgeable
+                return `hsl(${hue}, 70%, 60%)`;
+            }
+
+            // Simple movement towards target
+            move() {
+                if (this.x === this.targetX && this.y === this.targetY) {
+                    this.setNewTarget();
+                }
+
+                if (this.path.length > 0) {
+                    const nextStep = this.path.shift();
+                    this.x = nextStep.x;
+                    this.y = nextStep.y;
+                } else {
+                    this.setNewTarget(); // Fallback if path is empty
+                }
+            }
+
+            setNewTarget() {
+                // Prioritize unknown knowledge nodes
+                const unknownNodes = knowledgeNodes.filter(node => !this.knowledge.has(node.conceptId));
+                if (unknownNodes.length > 0) {
+                    const targetNode = unknownNodes[Math.floor(Math.random() * unknownNodes.length)];
+                    this.targetX = targetNode.x;
+                    this.targetY = targetNode.y;
+                    this.path = this.findPath(this.x, this.y, this.targetX, this.targetY); // Simple BFS for path
+                } else {
+                    // If all known, random walk
+                    this.targetX = Math.max(0, Math.min(GRID_SIZE - 1, this.x + Math.floor(Math.random() * 3) - 1));
+                    this.targetY = Math.max(0, Math.min(GRID_SIZE - 1, this.y + Math.floor(Math.random() * 3) - 1));
+                    this.path = []; // No specific path, direct movement
+                    this.path.push({x: this.targetX, y: this.targetY}); // Simplistic single step
+                }
+            }
+
+            findPath(startX, startY, endX, endY) {
+                // Very simple BFS to find a path, not optimized for obstacles
+                const queue = [{x: startX, y: startY, path: []}];
+                const visited = new Set();
+                visited.add(`${startX},${startY}`);
+
+                while (queue.length > 0) {
+                    const {x, y, path} = queue.shift();
+
+                    if (x === endX && y === endY) {
+                        return path;
+                    }
+
+                    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]]; // Up, Right, Down, Left
+                    for (const [dx, dy] of directions) {
+                        const newX = x + dx;
+                        const newY = y + dy;
+
+                        if (newX >= 0 && newX < GRID_SIZE && newY >= 0 && newY < GRID_SIZE && !visited.has(`${newX},${newY}`)) {
+                            visited.add(`${newX},${newY}`);
+                            queue.push({x: newX, y: newY, path: [...path, {x: newX, y: newY}]});
+                        }
+                    }
+                }
+                return []; // No path found
+            }
+
+            update() {
+                this.energy -= ENERGY_DECAY_RATE; // Continuous energy decay
+
+                this.move();
+                this.checkCollisions(); // Check for knowledge nodes and other agents
+
+                // Update color based on current knowledge level
+                this.color = this.generateColor();
+            }
+
+            checkCollisions() {
+                // Knowledge Node acquisition
+                knowledgeNodes.forEach(node => {
+                    if (this.x === node.x && this.y === node.y && !this.knowledge.has(node.conceptId)) {
+                        this.knowledge.add(node.conceptId);
+                        this.energy = Math.min(MAX_ENERGY, this.energy + ENERGY_GAIN_LEARN);
+                        logSimulationEvent(`Agent ${this.id} acquired knowledge: ${conceptMap[node.conceptId]}`, 'event');
+                        // Node might change color or disappear if it's "depleted"
+                        // For simplicity, nodes remain, but agents won't seek already known nodes.
+                    }
+                });
+
+                // Agent-to-Agent knowledge transfer (Symbiosis)
+                agents.forEach(otherAgent => {
+                    if (this !== otherAgent && this.x === otherAgent.x && this.y === otherAgent.y) {
+                        let knowledgeTransferred = false;
+                        // Agent shares its knowledge with otherAgent
+                        for (const concept of this.knowledge) {
+                            if (!otherAgent.knowledge.has(concept)) {
+                                otherAgent.knowledge.add(concept);
+                                otherAgent.energy = Math.min(MAX_ENERGY, otherAgent.energy + ENERGY_GAIN_SHARE);
+                                knowledgeTransferred = true;
+                            }
+                        }
+                        // OtherAgent shares its knowledge with this agent
+                        for (const concept of otherAgent.knowledge) {
+                            if (!this.knowledge.has(concept)) {
+                                this.knowledge.add(concept);
+                                this.energy = Math.min(MAX_ENERGY, this.energy + ENERGY_GAIN_SHARE);
+                                knowledgeTransferred = true;
+                            }
+                        }
+                        if (knowledgeTransferred) {
+                            logSimulationEvent(`Symbiotic transfer between Agent ${this.id} and Agent ${otherAgent.id}`, 'event');
+                        }
+                    }
+                });
+            }
+        }
+
+        class KnowledgeNode {
+            constructor(x, y, conceptId) {
+                this.x = x;
+                this.y = y;
+                this.conceptId = conceptId;
+            }
+        }
+
+        function logSimulationEvent(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.textContent = `[Frame ${frameCount}] ${message}`;
+            entry.classList.add('log-entry', type);
+            simulationLog.prepend(entry); // Add to top
+            if (simulationLog.children.length > 100) { // Keep log from getting too long
+                simulationLog.removeChild(simulationLog.lastChild);
+            }
+        }
+
+        // --- Simulation Core Functions ---
+        function initializeSimulation() {
+            logSimulationEvent("System Initialization: Deploying intellectual primitives and agents...", 'info');
+            agents = [];
+            knowledgeNodes = [];
+            frameCount = 0;
+            simulationLog.innerHTML = `<div class="log-entry info">System Log: Initializing simulation protocols...</div>`;
+
+            // Calculate CELL_SIZE based on canvas dimensions and GRID_SIZE
+            CELL_SIZE = Math.min(canvas.width, canvas.height) / GRID_SIZE;
+
+            // Create knowledge nodes (distribute concepts across the grid)
+            const availablePositions = new Set();
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    availablePositions.add(`${i},${j}`);
+                }
+            }
+
+            let conceptIndex = 0;
+            const conceptsToPlace = [...allConceptIds]; // Shuffle concepts for random placement
+            conceptsToPlace.sort(() => Math.random() - 0.5);
+
+            for (let i = 0; i < INITIAL_KNOWLEDGE_NODES && i < conceptsToPlace.length; i++) {
+                let x, y, posKey;
+                do {
+                    x = Math.floor(Math.random() * GRID_SIZE);
+                    y = Math.floor(Math.random() * GRID_SIZE);
+                    posKey = `${x},${y}`;
+                } while (!availablePositions.has(posKey));
+
+                availablePositions.delete(posKey);
+                knowledgeNodes.push(new KnowledgeNode(x, y, conceptsToPlace[i]));
+                logSimulationEvent(`Knowledge Node placed: ${conceptMap[conceptsToPlace[i]]} at (${x},${y})`, 'info');
+            }
+
+            // Create initial agents
+            for (let i = 0; i < INITIAL_AGENTS; i++) {
+                let x, y, posKey;
+                do {
+                    x = Math.floor(Math.random() * GRID_SIZE);
+                    y = Math.floor(Math.random() * GRID_SIZE);
+                    posKey = `${x},${y}`;
+                } while (!availablePositions.has(posKey)); // Ensure no overlap with initial nodes
+
+                availablePositions.delete(posKey);
+                agents.push(new Agent(i + 1, x, y, new Set())); // Agents start with no knowledge
+                logSimulationEvent(`Agent ${i + 1} deployed at (${x},${y})`, 'info');
+            }
+
+            updateOverallKnowledgeStatus();
+        }
+
+        // Resolve CSS custom properties for use in canvas drawing
+        function cssVar(name){
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        function drawSimulation() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+
+            // Draw grid lines
+            ctx.strokeStyle = cssVar('--grid-line-color');
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * CELL_SIZE, 0);
+                ctx.lineTo(i * CELL_SIZE, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * CELL_SIZE);
+                ctx.lineTo(canvas.width, i * CELL_SIZE);
+                ctx.stroke();
+            }
+
+            // Draw knowledge nodes
+            knowledgeNodes.forEach(node => {
+                const isKnownByAnyAgent = agents.some(agent => agent.knowledge.has(node.conceptId));
+                ctx.fillStyle = isKnownByAnyAgent ? cssVar('--learned-node-color') : cssVar('--knowledge-node-color');
+                ctx.fillRect(
+                    node.x * CELL_SIZE + (CELL_SIZE * (1 - NODE_SIZE)) / 2,
+                    node.y * CELL_SIZE + (CELL_SIZE * (1 - NODE_SIZE)) / 2,
+                    CELL_SIZE * NODE_SIZE,
+                    CELL_SIZE * NODE_SIZE
+                );
+                // Optional: Draw concept ID on node (can be too cluttered for small cells)
+                // ctx.fillStyle = 'white';
+                // ctx.font = `8px monospace`;
+                // ctx.fillText(node.conceptId.split('-')[1], node.x * CELL_SIZE + 2, node.y * CELL_SIZE + CELL_SIZE / 2 + 4);
+            });
+
+            // Draw agents
+            agents.forEach(agent => {
+                ctx.fillStyle = agent.color;
+                ctx.beginPath();
+                ctx.arc(
+                    agent.x * CELL_SIZE + CELL_SIZE / 2,
+                    agent.y * CELL_SIZE + CELL_SIZE / 2,
+                    CELL_SIZE * AGENT_RADIUS,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+
+                // Draw energy bar (simple vertical bar next to agent)
+                const energyHeight = (agent.energy / MAX_ENERGY) * CELL_SIZE * AGENT_RADIUS * 2;
+                ctx.fillStyle = agent.energy > MAX_ENERGY / 3 ? 'green' : (agent.energy > MAX_ENERGY / 10 ? 'orange' : 'red');
+                ctx.fillRect(
+                    agent.x * CELL_SIZE + CELL_SIZE / 2 + CELL_SIZE * AGENT_RADIUS + 2,
+                    agent.y * CELL_SIZE + CELL_SIZE / 2 - energyHeight / 2,
+                    2,
+                    energyHeight
+                );
+            });
+        }
+
+        function updateSimulation() {
+            frameCount++;
+            const agentsToRemove = [];
+            agents.forEach((agent, index) => {
+                agent.update();
+                if (agent.energy <= 0) {
+                    agentsToRemove.push(index);
+                    logSimulationEvent(`Agent ${agent.id} eliminated due to lack of adaptive fitness.`, 'critical');
+                }
+            });
+
+            // Remove eliminated agents (iterate backwards to avoid index issues)
+            for (let i = agentsToRemove.length - 1; i >= 0; i--) {
+                agents.splice(agentsToRemove[i], 1);
+            }
+
+            // Periodically introduce new agents if population is too low (mutation/reproduction pressure)
+            if (agents.length < INITIAL_AGENTS / 2 && frameCount % 100 === 0) {
+                addAgent();
+            }
+
+            updateOverallKnowledgeStatus();
+        }
+
+        function gameLoop() {
+            if (!simulationPaused) {
+                updateSimulation();
+                drawSimulation();
+                animationFrameId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function startSimulation() {
+            if (simulationPaused) {
+                simulationPaused = false;
+                document.getElementById('startStopSimBtn').textContent = 'Pause Simulation';
+                logSimulationEvent("Simulation commenced. Agents are now engaged in knowledge acquisition and transfer.", 'info');
+                systemStatus.textContent = 'Operational - Simulating Ecology';
+                gameLoop();
+            }
+        }
+
+        function pauseSimulation() {
+            if (!simulationPaused) {
+                simulationPaused = true;
+                document.getElementById('startStopSimBtn').textContent = 'Resume Simulation';
+                logSimulationEvent("Simulation paused. Agent evolution temporarily suspended.", 'info');
+                systemStatus.textContent = 'Operational - Simulation Paused';
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        function resetSimulation() {
+            pauseSimulation();
+            initializeSimulation();
+            drawSimulation();
+            logSimulationEvent("Simulation reset to initial state. New ecological cycle initiated.", 'info');
+            systemStatus.textContent = 'Operational - Simulation Ready';
+        }
+
+        function addAgent() {
+            let x, y, posKey;
+            let attempts = 0;
+            do {
+                x = Math.floor(Math.random() * GRID_SIZE);
+                y = Math.floor(Math.random() * GRID_SIZE);
+                posKey = `${x},${y}`;
+                attempts++;
+            } while ((agents.some(a => a.x === x && a.y === y) || knowledgeNodes.some(n => n.x === x && n.y === y)) && attempts < 100);
+
+            if (attempts < 100) {
+                const newAgentId = agents.length > 0 ? Math.max(...agents.map(a => a.id)) + 1 : 1;
+                agents.push(new Agent(newAgentId, x, y, new Set())); // New agents start fresh
+                logSimulationEvent(`New Agent ${newAgentId} mutated into existence at (${x},${y})`, 'event');
+                return true;
+            } else {
+                logSimulationEvent("Cannot add agent: Grid appears saturated.", 'critical');
+                return false;
+            }
+        }
+
+        function addKnowledgeNode() {
+            const unplacedConcepts = allConceptIds.filter(cid => !knowledgeNodes.some(node => node.conceptId === cid));
+            if (unplacedConcepts.length === 0) {
+                logSimulationEvent("All intellectual primitives already deployed. No new knowledge to inject.", 'critical');
+                return;
+            }
+
+            let x, y, posKey;
+            let attempts = 0;
+            do {
+                x = Math.floor(Math.random() * GRID_SIZE);
+                y = Math.floor(Math.random() * GRID_SIZE);
+                posKey = `${x},${y}`;
+                attempts++;
+            } while ((agents.some(a => a.x === x && a.y === y) || knowledgeNodes.some(n => n.x === x && n.y === y)) && attempts < 100);
+
+            if (attempts < 100) {
+                const conceptId = unplacedConcepts[Math.floor(Math.random() * unplacedConcepts.length)];
+                knowledgeNodes.push(new KnowledgeNode(x, y, conceptId));
+                logSimulationEvent(`New Knowledge Node injected: ${conceptMap[conceptId]} at (${x},${y})`, 'event');
+                return true;
+            } else {
+                logSimulationEvent("Cannot inject new knowledge: Grid appears saturated.", 'critical');
+                return false;
+            }
+        }
+
+        function updateOverallKnowledgeStatus() {
+            let totalLearnedConcepts = new Set();
+            agents.forEach(agent => {
+                agent.knowledge.forEach(concept => totalLearnedConcepts.add(concept));
+            });
+            const knowledgeRatio = totalLearnedConcepts.size / allConceptIds.length;
+            systemStatus.textContent = `Operational - Simulating Ecology [Knowledge Adaption: ${totalLearnedConcepts.size}/${allConceptIds.length} (${(knowledgeRatio * 100).toFixed(1)}%)]`;
+        }
+
+        // --- UI & Navigation Logic ---
+        const display = document.getElementById('computational-display');
+        const navLinks = document.querySelectorAll('.nexus-nav-list a');
+        const systemStatus = document.getElementById('system-status');
+        const startStopSimBtn = document.getElementById('startStopSimBtn');
+        const resetSimBtn = document.getElementById('resetSimBtn');
+        const addAgentBtn = document.getElementById('addAgentBtn');
+        const addNodeBtn = document.getElementById('addNodeBtn');
+        const simulationSection = document.getElementById('simulation-section');
+
+        function resizeCanvas() {
+            canvas.width = simulationSection.offsetWidth - simulationLog.offsetWidth - 30; // Account for log width and padding
+            canvas.height = simulationSection.offsetHeight - simulationControls.offsetHeight - 30; // Account for controls height and padding
+            CELL_SIZE = Math.min(canvas.width, canvas.height) / GRID_SIZE;
+            drawSimulation(); // Redraw on resize
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+
+        // Function to render content for a specific triad
+        function renderTriadContent(triadKey) {
+            pauseSimulation(); // Pause simulation when viewing static content
+            systemStatus.textContent = `Operational - Loading Triad ${triadKey.split('-')[1]} Data`;
+            const data = triadData[triadKey];
+            if (!data) {
+                display.innerHTML = '<section class="display-section active"><h2 class="section-title">Error: Triad Data Not Found</h2><p>The requested intellectual primitive could not be located in the system\'s knowledge base. Please select a valid computational pathway.</p></section>';
+                systemStatus.textContent = 'Error - Invalid Triad Key';
+                return;
+            }
+
+            let contentHtml = `
+                <section class="display-section active">
+                    <h2 class="section-title">${data.title}</h2>
+                    <h3 class="section-subtitle">Readings</h3>
+                    <ul class="triad-readings">
+                        ${data.readings.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+
+                    <h3 class="section-subtitle">Seed Roles (Why these three matter here)</h3>
+                    <div class="seed-roles">${data.seedRoles}</div>
+
+                    <h3 class="section-subtitle">Tree of Mergers (Mermaid Graph)</h3>
+                    <div class="mermaid-graph-container"><pre class="mermaid">${data.mermaidGraph}</pre></div>
+                    <div class="read-interpretation">${data.readInterpretation}</div>
+
+                    <h3 class="section-subtitle">BLAZE Pass (Deeper, Operational)</h3>
+                    <div class="blaze-pass">${data.blazePass}</div>
+
+                    <h3 class="section-subtitle">Model-OF / Model-FOR Table (Triad-Scoped)</h3>
+                    <div class="model-table">${data.modelTable}</div>
+
+                    <h3 class="section-subtitle">Minimal Rubric Hook (To bind to Course Rituals)</h3>
+                    <div class="rubric-hook">${data.rubricHook}</div>
+
+                    <h3 class="section-subtitle">What Unlocks Next</h3>
+                    <div class="unlocks-next">${data.unlocksNext}</div>
+                </section>
+            `;
+            display.innerHTML = contentHtml;
+            // Re-render Mermaid diagrams after new content is loaded
+            mermaid.init(undefined, display.querySelectorAll('.mermaid'));
+            systemStatus.textContent = `Operational - Triad ${triadKey.split('-')[1]} Data Loaded`;
+        }
+
+        // Function to render the full blaze tree
+        function renderFullBlazeTree() {
+            pauseSimulation(); // Pause simulation when viewing static content
+            systemStatus.textContent = 'Operational - Loading Full Blaze-Tree Map';
+            const contentHtml = `
+                <section class="display-section active">
+                    <h2 class="section-title">Full Blaze-Tree Map: LMC 2400 Computational Evolutionary Ecology</h2>
+                    <p class="section-description">This cumulative diagram represents the entire intellectual ecology of LMC 2400, illustrating how all 8 triadic phases merge into a single, cohesive computational-evolutionary system. Each node signifies a key conceptual merger, and the connections trace the lineage of knowledge.</p>
+
+                    <div class="mermaid-graph-container"><pre class="mermaid">${fullBlazeTreeGraph}</pre></div>
+
+                    <h3 class="section-subtitle">Reading Evolutionary Path</h3>
+                    <div class="full-blaze-tree-summary">
+                        <ul>
+                            <li><strong>Triad 1: Operators</strong> (McLuhan/Ong/Higgins/Bazin)</li>
+                            <li><strong>Triad 2: Presence/Myth</strong> (Gitelman/Dutchen/Enright/Auslander/BazinMyth)</li>
+                            <li><strong>Triad 3: Machine Judgment</strong> (Turing/Buolamwini/Kantayya)</li>
+                            <li><strong>Triad 4: Rules/Worlds</strong> (Montfort/Bogost/Boellstorff)</li>
+                            <li><strong>Triad 5: Immersion/Affect</strong> (Milk/Rouse/Bolter)</li>
+                            <li><strong>Triad 6: Virality</strong> (Brock/Maguire/TikTok)</li>
+                            <li><strong>Triad 7: Constraint</strong> (Lovelock/Benjamin)</li>
+                            <li><strong>Triad 8: Futures & Self-Modeling</strong> (Metaverse/Speculation/Student projects)</li>
+                        </ul>
+                    </div>
+                    <h3 class="section-subtitle">System Summary</h3>
+                    <div class="system-summary-grid">
+                        <div class="grid-item">
+                            <h3>Computational Ecology:</h3>
+                            <ul>
+                                <li>The syllabus is a computational ecology of readings and rituals.</li>
+                                <li>Each triad adds new operators, constraints, and phase shifts.</li>
+                            </ul>
+                        </div>
+                        <div class="grid-item">
+                            <h3>Trajectory & Self-Modeling:</h3>
+                            <ul>
+                                <li>The trajectory evolves from medium → presence → judgment → worlds → affect → virality → constraint → speculation.</li>
+                                <li>By Week 16, the course is a self-modeling system, with student projects functioning as new autocatalytic instructions for future cohorts.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            `;
+            display.innerHTML = contentHtml;
+            // Re-render Mermaid diagrams after new content is loaded
+            mermaid.init(undefined, display.querySelectorAll('.mermaid'));
+            systemStatus.textContent = 'Operational - Full Blaze-Tree Map Loaded';
+        }
+
+        // Event listener for navigation
+        navLinks.forEach(link => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                const view = event.target.dataset.view;
+
+                // Remove active class from all links
+                navLinks.forEach(l => l.classList.remove('active-nav'));
+                // Add active class to clicked link
+                event.target.classList.add('active-nav');
+
+                // Hide all sections
+                document.querySelectorAll('.display-section').forEach(s => s.classList.remove('active'));
+
+                // Render specific content based on data-view
+                if (view === 'simulation') {
+                    simulationSection.classList.add('active');
+                    // Resize canvas to fit its container
+                    resizeCanvas();
+                    // Optionally start simulation here, or let user click Start
+                    // startSimulation();
+                    systemStatus.textContent = 'Operational - Living Ecology Ready';
+                } else if (triadData[view]) {
+                    renderTriadContent(view);
+                } else if (view === 'full-blaze-tree') {
+                    renderFullBlazeTree();
+                }
+            });
+        });
+
+        // Simulation control buttons
+        startStopSimBtn.addEventListener('click', () => {
+            if (simulationPaused) {
+                startSimulation();
+            } else {
+                pauseSimulation();
+            }
+        });
+
+        resetSimBtn.addEventListener('click', resetSimulation);
+        addAgentBtn.addEventListener('click', addAgent);
+        addNodeBtn.addEventListener('click', addKnowledgeNode);
+
+
+        // Initial load: ensure simulation is displayed and initialized
+        document.addEventListener('DOMContentLoaded', () => {
+            simulationSection.classList.add('active');
+            resizeCanvas(); // Initial canvas resize
+            initializeSimulation();
+            drawSimulation();
+            systemStatus.textContent = 'Operational - System Ready. Awaiting Command.';
+        });
+    </script>
+</body>
+</html>

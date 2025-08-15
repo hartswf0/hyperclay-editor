@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NikeCraft Course OS — Brand Commander Edition</title>
+<style>
+  :root{
+    --bg:#0c0d0f; --panel:#111317; --ink:#e6e7e9; --muted:#9aa3ad; --rule:#1b1f26;
+    --accent:#f0b429; --accent-2:#5bc0de; --ok:#35c759; --warn:#ff9f0a; --bad:#ff453a;
+    --brand:#d3d3d3; --grid:#1a1d22; --chip:#2a2f39; --card:#14181e; --focus:#81a1c1;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Inter,Roboto,Arial}
+  h1,h2,h3{margin:0 0 .35rem}
+  h1{font-size:1.4rem;letter-spacing:.3px}
+  h2{font-size:1.1rem;color:var(--brand)}
+  h3{font-size:1rem;color:var(--muted)}
+  small, .muted{color:var(--muted)}
+  a{color:var(--accent)}
+  .wrap{display:grid;grid-template-columns:280px 1fr;grid-template-rows:64px 1fr;min-height:100vh}
+  header{grid-column:1/3;background:var(--panel);border-bottom:1px solid var(--rule);display:flex;align-items:center;gap:16px;padding:12px 16px}
+  header .sig{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
+  header .title{flex:1}
+  header .signature{font-weight:600;color:var(--accent)}
+  header .tag{background:var(--chip);padding:6px 10px;border-radius:999px;border:1px solid var(--rule);font-size:12px}
+  aside{grid-row:2/3;background:var(--panel);border-right:1px solid var(--rule);display:flex;flex-direction:column}
+  .brand{padding:16px;border-bottom:1px solid var(--rule)}
+  .brand .bc{font-weight:700;letter-spacing:.3px}
+  nav{padding:8px 12px;display:flex;flex-direction:column;gap:6px;overflow:auto}
+  nav button{all:unset;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--ink);cursor:pointer;border:1px solid transparent}
+  nav button:hover{background:var(--chip)}
+  nav button.active{background:var(--card);border-color:var(--rule)}
+  nav .sect{margin:8px 0 2px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.14em}
+  main{grid-row:2/3;overflow:auto}
+  .content{padding:18px;display:grid;gap:18px}
+  .grid{display:grid;gap:12px}
+  .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  @media (max-width:1100px){.grid.cols-3,.grid.cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (max-width:800px){.wrap{grid-template-columns:1fr}.grid.cols-2,.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:14px;box-shadow:0 0 0 1px #0000001a inset}
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .sp{justify-content:space-between}
+  .btn{all:unset;display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:var(--chip);border:1px solid var(--rule);cursor:pointer}
+  .btn:hover{filter:brightness(1.05)}
+  .btn.primary{background:linear-gradient(180deg,#1d222b,#14181e);border-color:#2b3240}
+  .btn.accent{background:linear-gradient(180deg,#2b2110,#1b1409);border-color:#3a2d17;color:#ffd99a}
+  input,select,textarea{background:#0f1319;color:var(--ink);border:1px solid var(--rule);border-radius:10px;padding:8px 10px}
+  label{font-size:12px;color:var(--muted)}
+  .kpi{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:22px}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:#17202b;border:1px solid #243244;color:#a7c2e4;padding:4px 8px;border-radius:999px;font-size:12px}
+  .badge.ok{background:#102616;border-color:#264e28;color:#a6e3ad}
+  .badge.warn{background:#261d10;border-color:#4e3a26;color:#ffddb0}
+  .badge.bad{background:#2a1311;border-color:#532522;color:#ffc7c2}
+  .list{display:grid;gap:8px}
+  .list .item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--panel);border:1px solid var(--rule);border-radius:10px}
+  .pill{padding:2px 8px;border:1px solid var(--rule);border-radius:999px;background:var(--chip);color:var(--muted);font-size:12px}
+  .divider{height:1px;background:var(--rule);margin:8px 0}
+  .toast{position:fixed;right:18px;bottom:18px;background:#111318;border:1px solid var(--rule);color:var(--ink);padding:10px 14px;border-radius:10px;opacity:0;transform:translateY(8px);transition:.25s}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .hint{font-size:12px;color:var(--muted)}
+  .kv{display:grid;grid-template-columns:180px 1fr;gap:8px;align-items:center}
+  .kv .k{color:var(--muted)}
+  .label-row{display:flex;gap:8px;align-items:center}
+  .progress{height:8px;border-radius:999px;background:#0f1217;border:1px solid var(--rule);overflow:hidden}
+  .progress > i{display:block;height:100%;background:linear-gradient(90deg,#3a4759,#222a37)}
+  .tag-row{display:flex;gap:6px;flex-wrap:wrap}
+  .ol-diagram{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+  .ol-node{background:#12161c;border:1px solid var(--rule);border-radius:10px;padding:10px;text-align:center}
+  .ol-node h4{margin:0 0 6px;font-size:12px;color:#9fb0c6;text-transform:uppercase;letter-spacing:.08em}
+  .arrow{height:30px;display:flex;align-items:center;justify-content:center;color:#5b6a80}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+  .foot{padding:10px 14px;color:var(--muted);font-size:12px;border-top:1px dashed var(--rule)}
+  .danger{color:#ff8a80}
+  /* Bret Victor mini-charts */
+  .bars{display:flex;gap:6px;align-items:flex-end;height:120px;padding:6px;background:var(--panel);border:1px solid var(--rule);border-radius:10px}
+  .bar{flex:1;display:flex;align-items:flex-end;justify-content:center;position:relative;background:linear-gradient(180deg,#2a3140,#171c25);border:1px solid #2b3442;border-radius:6px;min-width:22px}
+  .bar i{display:block;width:100%;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#58708e,#2a3647)}
+  .bar .val{position:absolute;top:-18px;font-size:11px;color:var(--muted)}
+  .spark{display:flex;gap:2px;align-items:flex-end;height:42px}
+  .spark i{width:6px;background:#2a3647;border-radius:2px}
+  .testpass{color:#a6e3ad}
+  .testfail{color:#ffc7c2}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">
+      <h1>Brand Commander · Course Operating System</h1>
+      <div class="sig">You are now operating as <b>NikeCraft</b> in full Brand Commander mode. <span class="signature">“Build for purpose, live with intention.”</span></div>
+    </div>
+    <span class="tag" id="midnightTag">Midnight lock in: --:--:--</span>
+    <button class="btn" id="toggleInstructor">Instructor Mode: <b id="instructorState">OFF</b></button>
+  </header>
+  <aside>
+    <div class="brand">
+      <div class="bc">LMC 2400 — I.S.R.U. Studio Edition</div>
+      <div class="muted" id="lastUpdated">Last Updated: —</div>
+    </div>
+    <nav id="nav">
+      <div class="sect">Core</div>
+      <button data-view="dash" class="active">Dashboard</button>
+      <button data-view="syllabus">Syllabus</button>
+      <button data-view="rituals">Daily Proofs</button>
+      <button data-view="modules">Modules</button>
+      <button data-view="victor">Bret Victor Lab</button>
+      <button data-view="quizzes">Quizzes</button>
+      <button data-view="leader">Leaderboard</button>
+      <button data-view="badges">Badges</button>
+      <button data-view="artefacts">Artefacts</button>
+      <button data-view="archive">Archive</button>
+      <div class="sect">System</div>
+      <button data-view="olog">Entity · Morphism · Olog</button>
+      <button data-view="policy">Policy Anchors</button>
+      <button data-view="audit">Audit Log</button>
+      <div class="sect">Data</div>
+      <button data-view="export">Export / Reset</button>
+      <div class="sect">Tests</div>
+      <button data-view="tests">Built-in Tests</button>
+    </nav>
+  </aside>
+  <main>
+    <div class="content" id="view"></div>
+    <div class="foot">Tone: direct, honest, utilitarian. Utility before hype. Discipline before novelty. <b>Do more, own less.</b></div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ------------------------------
+// NikeCraft Course OS · Brand Commander Edition
+// Single-file, no dependencies. State persisted in localStorage.
+// ------------------------------
+const OS_KEY = 'isru_course_os_v1';
+const $ = (q, el=document) => el.querySelector(q);
+const $$ = (q, el=document) => Array.from(el.querySelectorAll(q));
+const toast = (msg)=>{const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2000)}
+const todayKey = (d=new Date()) => d.toLocaleDateString('en-CA',{timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone});
+const midnightCountdown = ()=>{
+  const now=new Date();
+  const m=new Date(now); m.setHours(24,0,0,0);
+  const ms=m-now; const h=String(Math.floor(ms/36e5)).padStart(2,'0');
+  const min=String(Math.floor(ms%36e5/6e4)).padStart(2,'0');
+  const s=String(Math.floor(ms%6e4/1e3)).padStart(2,'0');
+  $('#midnightTag').textContent = `Midnight lock in: ${h}:${min}:${s}`;
+}
+setInterval(midnightCountdown,1000);
+
+function defaultState(){
+  const start = '2025-08-18';
+  const end = '2025-12-02';
+  // Seed 10 modules (𓉗 x10), 6 challenges (𓃑 x6)
+  const modules = [
+    {id:'M01', title:'Webs & Traces', week:1, reveal:'2025-08-18', challenge:'C1'},
+    {id:'M02', title:'Spacing & Typography as Argument', week:2, reveal:'2025-08-25', challenge:'C1'},
+    {id:'M03', title:'Oppositions: Speech/Writing · Live/Mediated', week:3, reveal:'2025-09-01', challenge:'C2'},
+    {id:'M04', title:'Deferral: Draft→Revise Systems', week:4, reveal:'2025-09-08', challenge:'C2'},
+    {id:'M05', title:'Media Arenas & Public Proof', week:5, reveal:'2025-09-15', challenge:'C3'},
+    {id:'M06', title:'Bias, Vision, Evidence', week:6, reveal:'2025-09-22', challenge:'C3'},
+    {id:'M07', title:'Myth of Total Cinema · Liveness', week:7, reveal:'2025-09-29', challenge:'C4'},
+    {id:'M08', title:'Platform Political Economies', week:8, reveal:'2025-10-06', challenge:'C4'},
+    {id:'M09', title:'Speculative Prototyping (Supplement)', week:10, reveal:'2025-10-20', challenge:'C5'},
+    {id:'M10', title:'Assembly → Exhibition', week:12, reveal:'2025-11-03', challenge:'C6'}
+  ];
+  const challenges = [
+    {id:'C1', name:'Reflection Streak (pillar series)'},
+    {id:'C2', name:'Discussion Leader (design+dialogue)'},
+    {id:'C3', name:'Midterm Media Analysis'},
+    {id:'C4', name:'Arena Critiques (live debate)'},
+    {id:'C5', name:'EE Prototype (exceptional engagement)'},
+    {id:'C6', name:'Final Exhibition Pack'}
+  ];
+  const quizzes = [
+    {id:'Q1', name:'Media Night 1', pointsPer:2, total:5},
+    {id:'Q2', name:'Media Night 2', pointsPer:2, total:5}
+  ];
+  return {
+    meta:{version:2, created:new Date().toISOString()},
+    student:{name:'Student', pseudonym:'callsign', email:'', phone:'', sizeTolerance:'Primary=10, Tol=+/-1'},
+    schedule:{start,end, days:['Tue','Thu'], time:'14:00-15:15 ET'},
+    modules, challenges, quizzes,
+    activities:[{name:'Pillar Column', public:true, proofs:[]}],
+    artefacts:[],
+    badges:{EE:0, GoldStar:0, Belts:0, Nepotism:0},
+    leaderboard:[{name:'You', points:0, longest:0, first:'—'}],
+    points:0,
+    attempts:{}, // quiz attempts by id
+    audit:[],
+    authority:{instructor:false},
+    victor:{presets:[], sim:null},
+    lastUpdated:new Date().toISOString()
+  }
+}
+
+function load(){
+  try{ return JSON.parse(localStorage.getItem(OS_KEY)) || defaultState() }catch(e){ return defaultState() }
+}
+function save(){ state.lastUpdated=new Date().toISOString(); localStorage.setItem(OS_KEY, JSON.stringify(state)); updateLastUpdated(); }
+function updateLastUpdated(){ const d=new Date(state.lastUpdated); $('#lastUpdated').textContent = 'Last Updated: '+ d.toLocaleString() }
+let state = load(); updateLastUpdated();
+
+// ---------- Utility & Scoring ----------
+function dateKey(d){
+  if(!(d instanceof Date)) d = new Date(d);
+  return d.toLocaleDateString('en-CA');
+}
+function isSameDay(a,b){ return dateKey(a)===dateKey(b) }
+function addAudit(msg){ state.audit.unshift({time:new Date().toISOString(), msg}); save(); }
+
+function computeStreak(proofs){
+  // proofs: [{date:ISO}]
+  if(!proofs.length) return {longest:0, current:0}
+  const days=[...proofs].map(p=>dateKey(p.date)).sort();
+  let longest=1, current=1;
+  for(let i=1;i<days.length;i++){
+    const prev=new Date(days[i-1]);
+    const cur=new Date(days[i]);
+    const diff=(cur - prev)/86400000;
+    if(diff===1){ current++; longest=Math.max(longest,current)} else if(days[i]!==days[i-1]){ current=1 }
+  }
+  // current streak up to today
+  const last = days[days.length-1];
+  const today = dateKey(new Date());
+  const prevDay = dateKey(new Date(Date.now()-86400000));
+  let curStreak = 0;
+  if(last===today || last===prevDay){
+    // recalc current by walking back from end
+    curStreak=1; let i=days.length-1;
+    while(i>0){ const d=new Date(days[i]); const p=new Date(days[i-1]); if((d-p)/86400000===1){curStreak++; i--} else break }
+  }
+  return {longest, current:curStreak}
+}
+
+function recalcPoints(){
+  // base: 1 point per valid proof; quizzes: 2 per correct; EE: +10 each
+  let pts=0; let longest=0; let firstSubmit='—';
+  state.activities.forEach(act=>{
+    pts += act.proofs.length; const s=computeStreak(act.proofs); longest=Math.max(longest,s.longest);
+    if(act.proofs.length){ const first = new Date(act.proofs.map(p=>p.date).sort()[0]); if(firstSubmit==='—' || first<new Date(firstSubmit)) firstSubmit=first.toLocaleString() }
+  })
+  for(const [qid,res] of Object.entries(state.attempts||{})){
+    if(res && res.scored){ pts += res.score }
+  }
+  pts += (state.badges.EE||0)*10; pts += (state.badges.GoldStar||0)*5; pts += (state.badges.Belts||0)*3;
+  state.points=pts;
+  // update leaderboard self row
+  const you = state.leaderboard.find(p=>p.name==='You');
+  if(you){ you.points=pts; you.longest=longest; you.first=firstSubmit }
+  save();
+}
+
+// ---------- Views ----------
+const view = $('#view');
+function switchView(id){ $$('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
+  const map={dash:renderDash, syllabus:renderSyllabus, rituals:renderRituals, modules:renderModules, victor:renderVictor, quizzes:renderQuizzes, leader:renderLeader, badges:renderBadges, artefacts:renderArtefacts, archive:renderArchive, olog:renderOlog, policy:renderPolicy, audit:renderAudit, export:renderExport, tests:renderTests};
+  (map[id]||renderDash)();
+}
+$('#nav').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; switchView(b.dataset.view) })
+
+function renderDash(){
+  recalcPoints();
+  const acts = state.activities.map(a=>{ const s=computeStreak(a.proofs); return `<div class="item"><div><b>${a.name}</b><div class="hint">${a.public?'Public':'Private'} · proofs: ${a.proofs.length}</div></div><div class="tag-row"><span class="badge ok">current ${s.current}</span><span class="badge">longest ${s.longest}</span></div></div>` }).join('')
+  view.innerHTML=`
+  <div class="grid cols-3">
+    <div class="card">
+      <h2>Discipline KPIs</h2>
+      <div class="divider"></div>
+      <div class="kv"><div class="k">Total Points</div><div class="kpi">${state.points}</div></div>
+      <div class="kv"><div class="k">Longest Streak</div><div class="kpi">${state.leaderboard.find(p=>p.name==='You')?.longest||0}</div></div>
+      <div class="kv"><div class="k">First Submission</div><div>${state.leaderboard.find(p=>p.name==='You')?.first||'—'}</div></div>
+      <div class="divider"></div>
+      <div class="row"><button class="btn primary" id="addActivityBtn">Add Activity</button><button class="btn" data-jump="rituals">Log Today’s Proof</button></div>
+    </div>
+    <div class="card">
+      <h2>Module Progress</h2>
+      <div class="divider"></div>
+      ${state.modules.map(m=>{
+        const unlocked = new Date()>=new Date(m.reveal);
+        return `<div class="list item"><div><b>${m.id}</b> — ${m.title}<div class="hint">Reveal: ${new Date(m.reveal).toLocaleDateString()} · ${unlocked?'<span class="badge ok">Unlocked</span>':'<span class="badge warn">Locked</span>'}</div></div><span class="pill">Challenge ${m.challenge}</span></div>`
+      }).join('')}
+    </div>
+    <div class="card">
+      <h2>Activity Streaks</h2>
+      <div class="divider"></div>
+      <div class="list">${acts||'<div class="muted">No activities yet. Add one and start a pillar streak.</div>'}</div>
+    </div>
+  </div>`;
+  $('#addActivityBtn')?.addEventListener('click',()=>promptAddActivity());
+  $$('[data-jump]')?.forEach(b=>b.addEventListener('click',()=>switchView(b.dataset.jump)))
+}
+
+function promptAddActivity(){
+  const name = prompt('Name your activity (pillar):'); if(!name) return;
+  state.activities.push({name, public:true, proofs:[]}); addAudit('Activity added: '+name); save(); renderDash(); toast('Activity added')
+}
+
+function renderSyllabus(){
+  view.innerHTML=`
+  <div class="grid cols-2">
+    <div class="card">
+      <h2>Meeting Pattern</h2>
+      <div class="kv"><div class="k">Days</div><div>${state.schedule.days.join(', ')}</div></div>
+      <div class="kv"><div class="k">Time</div><div>${state.schedule.time}</div></div>
+      <div class="kv"><div class="k">Range</div><div>${state.schedule.start} → ${state.schedule.end}</div></div>
+      <div class="divider"></div>
+      <h3>Assessment Weights</h3>
+      <div class="kv"><div class="k">Participation</div><div>30%</div></div>
+      <div class="kv"><div class="k">Discussion Leader</div><div>10%</div></div>
+      <div class="kv"><div class="k">Midterm Media Analysis</div><div>25%</div></div>
+      <div class="kv"><div class="k">Final Group Speculative</div><div>35%</div></div>
+    </div>
+    <div class="card">
+      <h2>Weekly Reveals</h2>
+      <div class="list">
+        ${state.modules.map(m=>`<div class="item"><div><b>${m.id}</b> — ${m.title}<div class="hint">Releases ${new Date(m.reveal).toLocaleDateString()}</div></div><span class="pill">${m.challenge}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <h2>Tie-break Ladder</h2>
+      <ol class="mono">
+        <li>Total points</li>
+        <li>Longest single-activity consecutive streak</li>
+        <li>Earliest consistent submissions</li>
+        <li>Live debate (critique showdown)</li>
+      </ol>
+      <div class="hint">Build at least one monster streak as insurance.</div>
+    </div>
+    <div class="card">
+      <h2>Operating Maxims</h2>
+      <ul>
+        <li>Every artifact leaves a trace.</li>
+        <li>Every argument stages a difference.</li>
+        <li>Every submission performs deferral (show revisions).</li>
+        <li>Every page is spacing (layout is part of the claim).</li>
+        <li>Every project carries a supplement.</li>
+      </ul>
+    </div>
+  </div>`
+}
+
+function renderRituals(){
+  const acts = state.activities.map((a,i)=>`<option value="${i}">${a.name}</option>`).join('');
+  const today = todayKey();
+  view.innerHTML=`
+  <div class="grid cols-2">
+    <div class="card">
+      <h2>Log Proof (1/activity/day)</h2>
+      <div class="kv"><div class="k">Date</div><div>${today}</div></div>
+      <div class="kv"><div class="k">Activity</div><div><select id="actSel">${acts}</select></div></div>
+      <div class="kv"><div class="k">Note</div><div><input id="proofNote" placeholder="What did you do? What changed?"/></div></div>
+      <div class="kv"><div class="k">Visibility</div><div><select id="proofVis"><option value="public">Public</option><option value="private">Private</option></select></div></div>
+      <div class="kv"><div class="k">Proof Photo</div><div><input type="file" id="proofFile" accept="image/*"/></div></div>
+      <div class="row sp"><button class="btn primary" id="saveProof">Save Proof</button><div class="hint">Midnight lock applies. Past days are sealed.</div></div>
+    </div>
+    <div class="card">
+      <h2>Today’s Timeline</h2>
+      <div id="todayList" class="list"></div>
+    </div>
+  </div>`;
+  $('#saveProof').addEventListener('click',saveProof);
+  renderTodayProofs();
+}
+
+function renderTodayProofs(){
+  const d=todayKey();
+  const items=[];
+  state.activities.forEach((a,ai)=>{
+    a.proofs.filter(p=>dateKey(p.date)===d).forEach((p,pi)=>{
+      items.push(`<div class="item"><div><b>${a.name}</b><div class="hint">${new Date(p.date).toLocaleTimeString()} · ${p.public?'Public':'Private'}</div><div>${p.note||''}</div></div><span class="pill">+1 pt</span></div>`)
+    })
+  })
+  $('#todayList').innerHTML = items.join('') || '<div class="muted">No proofs yet today. Do the work. Log the proof.</div>'
+}
+
+function saveProof(){
+  const ai = +$('#actSel').value; const note=$('#proofNote').value; const vis=$('#proofVis').value;
+  const act = state.activities[ai]; if(!act){ toast('No activity selected'); return }
+  // enforce one proof per activity per day
+  const today = todayKey();
+  if(act.proofs.some(p=>dateKey(p.date)===today)) { toast('Limit reached: 1 proof for this activity today'); return }
+  const file=$('#proofFile').files[0];
+  const doSave = (img)=>{
+    act.public = (vis==='public');
+    act.proofs.push({date:new Date().toISOString(), note, public:(vis==='public'), img});
+    addAudit(`Proof logged for ${act.name}`);
+    recalcPoints(); renderRituals(); toast('Proof saved +1')
+  }
+  if(file){ const fr=new FileReader(); fr.onload=()=>doSave(fr.result); fr.readAsDataURL(file) } else { doSave(null) }
+}
+
+function renderModules(){
+  view.innerHTML=`
+  <div class="grid cols-2">
+    <div class="card">
+      <h2>Modules (𓉗 ×10)</h2>
+      <div class="list">${state.modules.map(m=>`<div class="item"><div><b>${m.id}</b> — ${m.title}<div class="hint">Week ${m.week} · Reveal ${new Date(m.reveal).toLocaleDateString()}</div></div><span class="pill">${m.challenge}</span></div>`).join('')}</div>
+    </div>
+    <div class="card">
+      <h2>Challenges (𓃑 ×6)</h2>
+      <div class="list">${state.challenges.map(c=>`<div class="item"><div><b>${c.id}</b> — ${c.name}</div></div>`).join('')}</div>
+    </div>
+  </div>`
+}
+
+function renderQuizzes(){
+  const items = state.quizzes.map(q=>{
+    const attempted = state.attempts[q.id]?.attempted; const scored = state.attempts[q.id]?.scored; const score = state.attempts[q.id]?.score||0;
+    return `<div class="card"><h2>${q.name}</h2><div class="hint">One-take. ${q.total} questions · ${q.pointsPer} pts each.</div>
+    ${attempted? `<div class="badge ${scored?'ok':'warn'}">${scored?`Scored: ${score} pts`:'Attempt in progress'}</div>` : `<button class="btn primary" data-quiz="${q.id}">Start Quiz</button>`}
+    <div id="quiz-${q.id}"></div></div>`
+  }).join('');
+  view.innerHTML = `<div class="grid cols-2">${items}</div>`;
+  $$('[data-quiz]').forEach(b=>b.addEventListener('click',()=>startQuiz(b.dataset.quiz)))
+}
+
+function startQuiz(id){
+  if(state.attempts[id]?.attempted){ toast('One-take enforced. No retakes.'); return }
+  state.attempts[id]={attempted:true, scored:false, answers:{}}; save();
+  const qRoot = $(`#quiz-${id}`); qRoot.innerHTML = quizForm(id);
+  qRoot.querySelector('form').addEventListener('submit',e=>{e.preventDefault(); scoreQuiz(id, new FormData(e.target))})
+}
+
+function quizForm(id){
+  // Minimal 5Q template; correct answers embedded for demo.
+  const qs=[
+    {k:'q1', t:'Layout can function as argument.', a:['True','False'], c:'True'},
+    {k:'q2', t:'A supplement both completes and exposes a lack.', a:['True','False'], c:'True'},
+    {k:'q3', t:'One proof per activity per day is the rule.', a:['True','False'], c:'True'},
+    {k:'q4', t:'Revision is optional if your first draft is strong.', a:['True','False'], c:'False'},
+    {k:'q5', t:'Visibility never matters; private is identical to public.', a:['True','False'], c:'False'}
+  ];
+  const html = `<form class="list">${qs.map((q,i)=>`<div class="item"><div><b>Q${i+1}.</b> ${q.t}</div>
+    <div>${q.a.map(opt=>`<label class="label-row"><input type="radio" required name="${q.k}" value="${opt}"> ${opt}</label>`).join('')}</div></div>`).join('')}
+    <button class="btn accent">Submit Quiz</button></form>`;
+  // store key
+  state.attempts[id].key = qs; save();
+  return html;
+}
+
+function scoreQuiz(id, fd){
+  const key = state.attempts[id].key; let sc=0; key.forEach(q=>{ if(fd.get(q.k)===q.c) sc += 2 })
+  state.attempts[id].scored=true; state.attempts[id].score=sc; addAudit(`Quiz ${id} scored: ${sc} pts`); recalcPoints(); renderQuizzes(); toast(`Scored ${sc} pts`)
+}
+
+function renderLeader(){
+  // Seed a couple of rivals for context
+  const rivals=[{name:'Peer A', points:Math.max(0, state.points-3), longest:state.leaderboard[0]?.longest-1||2, first:'—'}, {name:'Peer B', points:Math.max(0, state.points-7), longest:3, first:'—'}]
+  const board=[...state.leaderboard.filter(p=>p.name==='You'), ...rivals].sort((a,b)=>b.points-a.points)
+  view.innerHTML = `<div class="card"><h2>Leaderboard</h2><div class="list">${board.map((p,i)=>`<div class="item"><div><b>#${i+1} ${p.name}</b><div class="hint">Longest ${p.longest} · First ${p.first}</div></div><div class="kpi">${p.points}</div></div>`).join('')}</div></div>`
+}
+
+function renderBadges(){
+  view.innerHTML = `<div class="grid cols-3">
+    <div class="card"><h2>EE (Exceptional Engagement)</h2><div class="hint">Awarded for standout craft/insight. +10 pts</div>
+    <div class="row"><button class="btn" id="eeGive">Nominate Self</button><span class="pill">Owned: ${state.badges.EE}</span></div></div>
+    <div class="card"><h2>Gold Star</h2><div class="hint">Consistent reliability. +5 pts</div>
+    <div class="row"><button class="btn" id="gsGive">Request Review</button><span class="pill">Owned: ${state.badges.GoldStar}</span></div></div>
+    <div class="card"><h2>Belts</h2><div class="hint">Auto from streak thresholds. +3 pts each</div>
+    <div class="row"><button class="btn" id="beltRecalc">Recalculate</button><span class="pill">Owned: ${state.badges.Belts}</span></div></div>
+  </div>`;
+  $('#eeGive').addEventListener('click',()=>award('EE'));
+  $('#gsGive').addEventListener('click',()=>award('GoldStar'));
+  $('#beltRecalc').addEventListener('click',()=>recalcBelts());
+}
+
+function award(kind){
+  if(!state.authority.instructor){ toast('Instructor approval required'); return }
+  state.badges[kind] = (state.badges[kind]||0)+1; addAudit(`${kind} awarded`); recalcPoints(); renderBadges(); toast(`${kind} +1`)
+}
+
+function recalcBelts(){
+  // grant 1 belt for each full 7-day longest streak
+  let belts=0; state.activities.forEach(a=>{ const s=computeStreak(a.proofs); belts += Math.floor(s.longest/7) })
+  state.badges.Belts=belts; addAudit('Belts recalculated'); recalcPoints(); renderBadges(); toast('Belts updated')
+}
+
+function renderArtefacts(){
+  view.innerHTML = `<div class="card"><h2>Symbolic Artefacts</h2>
+    <div class="hint">Upload or describe outputs you want visible in arenas. Visibility increases responsibility.</div>
+    <div class="row"><input id="artName" placeholder="Name"/><input id="artLink" placeholder="Link (optional)"/><button class="btn primary" id="addArt">Add</button></div>
+    <div class="divider"></div>
+    <div class="list" id="artList"></div>
+  </div>`;
+  $('#addArt').addEventListener('click',()=>{ const n=$('#artName').value?.trim(); if(!n) return toast('Name required'); const l=$('#artLink').value?.trim(); state.artefacts.unshift({name:n, link:l, time:new Date().toISOString()}); addAudit('Artefact added: '+n); save(); renderArtefacts() })
+  const list = state.artefacts.map(a=>`<div class="item"><div><b>${a.name}</b><div class="hint">${new Date(a.time).toLocaleString()}</div>${a.link?`<a href="${a.link}" target="_blank">open</a>`:''}</div></div>`).join('')
+  $('#artList').innerHTML = list || '<div class="muted">No artefacts yet.</div>'
+}
+
+function renderArchive(){
+  // Flatten proofs
+  const proofs=[]; state.activities.forEach(a=>a.proofs.forEach(p=>proofs.push({act:a.name,...p})))
+  proofs.sort((a,b)=>new Date(b.date)-new Date(a.date))
+  view.innerHTML = `<div class="card"><h2>Archive (Auditable)</h2>
+  <div class="list">${proofs.map(p=>`<div class="item"><div><b>${p.act}</b><div class="hint">${new Date(p.date).toLocaleString()} · ${p.public?'Public':'Private'}</div><div>${p.note||''}</div></div>${p.img?`<img src="${p.img}" alt="proof" style="max-height:48px;border-radius:6px;border:1px solid var(--rule)">`:''}</div>`).join('')||'<div class="muted">No records yet.</div>'}</div></div>`
+}
+
+function renderOlog(){
+  view.innerHTML = `<div class="card">
+    <h2>Entity · Morphism · Olog</h2>
+    <div class="hint">First-order distinctions (◻) and indications (→) rendered as an operational map.</div>
+    <div class="divider"></div>
+    <div class="ol-diagram">
+      <div class="ol-node"><h4>◻ Student</h4><div class="mono">agent</div></div>
+      <div class="arrow">→ engages_in</div>
+      <div class="ol-node"><h4>◻ Module</h4><div class="mono">thematic space</div></div>
+      <div class="arrow">→ issues</div>
+      <div class="ol-node"><h4>◻ Task</h4><div class="mono">challenge</div></div>
+      <div class="arrow">→ produces</div>
+      <div class="ol-node"><h4>◻ Artefact</h4><div class="mono">symbolic object</div></div>
+      <div class="arrow">→ earns</div>
+      <div class="ol-node"><h4>◻ Badge</h4><div class="mono">capital</div></div>
+      <div class="arrow">↺</div>
+      <div class="ol-node"><h4>◻ Arena</h4><div class="mono">public critique</div></div>
+      <div class="arrow">→ triggers</div>
+      <div class="ol-node"><h4>◻ Iteration</h4><div class="mono">refinement</div></div>
+      <div class="arrow">→ stored_in</div>
+      <div class="ol-node"><h4>◻ Archive</h4><div class="mono">audit trail</div></div>
+      <div class="arrow">→ culminates_in</div>
+      <div class="ol-node"><h4>◻ Exhibition</h4><div class="mono">final</div></div>
+      <div class="arrow">⇦ validates</div>
+      <div class="ol-node"><h4>◻ Authority</h4><div class="mono">instructor/peer</div></div>
+    </div>
+  </div>`
+}
+
+function renderPolicy(){
+  view.innerHTML = `<div class="grid cols-2">
+    <div class="card"><h2>Policy Anchors (𓈌 ×7)</h2>
+      <ul>
+        <li>One human, one account.</li>
+        <li>Local midnight is a hard wall (past days sealed).</li>
+        <li>One proof per activity per day.</li>
+        <li>Quizzes are one‑take; no retakes.</li>
+        <li>Visibility is public by default; private is still auditable.</li>
+        <li>Zero tolerance for falsification/automation.</li>
+        <li>Named exceptions are explicit and rare.</li>
+      </ul>
+    </div>
+    <div class="card"><h2>Aura of Factuality</h2>
+      <ul>
+        <li>Timestamps and logs are authoritative.</li>
+        <li>Instructor audits can override scores with cause.</li>
+        <li>“Decisions are final” where ambiguity remains.</li>
+      </ul>
+      <div class="hint">Truth = what’s logged, auditable, timestamped.</div>
+    </div>
+  </div>`
+}
+
+function renderAudit(){
+  view.innerHTML = `<div class="card"><h2>Audit Log</h2>
+    <div class="list">${(state.audit||[]).map(a=>`<div class="item"><div>${a.msg}</div><div class="muted">${new Date(a.time).toLocaleString()}</div></div>`).join('')||'<div class="muted">No events yet.</div>'}</div>
+  </div>`
+}
+
+function renderExport(){
+  const data = JSON.stringify(state,null,2);
+  view.innerHTML = `<div class="grid cols-2">
+    <div class="card"><h2>Export JSON</h2>
+      <textarea id="dump" rows="18" style="width:100%">${data}</textarea>
+      <div class="row"><button class="btn" id="copy">Copy</button><button class="btn" id="dl">Download</button></div>
+    </div>
+    <div class="card"><h2>Reset (Danger)</h2>
+      <div class="muted">Removes local data. Cannot be undone.</div>
+      <button class="btn" id="reset"><span class="danger">Reset OS</span></button>
+      <div class="divider"></div>
+      <h3>Instructor Mode</h3>
+      <div class="row"><button class="btn" id="instOn">Enable</button><button class="btn" id="instOff">Disable</button></div>
+    </div>
+  </div>`
+  $('#copy').addEventListener('click',()=>{ navigator.clipboard.writeText($('#dump').value); toast('Copied') })
+  $('#dl').addEventListener('click',()=>{
+    const blob=new Blob([$('#dump').value],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='isru_course_os_export.json'; a.click(); URL.revokeObjectURL(url)
+  })
+  $('#reset').addEventListener('click',()=>{ if(confirm('Reset local OS data?')){ localStorage.removeItem(OS_KEY); state=defaultState(); save(); switchView('dash'); toast('OS reset') } })
+  $('#instOn').addEventListener('click',()=>{ state.authority.instructor=true; save(); $('#instructorState').textContent='ON'; toast('Instructor mode enabled') })
+  $('#instOff').addEventListener('click',()=>{ state.authority.instructor=false; save(); $('#instructorState').textContent='OFF'; toast('Instructor mode disabled') })
+}
+
+// Toggle instructor from header
+$('#toggleInstructor').addEventListener('click',()=>{ state.authority.instructor=!state.authority.instructor; save(); $('#instructorState').textContent= state.authority.instructor?'ON':'OFF'; toast('Instructor mode '+(state.authority.instructor?'ON':'OFF')) })
+
+// Bret Victor Lab — Media for Thinking the Unthinkable
+function renderVictor(){
+  if(!state.victor){ state.victor={presets:[], sim:null} }
+  const sim = state.victor.sim || {running:false, day:0, proofAdherence:.8, activities:1, quizAccuracy:.8, eePerMonth:.2, days:112, seed:Date.now(), history:[], points:{proofs:0, quizzes:0, badges:0}};
+  state.victor.sim = sim; save();
+  const breakdown = (pts)=>{
+    const sum = pts.proofs+pts.quizzes+pts.badges||1;
+    return {p:Math.round(100*pts.proofs/sum), q:Math.round(100*pts.quizzes/sum), b:Math.round(100*pts.badges/sum)}
+  }
+  const bk = breakdown(sim.points);
+  view.innerHTML = `
+  <div class="grid cols-3">
+    <div class="card">
+      <h2>1) Surfaces the Invisible</h2>
+      <div class="hint">Live breakdown of where points actually come from.</div>
+      <div class="bars" style="margin-top:8px">
+        <div class="bar"><i style="height:${bk.p}%"></i><span class="val">Proofs ${sim.points.proofs}</span></div>
+        <div class="bar"><i style="height:${bk.q}%"></i><span class="val">Quizzes ${sim.points.quizzes}</span></div>
+        <div class="bar"><i style="height:${bk.b}%"></i><span class="val">Badges ${sim.points.badges}</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="hint">Hidden variables → visible: adherence, activities, quiz accuracy, EE rate.</div>
+      <div class="kv"><div class="k">Adherence</div><div><input id="adh" type="range" min="0" max="1" step="0.05" value="${sim.proofAdherence}"> <span class="pill" id="adhVal">${sim.proofAdherence}</span></div></div>
+      <div class="kv"><div class="k">Activities</div><div><input id="acts" type="range" min="1" max="3" step="1" value="${sim.activities}"> <span class="pill" id="actsVal">${sim.activities}</span></div></div>
+      <div class="kv"><div class="k">Quiz Accuracy</div><div><input id="qa" type="range" min="0" max="1" step="0.05" value="${sim.quizAccuracy}"> <span class="pill" id="qaVal">${sim.quizAccuracy}</span></div></div>
+      <div class="kv"><div class="k">EE / month</div><div><input id="ee" type="range" min="0" max="1" step="0.05" value="${sim.eePerMonth}"> <span class="pill" id="eeVal">${sim.eePerMonth}</span></div></div>
+      <div class="row" style="margin-top:8px"><button class="btn primary" id="runSim">${sim.running?'Pause':'Play'}</button><button class="btn" id="resetSim">Reset</button></div>
+    </div>
+    <div class="card">
+      <h2>2) What‑If Exploration</h2>
+      <div class="hint">Day-by-day projection of streak and points. Play/Pause to simulate.</div>
+      <div class="kv"><div class="k">Sim Day</div><div><span class="kpi" id="simDay">${sim.day}/${sim.days}</span></div></div>
+      <div class="kv"><div class="k">Projected Points</div><div class="kpi" id="simPts">${sim.points.proofs+sim.points.quizzes+sim.points.badges}</div></div>
+      <div class="divider"></div>
+      <div class="spark" id="spark"></div>
+    </div>
+    <div class="card">
+      <h2>3) Linked Perspectives</h2>
+      <div class="hint">Synchronize views: numbers ↔ visuals ↔ rules.</div>
+      <ul class="mono" id="ruleLog" style="max-height:160px;overflow:auto"></ul>
+      <div class="divider"></div>
+      <h2>4) Prompt Maker</h2>
+      <div class="hint">Generate a reusable prompt for any OS module.</div>
+      <div class="row"><select id="pmModule">
+        <option>Dashboard</option><option>Daily Proofs</option><option>Modules</option><option>Quizzes</option><option>Leaderboard</option><option>Badges</option><option>Artefacts</option><option>Archive</option><option>Olog</option><option>Policy Anchors</option><option>Audit Log</option>
+      </select><button class="btn" id="genPrompt">Generate</button></div>
+      <textarea id="promptOut" rows="8" style="width:100%;margin-top:8px"></textarea>
+    </div>
+  </div>`;
+
+  // spark render
+  const spark = $('#spark'); spark.innerHTML = sim.history.slice(-60).map(v=>`<i style="height:${Math.min(40,Math.max(2,v))}px"></i>`).join('');
+  // listeners
+  const upd = ()=>{ sim.proofAdherence=parseFloat($('#adh').value); $('#adhVal').textContent=sim.proofAdherence; sim.activities=+$('#acts').value; $('#actsVal').textContent=sim.activities; sim.quizAccuracy=parseFloat($('#qa').value); $('#qaVal').textContent=sim.quizAccuracy; sim.eePerMonth=parseFloat($('#ee').value); $('#eeVal').textContent=sim.eePerMonth; save() }
+  ;['adh','acts','qa','ee'].forEach(id=>$('#'+id).addEventListener('input',()=>{upd(); renderVictor()}))
+  $('#runSim').addEventListener('click',()=>{ sim.running=!sim.running; save(); renderVictor(); if(sim.running) tickSim() })
+  $('#resetSim').addEventListener('click',()=>{ state.victor.sim={running:false, day:0, proofAdherence:.8, activities:1, quizAccuracy:.8, eePerMonth:.2, days:112, seed:Date.now(), history:[], points:{proofs:0, quizzes:0, badges:0}}; save(); renderVictor() })
+  $('#genPrompt').addEventListener('click',()=>{ const m=$('#pmModule').value; $('#promptOut').value = makeVictorPrompt(m) })
+}
+
+function tickSim(){
+  const sim = state.victor.sim; if(!sim.running) return;
+  // One day step: each activity can yield 1 proof with adherence probability.
+  let proofs=0; for(let i=0;i<sim.activities;i++){ if(Math.random()<sim.proofAdherence) proofs++ }
+  sim.points.proofs += proofs; sim.history.push(2 + proofs*6); if(sim.history.length>200) sim.history.shift();
+  // quizzes roughly weekly on media night → assume every 7 days 5Q, 2pts each * accuracy
+  if(sim.day%7===0 && sim.day>0){ sim.points.quizzes += Math.round(5*2*sim.quizAccuracy) }
+  // EE approx monthly
+  if(sim.day%28===0 && sim.day>0 && Math.random()<sim.eePerMonth){ sim.points.badges += 10 }
+  sim.day++; save();
+  // update log
+  const log=$('#ruleLog'); if(log){ const row=document.createElement('li'); row.textContent=`d${sim.day}: proofs+${proofs}, quizzes=${sim.points.quizzes}, badges=${sim.points.badges}`; log.prepend(row); while(log.children.length>20) log.removeChild(log.lastChild) }
+  // live numbers — FIX: avoid optional chaining on assignment targets
+  const elDay = $('#simDay'); if(elDay) elDay.textContent = `${sim.day}/${sim.days}`;
+  const elPts = $('#simPts'); if(elPts) elPts.textContent = (sim.points.proofs+sim.points.quizzes+sim.points.badges);
+  // re-render bars/spark light
+  renderVictor();
+  if(sim.day>=sim.days){ sim.running=false; save(); return }
+  setTimeout(tickSim, 150)
+}
+
+function makeVictorPrompt(module){
+  return `Title: Apply “Media for Thinking the Unthinkable” to ${module}
+
+Prompt:
+You are an interface designer tasked with transforming the ${module} component of the NikeCraft Course OS into a medium for thought.
+
+1) Surfaces the Invisible: expose hidden state (streak deltas, audit diffs, authority interventions) with live bars and rule logs.
+2) Overcomes Cognitive Limits: compress 16 weeks into seconds; render timelines and out-of-range scales.
+3) Supports Multiple Modes: direct manipulation (sliders), visual parallels (bars + sparks), symbolic olog view.
+4) What‑If: play/pause semester simulation with instant feedback.
+5) Links Perspectives: sync numeric KPIs, visuals, and policy rules.
+6) Abstracts & Generalizes: save presets of parameters as reusable templates.`
+}
+
+// -------- Tests --------
+function renderTests(){
+  const results = runTests();
+  view.innerHTML = `<div class="card"><h2>Built-in Tests</h2>
+    <div class="hint">These sanity checks validate core OS logic. They do not mock UI.</div>
+    <div class="divider"></div>
+    <ul class="mono">${results.map(r=>`<li class="${r.pass?'testpass':'testfail'}">${r.pass?'PASS':'FAIL'} — ${r.name}${r.pass?'':`: ${r.msg}`}</li>`).join('')}</ul>
+  </div>`
+}
+
+function runTests(){
+  const R=[]; const ok=(name,cond,msg='')=>R.push({name,pass:!!cond,msg});
+  // computeStreak — empty
+  ok('computeStreak(empty) => {0,0}', (()=>{ const s=computeStreak([]); return s.longest===0 && s.current===0 })());
+  // computeStreak — non-consecutive dates
+  ok('computeStreak(non-consecutive) longest==1', (()=>{ const s=computeStreak([{date:'2025-01-01'},{date:'2025-01-03'}]); return s.longest===1 })());
+  // computeStreak — 3-day streak
+  ok('computeStreak(3-day) longest==3', (()=>{ const s=computeStreak([{date:'2025-01-01'},{date:'2025-01-02'},{date:'2025-01-03'}]); return s.longest===3 })());
+  // recalcPoints — 1 proof = +1 point
+  ok('recalcPoints(1 proof) adds +1', (()=>{ const snap=JSON.parse(JSON.stringify(state)); state.activities=[{name:'t', public:true, proofs:[{date:'2025-01-01'}]}]; state.attempts={}; state.badges={EE:0,GoldStar:0,Belts:0}; recalcPoints(); const pass=state.points===1; state=snap; save(); return pass })());
+  // tickSim — does a day advance and points change
+  ok('tickSim advances day', (()=>{ const snap=JSON.parse(JSON.stringify(state)); state.victor={sim:{running:true, day:0, proofAdherence:1, activities:1, quizAccuracy:0, eePerMonth:0, days:10, seed:0, history:[], points:{proofs:0,quizzes:0,badges:0}}}; tickSim(); const pass=state.victor.sim.day===1; state=snap; save(); return pass })());
+  return R;
+}
+
+// Initial view
+switchView('dash');
+</script>
+</body>
+</html>

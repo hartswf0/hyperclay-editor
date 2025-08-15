@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LMC 2400 · Course Operating System — Motherboard UX</title>
+  <style>
+    :root{
+      --bg:#0b0c10; --panel:#0f131c; --ink:#e9ecf1; --muted:#aeb6c3; --rule:#1f2738;
+      --chip:#121621; --chip2:#0c1018; --acc:#5eead4; --acc2:#60a5fa; --ok:#34d399; --warn:#fbbf24;
+      --rose:#fb7185; --emerald:#10b981; --cyan:#06b6d4; --lime:#84cc16; --amber:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Inter,Roboto,Helvetica,Arial}
+    .shell{min-height:100%;display:flex;flex-direction:column}
+    header{position:sticky;top:0;z-index:20;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #0e1524;background:color-mix(in oklab, var(--panel) 88%, transparent)}
+    header .title{font-weight:700}
+    header .sub{color:#9aa6bd}
+    .btn{border:1px solid #2b344a;background:#121826;color:#dbe2ee;border-radius:10px;padding:8px 10px;font-size:13px}
+    .btn:hover{background:#172035}
+
+    main{max-width:1180px;margin:0 auto;padding:18px;display:grid;grid-template-columns:2fr 1fr;gap:18px;flex:1}
+
+    .board{position:relative;border:1px solid #20263a;border-radius:18px;padding:14px;background:linear-gradient(180deg,var(--chip),var(--chip2))}
+    .board .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+    .headrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:#b9c1d4}
+
+    .chip{border:1px solid #2a3046;border-radius:16px;padding:10px;background:linear-gradient(145deg,#0e1321,#0c111c);text-align:left;cursor:pointer;position:relative}
+    .chip .glyph{font-size:22px;line-height:1;opacity:.9}
+    .chip .label{font-size:13px;font-weight:600;margin-top:6px}
+    .chip .sub{font-size:11px;color:#b8c0d1;opacity:.9;margin-top:1px}
+    .chip:focus-visible{outline:2px solid var(--acc)}
+    .chip.active{box-shadow:0 0 0 2px color-mix(in oklab, var(--emerald) 70%, transparent)}
+
+    .legend{display:flex;gap:10px;color:#aab4c7;font-size:12px}
+    .led{display:inline-block;width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 2px #0a0f1b inset}
+    .led.ok{background:var(--ok)}
+    .led.pending{background:#66708a}
+    .led.warn{background:var(--warn)}
+    .pulse{animation:pulse 1.6s infinite}
+    @keyframes pulse{0%{opacity:.45}50%{opacity:1}100%{opacity:.45}}
+
+    aside{border:1px solid #20263a;border-radius:18px;padding:14px;background:var(--panel)}
+    .card{border:1px solid #22293f;background:#111725;border-radius:14px;padding:12px;margin-bottom:12px}
+    .card h4{margin:0 0 6px 0;color:#c6d0e1;font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+    .list{list-style:none;margin:0;padding:0}
+    .list li{display:flex;align-items:center;gap:8px;padding:6px 0}
+    .list .small{font-size:12px;color:#c0c7d6}
+    .badge{display:inline-block;padding:3px 6px;border:1px solid #2a3046;background:#0f1524;border-radius:8px;font-size:11px;color:#c8d0df}
+
+    footer{position:sticky;bottom:0;border-top:1px solid #0e1524;background:color-mix(in oklab, var(--panel) 88%, transparent)}
+    .weeks{max-width:1180px;margin:0 auto;padding:10px 18px;display:flex;gap:8px;align-items:center;overflow:auto}
+    .wkbtn{white-space:nowrap;border:1px solid #2b344a;background:#0f1524;padding:8px 10px;border-radius:12px;color:#c8d0df;font-size:12px}
+    .wkbtn.active{border-color:color-mix(in oklab, var(--emerald) 60%, #2b344a);background:#0e1a17}
+
+    /* Drawer */
+    .drawer{position:fixed;inset:auto 0 0 auto;top:0;right:0;width:390px;height:100%;border-left:1px solid #20263a;background:rgba(11,12,16,.92);backdrop-filter:blur(6px);transform:translateX(100%);transition:.24s ease;display:flex;flex-direction:column}
+    .drawer.open{transform:translateX(0)}
+    .drawer .bar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #20263a}
+    .drawer .cnt{padding:12px;overflow:auto}
+
+    /* Decorative traces */
+    .traces{position:absolute;inset:0;pointer-events:none}
+    .trace{stroke:url(#grad);stroke-width:2;fill:none}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div>
+      <div class="title">LMC 2400 · Course Operating System</div>
+      <div class="sub">Motherboard UX · Fall 2025 (T/Th 3:30–4:45pm ET)</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn" id="nextDueBtn">Next due</button>
+      <button class="btn" id="helpBtn">Help</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="board">
+      <div class="headrow">
+        <div>Motherboard Map — <span id="weekLabel" style="font-weight:600"></span> <span id="weekRange" style="color:#8791a7"></span></div>
+        <div class="legend"><span class="led ok"></span> done <span class="led pending"></span> pending</div>
+      </div>
+      <div class="grid" id="boardGrid">
+        <!-- Filled by JS -->
+      </div>
+
+      <!-- Decorative SVG traces -->
+      <svg class="traces" viewBox="0 0 800 350" preserveAspectRatio="none" aria-hidden>
+        <defs>
+          <linearGradient id="grad" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stop-color="#5eead4" stop-opacity="0"/>
+            <stop offset="20%" stop-color="#5eead4" stop-opacity="0.7"/>
+            <stop offset="80%" stop-color="#60a5fa" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#60a5fa" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g id="traceLines"></g>
+      </svg>
+    </section>
+
+    <aside>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-weight:600">Next Actions</div>
+        <button class="btn" id="resetBtn" style="padding:6px 8px;font-size:12px">Reset</button>
+      </div>
+
+      <div class="card">
+        <h4>This Week</h4>
+        <ul class="list" id="thisWeekList"></ul>
+      </div>
+
+      <div class="card">
+        <h4>Upcoming Due</h4>
+        <ul class="list" id="upcomingList"></ul>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <div class="weeks" id="weeksBar"></div>
+  </footer>
+
+  <div class="drawer" id="drawer">
+    <div class="bar">
+      <div id="drawerTitle" style="font-weight:600"></div>
+      <button class="btn" id="closeDrawer" style="padding:6px 8px">Close</button>
+    </div>
+    <div class="cnt">
+      <div id="drawerMeta" class="small" style="margin-bottom:8px;color:#b7bfd2"></div>
+      <div id="drawerBody"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Data Model ----------
+const course = {
+  id: "lmc2400-os-html",
+  title: "LMC 2400 · Intro to Media Studies",
+  term: "Fall 2025 (T/Th 3:30–4:45pm ET)",
+  scheduleNote: "This OS maps how each meeting powers assignments and milestones.",
+  weeks: [
+    {
+      id: "w1", label: "Week 1", range: "Aug 18–Aug 24",
+      sessions: [
+        { id:"s-0821", dateISO:"2025-08-19", title:"Course Intro · Community Agreements", theme:"Framing & Metacommunication",
+          readings:[], activities:[{id:"a1",kind:"Workshop",label:"Syllabus/OS Walkthrough"},{id:"a2",kind:"Discussion",label:"What counts as analysis here?"}], assignmentUnlocks:["rr-week2"] },
+        { id:"s-0823", dateISO:"2025-08-21", title:"FigJam Mapping · Patterns of Difference", theme:"Visualizing media arguments",
+          readings:[], activities:[{id:"a3",kind:"Workshop",label:"FigJam Basics"},{id:"a4",kind:"Discussion",label:"From opinion → argument"}], assignmentUnlocks:["rr-week2"] },
+      ]
+    },
+    {
+      id: "w2", label: "Week 2", range: "Aug 25–Aug 31",
+      sessions: [
+        { id:"s-0828", dateISO:"2025-08-26", title:"Balbi & Magaudda", theme:"Why study media history?",
+          readings:[{id:"r1", title:"Why Study the History of Digital Media and How?", author:"Balbi & Magaudda"}],
+          activities:[{id:"a5",kind:"Mini Lecture",label:"History & Intro to Media Studies"}], assignmentUnlocks:["rr-week2"] },
+        { id:"s-0830", dateISO:"2025-08-28", title:"N. Katherine Hayles (Technogenesis)", theme:"Humans + Media co-evolve",
+          readings:[{id:"r2", title:"How We Think – Ch.1", author:"N. Katherine Hayles"}],
+          activities:[{id:"a6",kind:"Workshop",label:"Text-to-Artifact: extract key claims"}], assignmentUnlocks:["rr-week2"] },
+      ]
+    },
+    {
+      id: "w3", label: "Week 3", range: "Sep 1–Sep 7",
+      sessions: [
+        { id:"s-0904", dateISO:"2025-09-02", title:"Labor Day · No Class (M schedule)", theme:"No meeting", readings:[], activities:[] },
+        { id:"s-0906", dateISO:"2025-09-04", title:"Walter Benjamin + Dick Higgins", theme:"Aura, mechanical reproduction, intermedia",
+          readings:[{id:"r3", title:"Work of Art in the Age of Mechanical Reproduction", author:"Walter Benjamin"},{id:"r4", title:"Intermedia", author:"Dick Higgins"}],
+          activities:[{id:"a7",kind:"Debate",label:"Is aura dead?"}], assignmentUnlocks:["sp1"] },
+      ]
+    }
+  ],
+  assignments: [
+    { id:"rr-week2", title:"Reading Response (Week 2)", kind:"Reading Response", weightPct:10, dueISO:"2025-08-28T23:59:00-04:00",
+      deliverables:["150–200 word post on Canvas"], rubric:["Clarity","Evidence","Connection to text","Specificity"],
+      description:"Summarize a key claim from Balbi/Magaudda or Hayles; relate to a present-day example." },
+    { id:"sp1", title:"Short Paper 1 · Media History & Culture", kind:"Short Paper", weightPct:15, dueISO:"2025-09-26T23:59:00-04:00",
+      deliverables:["750–1000 word PDF"], rubric:["Thesis coherence","Use of authors","Evidence quality","Structure","Style"],
+      description:"Choose a prompt (McLuhan/Pacey, Benjamin + one other) and analyze a specific media artifact." },
+    { id:"sp2", title:"Short Paper 2 · Images/Film/Games", kind:"Short Paper", weightPct:15, dueISO:"2025-10-24T23:59:00-04:00",
+      deliverables:["750–1000 word PDF"], rubric:["Conceptual mapping","Comparative analysis","Evidence","Structure"],
+      description:"Apply film/game theory (Bazin, Mulvey, Bogost, Juul, Murray) to a contemporary medium." },
+    { id:"final", title:"Final · Speculative Media Analysis", kind:"Speculative Analysis", weightPct:20, dueISO:"2025-12-05T23:59:00-05:00",
+      deliverables:["1700–2000 word PDF","Works Cited (MLA)"], rubric:["Integration of authors","Quality of projection","Contextual nuance","Rigor","Style"],
+      description:"Analyze a present artifact + context; model futures (1–10 yrs). Use ≥3 course authors + 1 outside." },
+  ],
+  milestones: [
+    { id:"m1", title:"Short Paper 1 Due", dateISO:"2025-09-26T23:59:00-04:00", relatedAssignmentId:"sp1" },
+    { id:"m2", title:"Short Paper 2 Due", dateISO:"2025-10-24T23:59:00-04:00", relatedAssignmentId:"sp2" },
+    { id:"m3", title:"Final Project Due", dateISO:"2025-12-05T23:59:00-05:00", relatedAssignmentId:"final" },
+  ],
+};
+
+// ---------- State (localStorage) ----------
+const LS_DONE = "lmc2400:done:html";
+let doneIds = JSON.parse(localStorage.getItem(LS_DONE) || "[]");
+function saveDone(){ localStorage.setItem(LS_DONE, JSON.stringify(doneIds)); }
+function toggleDone(id){ if(doneIds.includes(id)){ doneIds = doneIds.filter(x=>x!==id);} else { doneIds.push(id);} saveDone(); renderSide(); renderBoard(); }
+function isDone(id){ return doneIds.includes(id); }
+
+let currentWeekIdx = 0;
+
+// ---------- Helpers ----------
+function el(tag, attrs={}, ...children){ const n=document.createElement(tag); for(const[k,v] of Object.entries(attrs)){ if(k==="class") n.className=v; else if(k==="html") n.innerHTML=v; else n.setAttribute(k,v);} for(const c of children){ if(c==null) continue; n.append(c.nodeType?c:document.createTextNode(c)); } return n; }
+function fmtDate(iso){ try{return new Date(iso).toLocaleString(undefined,{month:"short",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:true});}catch{return iso;}}
+function dayOnly(iso){ try{return new Date(iso).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});}catch{return iso;}}
+
+function nextDue(){ const now=Date.now(); const up=course.assignments.filter(a=>new Date(a.dueISO).getTime()>now).sort((a,b)=>+new Date(a.dueISO)-+new Date(b.dueISO))[0]; return up; }
+
+// ---------- Drawer ----------
+const drawer = document.getElementById('drawer');
+const drawerTitle = document.getElementById('drawerTitle');
+const drawerMeta = document.getElementById('drawerMeta');
+const drawerBody = document.getElementById('drawerBody');
+function openDrawer(title, metaHTML, bodyNode){ drawerTitle.textContent=title; drawerMeta.innerHTML=metaHTML||""; drawerBody.innerHTML=""; if(bodyNode) drawerBody.append(bodyNode); drawer.classList.add('open'); }
+function closeDrawer(){ drawer.classList.remove('open'); }
+
+// ---------- UI Render ----------
+function renderBoard(){
+  const week = course.weeks[currentWeekIdx];
+  document.getElementById('weekLabel').textContent = week.label;
+  document.getElementById('weekRange').textContent = `(${week.range})`;
+
+  const grid = document.getElementById('boardGrid');
+  grid.innerHTML = "";
+
+  // Course Frame chip (col-span-2)
+  grid.append(chip({ kind:'frame', glyph:'𓈌', label:'Course Frame', sub:'Policies · Agreements · OS', onclick:()=>{
+    const ul = el('ul', {class:'list'});
+    ul.append(el('li',{},'Participation & attendance'));
+    ul.append(el('li',{},'Respectful dialogue norms'));
+    ul.append(el('li',{},'LLM/AI citation policy (cite if used)'));
+    openDrawer('Course Frame', course.scheduleNote, el('div',{}, el('div',{class:'card'}, el('h4',{},'Core Policies'), ul)));
+  }}));
+
+  // Week sessions (two chips)
+  for(const s of week.sessions){ grid.append(chip({ kind:'session', glyph:'𓉗', label:`${dayOnly(s.dateISO)} · ${s.title}`, sub:s.theme, onclick:()=>showSession(s)})); }
+
+  // Assignments hub (top right)
+  grid.append(chip({ kind:'assignment', glyph:'❏', label:'Assignments', sub:'Open any task', onclick:()=>{
+    const wrap = el('div',{});
+    for(const a of course.assignments){
+      const row = el('div',{class:'card'},
+        el('div',{}, el('span',{class:'led '+(isDone(a.id)?'ok':'pending')},''), ' ', a.title, ' ', el('span',{class:'small',style:'margin-left:auto;float:right'},fmtDate(a.dueISO)))
+      );
+      row.style.cursor='pointer';
+      row.onclick=()=>showAssignment(a);
+      wrap.append(row);
+    }
+    openDrawer('All Assignments', '', wrap);
+  }}));
+
+  // Milestones row (full width → grid of 3)
+  const milRow = el('div',{style:'grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px'});
+  for(const m of course.milestones){ milRow.append(chip({ kind:'milestone', glyph:'𓉯', label:m.title, sub:fmtDate(m.dateISO), onclick:()=>showMilestone(m) })); }
+  grid.append(milRow);
+
+  // traces (decorative)
+  const g = document.getElementById('traceLines');
+  g.innerHTML = '';
+  for(let i=0;i<6;i++){
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',`M 40 ${120+i*20} C 220 ${120+i*20}, 420 ${110+i*20}, 760 ${120+i*20}`);
+    p.setAttribute('class','trace');
+    g.appendChild(p);
+  }
+}
+
+function chip({kind,glyph,label,sub,onclick}){
+  const d = el('div',{class:'chip',tabindex:'0'});
+  d.onclick = onclick;
+  d.append(el('div',{class:'glyph'}, glyph||''));
+  d.append(el('div',{class:'label'}, label));
+  if(sub) d.append(el('div',{class:'sub'}, sub));
+  return d;
+}
+
+function showSession(s){
+  const meta = `<span class="badge">${s.theme}</span> ` + (s.assignmentUnlocks?.map(aid=>`<span class="badge">unlocks → ${course.assignments.find(a=>a.id===aid)?.title||''}</span>`).join(' ')||'');
+  const box = el('div',{});
+  if(s.readings.length){
+    const sec = el('div',{class:'card'}); sec.append(el('h4',{},'Readings'));
+    const ul = el('ul',{class:'list'});
+    for(const r of s.readings){
+      const li = el('li',{}, el('span',{class:'led '+(isDone(r.id)?'ok':'pending')},''), `${r.title}${r.author? ' — '+r.author:''}`);
+      const btn = el('button',{class:'btn',style:'margin-left:auto;padding:4px 8px;font-size:12px'}, isDone(r.id)?'Undo':'Done');
+      btn.onclick = ()=>{ toggleDone(r.id); openDrawer(`${dayOnly(s.dateISO)} · ${s.title}`, meta, showSessionBody(s)); };
+      li.append(btn); ul.append(li);
+    }
+    sec.append(ul); box.append(sec);
+  }
+  if(s.activities.length){
+    const sec = el('div',{class:'card'}); sec.append(el('h4',{},'Activities'));
+    const ul = el('ul',{class:'list'});
+    for(const a of s.activities){
+      const li = el('li',{}, el('span',{class:'led '+(isDone(a.id)?'ok':'pending')},''), `${a.kind}: ${a.label}`);
+      const btn = el('button',{class:'btn',style:'margin-left:auto;padding:4px 8px;font-size:12px'}, isDone(a.id)?'Undo':'Done');
+      btn.onclick = ()=>{ toggleDone(a.id); openDrawer(`${dayOnly(s.dateISO)} · ${s.title}`, meta, showSessionBody(s)); };
+      li.append(btn); ul.append(li);
+    }
+    sec.append(ul); box.append(sec);
+  }
+  function showSessionBody(){ return box; }
+  openDrawer(`${dayOnly(s.dateISO)} · ${s.title}`, meta, showSessionBody());
+}
+
+function showAssignment(a){
+  const meta = `<span class="badge">${a.kind}</span> <span class="badge">Due: ${fmtDate(a.dueISO)}</span> ${a.weightPct?`<span class=badge>Weight ${a.weightPct}%</span>`:''}`;
+  const b = el('div',{});
+  if(a.description) b.append(el('p',{}, a.description));
+  const del = el('div',{class:'card'}); del.append(el('h4',{},'Deliverables')); const ul1=el('ul',{class:'list'}); a.deliverables.forEach(d=>ul1.append(el('li',{},d))); del.append(ul1); b.append(del);
+  const rub = el('div',{class:'card'}); rub.append(el('h4',{},'Rubric')); const ul2=el('ul',{class:'list'}); a.rubric.forEach(d=>ul2.append(el('li',{},d))); rub.append(ul2); b.append(rub);
+  const actions = el('div',{},
+    el('button',{class:'btn',style:'margin-right:8px',onclick:()=>{ toggleDone(a.id); showAssignment(a); }}, isDone(a.id)?'Mark as not submitted':'Mark submitted'),
+    el('button',{class:'btn'},'Add link/file')
+  ); b.append(actions);
+  openDrawer(a.title, meta, b);
+}
+
+function showMilestone(m){
+  const a = m.relatedAssignmentId ? course.assignments.find(x=>x.id===m.relatedAssignmentId) : null;
+  const meta = fmtDate(m.dateISO) + (a? ` · <button class="btn" style="padding:4px 8px;font-size:12px" onclick="window.__openAssign('${a.id}')">open assignment</button>` : '');
+  const b = el('div',{});
+  b.append(el('p',{}, 'Milestone anchors timeline and feedback cycles. Ensure prerequisites are checked off.'));
+  if(a){
+    const sec = el('div',{class:'card'}); sec.append(el('h4',{},'Prereqs (suggested)'));
+    const ul = el('ul',{class:'list'});
+    ul.append(el('li',{},'2+ readings cited directly'));
+    ul.append(el('li',{},'Argument outline drafted'));
+    ul.append(el('li',{},'Peer feedback collected'));
+    sec.append(ul); b.append(sec);
+  }
+  openDrawer(m.title, meta, b);
+  window.__openAssign = (id)=>{ const a2=course.assignments.find(x=>x.id===id); if(a2) showAssignment(a2); };
+}
+
+function renderSide(){
+  const week = course.weeks[currentWeekIdx];
+  // This Week list
+  const ll = document.getElementById('thisWeekList'); ll.innerHTML='';
+  for(const s of week.sessions){
+    for(const r of s.readings){ const li = el('li',{}, el('span',{class:'led '+(isDone(r.id)?'ok':'pending')},''), 'Read: ', r.title, el('span',{class:'small',style:'margin-left:auto'}, dayOnly(s.dateISO))); const btn=el('button',{class:'btn',style:'margin-left:8px;padding:4px 8px;font-size:12px'}, isDone(r.id)?'Undo':'Done'); btn.onclick=()=>{toggleDone(r.id)}; li.append(btn); ll.append(li);} 
+    for(const a of s.activities){ const li = el('li',{}, el('span',{class:'led '+(isDone(a.id)?'ok':'pending')},''), 'Do: ', a.label, el('span',{class:'small',style:'margin-left:auto'}, dayOnly(s.dateISO))); const btn=el('button',{class:'btn',style:'margin-left:8px;padding:4px 8px;font-size:12px'}, isDone(a.id)?'Undo':'Done'); btn.onclick=()=>{toggleDone(a.id)}; li.append(btn); ll.append(li);} 
+  }
+  // Upcoming list
+  const up = document.getElementById('upcomingList'); up.innerHTML='';
+  course.assignments.slice().sort((a,b)=>+new Date(a.dueISO)-+new Date(b.dueISO)).forEach(a=>{
+    const li = el('li',{}, el('span',{class:'led '+(isDone(a.id)?'ok':'warn')+' '+(isDone(a.id)?'':'pulse')},''), a.title, el('span',{class:'small',style:'margin-left:auto'}, fmtDate(a.dueISO)) );
+    li.style.cursor='pointer'; li.onclick=()=>showAssignment(a);
+    up.append(li);
+  });
+}
+
+function renderWeeksBar(){
+  const bar = document.getElementById('weeksBar'); bar.innerHTML='';
+  const prev = el('button',{class:'wkbtn'},'Prev'); prev.onclick=()=>{currentWeekIdx=Math.max(0,currentWeekIdx-1); renderAll();}; bar.append(prev);
+  course.weeks.forEach((w,i)=>{ const b=el('button',{class:'wkbtn '+(i===currentWeekIdx?'active':'' )}, `${w.label} ${w.range}`); b.onclick=()=>{currentWeekIdx=i; renderAll();}; bar.append(b); });
+  const next = el('button',{class:'wkbtn'},'Next'); next.onclick=()=>{currentWeekIdx=Math.min(course.weeks.length-1,currentWeekIdx+1); renderAll();}; bar.append(next);
+  const hint = el('div',{class:'small',style:'margin-left:auto;color:#9fb0c8'},'Keyboard: ← / → · N · R · ?'); bar.append(hint);
+}
+
+function renderAll(){ renderBoard(); renderSide(); renderWeeksBar(); }
+
+// ---------- Events & Shortcuts ----------
+document.getElementById('closeDrawer').onclick = closeDrawer;
+document.getElementById('resetBtn').onclick = ()=>{ doneIds=[]; saveDone(); renderAll(); };
+document.getElementById('helpBtn').onclick = ()=>{
+  const help = el('div',{},
+    el('div',{class:'card'}, el('h4',{}, 'Keyboard Shortcuts'), el('ul',{class:'list'},
+      el('li',{}, '← / → navigate weeks'),
+      el('li',{}, 'N open next due assignment'),
+      el('li',{}, 'R reset all progress'),
+      el('li',{}, '? open this help')
+    ))
+  );
+  openDrawer('Help', '', help);
+};
+
+document.getElementById('nextDueBtn').onclick = ()=>{ const nd=nextDue(); if(nd) showAssignment(nd); };
+window.addEventListener('keydown', (e)=>{
+  if(e.key==='ArrowRight'){ currentWeekIdx=Math.min(course.weeks.length-1,currentWeekIdx+1); renderAll(); }
+  if(e.key==='ArrowLeft'){ currentWeekIdx=Math.max(0,currentWeekIdx-1); renderAll(); }
+  if(e.key.toLowerCase()==='n'){ const nd=nextDue(); if(nd) showAssignment(nd); }
+  if(e.key.toLowerCase()==='r'){ doneIds=[]; saveDone(); renderAll(); }
+  if(e.key==='?'){ document.getElementById('helpBtn').click(); }
+});
+
+// ---------- Boot ----------
+renderAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Course Calendar · 48-Unit Baseline · Periodic-Tile</title>
+<style>
+  :root{
+    --A4W: 2480; --A4H: 3508;
+    --MARGIN: 36px; --PADDING: 16px;
+    --BASE_ROWS: 48; /* 16 weeks × 3 rows per week */
+    --GAP: 2; --COLS: 6;
+    --bg:#fff; --ink:#000;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:#fff;color:#000;font:16px/1.35 "Courier New", Courier, monospace;font-variant-numeric:tabular-nums}
+  header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #000;padding:6px 10px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+  .ttl{font-weight:700}
+  .togglebar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .pill{padding:6px 8px;border-radius:3px;background:#fff;border:1px solid #000;color:#000;font-size:12px;cursor:pointer;user-select:none}
+  .pill input{vertical-align:middle}
+  #book{display:grid;gap:14px;padding:12px;place-items:center}
+  .page{width:min(96vw,1100px);aspect-ratio:calc(var(--A4W)/var(--A4H));background:#fff;box-shadow:0 1px 10px #0002,inset 0 0 0 2px #000;display:grid;place-items:center}
+  svg{width:100%;height:100%;display:block;background:var(--bg)}
+  .drop{margin:10px auto;width:min(96vw,1100px);padding:10px;border:1px dashed #000;background:#fff;color:#000;text-align:center}
+  textarea{width:min(96vw,1100px);height:120px;background:#fff;color:#000;border:1px solid #000;padding:10px;font-family:inherit}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:center}
+  .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace}
+  @media print{
+    @page{ size: A4 portrait; margin: 0 }
+    header,#io{display:none !important}
+    #book{padding:0}
+    .page{width:100%;box-shadow:none;background:none;break-after:page}
+    svg{width:100%;height:auto}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="ttl">Course Calendar — 48 baseline rows (16 weeks × 3 rows)</div>
+    <div class="togglebar">
+      <label class="pill"><input id="toggleCellLabels" type="checkbox"> cell labels</label>
+      <label class="pill"><input id="toggleTicks" type="checkbox" checked> week ticks (every 3)</label>
+      <label class="pill"><input id="toggleMetrics" type="checkbox" checked> tile metrics</label>
+      <label class="pill"><input id="toggleThemes" type="checkbox" checked> show arc themes</label>
+      <button id="printBtn" class="pill">Print / Save PDF</button>
+    </div>
+  </header>
+
+  <section id="book"></section>
+
+  <section id="io" style="display:grid;gap:8px;place-items:center">
+    <div class="drop" id="drop">Drop rel.structured.json or paste below and press ⌘/Ctrl+Enter.</div>
+    <textarea id="jsonIn" placeholder="Paste rel.structured.json here…"></textarea>
+    <div class="kv" style="width:min(96vw,1100px);">
+      <div>Start (ISO)</div><input id="startISO" value="2025-08-25"/>
+      <div>Weeks</div><input id="weeksCount" type="number" value="16" min="1" max="20"/>
+      <div>Days/Week</div><input id="daysPerWeek" type="number" value="3" min="1" max="7"/>
+      <div>Meeting Days</div><input id="meetDays" value="Mon,Wed,Fri"/>
+      <div>No‑Class Dates</div><input id="noClass" placeholder="YYYY-MM-DD, YYYY-MM-DD" value="2025-09-01, 2025-11-27, 2025-11-28"/>
+      <div></div><button id="regen" class="pill">Regenerate</button>
+    </div>
+  </section>
+
+<script>
+"use strict";
+/***********************
+ * Data model (Course)
+ ***********************/
+// Derived events rendered on the grid
+// Each event maps to a row index (0..47) and metadata
+// kind: 'class' | 'reading' | 'concept' | 'assessment' | 'theme'
+
+function buildCourseEvents(structured, opts){
+  const weeks = structured.weeks || {}; // { W1: {topic, sources, in_class, due} }
+  const arcs = structured.arcs || [];   // [{id,title,weeks:["W1"..], clusters:[..]}]
+  const clusters = structured.clusters || [];
+  const assessments = structured.assessments || [];
+  const sourcesById = (structured.sources && structured.sources.by_id) || {};
+  const byClusterId = Object.fromEntries(clusters.map(c=>[c.id||c.title, c]));
+
+  const weeksCount = Number(opts.weeksCount||16);
+  const daysPerWeek = Number(opts.daysPerWeek||3);
+  // Aim to keep 48 total rows; default 3 rows/week at 16 weeks
+  const rowsPerWeek = Math.max(1, Math.round(48/weeksCount));
+  const totalRows = weeksCount * rowsPerWeek;
+
+  // Date mapping per row using provided dateSeries
+  const dateByRow = Array.isArray(opts.dateSeries)? opts.dateSeries.slice(0, totalRows) : [];
+
+  function weekToRowBase(wid){
+    const m = String(wid).match(/(\d+)/); const n = m? Number(m[1]) : 1; // W1 -> 1
+    const idx = Math.max(1, Math.min(weeksCount, n)) - 1; // 0-based
+    return idx * rowsPerWeek;
+  }
+
+  const events = [];
+  // Class sessions & readings per week
+  Object.entries(weeks).forEach(([wid, w])=>{
+    const base = weekToRowBase(wid);
+    // class days (rows within the week)
+    const days = Array.isArray(w.in_class)? w.in_class : [];
+    for(let i=0;i<Math.min(daysPerWeek, rowsPerWeek);i++){
+      const label = days[i] && (days[i].title||days[i]) || (w.topic? (w.topic + ` — Day ${i+1}`) : `Class Day ${i+1}`);
+      events.push({ kind:'class', row: base+i, col: 0, week: wid, label, date: dateByRow[base+i] });
+    }
+    // readings
+    (w.sources||[]).forEach((sid, j)=>{
+      const r = base + Math.min(j % rowsPerWeek, rowsPerWeek-1);
+      const title = sourcesById[sid]?.title || String(sid);
+      const authors = Array.isArray(sourcesById[sid]?.authors)? ` — ${sourcesById[sid].authors.join('; ')}` : '';
+      events.push({ kind:'reading', row: r, col: 1, week: wid, label: title + authors, date: dateByRow[r] });
+    });
+    // due items
+    (w.due||[]).forEach((aid, j)=>{
+      const r = base + Math.min(j % rowsPerWeek, rowsPerWeek-1);
+      events.push({ kind:'assessment', row: r, col: 2, week: wid, label: String(aid), date: dateByRow[r] });
+    });
+  });
+
+  // Themes (arcs)
+  arcs.forEach(a=>{
+    (a.weeks||[]).forEach(wid=>{
+      const base = weekToRowBase(wid);
+      const themeId = a.id || (a.title||'');
+      events.push({ kind:'theme', row: base, col: 3, week: wid, label: themeId, date: dateByRow[base], meta: { id: themeId, title: a.title||'' } });
+    });
+  });
+
+  // Concepts (clusters referenced by arcs)
+  arcs.forEach(a=>{
+    (a.clusters||[]).forEach((cid, idx)=>{
+      const title = byClusterId[cid]?.title || cid;
+      const w = (a.weeks||[])[0]; if(!w) return;
+      const base = weekToRowBase(w);
+      const r = base + Math.min(idx, rowsPerWeek-1);
+      events.push({ kind:'concept', row: r, col: 4, week: w, label: title });
+    });
+  });
+
+  // Explicit assessments list
+  assessments.forEach(a=>{
+    if(!a.due_week) return; const base = weekToRowBase(a.due_week);
+    const row = base + Math.min(1, rowsPerWeek-1);
+    events.push({
+      kind:'assessment',
+      row,
+      col: 2,
+      week: a.due_week,
+      label: a.name||a.id,
+      date: dateByRow[row],
+      meta: {
+        id: a.id || a.name || '',
+        goal: a.goal || '',
+        tasks: Array.isArray(a.tasks)? a.tasks.join('; ') : (a.tasks||''),
+        deliverables: Array.isArray(a.deliverables)? a.deliverables.join('; ') : (a.deliverables||''),
+        rubric: a.rubric_ref || a.rubric || '',
+        time_budget: a.time_budget_hours || a.time_budget || '',
+        example: a.example_link || a.example || '',
+        submit: a.submission_link || a.submit_link || a.submit || ''
+      }
+    });
+  });
+
+  // clamp rows
+  events.forEach(e=>{ e.row = Math.max(0, Math.min(totalRows-1, e.row)); });
+  return { events, weeksCount, rowsPerWeek, totalRows, dateByRow };
+}
+
+/*******************
+ * Grid + SVG utils
+ *******************/
+const SPECS = [1,3,6,12,24,48];
+const BASE_ROWS = 48, GAP = 2, COLS = 6;
+function makeSVG(tag, attrs={}){ const el=document.createElementNS("http://www.w3.org/2000/svg",tag); for(const[k,v]of Object.entries(attrs)) el.setAttribute(k,v); return el; }
+function baselineYAndHeights(innerH, rows=BASE_ROWS, gap=GAP){
+  const totalGaps = gap * (rows - 1);
+  const usable = innerH - totalGaps;
+  const base = Math.floor(usable / rows);
+  const remainder = usable - base * rows;
+  const heights = Array.from({length:rows}, (_,i)=> base + (i<remainder?1:0));
+  const cumulative = [0];
+  let acc = 0; for(let i=0;i<rows;i++){ acc += heights[i]; if(i<rows-1) acc += gap; cumulative.push(acc); }
+  return { cumulative, heights };
+}
+function twoDigit(n){ return String(n).padStart(2,'0'); }
+
+/****************
+ * Draw Calendar
+ ****************/
+function drawCalendar(model){
+  const host = document.getElementById('book');
+  host.innerHTML = '';
+  const showCells   = document.getElementById('toggleCellLabels')?.checked !== false;
+  const showTicks   = document.getElementById('toggleTicks')?.checked !== false;
+  const showMetrics = document.getElementById('toggleMetrics')?.checked !== false;
+  const showThemes  = document.getElementById('toggleThemes')?.checked !== false;
+
+  const events = model.events;
+
+  // container
+  const wrap = document.createElement('div'); wrap.className='page';
+  const svg = makeSVG('svg', { viewBox:`0 0 2480 3508`, width:2480, height:3508, 'shape-rendering':'crispEdges' });
+  svg.appendChild(makeSVG('rect',{x:0,y:0,width:2480,height:3508,fill:'#fff'}));
+
+  // layout
+  const M = 36, PAD = 16;
+  const pageX = M, pageY = M, pageW = 2480 - 2*M, pageH = 3508 - 2*M;
+  const HEAD_H = 170, FOOT_H = 40;
+  const innerX = pageX + PAD, innerY = pageY + PAD + HEAD_H, innerW = pageW - 2*PAD, innerH = pageH - 2*PAD - HEAD_H - FOOT_H;
+  svg.appendChild(makeSVG('rect',{x:pageX,y:pageY,width:pageW,height:pageH,fill:'none',stroke:'#000','stroke-width':2}));
+
+  // header
+  const titleLine = makeSVG('text',{x:pageX+4, y:pageY+84, 'font-size':56, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000'});
+  titleLine.textContent = `Course Calendar — Weeks ${model.weeksCount}, Rows/Week ${model.rowsPerWeek}`; svg.appendChild(titleLine);
+  const infoY = innerY - 12;
+  const infoLine = makeSVG('text',{x:pageX+4, y:infoY, 'font-size':40, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000','dominant-baseline':'ideographic'});
+  infoLine.textContent = `Kinds: Class (C) · Reading (R) · Assessment (A) · Theme (T) · Concept (K)`; svg.appendChild(infoLine);
+
+  const { cumulative: cum } = baselineYAndHeights(innerH, BASE_ROWS, GAP);
+  const colW = Math.floor(innerW / COLS);
+
+  // Map row index -> Y position
+  function rowToY(row){ return innerY + cum[Math.max(0, Math.min(BASE_ROWS, row))]; }
+
+  // periodic tile frame + labels
+  function drawTile(c, r, x0, y0, y1){
+    const w = colW-1, h = Math.max(1, y1-y0);
+    svg.appendChild(makeSVG('rect',{x:x0, y:y0, width:w, height:h, fill:'none', stroke:'#000','stroke-width':2}));
+    if(showCells){
+      const t = makeSVG('text',{x:x0+6, y:y0+6, 'font-size':38, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000','dominant-baseline':'hanging'});
+      t.textContent = `B${c+1}-${twoDigit(r+1)}`; svg.appendChild(t);
+    }
+  }
+
+  // grid
+  for(let c=0;c<COLS;c++){
+    const rows = SPECS[c];
+    const unitsPerCell = BASE_ROWS / rows;
+    const x0 = innerX + c*colW;
+    for(let r=0;r<rows;r++){
+      const uStart = Math.round(r * unitsPerCell);
+      const y0 = innerY + cum[uStart];
+      const y1 = innerY + cum[uStart + unitsPerCell] - GAP;
+      drawTile(c,r,x0,y0,y1);
+    }
+  }
+
+  // week ticks every rowsPerWeek, with date labels per row
+  if(showTicks){
+    for(let r=0;r<=BASE_ROWS;r+=model.rowsPerWeek){
+      const yR = innerY + cum[Math.min(r,BASE_ROWS)];
+      svg.appendChild(makeSVG('line',{x1:innerX-8,y1:yR,x2:innerX-2,y2:yR,stroke:'#000','stroke-width':1}));
+      const weekNum = Math.round(r/model.rowsPerWeek)+1; if(weekNum<=model.weeksCount){
+        const lab = makeSVG('text',{x:innerX-12, y:yR+10, 'font-size':16, 'font-family':'monospace', fill:'#000','text-anchor':'end'});
+        lab.textContent = `W${twoDigit(weekNum)}`; svg.appendChild(lab);
+      }
+    }
+    // date labels on each row
+    for(let r=0;r<Math.min(model.totalRows, BASE_ROWS); r++){
+      const yR = innerY + cum[r] + 24;
+      const date = model.dateByRow?.[r]; if(!date) continue;
+      const dlab = makeSVG('text',{x:innerX-140, y:yR, 'font-size':20, 'font-family':'monospace', fill:'#000','text-anchor':'end','dominant-baseline':'ideographic'});
+      dlab.textContent = date;
+      svg.appendChild(dlab);
+    }
+  }
+
+  // Render events per column with glyphs and compact stacking
+  const glyph = { class:'C', reading:'R', assessment:'A', theme:'T', concept:'K' };
+  const colX = idx => innerX + idx*colW + 8;
+  const yForRow = row => rowToY(row) + 24;
+
+  events.sort((a,b)=> a.row-b.row || a.col-b.col);
+  const stacks = new Map(); // key `${row}:${col}` -> count
+  function nextStackOffset(row,col){
+    const k = `${row}:${col}`; const n = (stacks.get(k)||0); stacks.set(k, n+1); return n;
+  }
+
+  events.forEach(ev=>{
+    const x = colX(Math.min(ev.col, COLS-1));
+    const y = yForRow(ev.row) + nextStackOffset(ev.row, ev.col)*16;
+    const tag = makeSVG('text',{x, y, 'font-size':28, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000','dominant-baseline':'ideographic'});
+    const g = glyph[ev.kind]||'?';
+    const d = ev.date? `${ev.date} · ` : '';
+    // Minimal labels: [glyph] date · ID/title (no Bxx)
+    // Theme uses ID if present
+    const main = (ev.kind==='theme' && ev.meta?.id) ? ev.meta.id : (ev.label||'');
+    tag.textContent = `${g} · ${d}${main}`;
+    // Tooltip with cascade info when available
+    const tip = makeSVG('title',{});
+    tip.textContent = buildTooltip(ev);
+    tag.appendChild(tip);
+    svg.appendChild(tag);
+  });
+
+  // Theme bands across the grid (optional)
+  if(showThemes){
+    const arcWeeks = new Map(); // week -> theme labels
+    events.filter(e=>e.kind==='theme').forEach(e=>{
+      const cur = arcWeeks.get(e.week)||[]; cur.push(e.label); arcWeeks.set(e.week,cur);
+    });
+    arcWeeks.forEach((labels, wid)=>{
+      // draw subtle band next to the row base of this week
+      const m = String(wid).match(/(\d+)/); const n = m? Number(m[1]) : 1; const row = (n-1)*model.rowsPerWeek;
+      const y0 = rowToY(row); const y1 = rowToY(row+model.rowsPerWeek) - 1;
+      const x0 = innerX - 1, w = colW*COLS + 2;
+      svg.appendChild(makeSVG('rect',{x:x0, y:y0, width:w, height:(y1-y0), fill:'none', stroke:'#000','stroke-width':1, 'stroke-dasharray':'4,6'}));
+      const txt = makeSVG('text',{x:x0 + w - 8, y:y0 + 18, 'font-size':26, 'font-family':'monospace', fill:'#000', 'text-anchor':'end'});
+      txt.textContent = labels.join(' • ');
+      svg.appendChild(txt);
+    });
+  }
+
+  wrap.appendChild(svg); host.appendChild(wrap);
+}
+
+/****************
+ * I/O + wiring
+ ****************/
+let activeStructured = null;
+let lastModel = null;
+
+function tryLoad(text){
+  try{
+    const data = JSON.parse(text);
+    activeStructured = data;
+    regenerate();
+  }catch(err){ alert('Parse error: '+err.message); }
+}
+
+function regenerate(){
+  const weeksCount = Number(document.getElementById('weeksCount').value || 16);
+  const daysPerWeek = Number(document.getElementById('daysPerWeek').value || 3);
+  const startISO = String(document.getElementById('startISO').value || '').trim();
+  const meetDaysStr = String(document.getElementById('meetDays').value || 'Mon,Wed,Fri');
+  const meetDays = parseMeetDays(meetDaysStr);
+  const noClass = parseNoClass(String(document.getElementById('noClass').value||''));
+  const rowsPerWeek = Math.max(1, Math.round(48/weeksCount));
+  const rowsTotal = weeksCount * rowsPerWeek;
+  const dateSeries = buildDateSeries(startISO, rowsTotal, meetDays, noClass);
+  const opts = { weeksCount, daysPerWeek, dateSeries };
+  const structured = activeStructured || { weeks:{}, arcs:[], clusters:[], assessments:[] };
+  lastModel = buildCourseEvents(structured, opts);
+  drawCalendar(lastModel);
+}
+
+function setHandlers(){
+  ['toggleCellLabels','toggleTicks','toggleMetrics','toggleThemes']
+    .forEach(id=> document.getElementById(id).addEventListener('change', regenerate));
+  document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+  document.getElementById('regen').addEventListener('click', regenerate);
+
+  const drop = document.getElementById('drop');
+  ['dragenter','dragover','dragleave','drop'].forEach(evt=> drop.addEventListener(evt, e=>{ e.preventDefault(); e.stopPropagation(); }));
+  drop.addEventListener('dragover', ()=> { drop.style.borderColor = '#000'; });
+  drop.addEventListener('dragleave',()=> { drop.style.borderColor = '#000'; });
+  drop.addEventListener('drop', async (e)=>{ const f = e.dataTransfer.files?.[0]; if(!f) return; tryLoad(await f.text()); });
+
+  const ta = document.getElementById('jsonIn');
+  ta.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) { tryLoad(ta.value); e.preventDefault(); } });
+}
+
+/****************
+ * Self‑tests (smoke)
+ ****************/
+function runSelfTests(){
+  try{
+    console.assert(typeof drawCalendar==='function');
+    const innerH = 1000; const { cumulative } = baselineYAndHeights(innerH, 48, 2);
+    console.assert(cumulative.length === 49);
+  }catch(e){ console.warn('Self-tests failed:', e); }
+}
+
+// Day-of-week helpers and date series builder
+const DOW = { sun:0, mon:1, tue:2, tues:2, wed:3, thu:4, thur:4, thurs:4, fri:5, sat:6 };
+function parseMeetDays(str){
+  return String(str||'')
+    .split(/[\,\s]+/)
+    .map(s=>s.trim().toLowerCase())
+    .filter(Boolean)
+    .map(s=> DOW[s])
+    .filter(n=> Number.isInteger(n))
+    .sort((a,b)=> a-b);
+}
+function parseNoClass(str){
+  const set = new Set();
+  String(str||'').split(/[\,\s]+/).map(s=>s.trim()).filter(Boolean).forEach(s=>{
+    const d = new Date(s);
+    if(!isNaN(d)) set.add(d.toISOString().slice(0,10));
+  });
+  return set;
+}
+function fmtDate(d){
+  return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'2-digit' });
+}
+function buildDateSeries(startISO, rowsTotal, meetDays, noClassSet){
+  const out = [];
+  if(!startISO || !meetDays?.length){ return out; }
+  let d = new Date(startISO);
+  if(isNaN(d)) return out;
+  // If start date is not a meeting day, advance to the first meeting day
+  while(!meetDays.includes(d.getDay())){ d.setDate(d.getDate()+1); }
+  while(out.length < rowsTotal){
+    if(meetDays.includes(d.getDay())){
+      const iso = d.toISOString().slice(0,10);
+      if(!(noClassSet && noClassSet.has(iso))){
+        out.push(fmtDate(d));
+      }
+    }
+    d = new Date(d.getFullYear(), d.getMonth(), d.getDate()+1);
+  }
+  return out;
+}
+
+function buildTooltip(ev){
+  // Build a compact multi-line tooltip prioritizing assessment fields
+  const parts = [];
+  if(ev.date) parts.push(`Date: ${ev.date}`);
+  if(ev.week) parts.push(`Week: ${ev.week}`);
+  if(ev.kind==='assessment' && ev.meta){
+    const m = ev.meta;
+    if(m.goal) parts.push(`Goal: ${m.goal}`);
+    if(m.tasks) parts.push(`Tasks: ${m.tasks}`);
+    if(m.deliverables) parts.push(`Deliverables: ${m.deliverables}`);
+    if(m.rubric) parts.push(`Rubric: ${m.rubric}`);
+    if(m.time_budget) parts.push(`Time: ${m.time_budget}h`);
+    if(m.example) parts.push(`Example: ${m.example}`);
+    if(m.submit) parts.push(`Submit: ${m.submit}`);
+  }
+  if(ev.kind==='reading'){
+    parts.push('Reading');
+  }
+  if(ev.kind==='theme' && ev.meta){
+    if(ev.meta.title) parts.push(`Theme: ${ev.meta.title}`);
+  }
+  return parts.join('\n');
+}
+
+setHandlers();
+runSelfTests();
+// Auto-load rel.structured.json if accessible
+fetch('rel.structured.json').then(r=> r.ok ? r.json() : null).then(json=>{ if(json){ activeStructured = json; } regenerate(); }).catch(()=>{ regenerate(); });
+</script>
+</body>
+</html>

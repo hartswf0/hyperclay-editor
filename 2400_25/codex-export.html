@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codex Export</title>
+  <style>
+    :root{
+      --ink:#e8eef9; --paper:#0f1520; --rule:#263043; --shadow:0 10px 30px rgba(0,0,0,.35);
+      --width:980px;
+    }
+    body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,Segoe UI,Inter,Roboto,Helvetica,Arial,sans-serif}
+    .bar{position:sticky;top:0;z-index:10;display:flex;gap:8px;align-items:center;justify-content:space-between;background:#121826;border-bottom:1px solid var(--rule);padding:8px 12px}
+    .pages{padding:16px}
+    .page{max-width:var(--width);margin:0 auto 18px auto;background:#0f1520;border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);padding:12px}
+    .page iframe{width:100%;min-height:800px;border:0}
+    .btn{background:#1a2234;color:var(--ink);border:1px solid var(--rule);padding:6px 10px;border-radius:8px;cursor:pointer}
+    .muted{opacity:.7}
+    .mermaid{background:#0b0f16;padding:10px;border-radius:8px}
+    /* Reader theme force */
+    body.force-light{ background:#f7f9fc !important; color:#0b0f16 !important }
+    body.force-dark{ background:#0b0f16 !important; color:#e8eef9 !important }
+    body.force-light .bar, body.force-light .page{ background:#ffffff !important; color:#0b0f16 !important; border-color:#d9e0ea !important }
+    body.force-dark .bar, body.force-dark .page{ background:#101725 !important; color:#e8eef9 !important; border-color:#263043 !important }
+    body.force-light .btn{ background:#eef3fb !important; color:#0b0f16 !important }
+    body.force-dark .btn{ background:#1a2234 !important; color:#e8eef9 !important }
+    body.force-content.force-light .page .content{ background:#ffffff !important; color:#0b0f16 !important }
+    body.force-content.force-dark .page .content{ background:#0f1520 !important; color:#e8eef9 !important }
+    body.force-content.force-light .page .content *, body.force-content.force-dark .page .content *{ color:inherit !important }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <strong>Codex Export</strong>
+      <span class="muted" id="status"></span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="muted">Reader</span>
+      <select id="readerTheme" class="btn" style="padding:4px 6px">
+        <option value="auto">Auto</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+      <label class="muted" style="display:flex;align-items:center;gap:4px"><input type="checkbox" id="readerAlso"> Also pages</label>
+      <button class="btn" id="fileBtn">Open JSON</button>
+      <input type="file" id="file" accept="application/json" style="display:none">
+    </div>
+  </div>
+  <div id="pages" class="wrap"></div>
+
+  <script>
+    ;(function(){
+    // Mermaid loader
+    let _mermaidReady=false, _mermaidLoading=false;
+    function ensureMermaid(theme){
+      return new Promise((resolve)=>{
+        if(_mermaidReady){ resolve(); return; }
+        if(_mermaidLoading){ const t=setInterval(()=>{ if(_mermaidReady){ clearInterval(t); resolve(); } }, 50); return; }
+        _mermaidLoading = true;
+        const s = document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+        s.onload = ()=>{ try{ window.mermaid?.initialize({startOnLoad:false, theme: theme==='light' ? 'neutral':'dark'}); _mermaidReady=true; resolve(); }catch{ resolve(); } };
+        document.head.appendChild(s);
+      });
+    }
+    async function renderMermaidIn(el){ try{ await ensureMermaid(document.body.classList.contains('light')?'light':'dark'); if(window.mermaid){ const blocks = el.querySelectorAll('.mermaid'); window.mermaid.init(undefined, blocks); } }catch{} }
+
+    function qs(key){ const u=new URL(location.href); return u.searchParams.get(key); }
+
+    async function loadSrc(url){ const r = await fetch(url, {cache:'no-store'}); if(!r.ok) throw new Error('Failed to fetch JSON'); return r.json(); }
+
+    function renderDoc(doc){
+      try{
+        document.body.classList.toggle('light', doc.theme==='light');
+        const pages = document.getElementById('pages'); pages.innerHTML='';
+        const width = doc.width||980; const twoCol = !!doc.twoCol;
+        const statusEl = document.getElementById('status'); if(statusEl){ statusEl.textContent = `${doc.pages?.length||0} pages · width ${width}px` + (twoCol? ' · two columns':'' ); }
+        (doc.pages||[]).forEach((entry)=>{
+          const page = document.createElement('div'); page.className='page'; page.style.maxWidth = width+'px';
+          const head = document.createElement('div'); head.className='muted'; head.style.margin='0 0 8px 0'; head.textContent = entry.title || '';
+          const content = document.createElement('div'); content.className='content';
+          page.appendChild(head);
+          if(entry.type==='iframe' && entry.src){
+            const url = entry.src + (entry.src.includes('?') ? '&' : '?') + 'codex=1';
+            const ifr = document.createElement('iframe'); ifr.src=url; content.appendChild(ifr);
+          } else if(entry.type==='html' && entry.html){
+            const div = document.createElement('div'); div.className='clone'; div.innerHTML = entry.html; content.appendChild(div);
+          }
+          page.appendChild(content);
+          pages.appendChild(page);
+          renderMermaidIn(page);
+        });
+      }catch(err){ alert('Render failed: '+err.message); }
+    }
+
+    document.getElementById('fileBtn').addEventListener('click', ()=> document.getElementById('file').click());
+    document.getElementById('file').addEventListener('change', async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try{ const txt = await f.text(); const data = JSON.parse(txt); renderDoc(data); }catch(err){ alert('Invalid JSON: '+err.message); } });
+
+    // Reader theme controls
+    function applyTheme(){
+      const mode = document.getElementById('readerTheme').value;
+      const also = document.getElementById('readerAlso').checked;
+      document.body.classList.remove('force-light','force-dark','force-content');
+      if(mode==='light'){ document.body.classList.add('force-light'); }
+      if(mode==='dark'){ document.body.classList.add('force-dark'); }
+      if(also && (mode==='light'||mode==='dark')) document.body.classList.add('force-content');
+      localStorage.codexExportTheme = JSON.stringify({mode,also});
+    }
+    document.getElementById('readerTheme').addEventListener('change', applyTheme);
+    document.getElementById('readerAlso').addEventListener('change', applyTheme);
+    try{
+      const pref = JSON.parse(localStorage.codexExportTheme||'{}');
+      if(pref.mode) document.getElementById('readerTheme').value = pref.mode;
+      if(pref.also!=null) document.getElementById('readerAlso').checked = !!pref.also;
+    }catch(e){}
+    applyTheme();
+
+    (async function init(){
+      const src = qs('src');
+      if(src){ try{ const data = await loadSrc(src); renderDoc(data); }catch(err){ alert('Load failed: '+err.message); } }
+    })();
+  })();
+  </script>
+</body>
+</html>

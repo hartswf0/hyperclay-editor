@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LMC 2400 · Fall 2025 Course Calendar (Periodic-Tile)</title>
+<style>
+  :root{
+    --dpi: 300;                /* A4 portrait @300dpi */
+    --A4W: 2480; --A4H: 3508;  /* px */
+    --MARGIN: 36px;            /* tighter outer margin ~0.12in */
+    --PADDING: 16px;           /* inner padding */
+    --BASE_ROWS: 48;           /* shared baseline - now represents 48 units of course duration */
+    --GAP: 2;                  /* gap between rows */
+    --COLS: 6;                 /* columns */
+
+    --bg: #fff; --ink: #000;   /* pure black for print */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:#fff;color:#000;font:16px/1.35 "Courier New", Courier, monospace;font-variant-numeric: tabular-nums;letter-spacing:0}
+
+  header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #000;padding:6px 10px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+  .ttl{font-weight:700}
+  .togglebar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .pill{padding:6px 8px;border-radius:3px;background:#fff;border:1px solid #000;color:#000;font-size:12px;cursor:pointer;user-select:none}
+  .pill input{vertical-align:middle}
+
+  #book{display:grid;gap:14px;padding:12px;place-items:center}
+  .page{width:min(96vw,1100px);aspect-ratio:calc(var(--A4W)/var(--A4H));background:#fff;border-radius:0;box-shadow:0 1px 10px #0002,inset 0 0 0 2px #000;display:grid;place-items:center}
+  svg{width:100%;height:100%;display:block;background:var(--bg)}
+
+  .drop{margin:10px auto;width:min(96vw,1100px);padding:10px;border:1px dashed #000;background:#fff;color:#000;text-align:center}
+  textarea{width:min(96vw,1100px);height:120px;background:#fff;color:#000;border:1px solid #000;padding:10px;font-family:inherit}
+
+  @media print{
+    @page{ size: A4 portrait; margin: 0 }
+    body{background:#fff;color:#000}
+    header,#io{display:none !important}
+    #book{padding:0}
+    .page{width:100%;aspect-ratio:calc(var(--A4W)/var(--A4H));box-shadow:none;background:none;break-after:page}
+    svg{width:100%;height:auto}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="ttl">Periodic-Tile Course Calendar · LMC 2400 Fall 2025</div>
+    <div class="togglebar">
+      <label class="pill"><input id="toggleCellLabels" type="checkbox" checked> Week Labels</label>
+      <label class="pill"><input id="toggleTicks" type="checkbox"> Row Ticks (every 6)</label>
+      <label class="pill"><input id="toggleSnap" type="checkbox" checked> Snap to Baseline</label>
+      <label class="pill"><input id="toggleCellMetrics" type="checkbox" checked> Tile Metrics</label>
+      <label class="pill"><input id="toggleTwoTimes" type="checkbox" checked> Dates per Tile</label>
+      <label class="pill"><input id="toggleCompact" type="checkbox" checked> Compact View</label>
+      <button id="printBtn" class="pill">Print / Save PDF</button>
+    </div>
+  </header>
+
+  <section id="book"></section>
+
+  <section id="io" style="display:grid;gap:8px;place-items:center">
+    <div id="drop" class="drop">Drop a course data JSON (array) to replace built-in data, or paste below and press ⌘/Ctrl+Enter.</div>
+    <textarea id="jsonIn" placeholder="Paste course modules JSON here…"></textarea>
+  </section>
+
+<script>
+"use strict";
+/***********************
+ * Built-in course data *
+ ***********************/
+const courseModulesDefault = [
+    // Week 1: August 18 - 24
+    { week: 1, title: "CONFIGURATION", start_date: "2025-08-18", end_date: "2025-08-24", readings: ["Syllabus & Community Agreement", "Tooling Onboarding"], concepts: ["Course Logistics", "Media Literacy", "Platform Ecologies"], classes: [{date: "2025-08-19", topic: "Intro & Syllabus"}, {date: "2025-08-21", topic: "Course Tools & Media Literacies"}] },
+    // Week 2: August 25 - 31
+    { week: 2, title: "PRIMER", start_date: "2025-08-25", end_date: "2025-08-31", readings: ["Heidegger – Question Concerning Technology", "Carr – Is Google Making Us Stupid?", "Geertz – Thick Description"], concepts: ["Technology & Being", "Digital Cognition", "Cultural Interpretation"], classes: [{date: "2025-08-26", topic: "Foundations of Media Theory: Heidegger"}, {date: "2025-08-28", topic: "Google's Impact & Thick Description"}] },
+    // Week 3: September 1 - 7
+    { week: 3, title: "FOUNDATION", start_date: "2025-09-01", end_date: "2025-09-07", readings: ["McLuhan – The Medium Is the Message", "Innis – Bias of Communication"], concepts: ["Media as Message", "Time & Space Bias", "Technological Determinism"], classes: [{date: "2025-09-02", topic: "McLuhan's Medium Theory"}, {date: "2025-09-04", topic: "Innis and Communication Biases"}] }, // Note: Sep 1 is Labor Day, no class.
+    // Week 4: September 8 - 14
+    { week: 4, title: "FOUNDATION", start_date: "2025-09-08", end_date: "2025-09-14", readings: ["McCloud – Understanding Comics (ch. 1–3)", "Bolter & Engberg – Remediation"], concepts: ["Visual Narrative", "Mediation", "Remediation"], classes: [{date: "2025-09-09", topic: "Visual Medium: Comics"}, {date: "2025-09-11", topic: "Theories of Remediation"}] },
+    // Week 5: September 15 - 21
+    { week: 5, title: "HISTORY", start_date: "2025-09-15", end_date: "2025-09-21", readings: ["Sontag – On Photography", "Harari – Sapiens (media selections)"], concepts: ["Photography & Reality", "Narrative & History", "Collective Fictions"], classes: [{date: "2025-09-16", topic: "Sontag and the Image"}, {date: "2025-09-18", topic: "Media's Role in Human History"}] },
+    // Week 6: September 22 - 28
+    { week: 6, title: "HISTORY", start_date: "2025-09-22", end_date: "2025-09-28", readings: ["Toynbee – A Study of History (excerpts)", "Foucault – Archaeology of Knowledge (selections)"], concepts: ["Civilizational Cycles", "Discourse", "Knowledge Systems"], classes: [{date: "2025-09-23", topic: "Historical Paradigms"}, {date: "2025-09-25", topic: "Foucault on Media & Power"}] },
+    // Week 7: September 29 - October 5
+    { week: 7, title: "CULTURE", start_date: "2025-09-29", end_date: "2025-10-05", readings: ["Adorno & Horkheimer – Culture Industry", "Stiegler – Technics and Time"], concepts: ["Mass Culture", "Technological Temporality", "Hypernormalization"], classes: [{date: "2025-09-30", topic: "Critique of the Culture Industry"}, {date: "2025-10-02", topic: "Technics and Cultural Evolution"}] },
+    // Week 8: October 6 - 12
+    { week: 8, title: "CULTURE", start_date: "2025-10-06", end_date: "2025-10-12", readings: ["Appadurai – Modernity at Large", "Raymond Williams – Keywords"], concepts: ["Global Cultural Flows", "Imagined Communities", "Cultural Formations"], classes: [{date: "2025-10-07", topic: "Fall Break (No Class)"}, {date: "2025-10-09", topic: "Appadurai & Global Flows"}] }, // Note: Oct 6-7 Fall Break
+    // Week 9: October 13 - 19
+    { week: 9, title: "LANGUAGE", start_date: "2025-10-13", end_date: "2025-10-19", readings: ["Pinker – Language Instinct", "Saussure – Course in General Linguistics (signifier/signified)"], concepts: ["Innate Language", "Semiotics", "Sign Systems"], classes: [{date: "2025-10-14", topic: "Pinker and Language Acquisition"}, {date: "2025-10-16", topic: "Saussure: Language as System"}] },
+    // Week 10: October 20 - 26
+    { week: 10, title: "LANGUAGE", start_date: "2025-10-20", end_date: "2025-10-26", readings: ["Chomsky – Syntactic Structures", "Berners-Lee – Information Management: A Proposal"], concepts: ["Generative Grammar", "Universal Grammar", "Web Architecture"], classes: [{date: "2025-10-21", topic: "Chomsky's Linguistic Revolution"}, {date: "2025-10-23", topic: "The Web as a Language System"}] },
+    // Week 11: October 27 - November 2
+    { week: 11, title: "SOCIETY", start_date: "2025-10-27", end_date: "2025-11-02", readings: ["Zinn – A People's History (media excerpts)", "Lessig – Free Culture"], concepts: ["People's History", "Copyright", "Creative Commons"], classes: [{date: "2025-10-28", topic: "Media's Role in Social Change"}, {date: "2025-10-30", topic: "Lessig and Free Culture"}] },
+    // Week 12: November 3 - 9
+    { week: 12, title: "SOCIETY", start_date: "2025-11-03", end_date: "2025-11-09", readings: ["Boyle – The Public Domain", "Finn – What Algorithms Want"], concepts: ["Digital Commons", "Algorithmic Governance", "AI Ethics"], classes: [{date: "2025-11-04", topic: "Public Domain & Digital Rights"}, {date: "2025-11-06", topic: "Algorithms and Society"}] },
+    // Week 13: November 10 - 16
+    { week: 13, title: "POWER", start_date: "2025-11-10", end_date: "2025-11-16", readings: ["Lukes – Power: A Radical View", "Foucault – Discipline and Punish (panopticon)", "Bourdieu – Symbolic Power", "Chomsky – Manufacturing Consent", "Mill – On Liberty"], concepts: ["Forms of Power", "Surveillance", "Media Influence", "Liberty"], classes: [{date: "2025-11-11", topic: "Theories of Power"}, {date: "2025-11-13", topic: "Panopticon & Manufacturing Consent"}] },
+    // Week 14: November 17 - 23
+    { week: 14, title: "FUTURE", start_date: "2025-11-17", end_date: "2025-11-23", readings: ["Arendt – The Human Condition", "Habermas – Public Sphere", "Haraway – Cyborg Manifesto", "Dreyfus – What Computers Still Can't Do", "Winograd & Flores – Understanding Computers and Cognition"], concepts: ["Human Action", "Public Discourse", "Posthumanism", "AI Limits"], classes: [{date: "2025-11-18", topic: "Arendt & Public Sphere"}, {date: "2025-11-20", topic: "Cyborgs & AI futures"}] },
+    // Week 15: November 24 - 30 (Thanksgiving Week)
+    { week: 15, title: "FINAL PROJECT & REVIEW", start_date: "2025-11-24", end_date: "2025-11-30", readings: ["Review all concepts"], concepts: ["Synthesis", "Reflection", "Course Wrap-up"], classes: [{date: "2025-11-25", topic: "Project Work Session / Q&A"}, {date: "2025-11-27", topic: "Thanksgiving Break (No Class)"}] },
+    // Week 16: December 1 - 7 (Reading Period / Exams begin)
+    { week: 16, title: "FINAL REVIEW / EXAMS", start_date: "2025-12-01", end_date: "2025-12-07", readings: ["—"], concepts: ["Consolidation"], classes: [{date: "2025-12-02", topic: "Final Review / Q&A"}, {date: "2025-12-04", topic: "Reading Period (No Class)"}] },
+    // Week 17: December 8 - 14 (Exams / End of Term)
+    { week: 17, title: "FINAL EXAMS / GRADES", start_date: "2025-12-08", end_date: "2025-12-14", readings: ["—"], concepts: ["Assessment"], classes: [{date: "2025-12-09", topic: "Reading Period (No Class)"}, {date: "2025-12-11", topic: "End of Term / Final Exams (No Class)"}] }
+];
+
+const holidayCalendar = [
+    { date: "2025-09-01", label: "Labor Day (No Class)", type: "holiday" },
+    { date: "2025-10-06", label: "Fall Break (No Class)", type: "break" },
+    { date: "2025-10-07", label: "Fall Break (No Class)", type: "break" },
+    { date: "2025-11-26", label: "Student Recess (No Class)", type: "break" },
+    { date: "2025-11-27", label: "Thanksgiving Break (No Class)", type: "holiday" },
+    { date: "2025-11-28", label: "Thanksgiving Break (No Class)", type: "holiday" },
+    { date: "2025-12-03", label: "Reading Period (No Class)", type: "reading" },
+    { date: "2025-12-04", label: "Reading Period (No Class)", type: "reading" },
+    { date: "2025-12-05", label: "Thesis & Forms Due", type: "deadline" }, // Special note for calendar
+    { date: "2025-12-09", label: "Reading Period (No Class)", type: "reading" },
+    { date: "2025-12-11", label: "End of Term / Final Exams", type: "end_term" },
+    { date: "2025-12-15", label: "Grade Submission Deadline", type: "deadline" },
+    { date: "2025-12-16", label: "Final Grades Available", type: "info" },
+    { date: "2025-12-18", label: "Degree Confirmation", type: "info" },
+];
+
+/*******************
+ * Constants & helpers
+ *******************/
+const SPECS = [1,3,6,12,24,48]; // How many rows per column (coarse to fine)
+const BASE_ROWS = 48, GAP = 2, COLS = 6;
+const CLASS_DAYS = {
+  "Tuesday": 2, // Weekday numbers: 0=Sunday, 1=Monday, ..., 6=Saturday
+  "Thursday": 4
+};
+const CLASS_TIME_START = "15:30"; // 3:30 PM
+const CLASS_TIME_END = "16:45";   // 4:45 PM
+
+const STYLES = { // Re-purposed for calendar events
+  holiday:   { dash: '4,4', width: 1, color: '#FF0000' }, // Red for holidays
+  break:     { dash: '2,6', width: 1, color: '#FFA500' }, // Orange for breaks
+  reading:   { dash: '1,4', width: 1, color: '#0000FF' }, // Blue for reading period
+  deadline:  { dash: '8,6', width: 1, color: '#8B0000' }, // Dark red for deadlines
+  end_term:  { dash: '',    width: 1.6, color: '#006400' }, // Dark green for end of term
+  info:      { dash: '2,2', width: 0.8, color: '#808080' } // Gray for general info
+};
+
+function makeSVG(tag, attrs={}){ const el=document.createElementNS("http://www.w3.org/2000/svg",tag); for(const[k,v]of Object.entries(attrs)) el.setAttribute(k,v); return el; }
+function baselineYAndHeights(innerH, rows=BASE_ROWS, gap=GAP){
+  const totalGaps = gap * (rows - 1);
+  const usable = innerH - totalGaps;
+  const base = Math.floor(usable / rows);
+  const remainder = usable - base * rows;
+  const heights = Array.from({length:rows}, (_,i)=> base + (i<remainder?1:0));
+  const cumulative = [0];
+  let acc = 0; for(let i=0;i<rows;i++){ acc += heights[i]; if(i<rows-1) acc += gap; cumulative.push(acc); }
+  return { cumulative, heights };
+}
+
+function toMMDD(dateStr) { // YYYY-MM-DD to MM/DD
+    const d = new Date(dateStr + "T00:00:00"); // Add T00:00:00 for consistent parsing
+    return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function toHHMM(timeStr) { // HH:MM to HH:MM AM/PM
+    const [h, m] = timeStr.split(':').map(Number);
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, '0')}${ampm}`;
+}
+
+// Global semester dates
+let COURSE_START_DATE;
+let COURSE_END_DATE;
+let COURSE_DURATION_MS;
+
+function calculateCourseDates(modules) {
+    if (modules.length === 0) {
+        COURSE_START_DATE = new Date();
+        COURSE_END_DATE = new Date();
+        COURSE_DURATION_MS = 0;
+        return;
+    }
+    const allDates = modules.flatMap(m => [new Date(m.start_date + "T00:00:00"), new Date(m.end_date + "T23:59:59")]);
+    COURSE_START_DATE = new Date(Math.min(...allDates.map(d => d.getTime())));
+    COURSE_END_DATE = new Date(Math.max(...allDates.map(d => d.getTime())));
+    COURSE_DURATION_MS = COURSE_END_DATE.getTime() - COURSE_START_DATE.getTime();
+}
+
+
+/****************
+ * Draw (Periodic-Tile style)
+ ****************/
+function drawBook(courseModules){
+  const host = document.getElementById('book');
+  host.innerHTML = '';
+  const showWeekLabels   = document.getElementById('toggleCellLabels')?.checked !== false;
+  const showTicks        = document.getElementById('toggleTicks')?.checked !== false;
+  const snap             = document.getElementById('toggleSnap')?.checked === true;
+  const showMetrics      = document.getElementById('toggleCellMetrics')?.checked === true;
+  const showDatesPerTile = document.getElementById('toggleTwoTimes')?.checked === true;
+  const compactView      = document.getElementById('toggleCompact')?.checked !== false; // Controls how much text is shown
+
+  calculateCourseDates(courseModules); // Set global semester dates
+
+  // --- page container (one page for the whole course)
+  const wrap = document.createElement('div'); wrap.className='page';
+  const svg = makeSVG('svg', { viewBox:`0 0 2480 3508`, width:2480, height:3508, 'shape-rendering':'crispEdges' });
+  svg.appendChild(makeSVG('rect',{x:0,y:0,width:2480,height:3508,fill:'#fff'}));
+
+  // layout
+  const M = 36, PAD = 16;
+  const pageX = M, pageY = M, pageW = 2480 - 2*M, pageH = 3508 - 2*M;
+  const HEAD_H = 170, FOOT_H = 40; // reserve space for big header + footer ticks
+  const innerX = pageX + PAD, innerY = pageY + PAD + HEAD_H, innerW = pageW - 2*PAD, innerH = pageH - 2*PAD - HEAD_H - FOOT_H;
+  svg.appendChild(makeSVG('rect',{x:pageX,y:pageY,width:pageW,height:pageH,fill:'none',stroke:'#000','stroke-width':2}));
+
+  // header — big title at top; single mono info line right above grid
+  const titleLine = makeSVG('text',{x:pageX+4, y:pageY+84, 'font-size':56, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000'});
+  titleLine.textContent = `LMC 2400 — Intro to Media Studies (Fall 2025)`; svg.appendChild(titleLine);
+
+  // info line directly above grid
+  const infoY = innerY - 12; // hover directly above tiles
+  const infoLine = makeSVG('text',{x:pageX+4, y:infoY, 'font-size':40, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000','dominant-baseline':'ideographic'});
+  const courseDurationWeeks = Math.ceil(COURSE_DURATION_MS / (1000 * 60 * 60 * 24 * 7));
+  infoLine.textContent = `Semester Duration: ${courseDurationWeeks} Weeks · ${BASE_ROWS} Units · Start: ${toMMDD(COURSE_START_DATE.toISOString().slice(0,10))}`;
+  svg.appendChild(infoLine);
+
+  // baseline math
+  const { cumulative: cum } = baselineYAndHeights(innerH, BASE_ROWS, GAP);
+  const colW = Math.floor(innerW / COLS);
+
+  // helpers: map date → Y over whole course
+  function dateToY(date) {
+    const clampedDate = new Date(Math.max(COURSE_START_DATE.getTime(), Math.min(COURSE_END_DATE.getTime(), date.getTime())));
+    const msSinceStart = clampedDate.getTime() - COURSE_START_DATE.getTime();
+    if (snap) {
+      // Find the closest baseline unit
+      const unitIndex = Math.round((msSinceStart / COURSE_DURATION_MS) * BASE_ROWS);
+      return innerY + cum[unitIndex];
+    }
+    return innerY + (msSinceStart / COURSE_DURATION_MS) * innerH;
+  }
+
+  // periodic tile renderer for one cell
+  function drawTile(c, r, x0, y0, y1){
+    const w = colW-1, h = Math.max(1, y1-y0);
+
+    // frame
+    svg.appendChild(makeSVG('rect',{x:x0, y:y0, width:w, height:h, fill:'none', stroke:'#000','stroke-width':2}));
+
+    // absolute date range for this cell
+    const cellStartMs = COURSE_START_DATE.getTime() + ((y0 - innerY) / innerH) * COURSE_DURATION_MS;
+    const cellEndMs = COURSE_START_DATE.getTime() + ((y1 - innerY) / innerH) * COURSE_DURATION_MS;
+    const cellStartDate = new Date(cellStartMs);
+    const cellEndDate = new Date(cellEndMs);
+
+    // Calculate approximate week numbers for the cell's range
+    const startWeekNum = Math.floor((cellStartDate.getTime() - COURSE_START_DATE.getTime()) / (1000 * 60 * 60 * 24 * 7)) + 1;
+    const endWeekNum = Math.ceil((cellEndDate.getTime() - COURSE_START_DATE.getTime()) / (1000 * 60 * 60 * 24 * 7));
+
+    // big tile label (upper-left) - Week numbers
+    if(showWeekLabels){
+      const t = makeSVG('text',{x:x0+6, y:y0+6, 'font-size':38, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000','dominant-baseline':'hanging'});
+      t.textContent = `WK ${startWeekNum}-${endWeekNum}`;
+      svg.appendChild(t);
+    }
+
+    // fixed baselines for dates
+    const pad = 10;
+    const dateTopY = y0 + 28;     // top line baseline for dates
+    const dateBotY = y1 - 10;     // bottom line baseline for dates
+
+    if(showDatesPerTile){
+      // start date on top, end date on bottom
+      const tsTop = makeSVG('text',{x:x0 + w - pad, y:dateTopY, 'font-size':40, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000','text-anchor':'end','dominant-baseline':'hanging'});
+      tsTop.textContent = toMMDD(cellStartDate.toISOString().slice(0,10)); svg.appendChild(tsTop);
+    }
+    // always show one timestamp (end date) on the bottom line
+    const tsBot = makeSVG('text',{x:x0 + w - pad, y:dateBotY, 'font-size':40, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000','text-anchor':'end','dominant-baseline':'ideographic'});
+    tsBot.textContent = toMMDD(cellEndDate.toISOString().slice(0,10)); svg.appendChild(tsBot);
+
+    if(showMetrics){
+      // tiny corner dot keeps rhythm w/out clutter
+      const hint = makeSVG('text',{x:x0+6, y:y1-6, 'font-size':14, 'font-family':'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace', fill:'#000','text-anchor':'start','dominant-baseline':'ideographic'});
+      hint.textContent = '·'; svg.appendChild(hint);
+    }
+
+    // --- Add dynamic content (Class days, readings, concepts) ---
+    const contentOffset = y0 + (showWeekLabels ? 60 : 20); // Adjust start Y based on label presence
+    let currentY = contentOffset;
+    const lineHeight = 20; // smaller font size for content
+    const contentX = x0 + pad;
+    const maxContentWidth = w - 2 * pad;
+    const maxLines = (y1 - currentY - (showDatesPerTile ? 20 : 0)) / lineHeight; // estimate available lines
+
+    let linesAdded = 0;
+
+    // Filter modules, classes, and holidays within this cell's date range
+    const modulesInCell = courseModules.filter(m => {
+        const mStart = new Date(m.start_date);
+        const mEnd = new Date(m.end_date);
+        return (mStart < cellEndDate && mEnd > cellStartDate);
+    });
+
+    const classesInCell = modulesInCell.flatMap(m => m.classes || []).filter(c => {
+        const classDate = new Date(c.date);
+        return classDate >= cellStartDate && classDate <= cellEndDate;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Display Class Days (prioritized)
+    for (const cls of classesInCell) {
+        if (linesAdded >= maxLines) break;
+        const clsDate = new Date(cls.date);
+        const dayOfWeek = clsDate.toLocaleDateString('en-US', { weekday: 'short' });
+        const isHolidayClass = holidayCalendar.some(h => h.date === cls.date && (h.type === 'holiday' || h.type === 'break' || h.type === 'reading'));
+
+        let classLine = `${dayOfWeek} ${toMMDD(cls.date)}: ${cls.topic}`;
+        if (isHolidayClass) classLine += " (No Class)";
+
+        const textElement = makeSVG('text', {
+            x: contentX, y: currentY, 'font-size': 16,
+            'font-family': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace',
+            fill: isHolidayClass ? '#B91C1C' : '#000'
+        });
+        textElement.textContent = compactView ? classLine.substring(0, Math.floor(maxContentWidth / (16 * 0.6))) + (classLine.length * (16 * 0.6) > maxContentWidth ? '...' : '') : classLine;
+        svg.appendChild(textElement);
+        currentY += lineHeight;
+        linesAdded++;
+    }
+
+    // Display Readings (if space)
+    let readingsAdded = 0;
+    for (const mod of modulesInCell) {
+        for (const reading of mod.readings || []) {
+            if (linesAdded >= maxLines || readingsAdded >= (compactView ? 1 : 2)) break; // Limit readings displayed
+            const textElement = makeSVG('text', {
+                x: contentX, y: currentY, 'font-size': 14,
+                'font-family': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace',
+                fill: '#333'
+            });
+            textElement.textContent = compactView ? `Rd: ${reading.substring(0, Math.floor(maxContentWidth / (14 * 0.6)) - 4)}...` : `Reading: ${reading}`;
+            svg.appendChild(textElement);
+            currentY += lineHeight * 0.8; // Slightly smaller line height for readings
+            linesAdded++;
+            readingsAdded++;
+        }
+        if (linesAdded >= maxLines) break;
+    }
+
+    // Display Concepts (if space)
+    let conceptsAdded = 0;
+    for (const mod of modulesInCell) {
+        for (const concept of mod.concepts || []) {
+            if (linesAdded >= maxLines || conceptsAdded >= (compactView ? 1 : 2)) break; // Limit concepts displayed
+            const textElement = makeSVG('text', {
+                x: contentX, y: currentY, 'font-size': 12,
+                'font-family': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace',
+                fill: '#666'
+            });
+            textElement.textContent = compactView ? `C: ${concept.substring(0, Math.floor(maxContentWidth / (12 * 0.6)) - 3)}...` : `Concept: ${concept}`;
+            svg.appendChild(textElement);
+            currentY += lineHeight * 0.7; // Even smaller line height for concepts
+            linesAdded++;
+            conceptsAdded++;
+        }
+        if (linesAdded >= maxLines) break;
+    }
+  }
+
+  // grid render
+  for(let c=0;c<COLS;c++){
+    const rows = SPECS[c];
+    const unitsPerCell = BASE_ROWS / rows;
+    const x0 = innerX + c*colW;
+    for(let r=0;r<rows;r++){
+      const uStart = Math.round(r * unitsPerCell);
+      const y0 = innerY + cum[uStart];
+      const y1 = innerY + cum[uStart + unitsPerCell] - GAP;
+      drawTile(c,r,x0,y0,y1);
+    }
+  }
+
+  // side ticks every 6 rows (representing units of the semester)
+  if(showTicks){
+    for(let r=0;r<=BASE_ROWS;r+=6){
+      const yR = innerY + cum[Math.min(r,BASE_ROWS)];
+      svg.appendChild(makeSVG('line',{x1:innerX-8,y1:yR,x2:innerX-2,y2:yR,stroke:'#000','stroke-width':1}));
+      const lab = makeSVG('text',{x:innerX-12, y:yR+10, 'font-size':16, 'font-family':'monospace', fill:'#000','text-anchor':'end'});
+      lab.textContent = String(r).padStart(2,'0'); svg.appendChild(lab);
+    }
+  }
+
+  // Holiday/Special Event Bands
+  function drawBand(dateStr, label, style){
+    const d = new Date(dateStr + "T00:00:00"); // Start of the day
+    const dEnd = new Date(dateStr + "T23:59:59"); // End of the day for single-day events
+    const y0 = dateToY(d);
+    const y1 = dateToY(dEnd); // For single day events, this provides a small vertical band
+
+    const xL = innerX, w = colW*COLS - 1;
+    svg.appendChild(makeSVG('line',{x1:xL,y1:y0,x2:xL+w,y2:y0,stroke:style.color,'stroke-width':style.width,'stroke-dasharray':style.dash}));
+    svg.appendChild(makeSVG('line',{x1:xL,y1:y1,x2:xL+w,y2:y1,stroke:style.color,'stroke-width':style.width,'stroke-dasharray':style.dash}));
+
+    // Add label next to the band
+    const labelX = xL - 20; // Position label outside the grid
+    const labelY = y0 + ((y1 - y0) / 2); // Center of the band
+    const textElement = makeSVG('text', {
+        x: labelX, y: labelY, 'font-size': 18,
+        'font-family': 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono","Courier New",monospace',
+        fill: style.color, 'text-anchor': 'end', 'dominant-baseline': 'middle'
+    });
+    textElement.textContent = label;
+    svg.appendChild(textElement);
+  }
+
+  holidayCalendar.forEach(h => {
+    // For multi-day breaks like Thanksgiving, draw a single band from start to end
+    if (h.type === "break" && h.label.includes("Fall Break")) {
+        // Find the start of Fall Break and end of Fall Break
+        const fallBreakStart = holidayCalendar.find(item => item.date === "2025-10-06").date;
+        const fallBreakEnd = holidayCalendar.find(item => item.date === "2025-10-07").date;
+        drawBand(fallBreakStart, h.label, STYLES[h.type]);
+        drawBand(fallBreakEnd, "", STYLES[h.type]); // Draw end line for range
+    } else if (h.type === "holiday" && h.label.includes("Thanksgiving Break")) {
+        const thanksgivingStart = holidayCalendar.find(item => item.date === "2025-11-27").date;
+        const thanksgivingEnd = holidayCalendar.find(item => item.date === "2025-11-28").date;
+        drawBand(thanksgivingStart, h.label, STYLES[h.type]);
+        drawBand(thanksgivingEnd, "", STYLES[h.type]); // Draw end line for range
+    } else if (h.type === "reading" && h.label.includes("Reading Period")) {
+        // Aggregate reading period bands if consecutive and same type/label
+        const readingPeriodDates = holidayCalendar.filter(item => item.type === "reading" && item.label.includes("Reading Period")).map(item => item.date).sort();
+        if (readingPeriodDates.length > 0) {
+            const firstReadingDay = readingPeriodDates[0];
+            const lastReadingDay = readingPeriodDates[readingPeriodDates.length - 1];
+            // Draw one band for the range, and only if it's the *first* date of that range to avoid duplicates
+            if (h.date === firstReadingDay) {
+                drawBand(firstReadingDay, "Reading Period", STYLES[h.type]);
+                drawBand(lastReadingDay, "", STYLES[h.type]);
+            }
+        }
+    }
+    else {
+        drawBand(h.date, h.label, STYLES[h.type] || STYLES.info);
+    }
+  });
+
+
+  wrap.appendChild(svg); document.getElementById('book').appendChild(wrap);
+}
+
+/****************
+ * I/O
+ ****************/
+function setHandlers(){
+  ['toggleCellLabels','toggleTicks','toggleSnap','toggleCellMetrics','toggleTwoTimes','toggleCompact']
+    .forEach(id=> document.getElementById(id).addEventListener('change', ()=> drawBook(activeCourseModules)));
+  document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+
+  const drop = document.getElementById('drop');
+  ['dragenter','dragover','dragleave','drop'].forEach(evt=> drop.addEventListener(evt, e=>{ e.preventDefault(); e.stopPropagation(); }));
+  drop.addEventListener('dragover', ()=> { drop.style.borderColor = '#000'; });
+  drop.addEventListener('dragleave',()=> { drop.style.borderColor = '#000'; });
+  drop.addEventListener('drop', async (e)=>{ drop.style.borderColor = '#000'; const f = e.dataTransfer.files?.[0]; if(!f) return; tryLoad(await f.text()); });
+
+  const ta = document.getElementById('jsonIn');
+  ta.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) { tryLoad(ta.value); e.preventDefault(); } });
+}
+
+function tryLoad(text){
+  try{ const data = JSON.parse(text); if(!Array.isArray(data)) throw new Error('JSON must be an array'); activeCourseModules = data; drawBook(activeCourseModules); }
+  catch(err){ alert('Parse error: '+err.message); }
+}
+
+/****************
+ * Self-tests (additive)
+ ****************/
+function runSelfTests(){
+  try{
+    console.assert(typeof drawBook === 'function', 'drawBook should be defined');
+    const innerH = 1000; const { cumulative } = baselineYAndHeights(innerH, 48, 2);
+    console.assert(cumulative.length === 49, 'Baseline cumulative should be rows+1');
+    console.assert(cumulative[48] === innerH, 'Baseline cumulative last entry should equal innerH');
+
+    // Test date to Y mapping (smoke test, exact value will depend on semester dates)
+    calculateCourseDates(courseModulesDefault);
+    const testDate = new Date("2025-09-01T12:00:00"); // Labor Day
+    const yPos = dateToY(testDate);
+    console.assert(yPos > innerY && yPos < innerY + innerH, 'Date should map within the drawing area');
+
+    // Render smoke test (1 page for the whole course)
+    const bookEl = document.getElementById('book');
+    const prev = bookEl.children.length;
+    drawBook(courseModulesDefault);
+    console.assert(bookEl.children.length === 1, 'Render exactly one page for the whole course');
+  }catch(e){ console.warn('Self-tests failed:', e); }
+}
+
+let activeCourseModules = courseModulesDefault;
+setHandlers();
+runSelfTests();
+drawBook(activeCourseModules);
+</script>
+</body>
+</html>

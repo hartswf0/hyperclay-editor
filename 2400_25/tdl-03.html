@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CourseOS ▣ TDL × Spencer‑Brown — Brand Commander Kernel (Victor Mode)</title>
+<style>
+  :root{
+    --bg:#0a0b10; --panel:#0f1017; --ink:#e8eaf6; --muted:#9aa0b6; --edge:#2a2d3a; --glow:#5fe1ff; --good:#53d38c; --warn:#ffb84d; --bad:#ff6d6d;
+    --cellA:#2ecc71; --cellB:#66a3ff; --cellC:#9aa3b8; --cellD:#ff6b6b;
+  }
+  html,body{height:100%}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%, rgba(0,255,213,.07), transparent 60%), var(--bg);color:var(--ink);font:14px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+  .grid{display:grid;grid-template-columns:360px 1fr 380px;grid-template-rows:auto 1fr;min-height:100vh}
+  header{grid-column:1/4;position:sticky;top:0;z-index:9;background:linear-gradient(180deg,rgba(10,11,16,.95),rgba(10,11,16,.6));backdrop-filter:saturate(120%) blur(6px);border-bottom:1px solid var(--edge)}
+  header .row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px}
+  header h1{margin:0;font-size:16px;letter-spacing:.22em;text-transform:uppercase}
+  header h1 span{color:var(--glow)}
+  .btn{background:#151724;border:1px solid var(--edge);color:var(--ink);padding:8px 10px;border-radius:10px;cursor:pointer}
+  .btn:hover{background:#1a1d2b}
+  .btn.primary{background:#0f3344;border-color:#134a60}
+  .btn.primary:hover{background:#134a60}
+  .btn.warn{background:#432d0e;border-color:#5e3e13}
+  .btn.warn:hover{background:#5e3e13}
+  aside, .telemetry{background:var(--panel);border-right:1px solid var(--edge)}
+  aside{overflow:auto}
+  .telemetry{border-left:1px solid var(--edge);overflow:auto}
+  section{padding:12px 14px;border-bottom:1px solid var(--edge)}
+  h2{margin:0 0 8px;color:var(--muted);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+  label{display:grid;grid-template-columns:1fr auto;align-items:center;margin:6px 0}
+  input[type="range"]{width:160px}
+  input[type="number"], select{width:92px;background:#0b0c12;color:var(--ink);border:1px solid var(--edge);border-radius:8px;padding:4px}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px}
+  .mono{font:12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+  canvas{display:block;width:100%;height:100%}
+  .console{position:absolute;left:0;bottom:0;background:rgba(0,0,0,.35);font:12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;padding:6px 8px;border-top-right-radius:10px;max-width:86%;color:#dbe4ff}
+  .kbd{font:600 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;background:#0e0e14;border:1px solid #262634;color:#a7b2d1;border-radius:6px;padding:1px 5px}
+  .badge{display:inline-block;padding:2px 6px;border:1px solid var(--edge);border-radius:8px;background:#12131a;margin-right:4px}
+  code.small{font:11px ui-monospace}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .pill{display:inline-block;border:1px solid var(--edge);border-radius:999px;padding:2px 8px;background:#11121a;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="grid">
+  <header>
+    <div class="row">
+      <h1>CourseOS ▣ <span>TDL × Spencer‑Brown</span> — Brand Commander Kernel ▣ Victor Mode</h1>
+      <div class="controls">
+        <button id="btnInit" class="btn primary">INIT</button>
+        <button id="btnRun" class="btn">RUN</button>
+        <button id="btnStep" class="btn">STEP</button>
+        <button id="btnReset" class="btn warn">RESET</button>
+        <button id="btnExport" class="btn">EXPORT</button>
+        <button id="btnTests" class="btn">TESTS</button>
+        <button id="btnCompare" class="btn">WHAT‑IF</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Left: Entities, Policy, Parameters -->
+  <aside>
+    <section>
+      <h2>Command Signature</h2>
+      <div class="mono">“Transform the interface, command the thought.”</div>
+      <div class="hint">Kernel accepts policy Π, executes weekly tri‑tick ritual (░ annotate, ▒ dialogue, ▓ production). Emits artifacts, reward components, δ‑vectors.</div>
+    </section>
+
+    <section>
+      <h2>Entities (◻)</h2>
+      <div class="mono">
+        ◻ Week×14 • Slot×16 • Track={░,▒,▓}<br/>
+        ◻ Lens×10 • Assessment×6 • Driver×6<br/>
+        ◻ RubricQuad={C,E,R,T} • Agent×3<br/>
+        ◻ State=Week×Track×Role×Lens×Driver
+      </div>
+    </section>
+
+    <section>
+      <h2>Policy Weights</h2>
+      <label>Leader <input id="wLeader" type="range" min="0" max="0.5" step="0.01" value="0.2"/></label>
+      <label>Portfolio <input id="wPortfolio" type="range" min="0" max="0.7" step="0.01" value="0.4"/></label>
+      <label>Participation <input id="wPart" type="range" min="0" max="0.7" step="0.01" value="0.4"/></label>
+      <div class="hint">Weights scale the reward function; terminal reward depends on PortfolioQuality.</div>
+    </section>
+
+    <section>
+      <h2>Shaping & Anti‑Spam</h2>
+      <label>Timing: Early <input id="timEarly" type="range" min="0" max="0.6" step="0.01" value="0.3"/></label>
+      <label>Timing: On‑time <input id="timOn" type="range" min="0" max="0.4" step="0.01" value="0.1"/></label>
+      <label>Timing: Late <input id="timLate" type="range" min="-0.8" max="0" step="0.01" value="-0.3"/></label>
+      <label>Evidence: Quote/Interpret <input id="evQuote" type="range" min="0" max="0.8" step="0.01" value="0.4"/></label>
+      <label>Drip: Immediate <input id="pfDripImm" type="range" min="0" max="0.3" step="0.01" value="0.1"/></label>
+      <label>Drip: Quality growth <input id="pfDripQual" type="range" min="0" max="0.25" step="0.01" value="0.12"/></label>
+      <label>Spam threshold <input id="pfSpamTh" type="number" min="1" max="8" value="3"/></label>
+      <label>Spam penalty <input id="pfSpamPen" type="range" min="0" max="6" step="0.1" value="3.0"/></label>
+    </section>
+
+    <section>
+      <h2>Agents Θ=(α,γ,ε)</h2>
+      <div class="mono">Role {Leader, Participant}; default leaders at w6, w10, w12.</div>
+      <label>Agent‑01 α<input id="a1a" type="range" min="0.05" max="0.6" step="0.01" value="0.25"/></label>
+      <label>Agent‑01 γ<input id="a1g" type="range" min="0.4" max="0.99" step="0.01" value="0.90"/></label>
+      <label>Agent‑01 ε<input id="a1e" type="range" min="0" max="0.5" step="0.01" value="0.10"/></label>
+      <label>Agent‑01 Leader wk <input id="a1L" type="number" min="1" max="16" value="6"/></label>
+      <hr style="border-color:var(--edge);opacity:.4"/>
+      <label>Agent‑02 α<input id="a2a" type="range" min="0.05" max="0.6" step="0.01" value="0.40"/></label>
+      <label>Agent‑02 γ<input id="a2g" type="range" min="0.4" max="0.99" step="0.01" value="0.60"/></label>
+      <label>Agent‑02 ε<input id="a2e" type="range" min="0" max="0.5" step="0.01" value="0.25"/></label>
+      <label>Agent‑02 Leader wk <input id="a2L" type="number" min="1" max="16" value="10"/></label>
+      <hr style="border-color:var(--edge);opacity:.4"/>
+      <label>Agent‑03 α<input id="a3a" type="range" min="0.05" max="0.6" step="0.01" value="0.15"/></label>
+      <label>Agent‑03 γ<input id="a3g" type="range" min="0.4" max="0.99" step="0.01" value="0.95"/></label>
+      <label>Agent‑03 ε<input id="a3e" type="range" min="0" max="0.5" step="0.01" value="0.05"/></label>
+      <label>Agent‑03 Leader wk <input id="a3L" type="number" min="1" max="16" value="12"/></label>
+      <div class="hint">All agents compute Q‑updates weekly; exploration is ε‑greedy.</div>
+    </section>
+
+    <section>
+      <h2>Shocks</h2>
+      <label>Midterm stress (w8–w10)<input id="shockMid" type="checkbox"/></label>
+      <label>Attendance dip 5%<input id="shockAtt" type="checkbox"/></label>
+      <div class="hint">Use shocks to test policy robustness.</div>
+    </section>
+  </aside>
+
+  <!-- Center: Visual Kernel Execution (+ waveforms) -->
+  <section style="position:relative">
+    <canvas id="cv"></canvas>
+    <div class="console" id="console">Kernel ready. Awaiting INIT. ▣</div>
+  </section>
+
+  <!-- Right: Telemetry, What‑If, Scrubber, Index, Tests Output -->
+  <div class="telemetry">
+    <section>
+      <h2>Scrub & Focus</h2>
+      <div class="row2">
+        <label>Week <input id="scrub" type="range" min="1" max="14" step="1" value="1"/></label>
+        <div><span class="pill" id="focusWeek">w=1</span><span class="pill" id="focusAgent">agent=—</span></div>
+      </div>
+      <div id="breakdown" class="mono">No selection.</div>
+    </section>
+    <section>
+      <h2>What‑If Scenario</h2>
+      <div class="mono">Scenario‑B deltas (applied to Π for ghost overlay):</div>
+      <label>Δ Early + <input id="wbEarly" type="range" min="0" max="0.3" step="0.01" value="0.10"/></label>
+      <label>Δ Evidence + <input id="wbEvid" type="range" min="0" max="0.4" step="0.01" value="0.10"/></label>
+      <label>Δ Spam Penalty + <input id="wbSpam" type="range" min="0" max="3" step="0.1" value="1.0"/></label>
+      <div class="hint">Press WHAT‑IF to overlay Scenario‑B curves using the same seed.</div>
+    </section>
+    <section>
+      <h2>Telemetry</h2>
+      <div id="telemetry" class="mono">No runs yet.</div>
+    </section>
+    <section>
+      <h2>Spencer‑Brown Index</h2>
+      <div id="index" class="mono"></div>
+    </section>
+    <section>
+      <h2>Test Bench</h2>
+      <pre id="tests" class="mono">Idle.</pre>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ====== RNG ======
+  function mulberry32(a){return function(){var t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296}}
+  let rand = mulberry32(7); function rnd(){return rand()}
+
+  // ====== Canvas ======
+  const cv = document.getElementById('cv'); const ctx = cv.getContext('2d');
+  function resize(){cv.width=cv.clientWidth*devicePixelRatio;cv.height=cv.clientHeight*devicePixelRatio}
+  const wrapperResize=()=>{const sec=cv.parentElement;const h=window.innerHeight-60;sec.style.height=h+'px';resize();draw()}; window.addEventListener('resize', wrapperResize);
+
+  // ====== UI ======
+  const el=id=>document.getElementById(id);
+  const consoleEl=el('console'), telemEl=el('telemetry'), testsEl=el('tests'), indexEl=el('index');
+  const scrubEl=el('scrub'), focusW=el('focusWeek'), focusA=el('focusAgent'), breakdownEl=el('breakdown');
+
+  const inputs={ wLeader:el('wLeader'), wPortfolio:el('wPortfolio'), wPart:el('wPart'), timEarly:el('timEarly'), timOn:el('timOn'), timLate:el('timLate'), evQuote:el('evQuote'), pfDripImm:el('pfDripImm'), pfDripQual:el('pfDripQual'), pfSpamTh:el('pfSpamTh'), pfSpamPen:el('pfSpamPen'), a1a:el('a1a'), a1g:el('a1g'), a1e:el('a1e'), a1L:el('a1L'), a2a:el('a2a'), a2g:el('a2g'), a2e:el('a2e'), a2L:el('a2L'), a3a:el('a3a'), a3g:el('a3g'), a3e:el('a3e'), a3L:el('a3L'), shockMid:el('shockMid'), shockAtt:el('shockAtt'), wbEarly:el('wbEarly'), wbEvid:el('wbEvid'), wbSpam:el('wbSpam') };
+
+  el('btnInit').onclick=()=>init(); el('btnRun').onclick=()=>run(); el('btnStep').onclick=()=>stepAll(); el('btnReset').onclick=()=>reset(); el('btnExport').onclick=()=>exportJSON(); el('btnTests').onclick=()=>runTests(); el('btnCompare').onclick=()=>toggleCompare();
+  scrubEl.oninput=()=>{ cursorWeek=+scrubEl.value; updateBreakdown(); draw() };
+
+  // ====== Enumerations ======
+  const LENSES = Array.from({length:10}).map((_,i)=>'𓉗'+String(i+1).padStart(2,'0'));
+  const ASSESS = ['Leader','Annot','Post','Reply','Media','Portfolio'];
+  const DRIVERS = ['Canvas','Perusall','Piazza','Slides','MediaDB','InClass'];
+  const TRACKS = ['░','▒','▓'];
+  const RUBRIC = ['C','E','R','T'];
+
+  // ====== Kernel State ======
+  const WEEKS=14; let policy, agents, tick=0, running=false, rafId=null, cursorWeek=1, lastLayout=null, compareOn=false, ghost=null;
+
+  function mkPolicy(){ return { weights:{leader:+inputs.wLeader.value, portfolio:+inputs.wPortfolio.value, part:+inputs.wPart.value}, timing:{early:+inputs.timEarly.value, on:+inputs.timOn.value, late:+inputs.timLate.value}, evidence:{quote:+inputs.evQuote.value, opinion:0}, portfolio:{dripImm:+inputs.pfDripImm.value, dripQual:+inputs.pfDripQual.value, spamTh:+inputs.pfSpamTh.value, spamPen:+inputs.pfSpamPen.value} } }
+  function mkPolicyB(){ const p=mkPolicy(); return { ...p, timing:{...p.timing, early:p.timing.early + +inputs.wbEarly.value}, evidence:{...p.evidence, quote:p.evidence.quote + +inputs.wbEvid.value}, portfolio:{...p.portfolio, spamPen:p.portfolio.spamPen + +inputs.wbSpam.value} } }
+
+  function zeros(r,c){return Array.from({length:r},()=>Array(c).fill(0))}
+  function phaseOfWeek(w){ if(w<=4) return 'EARLY'; if(w<=10) return 'MID'; return 'LATE' }
+  function stateId(week, leader){ const phase=phaseOfWeek(week); const role=(week===leader)?'LEADER':'PART'; const map={ 'EARLY|PART':0,'EARLY|LEADER':1,'MID|PART':2,'MID|LEADER':3,'LATE|PART':4,'LATE|LEADER':5 }; return map[phase+'|'+role] }
+
+  const ACTIONS=[ {k:0,n:'Early+Quote+Drip',tim:'early',ev:'quote',pf:'drip',col:get('--cellA','#2ecc71')}, {k:1,n:'On+Quote+Drip',tim:'on',ev:'quote',pf:'drip',col:get('--cellB','#66a3ff')}, {k:2,n:'On+Opinion+None',tim:'on',ev:'opinion',pf:'none',col:get('--cellC','#9aa3b8')}, {k:3,n:'Late+Opinion+Batch',tim:'late',ev:'opinion',pf:'batch',col:get('--cellD','#ff6b6b')} ];
+  function get(varName,fallback){ return getComputedStyle(document.documentElement).getPropertyValue(varName).trim()||fallback }
+
+  function egPolicy(Q,s,eps){ if(rnd()<eps) return pick(ACTIONS).k; const row=Q[s]; const max=Math.max(...row); const idxs=[]; row.forEach((v,i)=>{if(v===max) idxs.push(i)}); return idxs[Math.floor(rnd()*Math.max(1,idxs.length))]||0 }
+  function pick(arr){return arr[Math.floor(rnd()*arr.length)]}
+  function clamp01(x){return Math.max(0, Math.min(1.2, x))}
+
+  function mkAgent(idx){ const T=[{name:'Agent‑01',color:'#79ffe1',a:'a1a',g:'a1g',e:'a1e',L:'a1L'},{name:'Agent‑02',color:'#8bb0ff',a:'a2a',g:'a2g',e:'a2e',L:'a2L'},{name:'Agent‑03',color:'#ffd580',a:'a3a',g:'a3g',e:'a3e',L:'a3L'}]; const p=T[idx]; return { name:p.name,color:p.color,alpha:+inputs[p.a].value,gamma:+inputs[p.g].value,eps:+inputs[p.e].value, leaderWeek:Math.max(1,Math.min(WEEKS,+inputs[p.L].value)), Q:zeros(6,ACTIONS.length), logs:[], clarity:0.5,timing:0.5,pQual:0,batch:0,cum:0 }; }
+
+  function init(){ policy=mkPolicy(); rand=mulberry32(7); tick=0; running=false; if(rafId) cancelAnimationFrame(rafId); agents=[mkAgent(0),mkAgent(1),mkAgent(2)]; consoleLine('INIT complete. Policy staged.'); paintIndex(); draw(); updateBreakdown(); }
+  function reset(){ init(); consoleLine('RESET executed.') }
+
+  function toggleCompare(){ compareOn=!compareOn; if(compareOn){ ghost=simulatePolicy(mkPolicyB()); consoleLine('WHAT‑IF overlay ON.'); } else { ghost=null; consoleLine('WHAT‑IF overlay OFF.') } draw() }
+
+  function simulatePolicy(pol){ // deterministic ghost run using same seed
+    const snap = { agents:[mkAgent(0),mkAgent(1),mkAgent(2)] }; let rsave=rand; rand=mulberry32(7); for(let w=1; w<=WEEKS; w++){ snap.agents.forEach(a=> stepEnv(a,w,pol,true)); } rand=rsave; return snap;
+  }
+
+  function run(){ if(!agents) init(); if(running) return; running=true; loop(); consoleLine('RUN issued.') }
+  function loop(){ if(!running) return; stepAll(); rafId=requestAnimationFrame(()=>setTimeout(loop, 280)) }
+
+  function stepAll(){ if(!agents) init(); if(tick>=WEEKS){ running=false; draw(); return } tick++; policy=mkPolicy(); agents.forEach(a=> stepEnv(a,tick,policy,false)); draw(); if(tick>=WEEKS){ running=false; const s=teachingScore(); consoleLine(`HALT. Score total=${s.total.toFixed(2)} learn=${s.learn.toFixed(2)} equity=${s.equity.toFixed(2)} timing=${s.timing.toFixed(2)}`); telemetryDump() } }
+
+  function stepEnv(agent,week,pol,isGhost){ const role=week===agent.leaderWeek?'LEADER':'PART'; let tShock=0,cShock=0; if(inputs.shockMid.checked&&!isGhost && week>=8&&week<=10){ tShock-=0.05;cShock-=0.03 } if(inputs.shockAtt.checked&&!isGhost && rnd()<0.05){ tShock-=0.1 }
+    const s=stateId(week,agent.leaderWeek); const aIdx=egPolicy(agent.Q,s,agent.eps); const A=ACTIONS[aIdx];
+    // components
+    const comp_base = 1.0 * pol.weights.part;
+    const comp_tim = (A.tim==='early'?pol.timing.early:(A.tim==='on'?pol.timing.on:pol.timing.late));
+    const comp_evi = (A.ev==='quote'?pol.evidence.quote:0);
+    const comp_drI = (A.pf==='drip'?pol.portfolio.dripImm:0);
+    let comp_lea = 0; let comp_termB=0; let comp_termP=0;
+
+    // evolve internal skills
+    if(A.tim==='early'){ agent.timing=clamp01(agent.timing+0.03+tShock) } else if(A.tim==='on'){ agent.timing=clamp01(agent.timing+0.01+tShock) } else { agent.timing=clamp01(agent.timing-0.02+tShock) }
+    if(A.ev==='quote'){ agent.clarity=clamp01(agent.clarity+0.03+cShock) } else { agent.clarity=clamp01(agent.clarity-0.005+cShock) }
+    if(A.pf==='drip'){ const g = pol.portfolio.dripQual * ((agent.clarity+agent.timing)/2); agent.pQual += g } else if(A.pf==='batch'){ agent.batch += 1 }
+
+    if(role==='LEADER'){ comp_lea = 2.0*pol.weights.leader*(0.6*agent.clarity+0.4*agent.timing) * (A.ev==='quote'?1.1:1) * (A.tim==='early'?1.05:(A.tim==='late'?0.8:1)) }
+
+    if(week===WEEKS){ comp_termB = 6.0*pol.weights.portfolio*agent.pQual; if(agent.batch>=pol.portfolio.spamTh){ comp_termP = -pol.portfolio.spamPen - 0.5*(agent.batch - pol.portfolio.spamTh + 1) } }
+
+    const r = comp_base + comp_tim + comp_evi + comp_drI + comp_lea + comp_termB + comp_termP;
+
+    // TD update
+    const sNext=stateId(Math.min(week+1,WEEKS),agent.leaderWeek); const target = r + agent.gamma*Math.max(...agent.Q[sNext]); const td = target - agent.Q[s][aIdx]; agent.Q[s][aIdx]+=agent.alpha*td; agent.cum += r;
+
+    // rubric deltas (Socratic probes in numbers)
+    const dC = (A.ev==='quote'? +0.1 : -0.05) + (agent.clarity-0.5)*0.1;
+    const dE = (A.ev==='quote'? +0.12: 0.00);
+    const dR = 0.05*(rnd()-0.5);
+    const dT = (A.tim==='early'? +0.1 : A.tim==='on'? +0.04 : -0.1) + (agent.timing-0.5)*0.08;
+
+    if(!Array.isArray(agent.logs)) agent.logs=[];
+    agent.logs.push({week,role,action:A.n,aIdx,reward:r,td,cum:agent.cum,timing:A.tim,evidence:A.ev,drip:(A.pf==='drip'),batch:(A.pf==='batch'), clarity:agent.clarity,tskill:agent.timing,pqual:agent.pQual, comp_base,comp_tim,comp_evi,comp_drI,comp_lea,comp_termB,comp_termP, dC,dE,dR,dT});
+  }
+
+  // ====== Metrics ======
+  function teachingScore(){ if(!Array.isArray(agents)||!agents.length) return {learn:0,equity:1,timing:0,total:0}; const finals=agents.map(a=> (a.logs&&a.logs[a.logs.length-1])||{cum:0}); const learn=finals.reduce((s,x)=>s+(x.cum||0),0)/agents.length; const mu=learn, variance=finals.reduce((s,x)=>s+Math.pow((x.cum||0)-mu,2),0)/agents.length; const std=Math.sqrt(variance); const equity=1/(1+std); const timing=agents.reduce((s,a)=> s + avg((a.logs||[]).map(r=> r.timing==='early'?1: r.timing==='on'?0.6:0.1)),0)/agents.length; const total=0.5*normalize(learn,20,70)+0.35*equity+0.15*timing; return {learn,equity,timing,total} }
+  function avg(arr){return arr.length? arr.reduce((a,b)=>a+b,0)/arr.length:0}
+  function normalize(x,a,b){return Math.max(0,Math.min(1,(x-a)/(b-a)))}
+
+  // ====== Rendering ======
+  function draw(){ const W=cv.width,H=cv.height; ctx.clearRect(0,0,W,H); const pad=26*devicePixelRatio, top=pad,left=pad, cols=WEEKS, tracks=agents?agents.length:0; const rowH=102*devicePixelRatio; const waveH=90*devicePixelRatio; const gap=26*devicePixelRatio; const usableH=H-top-pad; const gridH = tracks? Math.min(rowH*tracks + gap*(tracks-1), Math.max(160*devicePixelRatio, usableH*0.6)) : 0; const waveTop = top + gridH + 24*devicePixelRatio; const waveAreaH = H - waveTop - pad;
+
+    // Title strip
+    const sc=teachingScore(); ctx.fillStyle='#c7cffb'; ctx.font=`${12*devicePixelRatio}px ui-monospace`; ctx.fillText(`w=${tick}/${WEEKS} ▣ score=${sc.total.toFixed(2)} ⨍=${sc.learn.toFixed(2)} σ⁻¹=${sc.equity.toFixed(2)} τ=${sc.timing.toFixed(2)}  |  cursor w=${cursorWeek}`, left, top-10);
+    if(!Array.isArray(agents)) return;
+
+    // GRID
+    const tileW=(W-left-pad)/cols; lastLayout={left,top,cols,tracks,tileW,rowH,gap,waveTop,waveAreaH};
+    for(let r=0;r<tracks;r++){
+      const a=agents[r]; const y=top + r*(rowH+gap);
+      ctx.fillStyle=a.color; ctx.fillRect(left-18*devicePixelRatio, y-6*devicePixelRatio, 8*devicePixelRatio, 8*devicePixelRatio);
+      ctx.fillStyle='#e6eaff'; ctx.fillText(a.name, left, y-10);
+      for(let c=0;c<cols;c++){ const x=left+c*tileW; ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.strokeRect(x,y,tileW,rowH); if(r===0){ ctx.fillStyle='#676c86'; ctx.fillText(String(c+1), x+4*devicePixelRatio, y-10) } if((c+1)===cursorWeek){ ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fillRect(x,y,tileW,rowH) } }
+      const logs = Array.isArray(a.logs)?a.logs:[];
+      for(let i=0;i<logs.length;i++){ const L=logs[i]; const c=L.week-1; const x=left+c*tileW; ctx.fillStyle=(ACTIONS[L.aIdx]&&ACTIONS[L.aIdx].col)||'#888'; ctx.fillRect(x+1*devicePixelRatio, y+1*devicePixelRatio, tileW-2*devicePixelRatio, rowH-2*devicePixelRatio); if(L.role==='LEADER'){ ctx.fillStyle='rgba(255,255,255,.85)'; star(ctx, x+tileW-14*devicePixelRatio, y+14*devicePixelRatio, 5*devicePixelRatio, 2.2*devicePixelRatio) } const barH=Math.min(rowH-10*devicePixelRatio, Math.max(3*devicePixelRatio, Math.abs(L.reward||0)*5*devicePixelRatio)); ctx.fillStyle=(L.reward||0)>=0?'rgba(0,0,0,.35)':'rgba(0,0,0,.55)'; ctx.fillRect(x+tileW-10*devicePixelRatio, y+rowH-barH, 6*devicePixelRatio, barH); }
+      if(logs.length>1){ ctx.beginPath(); ctx.strokeStyle=a.color; ctx.lineWidth=2*devicePixelRatio; logs.forEach((L,idx)=>{ const x=left+(L.week-1)*tileW+tileW/2; const yv=y+rowH-(L.cum*2*devicePixelRatio); if(idx===0) ctx.moveTo(x,yv); else ctx.lineTo(x,yv) }); ctx.stroke() }
+    }
+
+    // WAVEFORMS (reward, δC/E/R/T, overlay ghost if any)
+    const lanes=[{key:'reward',label:'Reward'}, {key:'dC',label:'δC'}, {key:'dE',label:'δE'}, {key:'dT',label:'δT'}];
+    const laneH = Math.max(48*devicePixelRatio, Math.floor(waveAreaH/lanes.length)-14*devicePixelRatio);
+    lanes.forEach((lane,li)=>{
+      const y0 = waveTop + li*(laneH+12*devicePixelRatio);
+      ctx.fillStyle='#7f86a8'; ctx.fillText(lane.label, left, y0-6*devicePixelRatio);
+      // axes
+      ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.strokeRect(left,y0,(W-left-pad),laneH);
+      agents.forEach((a,ai)=>{
+        const logs=a.logs||[]; if(logs.length<1) return; ctx.beginPath(); ctx.lineWidth=2*devicePixelRatio; ctx.strokeStyle=a.color; for(let i=0;i<logs.length;i++){ const L=logs[i]; const x=left + (L.week-1)*tileW + tileW/2; const val=(L[lane.key]||0); const scale = (lane.key==='reward')? 2*devicePixelRatio : 100*devicePixelRatio; const mid=y0+laneH/2; const yv = mid - val*scale; if(i===0) ctx.moveTo(x,yv); else ctx.lineTo(x,yv) } ctx.stroke();
+        if(compareOn && ghost){ const g=ghost.agents[ai].logs||[]; if(g.length){ ctx.setLineDash([6*devicePixelRatio,6*devicePixelRatio]); ctx.beginPath(); ctx.strokeStyle='rgba(255,255,255,.55)'; for(let i=0;i<g.length;i++){ const L=g[i]; const x=left+(L.week-1)*tileW + tileW/2; const val=(L[lane.key]||0); const scale=(lane.key==='reward')? 2*devicePixelRatio : 100*devicePixelRatio; const mid=y0+laneH/2; const yv=mid - val*scale; if(i===0) ctx.moveTo(x,yv); else ctx.lineTo(x,yv) } ctx.stroke(); ctx.setLineDash([]); }
+        }
+      })
+    })
+  }
+
+  function star(ctx,cx,cy,r,ir){ ctx.beginPath(); for(let i=0;i<10;i++){ const ang=Math.PI/5*i; const rad=(i%2===0)?r:ir; const x=cx+Math.cos(ang)*rad; const y=cy+Math.sin(ang)*rad; if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y) } ctx.closePath(); ctx.fill() }
+
+  // ====== Interaction: Scrub on click ======
+  cv.addEventListener('click', (e)=>{ if(!lastLayout) return; const rect=cv.getBoundingClientRect(); const x=(e.clientX-rect.left)*devicePixelRatio; const c=Math.floor((x-lastLayout.left)/lastLayout.tileW); const w=c+1; if(w>=1 && w<=WEEKS){ cursorWeek=w; scrubEl.value=String(w); updateBreakdown(); draw() } });
+
+  function updateBreakdown(){ focusW.textContent = 'w='+cursorWeek; let txt='No data.'; if(!Array.isArray(agents)) { breakdownEl.textContent=txt; return } const lines=[]; agents.forEach(a=>{ const L=(a.logs||[])[cursorWeek-1]; if(!L){ lines.push(a.name+': —'); return } const sum = (L.comp_base+L.comp_tim+L.comp_evi+L.comp_drI+L.comp_lea+L.comp_termB+L.comp_termP); lines.push(`${a.name} ▣ reward=${L.reward.toFixed(2)} ≈ base ${L.comp_base.toFixed(2)} + tim ${L.comp_tim.toFixed(2)} + evid ${L.comp_evi.toFixed(2)} + drip ${L.comp_drI.toFixed(2)} + leader ${L.comp_lea.toFixed(2)} + term ${L.comp_termB.toFixed(2)} ${L.comp_termP.toFixed(2)}`) }); breakdownEl.textContent=lines.join('\n'); }
+
+  // ====== Telemetry & Index ======
+  function consoleLine(t){ consoleEl.textContent=t }
+  function telemetryDump(){ if(!Array.isArray(agents)) return; const last=agents.map(a=> (a.logs&&a.logs[a.logs.length-1])||{}); const s=teachingScore(); telemEl.innerHTML = `<div>mean=${s.learn.toFixed(2)} σ⁻¹=${s.equity.toFixed(2)} τ=${s.timing.toFixed(2)}</div>` + last.map((f,i)=>`<div class="badge">${agents[i].name}</div><code class="small">cum=${(f.cum||0).toFixed(2)} P=${(f.pqual||0).toFixed(2)} B=${agents[i].batch||0}</code>`).join('<br/>'); }
+  function paintIndex(){ indexEl.textContent = JSON.stringify({ Weeks:WEEKS, Tracks:TRACKS, Lenses:LENSES, Assessments:ASSESS, Drivers:DRIVERS, Rubric:RUBRIC }, null, 2) }
+
+  // ====== Export ======
+  function exportJSON(){ if(!Array.isArray(agents)) { consoleLine('EXPORT blocked: kernel not initialized.'); return } const data={ policy:mkPolicy(), weeks:WEEKS, agents:agents.map(a=>({name:a.name,params:{alpha:a.alpha,gamma:a.gamma,eps:a.eps,leaderWeek:a.leaderWeek}, logs:a.logs}))}; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='courseos_run.json'; a.click(); URL.revokeObjectURL(url); consoleLine('EXPORT complete.') }
+
+  // ====== Tests ======
+  function runTests(){ const out=[]; try{ const bak=agents; agents=undefined; try{ draw(); out.push(['T0 draw guard','PASS']) }catch(e){ out.push(['T0 draw guard','FAIL '+e.message]) } agents=bak; const a=mkAgent(0); out.push(['T1 mkAgent logs array', Array.isArray(a.logs)?'PASS':'FAIL']); init(); stepAll(); out.push(['T2 step populates', agents.every(x=>Array.isArray(x.logs)&&x.logs.length===1)?'PASS':'FAIL']); reset(); for(let i=0;i<WEEKS;i++) stepAll(); out.push(['T3 full term', 'PASS']); ghost=simulatePolicy(mkPolicyB()); out.push(['T4 ghost compare', (ghost&&ghost.agents&&ghost.agents[0].logs.length===WEEKS)?'PASS':'FAIL']); exportJSON(); out.push(['T5 export', 'PASS']);
+      // --- Added tests ---
+      compareOn=false; toggleCompare(); out.push(['T6 toggle compare ON', compareOn?'PASS':'FAIL']); toggleCompare(); out.push(['T7 toggle compare OFF', !compareOn?'PASS':'FAIL']);
+      // Determinism: two ghost runs equal cumulative for Agent‑01
+      const g1=simulatePolicy(mkPolicyB()); const g2=simulatePolicy(mkPolicyB());
+      const c1=g1.agents[0].logs[g1.agents[0].logs.length-1].cum.toFixed(4);
+      const c2=g2.agents[0].logs[g2.agents[0].logs.length-1].cum.toFixed(4);
+      out.push(['T8 ghost determinism', (c1===c2)?'PASS':'FAIL '+c1+' vs '+c2]);
+      // Breakdown safety when cursorWeek > logs length
+      cursorWeek=WEEKS; updateBreakdown(); out.push(['T9 breakdown safety', 'PASS']);
+    }catch(e){ out.push(['TEST CRASH','FAIL '+e.message]) }
+    testsEl.textContent = out.map(x=>x[0]+': '+x[1]).join('\n'); consoleLine('TESTS completed.') }
+
+  // ====== Boot ======
+  wrapperResize(); consoleLine('Kernel ready. Awaiting INIT. ▣');
+})();
+</script>
+</body>
+</html>

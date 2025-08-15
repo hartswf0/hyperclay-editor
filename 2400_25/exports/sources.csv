@@ -1,0 +1,58 @@
+id,title,authors,type,tags,status
+miroshnichenko_human_as_media,Human as Media: The Emancipation of Authorship,Andrey Miroshnichenko,book,authorship; media-ecology,core
+calvino_cybernetics_ghosts,Cybernetics and Ghosts,Italo Calvino,essay,literature; generativity; authorship,core
+borges_library_babel,The Library of Babel,Jorge Luis Borges,short_story,infinite-text; information-space,core
+nelson_xanadu,Project Xanadu (selected writings),Ted Nelson,project_manifesto,hypertext; versioning,core
+mcluhan_understanding_media,Understanding Media: The Extensions of Man,Marshall McLuhan,book,extensions; media-theory,core
+geertz_impact_concept_culture,The Impact of the Concept of Culture on the Concept of Man,Clifford Geertz,essay,extra-genetic; anthropology,core
+plato_phaedrus_writing,Phaedrus (passages on writing/forgetfulness),Plato,dialogue_excerpt,memory; prosthesis,supporting
+motif_norsemen_prostheses,Norsemen / Prostheses (lecture motif),,motif,myth-tech,motif
+heidegger_qct,The Question Concerning Technology,Martin Heidegger,essay,essence-of-tech; instrumentality,core
+yuk_hui_cosmotechnics,The Question Concerning Technology in China: An Essay in Cosmotechnics,Yuk Hui,book,cosmotechnics; plural-technologies,core
+wang_blockchain_chicken_farm,Blockchain Chicken Farm,Xiaowei Wang,book,rural-tech; globalization,core
+postman_amusing_ourselves,Amusing Ourselves to Death,Neil Postman,book,public-discourse; television,core
+postman_technopoly,Technopoly: The Surrender of Culture to Technology,Neil Postman,book,technocracy; culture,core
+innis_bias_communication,The Bias of Communication,Harold A. Innis,book,time-bias; space-bias,core
+noble_algorithms_oppression,Algorithms of Oppression,Safiya Umoja Noble,book,search-bias; data-justice,core
+bush_as_we_may_think,As We May Think,Vannevar Bush,article,memex; augmentation,core
+winograd_thinking_machines,Thinking Machines: Can There Be? Are We?,Terry Winograd,essay,AI; cognition,supporting
+engelbart_mother_demo,The Mother of All Demos (1968),Douglas Engelbart,historical_demo,HCI; augmentation,core
+williams_culture_is_ordinary,Culture is Ordinary,Raymond Williams,essay,culture; everyday-life,core
+geertz_deep_play,Deep Play: Notes on the Balinese Cockfight,Clifford Geertz,essay,thick-description; symbolic-meaning,core
+sutton_bitter_lesson,The Bitter Lesson,Rich Sutton,essay,scaling; compute,supporting
+skinner_project_orcon,Project Orcon (primary sources/overviews),B. F. Skinner,historical_case,behaviorism; guidance,supporting
+case_zunzuneo,ZunZuneo (Cuban Twitter),,case_study,platforms; policy,core
+case_twitter_cambridge,Twitter Revolution vs. Cambridge Analytica,,comparative_case,psychographics; data-politics,core
+benjamin_work_of_art,The Work of Art in the Age of Mechanical Reproduction,Walter Benjamin,essay,aura; reproduction,core
+klee_angelus_novus,Angelus Novus,Paul Klee,artwork,allegory; history,supporting
+doctorow_unholy_trinity,"The Unholy Trinity: Enshittification, Brain Rot, and AI Slop",Cory Doctorow,column,platform-decay,supporting
+carr_shallows,The Shallows,Nicholas Carr,book,attention; cognition,core
+sontag_on_photography,On Photography,Susan Sontag,book,ethics; spectatorship,core
+bender_stochastic_parrots,On the Dangers of Stochastic Parrots,Emily M. Bender; Timnit Gebru; Angelina McMillan-Major; Margaret Mitchell,paper,LLMs; ethics,core
+teaching_thick_thin,"thick description, thin prompts",,teaching_concept,method; prompting,method
+mcluhan_gutenberg_galaxy,The Gutenberg Galaxy,Marshall McLuhan,book,print-culture,supporting
+bolter_grusin_remediation,Remediation: Understanding New Media,Jay David Bolter; Richard Grusin,book,remediation; immediacy,core
+innis_time_space_bias,Time vs. Space Bias (concept),Harold A. Innis,concept,infrastructure; reach/durability,concept
+harari_sapiens,Sapiens,Yuval Noah Harari,book,myths; collective-fictions,supporting
+blackmore_meme_machine,The Meme Machine,Susan Blackmore,book,memetics; cultural-evolution,supporting
+dawkins_selfish_gene_memes,Meme concept (from The Selfish Gene),Richard Dawkins,concept,memes; evolution,concept
+adam_curtis_awobmolg,All Watched Over by Machines of Loving Grace,Adam Curtis,documentary_series,cybernetics; systems,supporting
+allado_mcdowell_neural_interpellation,Neural Interpellation,K Allado-McDowell,talk/essay,identity; AI-culture,core
+allado_mcdowell_agentic_earth,Am I Slop? Am I Agentic? Am I Earth?,K Allado-McDowell,essay/installation,agency; aesthetics,supporting
+barthes_world_of_wrestling,The World of Wrestling,Roland Barthes,essay,mythologies; semiotics,supporting
+flusser_philosophy_photography,Towards a Philosophy of Photography,Vilém Flusser,book,apparatus; program,core
+flusser_bodenlos,Bodenlos / Playing Against the Apparatus,Vilém Flusser,collection,freedom-vs-program,supporting
+jurgenson_irl_fetish,The IRL Fetish,Nathan Jurgenson,essay,authenticity; networked-life,supporting
+mccloud_understanding_comics,Understanding Comics: The Invisible Art,Scott McCloud,book,visual-language; meta-medium,core
+manovich_language_new_media,The Language of New Media,Lev Manovich,book,software-culture,core
+pod_last_archive,The Last Archive,Podcast,podcast,history; knowledge,supporting
+pod_hard_fork,Hard Fork,Podcast,podcast,tech; AI,supporting
+pod_99_invisible,99% Invisible,Podcast,podcast,design; infrastructure,supporting
+assignment_newspaper_religion,Newspaper + Religion (assignment),,assignment,print; institutions,assignment
+assignment_radio_videogames,Radio + Video Games (assignment),,assignment,audio; interaction; language,assignment
+assignment_make_podcast_or_language_game,Make a Podcast or a Language Game (assignment),,assignment,production; media-literacy,assignment
+theme_property_ownership,Property and Ownership (theme),,theme,IP; platform-governance,theme
+kurzweil_singularity_near,The Singularity Is Near,Ray Kurzweil,book,futurism; AI,optional_trim
+lanier_you_are_not_a_gadget,You Are Not a Gadget,Jaron Lanier,book,humanism; platforms,optional_trim
+leo_marx_machine_garden,The Machine in the Garden,Leo Marx,book,pastoral; industrialization,optional_trim
+mosco_digital_sublime,The Digital Sublime,Vincent Mosco,book,myth; cyberspace,optional_trim

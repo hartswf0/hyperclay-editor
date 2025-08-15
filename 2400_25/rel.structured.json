@@ -1,0 +1,470 @@
+{
+  "schema_version": "2.1",
+  "meta": {
+    "source": "rel.json",
+    "generated_at": "2025-08-13T22:15:31-04:00",
+    "notes": "Normalized structure with indices, enums, week objects, and assessment/rubric scaffolding. All original IDs preserved."
+  },
+
+  "course": {
+    "code": "LMC 2400 · Intro to Media Studies · Section U",
+    "term": "Fall 2025",
+    "design_note": "Deeper pass adds canonical source library, week-level arcs, debate pairings, concept index, and assignment alignment. Clusters reference sources by id.",
+    "learning_outcomes": [
+      {"id": "theory", "label": "Theoretical literacy", "description": "Explain and compare key media theories and concepts."},
+      {"id": "analysis", "label": "Analytical practice", "description": "Apply concepts to analyze media artifacts, platforms, and systems."},
+      {"id": "ethics/impact", "label": "Ethics & impact", "description": "Assess societal implications and stakeholder impacts."},
+      {"id": "making", "label": "Making", "description": "Prototype or compose media objects to explore affordances."},
+      {"id": "communication", "label": "Communication", "description": "Write and present arguments with evidence and clarity."}
+    ],
+    "difficulty_scale": {"min": 1, "max": 3, "labels": {"1": "introductory", "2": "intermediate", "3": "advanced"}}
+  },
+
+  "enums": {
+    "source_type": [
+      "book", "essay", "short_story", "project_manifesto", "dialogue_excerpt", "motif", "historical_demo",
+      "article", "historical_case", "case_study", "comparative_case", "artwork", "column", "paper",
+      "teaching_concept", "concept", "documentary_series", "talk/essay", "essay/installation", "podcast",
+      "assignment", "theme", "collection"
+    ],
+    "status": ["core", "supporting", "concept", "method", "assignment", "theme", "motif", "optional_trim"],
+    "assessment_kind": ["major", "minor", "capsule", "in_class", "take_home"],
+    "debate_use": ["seminar", "micro-essay", "methods memo", "image analysis"]
+  },
+
+  "sources": {
+    "by_id": {
+      "miroshnichenko_human_as_media": {"title": "Human as Media: The Emancipation of Authorship", "authors": ["Andrey Miroshnichenko"], "type": "book", "tags": ["authorship", "media-ecology"], "status": "core"},
+      "calvino_cybernetics_ghosts": {"title": "Cybernetics and Ghosts", "authors": ["Italo Calvino"], "type": "essay", "tags": ["literature", "generativity", "authorship"], "status": "core"},
+      "borges_library_babel": {"title": "The Library of Babel", "authors": ["Jorge Luis Borges"], "type": "short_story", "tags": ["infinite-text", "information-space"], "status": "core"},
+      "nelson_xanadu": {"title": "Project Xanadu (selected writings)", "authors": ["Ted Nelson"], "type": "project_manifesto", "tags": ["hypertext", "versioning"], "status": "core"},
+      "mcluhan_understanding_media": {"title": "Understanding Media: The Extensions of Man", "authors": ["Marshall McLuhan"], "type": "book", "tags": ["extensions", "media-theory"], "status": "core"},
+      "geertz_impact_concept_culture": {"title": "The Impact of the Concept of Culture on the Concept of Man", "authors": ["Clifford Geertz"], "type": "essay", "tags": ["extra-genetic", "anthropology"], "status": "core"},
+      "plato_phaedrus_writing": {"title": "Phaedrus (passages on writing/forgetfulness)", "authors": ["Plato"], "type": "dialogue_excerpt", "tags": ["memory", "prosthesis"], "status": "supporting"},
+      "motif_norsemen_prostheses": {"title": "Norsemen / Prostheses (lecture motif)", "authors": [], "type": "motif", "tags": ["myth-tech"], "status": "motif"},
+      "heidegger_qct": {"title": "The Question Concerning Technology", "authors": ["Martin Heidegger"], "type": "essay", "tags": ["essence-of-tech", "instrumentality"], "status": "core"},
+      "yuk_hui_cosmotechnics": {"title": "The Question Concerning Technology in China: An Essay in Cosmotechnics", "authors": ["Yuk Hui"], "type": "book", "tags": ["cosmotechnics", "plural-technologies"], "status": "core"},
+      "wang_blockchain_chicken_farm": {"title": "Blockchain Chicken Farm", "authors": ["Xiaowei Wang"], "type": "book", "tags": ["rural-tech", "globalization"], "status": "core"},
+      "postman_amusing_ourselves": {"title": "Amusing Ourselves to Death", "authors": ["Neil Postman"], "type": "book", "tags": ["public-discourse", "television"], "status": "core"},
+      "postman_technopoly": {"title": "Technopoly: The Surrender of Culture to Technology", "authors": ["Neil Postman"], "type": "book", "tags": ["technocracy", "culture"], "status": "core"},
+      "innis_bias_communication": {"title": "The Bias of Communication", "authors": ["Harold A. Innis"], "type": "book", "tags": ["time-bias", "space-bias"], "status": "core"},
+      "noble_algorithms_oppression": {"title": "Algorithms of Oppression", "authors": ["Safiya Umoja Noble"], "type": "book", "tags": ["search-bias", "data-justice"], "status": "core"},
+      "bush_as_we_may_think": {"title": "As We May Think", "authors": ["Vannevar Bush"], "type": "article", "tags": ["memex", "augmentation"], "status": "core"},
+      "winograd_thinking_machines": {"title": "Thinking Machines: Can There Be? Are We?", "authors": ["Terry Winograd"], "type": "essay", "tags": ["AI", "cognition"], "status": "supporting"},
+      "engelbart_mother_demo": {"title": "The Mother of All Demos (1968)", "authors": ["Douglas Engelbart"], "type": "historical_demo", "tags": ["HCI", "augmentation"], "status": "core"},
+      "williams_culture_is_ordinary": {"title": "Culture is Ordinary", "authors": ["Raymond Williams"], "type": "essay", "tags": ["culture", "everyday-life"], "status": "core"},
+      "geertz_deep_play": {"title": "Deep Play: Notes on the Balinese Cockfight", "authors": ["Clifford Geertz"], "type": "essay", "tags": ["thick-description", "symbolic-meaning"], "status": "core"},
+      "sutton_bitter_lesson": {"title": "The Bitter Lesson", "authors": ["Rich Sutton"], "type": "essay", "tags": ["scaling", "compute"], "status": "supporting"},
+      "skinner_project_orcon": {"title": "Project Orcon (primary sources/overviews)", "authors": ["B. F. Skinner"], "type": "historical_case", "tags": ["behaviorism", "guidance"], "status": "supporting"},
+      "case_zunzuneo": {"title": "ZunZuneo (Cuban Twitter)", "authors": [], "type": "case_study", "tags": ["platforms", "policy"], "status": "core"},
+      "case_twitter_cambridge": {"title": "Twitter Revolution vs. Cambridge Analytica", "authors": [], "type": "comparative_case", "tags": ["psychographics", "data-politics"], "status": "core"},
+      "benjamin_work_of_art": {"title": "The Work of Art in the Age of Mechanical Reproduction", "authors": ["Walter Benjamin"], "type": "essay", "tags": ["aura", "reproduction"], "status": "core"},
+      "klee_angelus_novus": {"title": "Angelus Novus", "authors": ["Paul Klee"], "type": "artwork", "tags": ["allegory", "history"], "status": "supporting"},
+      "doctorow_unholy_trinity": {"title": "The Unholy Trinity: Enshittification, Brain Rot, and AI Slop", "authors": ["Cory Doctorow"], "type": "column", "tags": ["platform-decay"], "status": "supporting"},
+      "carr_shallows": {"title": "The Shallows", "authors": ["Nicholas Carr"], "type": "book", "tags": ["attention", "cognition"], "status": "core"},
+      "sontag_on_photography": {"title": "On Photography", "authors": ["Susan Sontag"], "type": "book", "tags": ["ethics", "spectatorship"], "status": "core"},
+      "bender_stochastic_parrots": {"title": "On the Dangers of Stochastic Parrots", "authors": ["Emily M. Bender", "Timnit Gebru", "Angelina McMillan-Major", "Margaret Mitchell"], "type": "paper", "tags": ["LLMs", "ethics"], "status": "core"},
+      "teaching_thick_thin": {"title": "thick description, thin prompts", "authors": [], "type": "teaching_concept", "tags": ["method", "prompting"], "status": "method"},
+      "mcluhan_gutenberg_galaxy": {"title": "The Gutenberg Galaxy", "authors": ["Marshall McLuhan"], "type": "book", "tags": ["print-culture"], "status": "supporting"},
+      "bolter_grusin_remediation": {"title": "Remediation: Understanding New Media", "authors": ["Jay David Bolter", "Richard Grusin"], "type": "book", "tags": ["remediation", "immediacy"], "status": "core"},
+      "innis_time_space_bias": {"title": "Time vs. Space Bias (concept)", "authors": ["Harold A. Innis"], "type": "concept", "tags": ["infrastructure", "reach/durability"], "status": "concept"},
+      "harari_sapiens": {"title": "Sapiens", "authors": ["Yuval Noah Harari"], "type": "book", "tags": ["myths", "collective-fictions"], "status": "supporting"},
+      "blackmore_meme_machine": {"title": "The Meme Machine", "authors": ["Susan Blackmore"], "type": "book", "tags": ["memetics", "cultural-evolution"], "status": "supporting"},
+      "dawkins_selfish_gene_memes": {"title": "Meme concept (from The Selfish Gene)", "authors": ["Richard Dawkins"], "type": "concept", "tags": ["memes", "evolution"], "status": "concept"},
+      "adam_curtis_awobmolg": {"title": "All Watched Over by Machines of Loving Grace", "authors": ["Adam Curtis"], "type": "documentary_series", "tags": ["cybernetics", "systems"], "status": "supporting"},
+      "allado_mcdowell_neural_interpellation": {"title": "Neural Interpellation", "authors": ["K Allado-McDowell"], "type": "talk/essay", "tags": ["identity", "AI-culture"], "status": "core"},
+      "allado_mcdowell_agentic_earth": {"title": "Am I Slop? Am I Agentic? Am I Earth?", "authors": ["K Allado-McDowell"], "type": "essay/installation", "tags": ["agency", "aesthetics"], "status": "supporting"},
+      "barthes_world_of_wrestling": {"title": "The World of Wrestling", "authors": ["Roland Barthes"], "type": "essay", "tags": ["mythologies", "semiotics"], "status": "supporting"},
+      "flusser_philosophy_photography": {"title": "Towards a Philosophy of Photography", "authors": ["Vilém Flusser"], "type": "book", "tags": ["apparatus", "program"], "status": "core"},
+      "flusser_bodenlos": {"title": "Bodenlos / Playing Against the Apparatus", "authors": ["Vilém Flusser"], "type": "collection", "tags": ["freedom-vs-program"], "status": "supporting"},
+      "jurgenson_irl_fetish": {"title": "The IRL Fetish", "authors": ["Nathan Jurgenson"], "type": "essay", "tags": ["authenticity", "networked-life"], "status": "supporting"},
+      "mccloud_understanding_comics": {"title": "Understanding Comics: The Invisible Art", "authors": ["Scott McCloud"], "type": "book", "tags": ["visual-language", "meta-medium"], "status": "core"},
+      "manovich_language_new_media": {"title": "The Language of New Media", "authors": ["Lev Manovich"], "type": "book", "tags": ["software-culture"], "status": "core"},
+      "pod_last_archive": {"title": "The Last Archive", "authors": ["Podcast"], "type": "podcast", "tags": ["history", "knowledge"], "status": "supporting"},
+      "pod_hard_fork": {"title": "Hard Fork", "authors": ["Podcast"], "type": "podcast", "tags": ["tech", "AI"], "status": "supporting"},
+      "pod_99_invisible": {"title": "99% Invisible", "authors": ["Podcast"], "type": "podcast", "tags": ["design", "infrastructure"], "status": "supporting"},
+      "assignment_newspaper_religion": {"title": "Newspaper + Religion (assignment)", "authors": [], "type": "assignment", "tags": ["print", "institutions"], "status": "assignment"},
+      "assignment_radio_videogames": {"title": "Radio + Video Games (assignment)", "authors": [], "type": "assignment", "tags": ["audio", "interaction", "language"], "status": "assignment"},
+      "assignment_make_podcast_or_language_game": {"title": "Make a Podcast or a Language Game (assignment)", "authors": [], "type": "assignment", "tags": ["production", "media-literacy"], "status": "assignment"},
+      "theme_property_ownership": {"title": "Property and Ownership (theme)", "authors": [], "type": "theme", "tags": ["IP", "platform-governance"], "status": "theme"},
+      "kurzweil_singularity_near": {"title": "The Singularity Is Near", "authors": ["Ray Kurzweil"], "type": "book", "tags": ["futurism", "AI"], "status": "optional_trim"},
+      "lanier_you_are_not_a_gadget": {"title": "You Are Not a Gadget", "authors": ["Jaron Lanier"], "type": "book", "tags": ["humanism", "platforms"], "status": "optional_trim"},
+      "leo_marx_machine_garden": {"title": "The Machine in the Garden", "authors": ["Leo Marx"], "type": "book", "tags": ["pastoral", "industrialization"], "status": "optional_trim"},
+      "mosco_digital_sublime": {"title": "The Digital Sublime", "authors": ["Vincent Mosco"], "type": "book", "tags": ["myth", "cyberspace"], "status": "optional_trim"}
+    },
+    "indices": {
+      "by_author": {
+        "Andrey Miroshnichenko": ["miroshnichenko_human_as_media"],
+        "Italo Calvino": ["calvino_cybernetics_ghosts"],
+        "Jorge Luis Borges": ["borges_library_babel"],
+        "Ted Nelson": ["nelson_xanadu"],
+        "Marshall McLuhan": ["mcluhan_understanding_media", "mcluhan_gutenberg_galaxy"],
+        "Clifford Geertz": ["geertz_impact_concept_culture", "geertz_deep_play"],
+        "Plato": ["plato_phaedrus_writing"],
+        "Martin Heidegger": ["heidegger_qct"],
+        "Yuk Hui": ["yuk_hui_cosmotechnics"],
+        "Xiaowei Wang": ["wang_blockchain_chicken_farm"],
+        "Neil Postman": ["postman_amusing_ourselves", "postman_technopoly"],
+        "Harold A. Innis": ["innis_bias_communication", "innis_time_space_bias"],
+        "Safiya Umoja Noble": ["noble_algorithms_oppression"],
+        "Vannevar Bush": ["bush_as_we_may_think"],
+        "Terry Winograd": ["winograd_thinking_machines"],
+        "Douglas Engelbart": ["engelbart_mother_demo"],
+        "Raymond Williams": ["williams_culture_is_ordinary"],
+        "Rich Sutton": ["sutton_bitter_lesson"],
+        "B. F. Skinner": ["skinner_project_orcon"],
+        "Walter Benjamin": ["benjamin_work_of_art"],
+        "Paul Klee": ["klee_angelus_novus"],
+        "Cory Doctorow": ["doctorow_unholy_trinity"],
+        "Nicholas Carr": ["carr_shallows"],
+        "Susan Sontag": ["sontag_on_photography"],
+        "Emily M. Bender": ["bender_stochastic_parrots"],
+        "Timnit Gebru": ["bender_stochastic_parrots"],
+        "Angelina McMillan-Major": ["bender_stochastic_parrots"],
+        "Margaret Mitchell": ["bender_stochastic_parrots"],
+        "Jay David Bolter": ["bolter_grusin_remediation"],
+        "Richard Grusin": ["bolter_grusin_remediation"],
+        "Yuval Noah Harari": ["harari_sapiens"],
+        "Susan Blackmore": ["blackmore_meme_machine"],
+        "Richard Dawkins": ["dawkins_selfish_gene_memes"],
+        "Adam Curtis": ["adam_curtis_awobmolg"],
+        "K Allado-McDowell": ["allado_mcdowell_neural_interpellation", "allado_mcdowell_agentic_earth"],
+        "Roland Barthes": ["barthes_world_of_wrestling"],
+        "Vilém Flusser": ["flusser_philosophy_photography", "flusser_bodenlos"],
+        "Nathan Jurgenson": ["jurgenson_irl_fetish"],
+        "Scott McCloud": ["mccloud_understanding_comics"],
+        "Lev Manovich": ["manovich_language_new_media"],
+        "Podcast": ["pod_last_archive", "pod_hard_fork", "pod_99_invisible"],
+        "Ray Kurzweil": ["kurzweil_singularity_near"],
+        "Jaron Lanier": ["lanier_you_are_not_a_gadget"],
+        "Leo Marx": ["leo_marx_machine_garden"],
+        "Vincent Mosco": ["mosco_digital_sublime"]
+      },
+      "by_tag": {
+        "authorship": ["miroshnichenko_human_as_media", "calvino_cybernetics_ghosts"],
+        "media-ecology": ["miroshnichenko_human_as_media"],
+        "literature": ["calvino_cybernetics_ghosts"],
+        "generativity": ["calvino_cybernetics_ghosts"],
+        "infinite-text": ["borges_library_babel"],
+        "information-space": ["borges_library_babel"],
+        "hypertext": ["nelson_xanadu"],
+        "versioning": ["nelson_xanadu"],
+        "extensions": ["mcluhan_understanding_media"],
+        "media-theory": ["mcluhan_understanding_media"],
+        "extra-genetic": ["geertz_impact_concept_culture"],
+        "anthropology": ["geertz_impact_concept_culture"],
+        "memory": ["plato_phaedrus_writing"],
+        "prosthesis": ["plato_phaedrus_writing"],
+        "myth-tech": ["motif_norsemen_prostheses"],
+        "essence-of-tech": ["heidegger_qct"],
+        "instrumentality": ["heidegger_qct"],
+        "cosmotechnics": ["yuk_hui_cosmotechnics"],
+        "plural-technologies": ["yuk_hui_cosmotechnics"],
+        "rural-tech": ["wang_blockchain_chicken_farm"],
+        "globalization": ["wang_blockchain_chicken_farm"],
+        "public-discourse": ["postman_amusing_ourselves"],
+        "television": ["postman_amusing_ourselves"],
+        "technocracy": ["postman_technopoly"],
+        "culture": ["postman_technopoly", "williams_culture_is_ordinary"],
+        "time-bias": ["innis_bias_communication"],
+        "space-bias": ["innis_bias_communication"],
+        "search-bias": ["noble_algorithms_oppression"],
+        "data-justice": ["noble_algorithms_oppression"],
+        "memex": ["bush_as_we_may_think"],
+        "augmentation": ["bush_as_we_may_think", "engelbart_mother_demo"],
+        "AI": ["winograd_thinking_machines", "pod_hard_fork", "kurzweil_singularity_near"],
+        "cognition": ["winograd_thinking_machines", "carr_shallows"],
+        "HCI": ["engelbart_mother_demo"],
+        "everyday-life": ["williams_culture_is_ordinary"],
+        "thick-description": ["geertz_deep_play"],
+        "symbolic-meaning": ["geertz_deep_play"],
+        "scaling": ["sutton_bitter_lesson"],
+        "compute": ["sutton_bitter_lesson"],
+        "behaviorism": ["skinner_project_orcon"],
+        "guidance": ["skinner_project_orcon"],
+        "platforms": ["case_zunzuneo", "lanier_you_are_not_a_gadget"],
+        "policy": ["case_zunzuneo"],
+        "psychographics": ["case_twitter_cambridge"],
+        "data-politics": ["case_twitter_cambridge"],
+        "aura": ["benjamin_work_of_art"],
+        "reproduction": ["benjamin_work_of_art"],
+        "allegory": ["klee_angelus_novus"],
+        "history": ["klee_angelus_novus", "pod_last_archive"],
+        "platform-decay": ["doctorow_unholy_trinity"],
+        "attention": ["carr_shallows"],
+        "ethics": ["sontag_on_photography", "bender_stochastic_parrots"],
+        "spectatorship": ["sontag_on_photography"],
+        "LLMs": ["bender_stochastic_parrots"],
+        "method": ["teaching_thick_thin"],
+        "prompting": ["teaching_thick_thin"],
+        "print-culture": ["mcluhan_gutenberg_galaxy"],
+        "remediation": ["bolter_grusin_remediation"],
+        "immediacy": ["bolter_grusin_remediation"],
+        "infrastructure": ["innis_time_space_bias", "pod_99_invisible"],
+        "reach/durability": ["innis_time_space_bias"],
+        "myths": ["harari_sapiens"],
+        "collective-fictions": ["harari_sapiens"],
+        "memetics": ["blackmore_meme_machine"],
+        "cultural-evolution": ["blackmore_meme_machine"],
+        "memes": ["dawkins_selfish_gene_memes"],
+        "evolution": ["dawkins_selfish_gene_memes"],
+        "cybernetics": ["adam_curtis_awobmolg"],
+        "systems": ["adam_curtis_awobmolg"],
+        "identity": ["allado_mcdowell_neural_interpellation"],
+        "AI-culture": ["allado_mcdowell_neural_interpellation"],
+        "agency": ["allado_mcdowell_agentic_earth"],
+        "aesthetics": ["allado_mcdowell_agentic_earth"],
+        "mythologies": ["barthes_world_of_wrestling"],
+        "semiotics": ["barthes_world_of_wrestling"],
+        "apparatus": ["flusser_philosophy_photography"],
+        "program": ["flusser_philosophy_photography"],
+        "freedom-vs-program": ["flusser_bodenlos"],
+        "authenticity": ["jurgenson_irl_fetish"],
+        "networked-life": ["jurgenson_irl_fetish"],
+        "visual-language": ["mccloud_understanding_comics"],
+        "meta-medium": ["mccloud_understanding_comics"],
+        "software-culture": ["manovich_language_new_media"],
+        "knowledge": ["pod_last_archive"],
+        "tech": ["pod_hard_fork"],
+        "design": ["pod_99_invisible"],
+        "print": ["assignment_newspaper_religion"],
+        "institutions": ["assignment_newspaper_religion"],
+        "audio": ["assignment_radio_videogames"],
+        "interaction": ["assignment_radio_videogames"],
+        "language": ["assignment_radio_videogames"],
+        "production": ["assignment_make_podcast_or_language_game"],
+        "media-literacy": ["assignment_make_podcast_or_language_game"],
+        "IP": ["theme_property_ownership"],
+        "platform-governance": ["theme_property_ownership"],
+        "futurism": ["kurzweil_singularity_near"],
+        "humanism": ["lanier_you_are_not_a_gadget"],
+        "pastoral": ["leo_marx_machine_garden"],
+        "industrialization": ["leo_marx_machine_garden"],
+        "myth": ["mosco_digital_sublime"],
+        "cyberspace": ["mosco_digital_sublime"]
+      },
+      "by_type": {
+        "book": ["miroshnichenko_human_as_media", "mcluhan_understanding_media", "postman_amusing_ourselves", "postman_technopoly", "innis_bias_communication", "carr_shallows", "sontag_on_photography", "mcluhan_gutenberg_galaxy", "bolter_grusin_remediation", "harari_sapiens", "blackmore_meme_machine", "flusser_philosophy_photography", "mccloud_understanding_comics", "manovich_language_new_media", "kurzweil_singularity_near", "lanier_you_are_not_a_gadget", "leo_marx_machine_garden", "mosco_digital_sublime"],
+        "essay": ["calvino_cybernetics_ghosts", "heidegger_qct", "winograd_thinking_machines", "williams_culture_is_ordinary", "geertz_deep_play", "sutton_bitter_lesson", "jurgenson_irl_fetish", "barthes_world_of_wrestling"],
+        "short_story": ["borges_library_babel"],
+        "project_manifesto": ["nelson_xanadu"],
+        "dialogue_excerpt": ["plato_phaedrus_writing"],
+        "motif": ["motif_norsemen_prostheses"],
+        "historical_demo": ["engelbart_mother_demo"],
+        "article": ["bush_as_we_may_think"],
+        "historical_case": ["skinner_project_orcon"],
+        "case_study": ["case_zunzuneo"],
+        "comparative_case": ["case_twitter_cambridge"],
+        "artwork": ["klee_angelus_novus"],
+        "column": ["doctorow_unholy_trinity"],
+        "paper": ["bender_stochastic_parrots"],
+        "teaching_concept": ["teaching_thick_thin"],
+        "concept": ["innis_time_space_bias", "dawkins_selfish_gene_memes"],
+        "documentary_series": ["adam_curtis_awobmolg"],
+        "talk/essay": ["allado_mcdowell_neural_interpellation"],
+        "essay/installation": ["allado_mcdowell_agentic_earth"],
+        "podcast": ["pod_last_archive", "pod_hard_fork", "pod_99_invisible"],
+        "assignment": ["assignment_newspaper_religion", "assignment_radio_videogames", "assignment_make_podcast_or_language_game"],
+        "theme": ["theme_property_ownership"],
+        "collection": ["flusser_bodenlos"]
+      },
+      "by_status": {
+        "core": ["miroshnichenko_human_as_media", "calvino_cybernetics_ghosts", "borges_library_babel", "nelson_xanadu", "mcluhan_understanding_media", "geertz_impact_concept_culture", "heidegger_qct", "yuk_hui_cosmotechnics", "wang_blockchain_chicken_farm", "postman_amusing_ourselves", "postman_technopoly", "innis_bias_communication", "noble_algorithms_oppression", "bush_as_we_may_think", "engelbart_mother_demo", "williams_culture_is_ordinary", "geertz_deep_play", "case_zunzuneo", "case_twitter_cambridge", "benjamin_work_of_art", "carr_shallows", "sontag_on_photography", "bender_stochastic_parrots", "bolter_grusin_remediation", "flusser_philosophy_photography", "mccloud_understanding_comics", "manovich_language_new_media", "allado_mcdowell_neural_interpellation"],
+        "supporting": ["plato_phaedrus_writing", "winograd_thinking_machines", "sutton_bitter_lesson", "skinner_project_orcon", "klee_angelus_novus", "doctorow_unholy_trinity", "mcluhan_gutenberg_galaxy", "harari_sapiens", "blackmore_meme_machine", "adam_curtis_awobmolg", "allado_mcdowell_agentic_earth", "barthes_world_of_wrestling", "flusser_bodenlos", "jurgenson_irl_fetish", "pod_last_archive", "pod_hard_fork", "pod_99_invisible"],
+        "concept": ["innis_time_space_bias", "dawkins_selfish_gene_memes"],
+        "method": ["teaching_thick_thin"],
+        "assignment": ["assignment_newspaper_religion", "assignment_radio_videogames", "assignment_make_podcast_or_language_game"],
+        "theme": ["theme_property_ownership"],
+        "motif": ["motif_norsemen_prostheses"],
+        "optional_trim": ["kurzweil_singularity_near", "lanier_you_are_not_a_gadget", "leo_marx_machine_garden", "mosco_digital_sublime"]
+      }
+    }
+  },
+
+  "clusters": [
+    {"id": "cluster_foundations_extensions", "title": "Extensions & Extra-Genetic Culture", "purpose": "Anchor the idea that media extend human faculties and transmit culture beyond biology.", "learning_outcomes": ["theory", "ethics/impact"], "primary_sources": ["mcluhan_understanding_media", "geertz_impact_concept_culture", "plato_phaedrus_writing"], "companions": ["miroshnichenko_human_as_media", "calvino_cybernetics_ghosts", "borges_library_babel", "nelson_xanadu", "motif_norsemen_prostheses"], "signature_questions": ["What counts as an extension versus a substitution?", "How does ‘extra-genetic’ transmission change responsibility?"], "difficulty": 2 },
+    {"id": "cluster_tech_philosophy", "title": "Technology, Being & Cosmotechnics", "purpose": "Interrogate the essence(s) of technology across cultures.", "learning_outcomes": ["theory", "analysis"], "primary_sources": ["heidegger_qct", "yuk_hui_cosmotechnics"], "companions": ["wang_blockchain_chicken_farm", "postman_technopoly"], "signature_questions": ["Is there one Technology or many cosmotechnics?", "What is enframing in platform capitalism?"], "difficulty": 3 },
+    {"id": "cluster_media_ecology_bias", "title": "Media Ecology, Bias & Infrastructure", "purpose": "Media as environments; infrastructural bias in time/space.", "learning_outcomes": ["analysis", "ethics/impact"], "primary_sources": ["postman_amusing_ourselves", "innis_bias_communication"], "companions": ["noble_algorithms_oppression", "doctorow_unholy_trinity", "carr_shallows"], "signature_questions": ["How do infrastructures shape what can be said or seen?", "What decays first in platform ecosystems?"], "difficulty": 2 },
+    {"id": "cluster_augmentation_origins", "title": "Augmentation Lineage: Memex → NLS → Hypermedia", "purpose": "Trace a pragmatic arc of tools that amplify thinking.", "learning_outcomes": ["making", "communication"], "primary_sources": ["bush_as_we_may_think", "engelbart_mother_demo", "nelson_xanadu"], "companions": ["winograd_thinking_machines", "mccloud_understanding_comics", "manovich_language_new_media"], "signature_questions": ["What kinds of thinking do these tools afford or inhibit?"], "difficulty": 1 },
+    {"id": "cluster_culture_interpretation", "title": "Culture & Interpretation (Thick Description)", "purpose": "Practice reading culture as text and system.", "learning_outcomes": ["analysis", "communication"], "primary_sources": ["williams_culture_is_ordinary", "geertz_deep_play"], "companions": ["teaching_thick_thin", "barthes_world_of_wrestling"], "signature_questions": ["What does ‘thickness’ add over a clever take?"], "difficulty": 1 },
+    {"id": "cluster_platforms_power", "title": "Platforms, Propaganda & Data Politics", "purpose": "Read platforms as political media.", "learning_outcomes": ["ethics/impact", "analysis"], "primary_sources": ["case_zunzuneo", "case_twitter_cambridge", "noble_algorithms_oppression"], "companions": ["pod_hard_fork", "pod_last_archive"], "signature_questions": ["What’s the unit of harm—user, graph, or state?"], "difficulty": 2 },
+    {"id": "cluster_images_apparatus", "title": "Images, Apparatus & the Aura", "purpose": "From mechanical reproduction to algorithmic images.", "learning_outcomes": ["theory", "analysis"], "primary_sources": ["benjamin_work_of_art", "sontag_on_photography", "flusser_philosophy_photography"], "companions": ["flusser_bodenlos", "klee_angelus_novus", "jurgenson_irl_fetish"], "signature_questions": ["What replaces aura in feed cultures?"], "difficulty": 2 },
+    {"id": "cluster_ai_identity_method", "title": "AI, Identity & Method", "purpose": "Ethics of large models and cultural self-fashioning.", "learning_outcomes": ["ethics/impact", "analysis", "communication"], "primary_sources": ["bender_stochastic_parrots", "allado_mcdowell_neural_interpellation"], "companions": ["allado_mcdowell_agentic_earth", "sutton_bitter_lesson"], "signature_questions": ["How do prompts interpellate identities?", "What cannot be scaled?"], "difficulty": 2 },
+    {"id": "cluster_memes_myths", "title": "Memes, Myths & Replication", "purpose": "Cultural replication logics from memes to myths.", "learning_outcomes": ["theory", "analysis"], "primary_sources": ["blackmore_meme_machine", "harari_sapiens"], "companions": ["dawkins_selfish_gene_memes", "adam_curtis_awobmolg"], "signature_questions": ["When is replication explanation versus just-so story?"], "difficulty": 2 }
+  ],
+
+  "arcs": [
+    {"id": "arc_A_foundations", "title": "A. Foundations & Lenses (Weeks 1–3)", "weeks": ["W1", "W2", "W3"], "clusters": ["cluster_foundations_extensions", "cluster_augmentation_origins", "cluster_images_apparatus"], "capstone_prompt": "Pick any everyday artifact and map its extensions, representations, and remediation chain."},
+    {"id": "arc_B_infrastructure_power", "title": "B. Infrastructure, Bias & Power (Weeks 4–7)", "weeks": ["W4", "W5", "W6", "W7"], "clusters": ["cluster_media_ecology_bias", "cluster_platforms_power"], "capstone_prompt": "Audit a platform pipeline for time/space bias, attention capture, and failure modes."},
+    {"id": "arc_C_culture_systems", "title": "C. Culture as System (Weeks 8–11)", "weeks": ["W8", "W9", "W10", "W11"], "clusters": ["cluster_culture_interpretation", "cluster_memes_myths"], "capstone_prompt": "Produce a thick description that also diagrams cultural replication loops."},
+    {"id": "arc_D_ai_method_making", "title": "D. AI, Identity & Making (Weeks 12–15)", "weeks": ["W12", "W13", "W14", "W15"], "clusters": ["cluster_ai_identity_method", "cluster_augmentation_origins"], "capstone_prompt": "Design a small multimodal system; include an ethics/method appendix (‘how AI was used’)."}
+  ],
+
+  "weeks": {
+    "W1": {"topic": "Extensions & culture", "sources": ["mcluhan_understanding_media", "geertz_impact_concept_culture"], "in_class": [], "due": []},
+    "W2": {"topic": "Remediation & comics", "sources": ["bolter_grusin_remediation", "mccloud_understanding_comics"], "in_class": [], "due": []},
+    "W3": {"topic": "Software culture & literature", "sources": ["manovich_language_new_media", "borges_library_babel", "calvino_cybernetics_ghosts"], "in_class": [], "due": []},
+    "W4": {"topic": "Bias & discourse", "sources": ["innis_bias_communication", "postman_amusing_ourselves"], "in_class": [], "due": []},
+    "W5": {"topic": "Platforms & decay", "sources": ["noble_algorithms_oppression", "doctorow_unholy_trinity"], "in_class": [], "due": []},
+    "W6": {"topic": "Attention & ownership", "sources": ["carr_shallows", "theme_property_ownership"], "in_class": [], "due": []},
+    "W7": {"topic": "Case studies in platform power", "sources": ["case_zunzuneo", "case_twitter_cambridge"], "in_class": [], "due": []},
+    "W8": {"topic": "Culture is ordinary", "sources": ["williams_culture_is_ordinary", "teaching_thick_thin"], "in_class": [], "due": []},
+    "W9": {"topic": "Thick description practice", "sources": ["geertz_deep_play", "barthes_world_of_wrestling"], "in_class": [], "due": []},
+    "W10": {"topic": "Myths & memes", "sources": ["harari_sapiens", "blackmore_meme_machine"], "in_class": [], "due": []},
+    "W11": {"topic": "Systems documentary", "sources": ["adam_curtis_awobmolg"], "in_class": [], "due": []},
+    "W12": {"topic": "AI ethics & identity", "sources": ["bender_stochastic_parrots", "allado_mcdowell_neural_interpellation"], "in_class": [], "due": []},
+    "W13": {"topic": "Apparatus & program", "sources": ["flusser_philosophy_photography", "sontag_on_photography"], "in_class": [], "due": []},
+    "W14": {"topic": "Aura & feeds", "sources": ["benjamin_work_of_art", "jurgenson_irl_fetish"], "in_class": [], "due": []},
+    "W15": {"topic": "Augmentation lineage", "sources": ["bush_as_we_may_think", "engelbart_mother_demo", "nelson_xanadu"], "in_class": [], "due": []}
+  },
+
+  "debates": [
+    {"question": "Is technology one essence or many cosmotechnics?", "pairings": ["heidegger_qct", "yuk_hui_cosmotechnics"], "use": "seminar", "deliverable": {"kind": "in_class", "length_min": 10, "rubric_ref": "rubric_discussion"}},
+    {"question": "What kills public discourse faster: television logic or platform optimization?", "pairings": ["postman_amusing_ourselves", "doctorow_unholy_trinity"], "use": "micro-essay", "deliverable": {"kind": "take_home", "length_words": 600, "rubric_ref": "rubric_micro_essay"}},
+    {"question": "Do LLMs necessarily amplify bias, or can method tame it?", "pairings": ["bender_stochastic_parrots", "teaching_thick_thin"], "use": "methods memo", "deliverable": {"kind": "take_home", "length_words": 800, "rubric_ref": "rubric_methods_memo"}},
+    {"question": "Where did aura go?", "pairings": ["benjamin_work_of_art", "sontag_on_photography", "flusser_philosophy_photography", "jurgenson_irl_fetish"], "use": "image analysis", "deliverable": {"kind": "take_home", "length_words": 800, "rubric_ref": "rubric_image_analysis"}}
+  ],
+
+  "concept_index": {
+    "extensions": ["mcluhan_understanding_media", "miroshnichenko_human_as_media", "plato_phaedrus_writing"],
+    "remediation": ["bolter_grusin_remediation", "mccloud_understanding_comics", "manovich_language_new_media"],
+    "time_space_bias": ["innis_bias_communication", "innis_time_space_bias"],
+    "aura_reproduction": ["benjamin_work_of_art", "sontag_on_photography", "flusser_philosophy_photography"],
+    "apparatus_program": ["flusser_philosophy_photography", "flusser_bodenlos"],
+    "memex_hypertext": ["bush_as_we_may_think", "engelbart_mother_demo", "nelson_xanadu"],
+    "platform_decay": ["doctorow_unholy_trinity", "carr_shallows", "noble_algorithms_oppression"],
+    "cosmotechnics": ["yuk_hui_cosmotechnics", "heidegger_qct", "wang_blockchain_chicken_farm"],
+    "thick_description": ["geertz_deep_play", "williams_culture_is_ordinary", "teaching_thick_thin"],
+    "memetics_myth": ["blackmore_meme_machine", "dawkins_selfish_gene_memes", "harari_sapiens", "barthes_world_of_wrestling"],
+    "ai_ethics": ["bender_stochastic_parrots", "allado_mcdowell_neural_interpellation", "sutton_bitter_lesson"]
+  },
+
+  "assessments": [
+    {"id": "a_major_media_dossier", "name": "Major 1 — Media Analysis Dossier", "kind": "major", "clusters": ["cluster_images_apparatus", "cluster_media_ecology_bias", "cluster_foundations_extensions"], "required_methods": ["close_reading", "concept_mapping", "evidence_citation"], "due_week": "W7", "points": 20, "rubric_ref": "rubric_major_1"},
+    {"id": "a_major_narrative_system", "name": "Major 2 — Narrative Mini-System", "kind": "major", "clusters": ["cluster_augmentation_origins", "cluster_ai_identity_method", "cluster_platforms_power"], "required_methods": ["prompt_specification", "bias_audit", "design_rationale"], "due_week": "W14", "points": 25, "rubric_ref": "rubric_major_2"},
+    {"id": "a_minor_close_reading", "name": "Minor — Close Reading Brief", "kind": "minor", "clusters": ["cluster_culture_interpretation", "cluster_images_apparatus"], "required_methods": ["thick_description"], "due_week": "W9", "points": 10, "rubric_ref": "rubric_minor_close"},
+    {"id": "a_minor_platform_affordance", "name": "Minor — Platform/Affordance Map", "kind": "minor", "clusters": ["cluster_media_ecology_bias", "cluster_platforms_power"], "required_methods": ["system_diagram", "affordance_analysis"], "due_week": "W6", "points": 10, "rubric_ref": "rubric_minor_map"},
+    {"id": "a_minor_critique_memo", "name": "Minor — Critique Memo", "kind": "minor", "clusters": ["cluster_ai_identity_method", "cluster_culture_interpretation"], "required_methods": ["argument_structure", "counterexample"], "due_week": "W12", "points": 10, "rubric_ref": "rubric_minor_memo"},
+    {"id": "a_capsule_alignment_check", "name": "Capsule — Text↔Image Alignment Check", "kind": "capsule", "clusters": ["cluster_images_apparatus"], "required_methods": ["operationalize_rubric"], "due_week": "W13", "points": 5, "rubric_ref": "rubric_capsule_alignment"},
+    {"id": "a_make_podcast_or_language_game", "name": "Make a Podcast or a Language Game", "kind": "minor", "clusters": ["cluster_augmentation_origins", "cluster_culture_interpretation"], "required_methods": ["medium_specificity", "iteration"], "due_week": null, "points": 10, "rubric_ref": "rubric_make_project"}
+  ],
+
+  "studio_prompts": [
+    {"id": "sp_aura_stress_test", "name": "Aura Stress Test", "brief": "Recreate a single image through three media (print, feed, AI) and argue how aura mutates.", "sources": ["benjamin_work_of_art", "sontag_on_photography", "flusser_philosophy_photography"], "linked_outcomes": ["analysis", "communication"]},
+    {"id": "sp_platform_bias_map", "name": "Platform Bias Map", "brief": "Diagram time/space biases and decay points for a chosen platform feature.", "sources": ["innis_bias_communication", "doctorow_unholy_trinity", "noble_algorithms_oppression"], "linked_outcomes": ["analysis", "ethics/impact"]},
+    {"id": "sp_cosmotechnic_remix", "name": "Cosmotechnic Remix", "brief": "Propose a non-Western affordance redesign for a common tool; justify via cosmotechnics.", "sources": ["yuk_hui_cosmotechnics", "heidegger_qct", "wang_blockchain_chicken_farm"], "linked_outcomes": ["theory", "making"]}
+  ],
+
+  "trim_bin": [
+    {"id": "kurzweil_singularity_near", "reason": "Scope creep; futurism survey not required for intro outcomes."},
+    {"id": "lanier_you_are_not_a_gadget", "reason": "Good counterpoint, but duplicative with Postman/Manovich for this level."},
+    {"id": "leo_marx_machine_garden", "reason": "Valuable historically; keep as optional reference if schedule permits."},
+    {"id": "mosco_digital_sublime", "reason": "Advanced rhetoric of myth; use as optional."}
+  ],
+
+  "integrations": {
+    "podcasts_use": "Context + case leads (not core theory). Tie episodes to platform/power weeks.",
+    "teaching_concepts": ["thick description, thin prompts", "Using a medium to understand a medium"],
+    "evaluation_hooks": ["Every artifact includes a one-page methods appendix: tools, prompts, models, surprises vs. plan."]
+  },
+
+  "rubrics": {
+    "rubric_major_1": {"criteria": [
+      {"id": "conceptual_fidelity", "weight": 0.3},
+      {"id": "evidence_use", "weight": 0.3},
+      {"id": "clarity_structure", "weight": 0.2},
+      {"id": "methods_appendix", "weight": 0.2}
+    ]},
+    "rubric_major_2": {"criteria": [
+      {"id": "design_rationale", "weight": 0.3},
+      {"id": "bias_audit", "weight": 0.25},
+      {"id": "prototype_quality", "weight": 0.25},
+      {"id": "communication", "weight": 0.2}
+    ]},
+    "rubric_minor_close": {"criteria": [
+      {"id": "thickness", "weight": 0.5},
+      {"id": "evidence_citation", "weight": 0.3},
+      {"id": "clarity", "weight": 0.2}
+    ]},
+    "rubric_minor_map": {"criteria": [
+      {"id": "system_scope", "weight": 0.35},
+      {"id": "bias_read", "weight": 0.35},
+      {"id": "diagram_legibility", "weight": 0.3}
+    ]},
+    "rubric_minor_memo": {"criteria": [
+      {"id": "argument_structure", "weight": 0.4},
+      {"id": "counterexample", "weight": 0.3},
+      {"id": "clarity", "weight": 0.3}
+    ]},
+    "rubric_capsule_alignment": {"criteria": [
+      {"id": "operationalization", "weight": 0.6},
+      {"id": "consistency_check", "weight": 0.4}
+    ]},
+    "rubric_micro_essay": {"criteria": [
+      {"id": "thesis_specificity", "weight": 0.35},
+      {"id": "evidence_precision", "weight": 0.35},
+      {"id": "style_concision", "weight": 0.3}
+    ]},
+    "rubric_methods_memo": {"criteria": [
+      {"id": "method_choice", "weight": 0.4},
+      {"id": "limitations_reflection", "weight": 0.3},
+      {"id": "reproducibility", "weight": 0.3}
+    ]},
+    "rubric_image_analysis": {"criteria": [
+      {"id": "aura_account", "weight": 0.4},
+      {"id": "apparatus_read", "weight": 0.35},
+      {"id": "clarity", "weight": 0.25}
+    ]},
+    "rubric_discussion": {"criteria": [
+      {"id": "preparation", "weight": 0.3},
+      {"id": "contribution_quality", "weight": 0.3},
+      {"id": "evidence_citation", "weight": 0.2},
+      {"id": "active_listening", "weight": 0.2}
+    ]}
+  },
+
+  "methods_glossary": {
+    "close_reading": "Detailed textual analysis focusing on form and argument.",
+    "concept_mapping": "Diagramming key concepts and their relations.",
+    "evidence_citation": "Consistent citation and linking to sources.",
+    "prompt_specification": "Document prompts, parameters, iterations for reproducibility.",
+    "bias_audit": "Identify, measure, and mitigate sources of bias.",
+    "design_rationale": "Explain design choices and tradeoffs.",
+    "thick_description": "Context-rich description integrating symbols and practices.",
+    "system_diagram": "Architecture and flow of components and data.",
+    "affordance_analysis": "Map perceived and actual action possibilities.",
+    "argument_structure": "Claim–evidence–warrant organization.",
+    "counterexample": "Test claims against disconfirming cases.",
+    "operationalize_rubric": "Turn criteria into measurable checks.",
+    "medium_specificity": "Use medium’s unique affordances intentionally.",
+    "iteration": "Plan small experiments and incorporate feedback."
+  },
+
+  "graph": {
+    "nodes": [
+      {"id": "cluster_foundations_extensions", "kind": "cluster"},
+      {"id": "cluster_tech_philosophy", "kind": "cluster"},
+      {"id": "cluster_media_ecology_bias", "kind": "cluster"},
+      {"id": "cluster_augmentation_origins", "kind": "cluster"},
+      {"id": "cluster_culture_interpretation", "kind": "cluster"},
+      {"id": "cluster_platforms_power", "kind": "cluster"},
+      {"id": "cluster_images_apparatus", "kind": "cluster"},
+      {"id": "cluster_ai_identity_method", "kind": "cluster"},
+      {"id": "cluster_memes_myths", "kind": "cluster"}
+    ],
+    "edges": [
+      {"from": "cluster_foundations_extensions", "to": "cluster_augmentation_origins", "label": "extensions→augmentation"},
+      {"from": "cluster_images_apparatus", "to": "cluster_platforms_power", "label": "apparatus under platforms"},
+      {"from": "cluster_media_ecology_bias", "to": "cluster_platforms_power", "label": "infrastructure→power"},
+      {"from": "cluster_culture_interpretation", "to": "cluster_memes_myths", "label": "interpretation→replication"},
+      {"from": "cluster_ai_identity_method", "to": "cluster_platforms_power", "label": "identity under platform logics"}
+    ]
+  }
+  ,
+  "validation": {
+    "unresolved_source_refs": [],
+    "unresolved_cluster_refs": [],
+    "missing_rubrics": [],
+    "notes": "All source, cluster, and rubric references resolved."
+  }
+}

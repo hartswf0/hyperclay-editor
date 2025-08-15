@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LMC 2400 — Course OS</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#131923; --ink:#e7ebf2; --muted:#9aa7bd; --rule:#20293a;
+    --accent:#30d17b; --accent-2:#5aa9ff; --warn:#ffb020; --danger:#ff5d5d;
+    --ok:#34d399; --link:#7dd3fc; --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Inter,Roboto,Helvetica,Arial}
+  *{box-sizing:border-box}
+  a{color:var(--link)}
+  /* Topbar */
+  .topbar{position:fixed;inset:0 0 auto 0;height:56px;background:linear-gradient(180deg,#0e1219,#0b0f16);display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--rule);z-index:1000}
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo .glyph{font-size:20px;opacity:.9}
+  .title{font-weight:700;letter-spacing:.2px}
+  .search{margin-left:auto;display:flex;gap:8px}
+  .search input{width:320px;max-width:40vw;background:#0f1520;border:1px solid var(--rule);color:var(--ink);padding:9px 10px;border-radius:10px}
+  .btn{background:#121a27;border:1px solid var(--rule);color:var(--ink);padding:8px 10px;border-radius:10px;cursor:pointer}
+  .btn:hover{border-color:#334059}
+  .btn.accent{background:linear-gradient(180deg,#1a2d23,#13261e);border-color:#1f3b2d;color:#c9f8df}
+  .btn.warn{background:#1e180b;border-color:#3b2d1f;color:#ffe7b8}
+  .toggle{display:flex;align-items:center;gap:6px}
+
+  /* Desktop */
+  .desktop{position:fixed;inset:56px 0 64px 0;overflow:hidden}
+  .wallpaper{position:absolute;inset:0;background:radial-gradient(1200px 600px at 20% 10%,#182132 0%,transparent 60%),radial-gradient(900px 600px at 80% 0%,#16202d 0%,transparent 55%),radial-gradient(1000px 800px at 50% 100%,#111826 0%,transparent 60%)}
+  .hints{position:absolute;right:14px;top:14px;color:var(--muted);font-size:12px}
+
+  /* Dock */
+  .dock{position:fixed;inset:auto 0 0 0;height:64px;background:linear-gradient(180deg,#0b0f16,rgba(11,15,22,.4));backdrop-filter:blur(8px);border-top:1px solid var(--rule);display:flex;justify-content:center;align-items:center;gap:16px}
+  .dock .icon{width:40px;height:40px;border-radius:12px;background:#121824;border:1px solid #1c2534;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);cursor:pointer;transition:transform .12s ease}
+  .dock .icon:hover{transform:translateY(-2px)}
+  .dock .label{position:absolute;bottom:72px;background:#0b111a;border:1px solid var(--rule);padding:6px 8px;border-radius:8px;color:var(--ink);font-size:12px;opacity:0;pointer-events:none;transform:translateY(6px);transition:.12s}
+  .dock .wrap{position:relative;}
+  .dock .wrap:hover .label{opacity:1;transform:translateY(0)}
+
+  /* Start-style overlay */
+  #startOverlay{position:fixed;inset:auto 12px 76px 12px;display:none;z-index:1500}
+  #startOverlay .panel{height:320px;background:#0f1520;border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);display:grid;grid-template-rows:auto 1fr;overflow:hidden}
+  #startOverlay .head{display:flex;gap:8px;padding:10px;border-bottom:1px solid var(--rule);align-items:center}
+  #startOverlay .head input{flex:1;background:#0b0f16;border:1px solid var(--rule);color:var(--ink);padding:8px 10px;border-radius:10px}
+  #startOverlay .grid{padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;overflow:auto}
+  #startOverlay .card{cursor:pointer;display:flex;gap:8px;align-items:center}
+  #startOverlay .card:hover{border-color:#334059}
+
+  /* Codex Reader */
+  #codexOverlay{position:fixed;inset:0;background:#0b0f16;z-index:2000;display:none;color:var(--ink)}
+  #codexOverlay .codexBar{position:fixed;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;background:#101826;border:1px solid var(--rule);border-radius:10px;padding:8px 10px;z-index:2001}
+  #codexOverlay .codexPages{position:absolute;top:60px;bottom:12px;left:0;right:0;overflow:auto;padding:20px}
+  .codexPage{max-width:980px;margin:0 auto 18px auto;background:#0f1520;border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow);padding:12px}
+  .codexPage iframe{width:100%;border:0;display:block;min-height:800px}
+  .codexPage .clone{max-width:100%}
+  /* Codex utilities */
+  .codex-import{all:revert; color:inherit; font:inherit}
+  .codexEditable{outline:1px dashed #2a364a}
+  .cols-1{column-count:1}
+  .cols-2{column-count:2; column-gap:24px}
+  .cols-3{column-count:3; column-gap:24px}
+  /* Code modal */
+  #codexCodeModal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;z-index:3000;align-items:center;justify-content:center}
+  #codexCodeModal .inner{width:min(900px,90vw);height:min(70vh,700px);background:#0f1520;border:1px solid var(--rule);border-radius:10px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+  #codexCodeModal .head{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid var(--rule)}
+  #codexCodeModal .tabs{display:flex;gap:6px}
+  #codexCodeModal .tabs button{padding:6px 10px}
+  #codexCodeModal .body{flex:1;display:flex}
+  #codexCodeModal textarea{flex:1;background:#0b0f16;color:var(--ink);border:0;outline:none;padding:10px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  #codexCodeModal .foot{display:flex;gap:8px;justify-content:flex-end;padding:8px 10px;border-top:1px solid var(--rule)}
+  /* Codex adopts global light theme via body.studio */
+  body.studio #codexOverlay{background:#f7f9fc;color:#0b0f16}
+  body.studio #codexOverlay .codexBar{background:#ffffff;border-color:#d9e0ea}
+  body.studio #codexOverlay .codexPages{background:transparent}
+  body.studio #codexOverlay .codexPage{background:#ffffff;border-color:#e6edf5}
+  body.studio #codexCodeModal .inner{background:#ffffff}
+  body.studio #codexCodeModal textarea{background:#f4f7fb;color:#0b0f16}
+
+  /* Reader Theme Force (Codex UI only) */
+  #codexOverlay.force-light{ background:#f7f9fc !important; color:#0b0f16 !important }
+  #codexOverlay.force-dark{ background:#0b0f16 !important; color:#e8eef9 !important }
+  #codexOverlay.force-light .codexBar, #codexOverlay.force-light .codexPage{ background:#ffffff !important; color:#0b0f16 !important; border-color:#d9e0ea !important }
+  #codexOverlay.force-dark .codexBar, #codexOverlay.force-dark .codexPage{ background:#101725 !important; color:#e8eef9 !important; border-color:#263043 !important }
+  #codexOverlay.force-light .btn{ background:#eef3fb !important; color:#0b0f16 !important }
+  #codexOverlay.force-dark .btn{ background:#1a2234 !important; color:#e8eef9 !important }
+  /* Optional: also force page content when requested */
+  #codexOverlay.force-content.force-light .codexPage .clone{ background:#ffffff !important; color:#0b0f16 !important }
+  #codexOverlay.force-content.force-dark .codexPage .clone{ background:#0f1520 !important; color:#e8eef9 !important }
+  #codexOverlay.force-content.force-light .codexPage .clone *,
+  #codexOverlay.force-content.force-dark .codexPage .clone *{ color:inherit !important }
+
+  /* Windows */
+  .win{position:absolute;min-width:320px;min-height:200px;background:linear-gradient(180deg,#121826,#0f1520);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box}
+  .win.hidden{display:none}
+  .win .titlebar{height:42px;background:linear-gradient(180deg,#0f1520,#0c121c);display:flex;align-items:center;gap:10px;padding:0 10px;cursor:grab;border-bottom:1px solid #0e1926}
+  .titlebar .dots{display:flex;gap:6px;margin-right:6px}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .dot.red{background:#ff5d5d}
+  .dot.yellow{background:#ffcc5d}
+  .dot.green{background:#52d27a}
+  .titlebar .name{font-weight:700}
+  .controls{margin-left:auto;display:flex;gap:6px}
+  .controls .btn{padding:6px 8px;font-size:12px}
+  .content{padding:14px;overflow:auto;flex:1;min-height:0}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
+  .card{background:#0f1520;border:1px solid var(--rule);border-radius:12px;padding:12px}
+  .muted{color:var(--muted)}
+  .k{background:#0f1b1b;border:1px dashed #1a3835;padding:6px 8px;border-radius:8px;color:#a7f3d0;font-size:12px}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:#0c1a12;border:1px solid #1e3a28;padding:5px 9px;border-radius:999px;color:#b6f3d2;font-size:12px}
+  .rule{height:1px;background:var(--rule);margin:10px 0}
+
+  .list{display:grid;gap:8px}
+  .list .row{display:flex;justify-content:space-between;gap:8px;background:#0f1622;border:1px solid #1a2331;border-radius:10px;padding:8px}
+  .pill{padding:3px 8px;border:1px solid #29364b;border-radius:999px;font-size:11px;color:#cbd5e1}
+
+  .footer{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+
+  /* App iframe shell */
+  .iframe-shell{display:grid;grid-template-rows:auto 1fr;gap:8px;height:100%}
+  .iframe-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .iframe-controls select{background:#0f1520;border:1px solid var(--rule);color:var(--ink);padding:8px 10px;border-radius:10px}
+  .iframe-viewport{min-height:320px;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:#0b0f16}
+  .iframe-viewport iframe{width:100%;height:100%;border:0;display:block}
+  /* Make a single iframe viewport fill the whole content area */
+  .content > .iframe-viewport{height:100%}
+
+  /* Resizer handle */
+  .resizer{position:absolute;background:#2a364a33;border-radius:2px;opacity:.8}
+  .resizer.se{width:14px;height:14px;right:6px;bottom:6px;cursor:nwse-resize;background:linear-gradient(135deg,transparent 50%, #2a364a 50%)}
+  .resizer.e{width:6px;right:0;top:20px;bottom:20px;cursor:ew-resize}
+  .resizer.s{height:6px;left:20px;right:20px;bottom:0;cursor:ns-resize}
+
+  /* Light theme overrides when body.studio is active */
+  body.studio{background:var(--bg);color:var(--ink)}
+  body.studio .topbar{background:linear-gradient(180deg,#ffffff,#f7f9fc);border-bottom-color:var(--rule)}
+  body.studio .search input{background:#ffffff;border-color:var(--rule);color:#0c1420}
+  body.studio .dock{background:linear-gradient(180deg,#f8fafc,rgba(248,250,252,.7));border-top-color:var(--rule)}
+  body.studio .dock .icon{background:#ffffff;border-color:#d7dfeb}
+  body.studio .dock .label{background:#ffffff;border-color:var(--rule);color:#0c1420}
+  body.studio .win{background:linear-gradient(180deg,#ffffff,#f8fafc);border-color:var(--rule)}
+  body.studio .titlebar{background:linear-gradient(180deg,#f9fbfe,#f0f4fa);border-bottom-color:var(--rule)}
+  body.studio .card{background:#ffffff;border-color:var(--rule)}
+  body.studio .list .row{background:#ffffff;border-color:#e7edf5}
+  body.studio .badge{background:#f3faf6;border-color:#cce9d8;color:#0b4b2f}
+  body.studio .k{background:#f1fbf8;border-color:#cbe9df;color:#0b4b2f}
+  body.studio .pill{color:#1f2937;border-color:#d7dfeb}
+  body.studio .btn{background:#ffffff;border-color:var(--rule);color:#0c1420}
+  body.studio .btn.accent{background:linear-gradient(180deg,#e9f6ef,#dff3ea);border-color:#c9e9d9;color:#064e3b}
+  body.studio .btn.warn{background:#fff8e8;border-color:#f1ddb0;color:#7a4b00}
+  body.studio .iframe-viewport{background:#ffffff;border-color:var(--rule)}
+  body.studio .wallpaper{background:radial-gradient(1000px 600px at 20% 10%,#f0f5ff 0%,transparent 60%),radial-gradient(800px 600px at 80% 0%,#f6f9ff 0%,transparent 55%),radial-gradient(900px 700px at 50% 100%,#f4f7fc 0%,transparent 60%)}
+  /* Inputs & text blocks (override inline dark styles) */
+  body.studio input, body.studio select, body.studio textarea { background:#ffffff !important; color:#0c1420 !important; border-color: var(--rule) !important; }
+  body.studio pre { background:#f7f9fc !important; color:#0c1420 !important; border-color: var(--rule) !important; }
+  body.studio table { background:#ffffff; color:#0c1420 }
+  body.studio th, body.studio td { border-color: var(--rule) }
+
+  /* Chrome hidden: hide topbar/dock, expand desktop */
+  body.chrome-hidden .topbar{ display:none !important }
+  body.chrome-hidden .dock{ display:none !important }
+  body.chrome-hidden .desktop{ inset:0 0 0 0 }
+
+  /* Codex compact toolbar for Zen editor */
+  #codexOverlay .codexBar.compact .btn{ padding:4px 6px; font-size:12px }
+  #codexOverlay .codexBar.compact #codexTools{ gap:4px }
+
+  /* Print */
+  @media print{
+    .dock,.topbar,.hints,.wallpaper,.win{display:none !important}
+    #printSheet{display:block !important}
+    body{background:white;color:black}
+    /* Default: one per page */
+    #printSheet.layout-1 section{page-break-after:always}
+    /* Multi-per-page tiling: make sections avoid splitting and size to fit page fractions */
+    #printSheet.layout-2 section{break-inside:avoid;page-break-inside:avoid;height:calc(100vh - 2cm);height:calc((100vh - 2cm)/2)}
+    #printSheet.layout-3 section{break-inside:avoid;page-break-inside:avoid;height:calc((100vh - 2cm)/3)}
+    #printSheet.layout-4 section{break-inside:avoid;page-break-inside:avoid;height:calc((100vh - 2cm)/4)}
+    #printSheet.layout-2 h2, #printSheet.layout-3 h2, #printSheet.layout-4 h2{margin:0 0 6px 0;padding:4px 0;border-bottom:1px solid #ccc;font-size:14px}
+    #printSheet.layout-2 section, #printSheet.layout-3 section, #printSheet.layout-4 section{margin:0 0 8px 0}
+    /* Printable iframe sizing inside sections */
+    #printSheet section iframe{width:100%;border:0;display:block}
+    #printSheet.layout-1 section iframe{height:auto}
+    #printSheet.layout-2 section iframe{height:calc(100% - 22px)}
+    #printSheet.layout-3 section iframe{height:calc(100% - 22px)}
+    #printSheet.layout-4 section iframe{height:calc(100% - 22px)}
+    /* Continuous long document export: no forced page breaks */
+    #printSheet.continuous{padding:0;gap:0}
+    #printSheet.continuous section{page-break-after:auto;break-inside:auto;margin:0 0 12px 0;height:auto}
+    #printSheet.continuous h2{page-break-after:auto}
+  }
+
+  /* Brand Commander skin */
+  .brand-skin .topbar{background:linear-gradient(180deg,#101915,#0e1713)}
+  .brand-skin .accent{background:linear-gradient(180deg,#1d2a22,#0e1d17)}
+  .brand-skin .badge{background:#111a14;border-color:#1e3628}
+
+  /* Diagnostics */
+  .pass{color:#22c55e}
+  .fail{color:#ef4444}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo"><span class="glyph">𓉗</span><div class="title">LMC 2400 — Course OS</div></div>
+    <div class="toggle"><button class="btn" id="themeBtn" title="Toggle Studio/Workshop Theme">Theme</button></div>
+    <div class="toggle"><button class="btn accent" id="brandBtn" title="NikeCraft Brand Commander Mode">Brand Commander</button></div>
+    <div class="toggle"><button class="btn" id="newWinBtn" title="Open System Map">System Map</button></div>
+    <div class="toggle"><button class="btn warn" id="testsBtn" title="Run Diagnostics">Tests</button></div>
+    <div class="toggle"><button class="btn" id="fsBtn" title="Enter Fullscreen (Esc to exit)">⤢</button></div>
+    <div class="toggle"><button class="btn" id="chromeBtn" title="Hide Menus (topbar & dock)">⊟</button></div>
+    <div class="search">
+      <input id="search" placeholder="Search modules, terms, assignments… (⌘/Ctrl+K)" />
+      <button class="btn" id="printBtn" title="Print/Export PDF">Print</button>
+    </div>
+  </div>
+
+  <div class="desktop" id="desktop">
+    <div class="wallpaper"></div>
+    <div class="hints">Drag windows · Double‑click titlebar to resize · ⌘/Ctrl+K search</div>
+  </div>
+
+  <div class="dock" id="dock"></div>
+
+<script>
+(function(){
+  const init = () => {
+    // --- DATA: Course OS Modules (Entities) ---------------------------------
+    const modules = [
+      {
+        id:'syllabus', icon:'𓉗', label:'Syllabus', w:720, h:520, x:50, y:80,
+        html:`<div class="grid">
+          <div class="card" style="grid-column: span 7">
+            <h2>System Identification</h2>
+            <p><b>System Name:</b> LMC 2400 — Intro to Media Studies (Studio–Seminar Earn‑to‑Pass)</p>
+            <p><b>Core Purpose:</b> Convert weekly reading, writing, and discussion into symbolic capital that legitimizes eligibility to pass via a ritualized, instructor‑audited sequence.</p>
+            <div class="rule"></div>
+            <p class="muted">Tone: straightforward, purposeful, unpretentious; utility over hype.</p>
+          </div>
+          <div class="card" style="grid-column: span 5">
+            <h3>Contact & Cadence</h3>
+            <div class="list">
+              <div class="row"><span>Meeting Times</span><span class="pill">Tue/Thu · 14:00–15:15 ET</span></div>
+              <div class="row"><span>Location</span><span class="pill">Room TBA / LMS</span></div>
+              <div class="row"><span>Instructor</span><span class="pill">TBA · Office Hours by appt.</span></div>
+            </div>
+            <div class="rule"></div>
+            <button class="btn" onclick="openWin('schedule')">Open Schedule</button>
+          </div>
+        </div>
+        <div class="rule"></div>
+        <h3>Geertzian Analysis</h3>
+        <p>“(1) a system of symbols (syllabus, readings, assignments, rubrics, prompts, grading schema) which acts to (2) establish powerful, pervasive, and long‑lasting moods and motivations (critical awareness, deadline anxiety, peer recognition) by (3) formulating conceptions of order (weekly schedule, deliverable cadence, integrity codes) and (4) clothing these with such an aura of factuality (timestamps, LMS gradebook, instructor comments, university policy) that (5) the ‘earn‑to‑pass’ worldview feels uniquely realistic and binding.”</p>`
+      },
+      {
+        id:'readings', icon:'𓃑', label:'Readings', w:680, h:520, x:160, y:120,
+        html:`<h2>Readings Library</h2>
+        <p class="muted">Use these like components; cite in discussion & papers.</p>
+        <div class="grid">
+          <div class="card" style="grid-column: span 6">
+            <h3>Primer / Extensions</h3>
+            <ul>
+              <li>Marshall McLuhan — <i>Understanding Media: The Extensions of Man</i></li>
+              <li>Clifford Geertz — “The Impact of the Concept of Culture on the Concept of Man”</li>
+              <li>Plato — <i>Phaedrus</i> (memory & writing)</li>
+            </ul>
+          </div>
+          <div class="card" style="grid-column: span 6">
+            <h3>Fictions / Libraries</h3>
+            <ul>
+              <li>Jorge Luis Borges — “The Library of Babel”</li>
+              <li>Italo Calvino — “Cybernetics and Ghosts”</li>
+              <li>Ted Nelson — Xanadu fragments (hypertext)</li>
+            </ul>
+          </div>
+          <div class="card" style="grid-column: span 6">
+            <h3>Bias & Media Orders</h3>
+            <ul>
+              <li>Harold Innis — <i>The Bias of Communication</i></li>
+              <li>S. Noble — <i>Algorithms of Oppression</i></li>
+              <li>Neil Postman — <i>Amusing Ourselves to Death</i></li>
+            </ul>
+          </div>
+          <div class="card" style="grid-column: span 6">
+            <h3>Technology & Cosmotechnics</h3>
+            <ul>
+              <li>Martin Heidegger — “The Question Concerning Technology”</li>
+              <li>Yuk Hui — <i>The Question Concerning Technology in China</i></li>
+              <li>X. Wang — <i>Blockchain Chicken Farm</i></li>
+            </ul>
+          </div>
+        </div>`
+      },
+      {
+        id:'assignments', icon:'░', label:'Assignments', w:760, h:560, x:260, y:160,
+        html:`<h2>Assignments Stack</h2>
+        <div class="list">
+          <div class="row"><span><b>Reading Responses</b> (weekly · 200–300w)</span><span class="pill">1.5–2h</span></div>
+          <div class="row"><span><b>Discussion Leader</b> (once · 7–10 min + Qs)</span><span class="pill">3–4h</span></div>
+          <div class="row"><span><b>Short Paper 1 — History/Trace</b> (750–1000w)</span><span class="pill">6–8h</span></div>
+          <div class="row"><span><b>Short Paper 2 — Form/Spacing</b> (750–1000w)</span><span class="pill">6–8h</span></div>
+          <div class="row"><span><b>Final — Speculative Deconstruction</b> (1700–2000w + memo)</span><span class="pill">18–22h</span></div>
+        </div>
+        <div class="rule"></div>
+        <div class="grid">
+          <div class="card" style="grid-column: span 6">
+            <h3>Rubric Keys</h3>
+            <ul>
+              <li>Trace detection · Deferral articulation</li>
+              <li>Evidence & citation · Counter‑reading</li>
+              <li>Spacing/form awareness · Style</li>
+            </ul>
+          </div>
+          <div class="card" style="grid-column: span 6">
+            <h3>Policies</h3>
+            <ul>
+              <li>AI use for brainstorming OK; analysis must be yours; cite any AI assistance.</li>
+              <li>Late work only via prior arrangement.</li>
+              <li>Zero tolerance for plagiarism (see Academic Policy).</li>
+            </ul>
+          </div>
+        </div>`
+      },
+      {
+        id:'projects', icon:'▒', label:'Projects', w:700, h:540, x:360, y:100,
+        html:`<h2>Projects Sequence</h2>
+        <p>Progression: concepts → analysis → synthesis.</p>
+        <ol>
+          <li><b>Short Paper 1:</b> Apply différance to a media‑history case.</li>
+          <li><b>Short Paper 2:</b> Analyze spacing/inscription in a medium (film/VR/games).</li>
+          <li><b>Final:</b> Multi‑author synthesis projecting futures under deferral/supplement.</li>
+        </ol>
+        <div class="rule"></div>
+        <div class="badge">ᕰ Rubrics live here</div> <button class="btn" onclick="openWin('rubrics')">Open Rubrics</button>`
+      },
+      {
+        id:'participation', icon:'▓', label:'Participation', w:620, h:420, x:520, y:160,
+        html:`<h2>Participation Stream</h2>
+        <ul>
+          <li>Attendance expected; engage in‑room.</li>
+          <li>Bring at least one cited point/question each class.</li>
+          <li>Post weekly on LMS with a trace/opposition/supplement note.</li>
+        </ul>
+        <div class="rule"></div>
+        <p><b>Tip:</b> Protect your streak—stable points across the term.</p>`
+      },
+      {
+        id:'schedule', icon:'𓈌', label:'Schedule', w:860, h:560, x:80, y:140,
+        html:`<h2>Schedule Generator</h2>
+        <div class="grid">
+          <div class="card" style="grid-column: span 5">
+            <label>Start (Mon)</label>
+            <input id="startDate" type="date" value="2025-08-18" style="width:100%;padding:8px;background:#0f1520;border:1px solid var(--rule);color:var(--ink);border-radius:10px"/>
+            <label style="margin-top:8px;display:block">End (last class day)</label>
+            <input id="endDate" type="date" value="2025-12-02" style="width:100%;padding:8px;background:#0f1520;border:1px solid var(--rule);color:var(--ink);border-radius:10px"/>
+            <div class="rule"></div>
+            <label>Days</label>
+            <div><label><input type="checkbox" class="dow" value="2" checked/> Tue</label> <label style="margin-left:12px"><input type="checkbox" class="dow" value="4" checked/> Thu</label></div>
+            <div class="grid" style="margin-top:8px">
+              <div style="grid-column: span 6"><label>Start Time</label><input id="startTime" type="time" value="14:00" style="width:100%;padding:8px;background:#0f1520;border:1px solid var(--rule);color:var(--ink);border-radius:10px"/></div>
+              <div style="grid-column: span 6"><label>End Time</label><input id="endTime" type="time" value="15:15" style="width:100%;padding:8px;background:#0f1520;border:1px solid var(--rule);color:var(--ink);border-radius:10px"/></div>
+            </div>
+            <div class="rule"></div>
+            <button class="btn" onclick="generateSchedule()">Generate</button>
+            <button class="btn" id="icsBtn" disabled>Download .ics</button>
+          </div>
+          <div class="card" style="grid-column: span 7;max-height:380px;overflow:auto">
+            <h3>Sessions</h3>
+            <div id="sessions" class="list"></div>
+          </div>
+        </div>`
+      },
+      {
+        id:'platforms', icon:'⿰', label:'Platforms', w:520, h:420, x:460, y:220,
+        html:`<h2>Platforms Suite</h2>
+        <ul>
+          <li>Canvas — submissions, gradebook</li>
+          <li>Perusall — social reading</li>
+          <li>Teams/Email — comms & office hours</li>
+        </ul>
+        <p class="muted">Host: assignments; Log: timestamps; Notify: changes.</p>`
+      },
+      {
+        id:'policy', icon:'⿱', label:'Policies', w:620, h:440, x:220, y:220,
+        html:`<h2>Academic Policy</h2>
+        <ul>
+          <li>Integrity: plagiarism = fail; cite all sources (including AI).</li>
+          <li>Accommodations: official letters honored; coordinate early.</li>
+          <li>Civility: generous listening; good‑faith critique.</li>
+        </ul>
+        <div class="rule"></div>
+        <p>“If it’s not submitted, it didn’t happen.” Keep work audit‑ready.</p>`
+      },
+      {
+        id:'feedback', icon:'⿳', label:'Feedback', w:560, h:420, x:380, y:260,
+        html:`<h2>Feedback Channel</h2>
+        <p>Use office hours and comments loops to iterate quickly.</p>
+        <ul>
+          <li>Ask high‑leverage questions: contrast, consequence, counter‑readings.</li>
+          <li>Turn feedback into rubric‑aligned revisions within 1 week.</li>
+        </ul>`
+      },
+      {
+        id:'performance', icon:'⿵', label:'Performance', w:640, h:460, x:120, y:260,
+        html:`<h2>Performance Record</h2>
+        <div class="list">
+          <div class="row"><span>Participation & Seminar Platform</span><span class="pill">20%</span></div>
+          <div class="row"><span>Reading Responses</span><span class="pill">15%</span></div>
+          <div class="row"><span>Discussion Leader</span><span class="pill">10%</span></div>
+          <div class="row"><span>Short Paper 1</span><span class="pill">15%</span></div>
+          <div class="row"><span>Short Paper 2</span><span class="pill">15%</span></div>
+          <div class="row"><span>Final Project</span><span class="pill">25%</span></div>
+        </div>
+        <div class="rule"></div>
+        <p class="muted">Tie‑breaks: participation streak → timeliness → final quality.</p>`
+      },
+      {
+        id:'lexicon', icon:'❏', label:'Lexicon', w:560, h:480, x:640, y:120,
+        html:`<h2>Lexicon Core</h2>
+        <ul>
+          <li><b>Trace</b> — an absence that leaves a mark; what haunts presence.</li>
+          <li><b>Deferral</b> — meaning postponed along references.</li>
+          <li><b>Spacing</b> — inscription/layout conditions that make difference legible.</li>
+          <li><b>Supplement</b> — the “extra” that completes while exposing lack.</li>
+          <li><b>Medium Specificity</b> — what a medium can uniquely do.</li>
+        </ul>`
+      },
+      {
+        id:'media', icon:'⌸', label:'Media', w:680, h:460, x:620, y:280,
+        html:`<h2>Media Artifacts</h2>
+        <p>Add case studies here (clips, frames, screenshots). Discuss via trace/opposition/supplement prompts.</p>
+        <div class="badge">Prompt</div>
+        <div class="k">Find a trace; map a binary; follow a deferral; locate the supplement.</div>`
+      },
+      {
+        id:'rubrics', icon:'ᕰ', label:'Rubrics', w:680, h:520, x:220, y:80,
+        html:`<h2>Evaluation Rubrics</h2>
+        <table style="width:100%;border-collapse:collapse">
+          <tr><th style="text-align:left;border-bottom:1px solid var(--rule);padding:6px">Criterion</th><th style="text-align:left;border-bottom:1px solid var(--rule);padding:6px">Exemplary (A)</th></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid var(--rule)">Trace Detection</td><td style="padding:6px;border-bottom:1px solid var(--rule)">Surfaces consequential absences and their effects on meaning.</td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid var(--rule)">Deferral Articulation</td><td style="padding:6px;border-bottom:1px solid var(--rule)">Maps reference chains; resists premature closure.</td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid var(--rule)">Evidence & Citation</td><td style="padding:6px;border-bottom:1px solid var(--rule)">Precise, well‑integrated sources; correct style.</td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid var(--rule)">Spacing/Form Awareness</td><td style="padding:6px;border-bottom:1px solid var(--rule)">Analyzes layout/inscription as meaning‑bearing.</td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid var(--rule)">Counter‑reading</td><td style="padding:6px;border-bottom:1px solid var(--rule)">Anticipates strong objections; integrates them.</td></tr>
+          <tr><td style="padding:6px;border-bottom:1px solid var(--rule)">Style & Clarity</td><td style="padding:6px;border-bottom:1px solid var(--rule)">Concise, vivid prose; correct mechanics.</td></tr>
+        </table>`
+      },
+      {
+        id:'brand', icon:'★', label:'Brand Commander', w:760, h:560, x:420, y:100,
+        html:`<h2>NikeCraft Brand Commander Prompt</h2>
+        <pre style="white-space:pre-wrap;word-break:break-word;background:#0b1218;border:1px solid var(--rule);padding:12px;border-radius:10px">You are now operating as NikeCraft in full Brand Commander mode.
+Embody the philosophy: A product is a tool for everyday life — made to be used, worn, repaired, and to carry the marks of your story. Perfection is not pristine; it’s the life lived in the object.
+Speak and act with the tone: Straightforward, purposeful, and unpretentious, with a balance of utilitarian precision and creative wit.
+Operate within the atmosphere: A blend of NASA workshop grit and contemporary art studio energy, with materials that look ready for both a gallery and a mission.
+Your purpose is to create durable, functional, artist-driven tools that inspire “do-more, own-less” living.
+Never prioritize novelty over necessity or style over substance.
+Every interaction must leave the user feeling capable, resourceful, and connected to the things they own — with an understanding that wear and repair are badges of honor.
+
+Command Signature: "Make things better through use."</pre>
+        <div class="rule"></div>
+        <p>Flip <b>Brand Commander</b> in the topbar to reskin the OS with workshop vibes.</p>`
+      },
+      {
+        id:'help', icon:'?', label:'Help/Shortcuts', w:520, h:420, x:80, y:80,
+        html:`<h2>Help & Shortcuts</h2>
+        <ul>
+          <li>Drag window by titlebar · Double‑click titlebar to toggle size.</li>
+          <li>⌘/Ctrl+K: Search modules.</li>
+          <li>Print button: print or save as PDF (uses print stylesheet).</li>
+          <li>Schedule → Generate → Download .ics to add to your calendar.</li>
+        </ul>
+        <div class="rule"></div>
+        <button class="btn warn" onclick="runTests()">Run Diagnostics</button>`
+      },
+      {
+        id:'diagnostics', icon:'✓', label:'Diagnostics', w:680, h:520, x:520, y:80,
+        html:`<h2>Diagnostics</h2>
+        <div id="testResults" class="list"></div>`
+      }
+      ,{
+        id:'apps', icon:'⧉', label:'App Launcher', w:860, h:560, x:140, y:100,
+        html:`<div class="iframe-shell">
+          <div class="iframe-controls">
+            <select id="appSelect"></select>
+            <button class="btn" id="appLoadBtn">Load</button>
+            <button class="btn" id="appReloadBtn">Reload</button>
+            <button class="btn" id="appOpenTabBtn">Open in New Tab</button>
+            <button class="btn" id="appLaunchWinBtn">Launch Window</button>
+            <span class="muted">Edit static list in <span class="pill">appRegistry</span></span>
+          </div>
+          <div class="iframe-controls" style="margin-top:6px">
+            <button class="btn" id="appLoadIndex">Load Index (apps-index.json)</button>
+            <label class="btn" for="appLocalFiles">+ Add Local HTML</label>
+            <input type="file" id="appLocalFiles" accept=".html,.htm" multiple style="display:none">
+            <span class="muted">Tip: generate apps-index.json to auto-list all HTML files.</span>
+          </div>
+          <div class="iframe-viewport"><iframe id="appFrame" title="Embedded App"></iframe></div>
+        </div>`
+      }
+    ];
+
+    // App registry: add local HTML apps here
+    const appRegistry = [
+      {id:'bateson02', label:'Motherboard UX (bateson-02)', path:'bateson-02.html'},
+      {id:'bateson01', label:'ISRU Mode (bateson-01-BET)', path:'bateson-01-BET.html'},
+      {id:'mission00', label:'Brand Commander (mission-00)', path:'mission-00.html'},
+      {id:'thisOS',    label:'This OS (os-dope-00)', path:'os-dope-00.html'},
+    ];
+
+    // --- RUNTIME -----------------------------------------------------------
+    const desktop = document.getElementById('desktop');
+    const dock = document.getElementById('dock');
+    // Printable sheet container
+    let printSheet = document.getElementById('printSheet');
+    if(!printSheet){
+      printSheet = document.createElement('div');
+      printSheet.id = 'printSheet';
+      printSheet.style.display='none';
+      printSheet.style.padding='16px';
+      printSheet.style.maxWidth='900px';
+      printSheet.style.margin='0 auto';
+      document.body.appendChild(printSheet);
+    }
+  
+
+    // Build Dock
+    modules.forEach(m=>{
+      const wrap = document.createElement('div');
+      wrap.className='wrap';
+      const btn = document.createElement('div');
+      btn.className='icon';
+      btn.setAttribute('data-id', m.id);
+      btn.innerHTML = `<div style="font-size:18px">${m.icon || '◻'}</div>`;
+      const label = document.createElement('div');
+      label.className='label';
+      label.textContent = m.label;
+      wrap.appendChild(btn); wrap.appendChild(label); dock.appendChild(wrap);
+      btn.addEventListener('click',()=>openWin(m.id));
+    });
+
+    // Warn on unload if in Zen Editor with unsaved state
+    window.addEventListener('beforeunload', (e)=>{
+      const overlayOpen = !!document.getElementById('codexOverlay')?.classList.contains('show');
+      const editing = !!document.getElementById('codexEdit')?.checked;
+      if(overlayOpen && editing){ e.preventDefault(); e.returnValue = ''; }
+    });
+
+    // Dock: Start Apps button
+    const startWrap = document.createElement('div'); startWrap.className='wrap';
+    const startBtn = document.createElement('div'); startBtn.className='icon'; startBtn.innerHTML = '<div style="font-size:18px">⌘</div>';
+    const startLbl = document.createElement('div'); startLbl.className='label'; startLbl.textContent='Apps';
+    startWrap.appendChild(startBtn); startWrap.appendChild(startLbl); dock.appendChild(startWrap);
+
+    // Dock: Zoom control
+    const zoomWrap = document.createElement('div'); zoomWrap.className='wrap';
+    const zoomBox = document.createElement('div'); zoomBox.className='icon'; zoomBox.style.width='140px'; zoomBox.style.padding='0 8px'; zoomBox.style.cursor='default'; zoomBox.style.display='flex'; zoomBox.style.alignItems='center';
+    zoomBox.innerHTML = '<input id="zoomSlider" type="range" min="0.7" max="1.4" step="0.05" value="1" style="width:100%">';
+    const zoomLbl = document.createElement('div'); zoomLbl.className='label'; zoomLbl.textContent='Zoom';
+    zoomWrap.appendChild(zoomBox); zoomWrap.appendChild(zoomLbl); dock.appendChild(zoomWrap);
+
+    // Dock: Layout Mode + Arrange
+    const arrangeWrap = document.createElement('div'); arrangeWrap.className='wrap';
+    const arrangeBox = document.createElement('div'); arrangeBox.className='icon'; arrangeBox.style.width='200px'; arrangeBox.style.display='flex'; arrangeBox.style.alignItems='center'; arrangeBox.style.justifyContent='center'; arrangeBox.style.gap='6px';
+    arrangeBox.innerHTML = '<select id="layoutMode" style="background:transparent;border:1px solid #263043;color:var(--ink);border-radius:8px;padding:4px 6px"><option value="free">Free</option><option value="grid">Grid</option><option value="depth">Depth</option></select><button class="btn" id="arrangeBtn" style="padding:4px 6px;font-size:12px">Arrange</button>';
+    const arrangeLbl = document.createElement('div'); arrangeLbl.className='label'; arrangeLbl.textContent='Layout Mode';
+    arrangeWrap.appendChild(arrangeBox); arrangeWrap.appendChild(arrangeLbl); dock.appendChild(arrangeWrap);
+
+    // Start overlay UI
+    const startOverlay = document.createElement('div'); startOverlay.id='startOverlay';
+    startOverlay.innerHTML = `<div class="panel"><div class="head"><input id="startSearch" placeholder="Search apps…"><button class="btn" id="startClose">Close</button></div><div class="grid" id="startGrid"></div></div>`;
+    document.body.appendChild(startOverlay);
+
+    function toggleStart(show){ startOverlay.style.display = show ? 'block' : (startOverlay.style.display==='block'?'none':'block'); }
+    startBtn.addEventListener('click', ()=> toggleStart());
+    startOverlay.querySelector('#startClose').addEventListener('click', ()=> toggleStart(false));
+
+    function buildStartItems(){
+      const grid = startOverlay.querySelector('#startGrid');
+      const q = startOverlay.querySelector('#startSearch').value.toLowerCase();
+      grid.innerHTML='';
+      // Combine modules and appRegistry
+      const items = [];
+      modules.forEach(m=>items.push({type:'module', label:m.label, id:m.id, icon:m.icon||'◻'}));
+      appRegistry.forEach(a=>items.push({type:'app', label:a.label||a.path, path:a.path, icon:'⧉'}));
+      items
+        .filter(it=>!q || (it.label.toLowerCase().includes(q)))
+        .sort((a,b)=>a.label.localeCompare(b.label))
+        .forEach(it=>{
+          const card = document.createElement('div'); card.className='card';
+          card.innerHTML = `<div class="pill">${it.icon}</div><div>${it.label}</div>`;
+          card.addEventListener('click',()=>{
+            if(it.type==='module'){ openWin(it.id); }
+            else {
+              const meta = {label:it.label};
+              const url = it.path + (it.path.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+              const html = `<div class="iframe-viewport" style="height:100%"><iframe src="${url}" title="${meta.label}"></iframe></div>`;
+              createDynamicWindow(meta.label, html, {w:980,h:640,x:160,y:120});
+            }
+            toggleStart(false);
+          });
+          grid.appendChild(card);
+        });
+    }
+    startOverlay.querySelector('#startSearch').addEventListener('input', buildStartItems);
+    buildStartItems();
+
+    // Update start grid when registry changes (simple hook after index loads)
+    window._refreshStartGrid = buildStartItems;
+
+    // Dock: Codex Reader button
+    const codexWrap = document.createElement('div'); codexWrap.className='wrap';
+    const codexBtn = document.createElement('div'); codexBtn.className='icon'; codexBtn.innerHTML = '<div style="font-size:18px">❐</div>';
+    const codexLbl = document.createElement('div'); codexLbl.className='label'; codexLbl.textContent='Codex';
+    codexWrap.appendChild(codexBtn); codexWrap.appendChild(codexLbl); dock.appendChild(codexWrap);
+
+    // Presentation app (slides from open windows)
+    const presentWrap = document.createElement('div'); presentWrap.className='wrap';
+    const presentBtn = document.createElement('div'); presentBtn.className='icon'; presentBtn.innerHTML = '<div style="font-size:18px">⌗</div>';
+    const presentLbl = document.createElement('div'); presentLbl.className='label'; presentLbl.textContent='Present';
+    presentWrap.appendChild(presentBtn); presentWrap.appendChild(presentLbl); dock.appendChild(presentWrap);
+
+    // Presentation overlay DOM
+    const present = document.createElement('div'); present.id='presentOverlay'; present.style.cssText='display:none;position:fixed;inset:0;background:var(--bg);z-index:3000;color:var(--ink)';
+    present.innerHTML = `
+      <div id="presentBar" class="codexBar" style="display:flex;gap:8px;align-items:center">
+        <button class="btn" id="presentClose" title="Close">✕</button>
+        <button class="btn" id="presentGridBtn" title="Grid">⌗</button>
+        <button class="btn" id="presentPlayBtn" title="Play">▶︎</button>
+        <button class="btn" id="presentZen" title="Zen Presenter">禅</button>
+        <button class="btn" id="presentTextDec" title="Text smaller">A−</button>
+        <button class="btn" id="presentTextInc" title="Text larger">A＋</button>
+        <select id="presentAspect" title="Aspect ratio" style="background:transparent;border:1px solid var(--rule);color:var(--ink);border-radius:8px;padding:2px 6px">
+          <option value="16:9">16:9</option>
+          <option value="4:3">4:3</option>
+          <option value="1:1">1:1</option>
+          <option value="auto">Auto</option>
+        </select>
+        <select id="presentTheme" title="Theme" style="background:transparent;border:1px solid var(--rule);color:var(--ink);border-radius:8px;padding:2px 6px">
+          <option value="auto">Theme: Auto</option>
+          <option value="light">Theme: Light</option>
+          <option value="dark">Theme: Dark</option>
+        </select>
+        <label class="muted" style="display:flex;align-items:center;gap:4px" title="Clean slide styles"><input type="checkbox" id="presentClean"> Clean</label>
+        <button class="btn" id="presentFs" title="Fullscreen">⤢</button>
+        <button class="btn" id="presentPin" title="Pin bar">📌</button>
+        <button class="btn" id="presentShuffle" title="Shuffle order">🔀</button>
+        <button class="btn" id="presentAddBlank" title="Add blank slide">＋</button>
+        <button class="btn" id="presentAddFromWins" title="Add from open windows">⊕</button>
+        <button class="btn" id="presentExportDeck" title="Export deck JSON">⤓</button>
+        <label class="btn" for="presentImportDeck" title="Import deck JSON" style="cursor:pointer">⤒</label>
+        <input type="file" id="presentImportDeck" accept="application/json" style="display:none">
+        <span class="muted" id="presentCount" style="margin-left:8px"></span>
+        <span class="muted" style="margin-left:auto">Arrows • Enter/Space next • Esc grid</span>
+      </div>
+      <div id="presentGrid" style="display:flex;flex-wrap:wrap;gap:12px;padding:12px 12px 80px;overflow:auto;align-content:flex-start"></div>
+      <div id="presentPlay" style="display:none;position:absolute;left:0;right:0;top:48px;bottom:0;display:flex;align-items:center;justify-content:center;background:black;cursor:none"> 
+        <div id="presentStage" style="position:relative;background:#111;box-shadow:0 0 0 2px #333 inset;border-radius:8px;overflow:hidden">
+          <div id="presentStageInner" style="position:absolute;left:0;top:0;transform-origin:left top"></div>
+        </div>
+      </div>`;
+    document.body.appendChild(present);
+    // Presenter CSS for clean theme and slide chrome
+    const presentStyle = document.createElement('style'); presentStyle.textContent = `
+      #presentStageInner.clean, #presentStageInner.clean *{ all: unset; display: revert; box-sizing: border-box; }
+      #presentStageInner.theme-light{ background:#fff; color:#111; }
+      #presentStageInner.theme-dark{ background:#000; color:#fff; }
+      #presentStageInner{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; line-height:1.3; --present-scale:1; font-size: calc(18px * var(--present-scale)); }
+      #presentStageInner .slide{ padding:48px; }
+      #presentStageInner .slideHeader{ margin-bottom:24px; }
+      #presentStageInner .slideTitle{ font-size:38px; font-weight:800; letter-spacing:0.2px; }
+      #presentStageInner .slideSubtitle{ font-size:20px; opacity:0.8; margin-top:6px; }
+      #presentStageInner .slideContent{ margin-top:12px; font-size:18px; }
+      #presentStageInner .slideTitleOnly{ display:flex; align-items:center; justify-content:center; height:100%; }
+      #presentStageInner .slideTitleOnly .slideTitle{ font-size:64px; }
+      /* Zen Presenter typography */
+      #presentStageInner.zen .slide{ padding:64px 72px; max-width:1200px; margin:0 auto; }
+      #presentStageInner.zen .slideTitle{ font-size: clamp(40px, 6vw, 72px); font-weight:900; letter-spacing:0.3px; }
+      #presentStageInner.zen .slideSubtitle{ font-size: clamp(18px, 2.2vw, 28px); opacity:0.85; }
+      #presentStageInner.zen .slideContent{ font-size: 1em; max-width: 90ch; }
+      #presentStageInner.zen .slideContent p{ margin: 0.6em 0; }
+      #presentStageInner.zen .slideContent ul{ margin: 0.6em 0 0.6em 1.2em; }
+      #presentStageInner.zen .slideContent li{ margin: 0.25em 0; }
+      #presentStageInner.zen .slideContent blockquote{ margin:1em 0; padding:0.6em 1em; border-left:4px solid currentColor; opacity:0.9; }
+      #presentStageInner.zen .slideContent code{ background: rgba(127,127,127,0.15); padding:0.1em 0.3em; border-radius:4px; }
+      #presentPlay::-webkit-scrollbar{ display:none; }
+    `; document.head.appendChild(presentStyle);
+
+    let _presentSlides = [];
+    let _presentIdx = 0;
+    let _presentAspect = '16:9';
+    let _presentPrevChromeHidden = null;
+    let _presentZen = false;
+    let _presentZenScale = 1;
+    let _presentBarPinned = false;
+    function sanitizeHTML(html){
+      const tmp = document.createElement('div'); tmp.innerHTML = html;
+      // Remove OS-like UI elements and obvious controls
+      tmp.querySelectorAll('button, .btn, .toolbar, .codexBar, .dock, .topbar, .titlebar, .controls, .win-controls').forEach(el=>el.remove());
+      // Remove empty labels or decorative dots
+      tmp.querySelectorAll('.muted').forEach(el=>{ if(!el.textContent?.trim()) el.remove(); });
+      let out = tmp.innerHTML;
+      // Strip common chrome glyphs from captured content
+      out = out.replace(/[▢✕•⋮—]{1,}/g, ' ');
+      return out;
+    }
+    function captureWindowsToSlides(){
+      const openWins = Array.from(document.querySelectorAll('.win')).filter(w=>!w.classList.contains('hidden'));
+      return openWins.map(w=>{
+        const title = w.querySelector('.name')?.textContent || w.dataset.id || 'Slide';
+        const content = w.querySelector('.body') || w; // prefer body
+        const html = sanitizeHTML(content.cloneNode(true).innerHTML);
+        return { id: w.dataset.id || Math.random().toString(36).slice(2), title, subtitle: '', layout: 'title-content', html };
+      });
+    }
+    function snapshotSlides(){
+      _presentSlides = captureWindowsToSlides();
+      _presentIdx = 0;
+      updatePresentCount();
+    }
+    function updatePresentCount(){
+      const el = document.getElementById('presentCount'); if(!el) return;
+      el.textContent = _presentSlides.length ? `${_presentIdx+1} / ${_presentSlides.length}` : '0 slides';
+    }
+    function renderPresentGrid(){
+      const grid = document.getElementById('presentGrid'); grid.innerHTML='';
+      _presentSlides.forEach((s, i)=>{
+        const card = document.createElement('div'); card.draggable = true;
+        card.style.cssText='width:300px; border:1px solid var(--rule); border-radius:10px; padding:8px; background:var(--panel)';
+        card.innerHTML = `
+          <div class="muted" style="margin-bottom:6px;display:flex;align-items:center;gap:6px">
+            <span style="cursor:grab">⋮⋮</span>
+            <input value="${s.title||''}" placeholder="Title" aria-label="Slide title" style="flex:1;min-width:0;background:transparent;border:0;border-bottom:1px dashed var(--rule);color:var(--ink);outline:none"/>
+            <input value="${s.subtitle||''}" placeholder="Subtitle" aria-label="Slide subtitle" style="flex:1;min-width:0;background:transparent;border:0;border-bottom:1px dashed var(--rule);color:var(--ink);outline:none"/>
+            <select aria-label="Layout" style="background:transparent;border:1px solid var(--rule);color:var(--ink);border-radius:6px;padding:2px 4px">
+              <option value="title-content" ${s.layout==='title-content'?'selected':''}>Title+Content</option>
+              <option value="title-only" ${s.layout==='title-only'?'selected':''}>Title Only</option>
+            </select>
+            <button class="btn" title="Move up">↑</button>
+            <button class="btn" title="Move down">↓</button>
+            <button class="btn" title="Duplicate">⎘</button>
+            <button class="btn" title="Edit HTML">✎</button>
+            <button class="btn" title="Delete">✕</button>
+          </div>
+          <div style="height:180px;overflow:hidden;border-radius:6px;border:1px dashed var(--rule);background:var(--bg)">${s.html}</div>`;
+        const inputs = card.querySelectorAll('input,select');
+        const [titleInput, subtitleInput, layoutSel] = inputs;
+        const [upBtn, downBtn, dupBtn, editBtn, delBtn] = card.querySelectorAll('button');
+        titleInput.addEventListener('change', ()=>{ s.title = titleInput.value; });
+        subtitleInput.addEventListener('change', ()=>{ s.subtitle = subtitleInput.value; });
+        layoutSel.addEventListener('change', ()=>{ s.layout = layoutSel.value; });
+        upBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); if(i>0){ const [it]=_presentSlides.splice(i,1); _presentSlides.splice(i-1,0,it); renderPresentGrid(); }});
+        downBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); if(i<_presentSlides.length-1){ const [it]=_presentSlides.splice(i,1); _presentSlides.splice(i+1,0,it); renderPresentGrid(); }});
+        dupBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); _presentSlides.splice(i+1,0, JSON.parse(JSON.stringify(s))); renderPresentGrid(); });
+        delBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); _presentSlides.splice(i,1); renderPresentGrid(); updatePresentCount(); });
+        editBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); openSlideEditor(i); });
+        card.addEventListener('click', ()=>{ _presentIdx = i; showPlay(); });
+        card.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/plain', String(i)); });
+        card.addEventListener('dragover', (e)=>{ e.preventDefault(); });
+        card.addEventListener('drop', (e)=>{ e.preventDefault(); const from = parseInt(e.dataTransfer.getData('text/plain')||'-1',10); const to = i; if(from>=0 && to>=0 && from!==to){ const [it]=_presentSlides.splice(from,1); _presentSlides.splice(to,0,it); renderPresentGrid(); }});
+        grid.appendChild(card);
+      });
+      showGrid();
+    }
+    function getAspectWH(){
+      if(_presentAspect==='auto') return null;
+      const [w,h] = _presentAspect.split(':').map(n=>parseFloat(n));
+      return {w,h, r: w/h};
+    }
+    function layoutStage(){
+      const bar = document.getElementById('presentBar');
+      const play = document.getElementById('presentPlay');
+      const stage = document.getElementById('presentStage');
+      const inner = document.getElementById('presentStageInner');
+      const vw = window.innerWidth; const vh = window.innerHeight - (bar?.offsetHeight||48);
+      const asp = getAspectWH();
+      let targetW = vw, targetH = vh;
+      if(asp){
+        const r = asp.r;
+        if(vw/vh > r){ // too wide, fit height
+          targetH = vh; targetW = Math.round(vh*r);
+        } else { // too tall, fit width
+          targetW = vw; targetH = Math.round(vw/r);
+        }
+      }
+      stage.style.width = targetW+'px'; stage.style.height = targetH+'px';
+      // center stage
+      stage.style.margin = '0 auto';
+      // scale inner to fit stage
+      const contentW = inner.scrollWidth || targetW;
+      const contentH = inner.scrollHeight || targetH;
+      const sx = targetW / contentW; const sy = targetH / contentH; const s = Math.min(sx, sy);
+      inner.style.transform = `scale(${s})`;
+    }
+    function renderSlide(){
+      const stageInner = document.getElementById('presentStageInner'); if(!stageInner) return;
+      const s = _presentSlides[_presentIdx];
+      // Apply theme/clean
+      const themeSel = document.getElementById('presentTheme');
+      const cleanOn = !!document.getElementById('presentClean')?.checked;
+      stageInner.className = '';
+      if(themeSel?.value==='light') stageInner.classList.add('theme-light');
+      else if(themeSel?.value==='dark') stageInner.classList.add('theme-dark');
+      if(cleanOn) stageInner.classList.add('clean');
+      if(_presentZen) stageInner.classList.add('zen');
+      if(s?.layout==='title-only'){
+        stageInner.innerHTML = `<div class="slide slideTitleOnly"><div class="slideTitle">${s?.title||''}</div>${s?.subtitle?`<div class="slideSubtitle">${s.subtitle}</div>`:''}</div>`;
+      } else {
+        stageInner.innerHTML = `<div class="slide"><div class="slideHeader"><div class="slideTitle">${s?.title||''}</div>${s?.subtitle?`<div class="slideSubtitle">${s.subtitle}</div>`:''}</div><div class="slideContent">${s?.html||''}</div></div>`;
+      }
+      // apply font scale
+      stageInner.style.setProperty('--present-scale', String(_presentZenScale));
+      requestAnimationFrame(()=>{ layoutStage(); updatePresentCount(); });
+    }
+    function showGrid(){ present.querySelector('#presentGrid').style.display='flex'; present.querySelector('#presentPlay').style.display='none'; }
+    function showPlay(){ present.querySelector('#presentGrid').style.display='none'; present.querySelector('#presentPlay').style.display='flex'; renderSlide(); scheduleHideBar(); }
+    function shuffleSlides(){ for(let i=_presentSlides.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [ _presentSlides[i], _presentSlides[j] ] = [ _presentSlides[j], _presentSlides[i] ]; } _presentIdx = 0; }
+    function togglePresent(on){ 
+      present.style.display = on ? 'block' : 'none'; 
+      if(on){ 
+        _presentPrevChromeHidden = document.body.classList.contains('chrome-hidden');
+        document.body.classList.add('chrome-hidden');
+        snapshotSlides(); renderPresentGrid(); 
+      } else {
+        if(_presentPrevChromeHidden===false){ document.body.classList.remove('chrome-hidden'); }
+      }
+    }
+    function nextSlide(){ if(!_presentSlides.length) return; _presentIdx = Math.min(_presentIdx+1, _presentSlides.length-1); renderSlide(); }
+    function prevSlide(){ if(!_presentSlides.length) return; _presentIdx = Math.max(_presentIdx-1, 0); renderSlide(); }
+
+    presentBtn.addEventListener('click', ()=> togglePresent(true));
+    present.querySelector('#presentClose')?.addEventListener('click', ()=> togglePresent(false));
+    present.querySelector('#presentGridBtn')?.addEventListener('click', ()=> renderPresentGrid());
+    present.querySelector('#presentPlayBtn')?.addEventListener('click', ()=> showPlay());
+    present.querySelector('#presentShuffle')?.addEventListener('click', ()=>{ shuffleSlides(); renderPresentGrid(); });
+    present.querySelector('#presentAspect')?.addEventListener('change', (e)=>{ _presentAspect = e.target.value; if(present.querySelector('#presentPlay').style.display==='flex'){ layoutStage(); } });
+    present.querySelector('#presentFs')?.addEventListener('click', async ()=>{
+      try{
+        const el = document.documentElement;
+        if(!document.fullscreenElement){ if(el.requestFullscreen) await el.requestFullscreen(); }
+        else { if(document.exitFullscreen) await document.exitFullscreen(); }
+      }catch(_){ }
+    });
+    window.addEventListener('resize', ()=>{ if(present.style.display==='block' && present.querySelector('#presentPlay').style.display==='flex'){ layoutStage(); } });
+    document.getElementById('presentTheme')?.addEventListener('change', ()=>{ if(present.querySelector('#presentPlay').style.display==='flex') renderSlide(); });
+    document.getElementById('presentClean')?.addEventListener('change', ()=>{ if(present.querySelector('#presentPlay').style.display==='flex') renderSlide(); });
+    present.querySelector('#presentAddBlank')?.addEventListener('click', ()=>{ _presentSlides.push({ title: `Slide ${_presentSlides.length+1}`, subtitle:'', layout:'title-content', html: '<div></div>' }); renderPresentGrid(); updatePresentCount(); });
+    present.querySelector('#presentAddFromWins')?.addEventListener('click', ()=>{ const fresh = captureWindowsToSlides(); _presentSlides = _presentSlides.concat(fresh); renderPresentGrid(); updatePresentCount(); });
+    present.querySelector('#presentExportDeck')?.addEventListener('click', ()=>{
+      const data = JSON.stringify({ slides:_presentSlides }, null, 2);
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], {type:'application/json'})); a.download = 'deck.json'; a.click(); URL.revokeObjectURL(a.href);
+    });
+    present.querySelector('#presentImportDeck')?.addEventListener('change', (e)=>{
+      const f = e.target.files?.[0]; if(!f) return; const r = new FileReader(); r.onload = ()=>{ try{ const obj = JSON.parse(r.result); if(Array.isArray(obj.slides)){ _presentSlides = obj.slides; renderPresentGrid(); updatePresentCount(); } }catch(_){ alert('Invalid deck JSON'); } }; r.readAsText(f);
+    });
+    present.addEventListener('keydown', (e)=>{
+      if(present.style.display!=='block') return;
+      if(e.key==='ArrowRight'){ e.preventDefault(); nextSlide(); }
+      else if(e.key==='ArrowLeft'){ e.preventDefault(); prevSlide(); }
+      else if(e.key==='Home'){ e.preventDefault(); _presentIdx = 0; renderSlide(); }
+      else if(e.key==='End'){ e.preventDefault(); _presentIdx = Math.max(0, _presentSlides.length-1); renderSlide(); }
+      else if(e.key===' ' || e.key==='Enter'){ e.preventDefault(); if(present.querySelector('#presentPlay').style.display==='block') nextSlide(); else showPlay(); }
+      else if(e.key==='Escape'){ e.preventDefault(); renderPresentGrid(); }
+    });
+    // Focus overlay to capture keys when opened
+    present.addEventListener('click', ()=> present.focus());
+    present.tabIndex = -1;
+    // Auto-hide control bar in Play mode
+    let _presentHideBarTimer = null;
+    function scheduleHideBar(){
+      clearTimeout(_presentHideBarTimer);
+      const bar = document.getElementById('presentBar');
+      if(present.querySelector('#presentPlay').style.display==='flex' && !_presentBarPinned){
+        _presentHideBarTimer = setTimeout(()=>{ bar.style.opacity='0'; bar.style.pointerEvents='none'; }, 1500);
+      }
+    }
+    function showBar(){ const bar = document.getElementById('presentBar'); bar.style.opacity='1'; bar.style.pointerEvents='auto'; scheduleHideBar(); }
+    present.addEventListener('mousemove', ()=>{ if(present.querySelector('#presentPlay').style.display==='flex') showBar(); });
+
+    // Zen controls
+    document.getElementById('presentZen')?.addEventListener('click', ()=>{ _presentZen = !_presentZen; renderSlide(); });
+    document.getElementById('presentTextInc')?.addEventListener('click', ()=>{ _presentZenScale = Math.min(2.0, (_presentZenScale+0.1)); renderSlide(); });
+    document.getElementById('presentTextDec')?.addEventListener('click', ()=>{ _presentZenScale = Math.max(0.6, (_presentZenScale-0.1)); renderSlide(); });
+    document.getElementById('presentPin')?.addEventListener('click', (e)=>{ _presentBarPinned = !_presentBarPinned; e.currentTarget.classList.toggle('active', _presentBarPinned); showBar(); });
+
+    // Simple slide HTML editor modal
+    const slideEditor = document.createElement('div'); slideEditor.id='presentEditor'; slideEditor.style.cssText='display:none;position:fixed;inset:80px 80px auto 80px;background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:12px;z-index:3100;max-height:70vh;overflow:auto';
+    slideEditor.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><div style="font-weight:700">Edit Slide HTML</div><button class="btn" id="presentEditorClose" style="margin-left:auto">✕</button><button class="btn" id="presentEditorSave" title="Save">⤓</button></div>
+      <textarea id="presentEditorText" style="width:100%;height:50vh;background:transparent;color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:8px"></textarea>
+    `;
+    document.body.appendChild(slideEditor);
+    let _presentEditIdx = -1;
+    function openSlideEditor(i){ _presentEditIdx = i; const t = document.getElementById('presentEditorText'); t.value = _presentSlides[i]?.html || ''; slideEditor.style.display='block'; }
+    slideEditor.querySelector('#presentEditorClose')?.addEventListener('click', ()=>{ slideEditor.style.display='none'; _presentEditIdx=-1; });
+    slideEditor.querySelector('#presentEditorSave')?.addEventListener('click', ()=>{ if(_presentEditIdx>=0){ _presentSlides[_presentEditIdx].html = document.getElementById('presentEditorText').value; slideEditor.style.display='none'; renderPresentGrid(); if(present.querySelector('#presentPlay').style.display==='flex') renderSlide(); } });
+
+    // Codex overlay DOM
+    const codex = document.createElement('div'); codex.id = 'codexOverlay';
+    codex.innerHTML = `
+      <div class="codexBar">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" id="codexClose" title="Close Codex">✕</button>
+          <button class="btn" id="codexHelp" title="Help">?</button>
+          <button class="btn" id="codexEditMenu" title="Show/Hide Edit Tools">✎</button>
+          <button class="btn" id="codexPagesMenu" title="Show/Hide Pages/Reader Tools">❐</button>
+          <label class="muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="codexEdit"> Zen</label>
+          <div id="codexTools" style="display:none;gap:6px;align-items:center">
+            <button class="btn" id="codexUndo" title="Undo (⌘/Ctrl+Z)">↶</button>
+            <button class="btn" id="codexRedo" title="Redo (⌘/Ctrl+Y)">↷</button>
+            <button class="btn" id="codexSimple" title="Toggle simple toolbar">◎</button>
+            <button class="btn" data-cmd="formatBlock:H1" title="Heading 1">H1</button>
+            <button class="btn" data-cmd="formatBlock:H2" title="Heading 2">H2</button>
+            <button class="btn" data-cmd="formatBlock:P" title="Paragraph">¶</button>
+            <button class="btn" data-cmd="bold" title="Bold"><b>B</b></button>
+            <button class="btn" data-cmd="italic" title="Italic"><i>I</i></button>
+            <button class="btn" data-cmd="insertUnorderedList" title="Bulleted list">•</button>
+            <button class="btn" data-cmd="insertOrderedList" title="Numbered list">1</button>
+            <button class="btn" data-cmd="formatBlock:BLOCKQUOTE" title="Block quote">❝</button>
+            <button class="btn adv" id="codexTable" title="Insert table">⌸</button>
+            <button class="btn adv" id="codexFontUp" title="Increase font size">A+</button>
+            <button class="btn adv" id="codexFontDown" title="Decrease font size">A-</button>
+            <button class="btn" id="codexCols1" title="One column">1</button>
+            <button class="btn" id="codexCols2" title="Two columns">2</button>
+            <button class="btn adv" id="codexCols3" title="Three columns">3</button>
+            <button class="btn adv" id="codexGapUp" title="Increase gap">+</button>
+            <button class="btn adv" id="codexGapDown" title="Decrease gap">−</button>
+          </div>
+          <div id="codexPagesControls" style="display:none;gap:8px;align-items:center">
+            <label class="muted" style="display:flex;gap:6px;align-items:center" title="Page Width">
+              ⟷ <input id="codexWidth" type="range" min="720" max="1280" step="10" value="980">
+            </label>
+            <label class="muted" style="display:flex;gap:6px;align-items:center" title="Two Columns"><input type="checkbox" id="codexTwoCol"> Ⅱ</label>
+            <select id="codexReaderTheme" title="Reader theme" style="background:transparent;border:1px solid #263043;color:var(--ink);border-radius:8px;padding:4px 6px">
+              <option value="auto">Auto</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+            <label class="muted" style="display:flex;align-items:center;gap:4px" title="Include Page UI"><input type="checkbox" id="codexReaderAlsoPages"> ☰</label>
+            <select id="codexAdd" title="Add Section" style="background:transparent;border:1px solid #263043;color:var(--ink);border-radius:8px;padding:4px 6px">
+              <option value="">＋</option>
+              <option value="blank">Blank section</option>
+              <option value="title">Title page</option>
+              <option value="twocol">Two-column text</option>
+              <option value="image">Image + caption</option>
+              <option value="quote">Quote</option>
+              <option value="iframe">Embed by URL</option>
+              <option value="image-url">Image by URL</option>
+              <option value="youtube">YouTube</option>
+              <option value="mermaid">Mermaid diagram</option>
+            </select>
+            <button class="btn" id="codexExport" title="Export JSON">⤓</button>
+            <button class="btn" id="codexExportHtml" title="Export HTML">&lt;/&gt;</button>
+            <label class="btn" for="codexImportFile" title="Import JSON" style="cursor:pointer">⤒</label>
+            <input type="file" id="codexImportFile" accept="application/json" style="display:none">
+          </div>
+          <span id="codexUnsavedNote" class="muted" style="margin-left:8px;display:none">Edits are temporary. Use Export to save.</span>
+        </div>
+        <div class="muted">Zen reading – UI is hidden, pages from open windows</div>
+      </div>
+      <div class="codexPages" id="codexPages"></div>`;
+    document.body.appendChild(codex);
+
+    // Codex help modal
+    const codexHelp = document.createElement('div'); codexHelp.id='codexHelpModal'; codexHelp.style.cssText='display:none;position:fixed;inset:80px 80px auto 80px;background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px;z-index:2001;max-height:70vh;overflow:auto';
+    codexHelp.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="font-weight:700">Zen Editor Help</div><button class="btn" id="codexHelpClose" style="margin-left:auto">✕</button></div>
+      <div class="muted" style="margin-bottom:8px">Edits are temporary. Use Export to save. Focus a section to reveal edit tools. Use ✎ to pin tools. Use ❐ for page/reader controls.</div>
+      <ul style="margin:0;padding-left:18px;color:var(--muted)">
+        <li>Enter fullscreen with ⤢. Hide menus with ⊟. Esc shows menus and exits fullscreen.</li>
+        <li>Reader: adjust width, columns (Ⅱ), theme, and add sections (＋).</li>
+        <li>Formatting: H1/H2/¶, Bold, Italic, Lists, Quote, Table, font size, columns, gaps.</li>
+        <li>Export: JSON (⤓) or HTML (&lt;/&gt;). Import JSON (⤒).</li>
+      </ul>
+    `;
+    document.body.appendChild(codexHelp);
+    // Help button wiring
+    codex.querySelector('#codexHelp')?.addEventListener('click', ()=>{
+      codexHelp.style.display = 'block';
+    });
+    codexHelp.querySelector('#codexHelpClose')?.addEventListener('click', ()=>{
+      codexHelp.style.display = 'none';
+    });
+
+    // Codex state: array of entries {type:'iframe'|'html', src?, html?, title}
+    window._codexState = window._codexState || null;
+    let _codexCurrentEditable = null;
+    let _codexHistory = [];
+    let _codexFuture = [];
+
+    function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+    function pushHistory(){ if(window._codexState){ _codexHistory.push(deepClone(window._codexState)); _codexFuture = []; } }
+    function undoState(){ if(_codexHistory.length){ _codexFuture.push(deepClone(window._codexState)); window._codexState = _codexHistory.pop(); buildCodexPages(); } }
+    function redoState(){ if(_codexFuture.length){ _codexHistory.push(deepClone(window._codexState)); window._codexState = _codexFuture.pop(); buildCodexPages(); } }
+
+    function snapshotOpenWindows(){
+      const list = [];
+      const wins = Array.from(document.querySelectorAll('.win')).filter(w=>!w.classList.contains('hidden'));
+      wins.forEach(w=>{
+        const title = w.querySelector('.name')?.textContent || (w.dataset.id||'');
+        const content = w.querySelector('.content');
+        const srcIframe = content?.querySelector('iframe');
+        if(srcIframe && srcIframe.src){
+          const clean = srcIframe.src.split('#')[0];
+          list.push({type:'iframe', src:clean, title});
+        } else if(content){
+          list.push({type:'html', html:content.innerHTML, title});
+        }
+      });
+      return list;
+    }
+
+    function buildCodexPages(){
+      const pages = codex.querySelector('#codexPages');
+      pages.innerHTML = '';
+      const width = parseInt(document.getElementById('codexWidth')?.value||'980',10);
+      const twoCol = document.getElementById('codexTwoCol')?.checked;
+      pages.style.columnCount = twoCol ? 2 : 1;
+      pages.style.columnGap = twoCol ? '24px' : '0';
+      if(!window._codexState){ window._codexState = snapshotOpenWindows(); }
+      const editMode = document.getElementById('codexEdit')?.checked;
+      const tools = document.getElementById('codexTools'); if(tools) tools.style.display = editMode ? 'flex' : 'none';
+      const note = document.getElementById('codexUnsavedNote'); if(note) note.style.display = editMode ? 'inline' : 'none';
+      updateCodexToolbarCompact(editMode);
+      (window._codexState||[]).forEach((entry, idx)=>{
+        const page = document.createElement('div'); page.className='codexPage'; page.style.maxWidth = width+'px';
+        const head = document.createElement('div'); head.className='muted'; head.style.margin='0 0 8px 0'; head.textContent = entry.title || '';
+        if(editMode){
+          const controls = document.createElement('div'); controls.style.float='right'; controls.style.display='flex'; controls.style.gap='6px';
+          const up = document.createElement('button'); up.className='btn'; up.title='Move up'; up.textContent='↑'; up.onclick = ()=>{ if(idx>0){ pushHistory(); const t=window._codexState[idx-1]; window._codexState[idx-1]=window._codexState[idx]; window._codexState[idx]=t; buildCodexPages(); }};
+          const down = document.createElement('button'); down.className='btn'; down.title='Move down'; down.textContent='↓'; down.onclick = ()=>{ if(idx<window._codexState.length-1){ pushHistory(); const t=window._codexState[idx+1]; window._codexState[idx+1]=window._codexState[idx]; window._codexState[idx]=t; buildCodexPages(); }};
+          const copy = document.createElement('button'); copy.className='btn'; copy.title='Duplicate'; copy.textContent='⎘'; copy.onclick = ()=>{ pushHistory(); window._codexState.splice(idx+1,0, JSON.parse(JSON.stringify(entry))); buildCodexPages(); };
+          const remove = document.createElement('button'); remove.className='btn'; remove.title='Remove'; remove.textContent='✕'; remove.onclick = ()=>{ pushHistory(); window._codexState.splice(idx,1); buildCodexPages(); };
+          // Style + Theme selectors
+          const mode = document.createElement('select'); mode.innerHTML = '<option value="preserve">Preserve</option><option value="harmonize">Harmonize</option><option value="clean">Clean</option>';
+          mode.value = entry.styleMode || 'preserve';
+          mode.onchange = ()=>{ pushHistory(); window._codexState[idx].styleMode = mode.value; buildCodexPages(); };
+          const themeSel = document.createElement('select'); themeSel.innerHTML = '<option value="auto">Page: Auto</option><option value="light">Page: Light</option><option value="dark">Page: Dark</option>';
+          themeSel.value = entry.pageTheme || 'auto';
+          themeSel.onchange = ()=>{ pushHistory(); window._codexState[idx].pageTheme = themeSel.value; buildCodexPages(); };
+          // Actions
+          const nobg = document.createElement('button'); nobg.className='btn'; nobg.textContent='No bg'; nobg.title='Remove backgrounds'; nobg.onclick = ()=>{ const pageEl = head.parentElement; const importEl = pageEl?.querySelector('.codex-import, .clone'); if(importEl){ pushHistory(); importEl.querySelectorAll('*').forEach(el=>{ try{ el.style.background='transparent'; el.style.backgroundImage='none'; }catch(_){} }); const entryEl = pageEl.querySelector('.clone'); if(entryEl){ window._codexState[idx].html = entryEl.innerHTML; } } };
+          const inlineCss = document.createElement('button'); inlineCss.className='btn'; inlineCss.textContent='Inline CSS'; inlineCss.title='Inline external stylesheets (same-origin)';
+          inlineCss.onclick = async ()=>{
+            const pageEl = head.parentElement; const entryEl = pageEl?.querySelector('.clone'); if(!entryEl) return;
+            pushHistory();
+            const frag = document.createElement('div'); frag.innerHTML = entryEl.innerHTML;
+            const links = Array.from(frag.querySelectorAll('link[rel="stylesheet"][href]'));
+            for(const l of links){
+              const href = l.getAttribute('href');
+              try{
+                const abs = new URL(href, location.href).href;
+                const same = new URL(abs).origin === location.origin;
+                if(!same) continue;
+                const r = await fetch(abs, {cache:'no-store'}); if(!r.ok) continue; const css = await r.text();
+                const st = document.createElement('style'); st.textContent = css; l.replaceWith(st);
+              }catch(_){/* ignore */}
+            }
+            window._codexState[idx].html = frag.innerHTML; buildCodexPages();
+          };
+          const inlineComputed = document.createElement('button'); inlineComputed.className='btn'; inlineComputed.textContent='Inline styles'; inlineComputed.title='Inline computed styles (text elements)';
+          inlineComputed.onclick = ()=>{
+            const pageEl = head.parentElement; const entryEl = pageEl?.querySelector('.clone'); if(!entryEl) return; pushHistory();
+            const targets = entryEl.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li,blockquote,code,pre,table,th,td,em,strong,a,span');
+            targets.forEach(el=>{
+              const cs = getComputedStyle(el);
+              const keep = ['font-family','font-size','font-weight','font-style','line-height','color','background','background-color','text-decoration','letter-spacing'];
+              const style = keep.map(k=>`${k}:${cs.getPropertyValue(k)}`).join(';');
+              el.setAttribute('style', (el.getAttribute('style')? el.getAttribute('style')+';':'') + style);
+            });
+            window._codexState[idx].html = entryEl.innerHTML; buildCodexPages();
+          };
+          controls.appendChild(mode); controls.appendChild(themeSel); controls.appendChild(nobg); controls.appendChild(inlineCss); controls.appendChild(inlineComputed);
+          controls.appendChild(up); controls.appendChild(down); controls.appendChild(copy); controls.appendChild(remove);
+          controls.style.display='none';
+          const pageMenuBtn = document.createElement('button'); pageMenuBtn.className='btn'; pageMenuBtn.textContent='⋯ Page'; pageMenuBtn.title='Page options'; pageMenuBtn.onclick = (e)=>{ e.stopPropagation(); controls.style.display = controls.style.display==='none' ? 'flex' : 'none'; };
+          head.appendChild(pageMenuBtn);
+          head.appendChild(controls);
+        }
+        page.appendChild(head);
+        if(entry.type==='iframe' && entry.src){
+          const url = entry.src + (entry.src.includes('?') ? '&' : '?') + 'codex=1&ts=' + Date.now();
+          const ifr = document.createElement('iframe'); ifr.src = url; ifr.style.minHeight = '800px';
+          page.appendChild(ifr);
+          if(editMode){
+            const makeEd = document.createElement('div'); makeEd.className='muted'; makeEd.style.margin='8px 0 0 0';
+            const btn = document.createElement('button'); btn.className='btn'; btn.textContent='Make editable copy';
+            btn.onclick = async ()=>{
+              pushHistory();
+              let html = `<h2>${entry.title||''}</h2><p><a href="${entry.src}" target="_blank">Open original</a></p>`;
+              try{
+                const sameOrigin = new URL(entry.src, location.href).origin === location.origin;
+                if(sameOrigin){
+                  // Prefer live DOM snapshot via hidden iframe to capture JS-rendered content
+                  const hid = document.createElement('iframe');
+                  hid.style.position='fixed'; hid.style.left='-9999px'; hid.style.top='-9999px'; hid.style.width='10px'; hid.style.height='10px'; hid.style.opacity='0';
+                  const snapUrl = entry.src + (entry.src.includes('?')?'&':'?') + 'codex=1&ts=' + Date.now();
+                  document.body.appendChild(hid); hid.src = snapUrl;
+                  await new Promise((res)=>{ hid.onload = ()=> setTimeout(res, 600); setTimeout(res, 2500); });
+                  try{
+                    const doc = hid.contentDocument;
+                    if(doc){
+                      const root = doc.querySelector('main, article, #content, .content, .main, [role="main"], body');
+                      let bodyHTML = root ? root.innerHTML : doc.body?.innerHTML || '';
+                      // Rewrite relative src/href to absolute
+                      const tmp = document.createElement('div'); tmp.innerHTML = bodyHTML;
+                      tmp.querySelectorAll('[src]').forEach(el=>{ try{ const v = el.getAttribute('src'); if(v && !/^https?:|^data:|^blob:|^\//i.test(v)){ el.setAttribute('src', new URL(v, entry.src).href); } }catch(_){} });
+                      tmp.querySelectorAll('[href]').forEach(el=>{ try{ const v = el.getAttribute('href'); if(v && !/^https?:|^data:|^blob:|^\//i.test(v)){ el.setAttribute('href', new URL(v, entry.src).href); } }catch(_){} });
+                      bodyHTML = tmp.innerHTML;
+                      // Pull styles from live doc
+                      const inlineStyles = Array.from(doc.querySelectorAll('style')).map(s=>s.textContent||'').join('\n');
+                      const links = Array.from(doc.querySelectorAll('link[rel="stylesheet"][href]')).map(l=>{
+                        try{ return `<link rel="stylesheet" href="${new URL(l.getAttribute('href'), entry.src).href}">`; }catch(_){ return ''; }
+                      }).join('\n');
+                      const styleTag = inlineStyles ? `<style>${inlineStyles}</style>` : '';
+                      html = `${links}\n${styleTag}\n<div class="codex-import cols-1">${bodyHTML}</div>`;
+                    }
+                  } finally { document.body.removeChild(hid); }
+                  // Fallback to static fetch if live snapshot produced nothing
+                  if(!html || /Open original/.test(html) || html.trim().length < 50){
+                    const resp = await fetch(entry.src, {cache:'no-store'});
+                    if(resp.ok){
+                      const txt = await resp.text();
+                      const parser = new DOMParser(); const doc = parser.parseFromString(txt, 'text/html');
+                      const pick = doc.querySelector('main, article, #content, .content, .main, [role="main"], body');
+                      let bodyHTML = pick ? pick.innerHTML : doc.body?.innerHTML || txt;
+                      const tmp = document.createElement('div'); tmp.innerHTML = bodyHTML;
+                      tmp.querySelectorAll('[src]').forEach(el=>{ try{ const v = el.getAttribute('src'); if(v && !/^https?:|^data:|^blob:|^\//i.test(v)){ el.setAttribute('src', new URL(v, entry.src).href); } }catch(_){} });
+                      tmp.querySelectorAll('[href]').forEach(el=>{ try{ const v = el.getAttribute('href'); if(v && !/^https?:|^data:|^blob:|^\//i.test(v)){ el.setAttribute('href', new URL(v, entry.src).href); } }catch(_){} });
+                      bodyHTML = tmp.innerHTML;
+                      const inlineStyles = Array.from(doc.querySelectorAll('style')).map(s=>s.textContent||'').join('\n');
+                      const links = Array.from(doc.querySelectorAll('link[rel="stylesheet"][href]')).map(l=>{ try{ return `<link rel="stylesheet" href="${new URL(l.getAttribute('href'), entry.src).href}">`; }catch(_){ return ''; } }).join('\n');
+                      const styleTag = inlineStyles ? `<style>${inlineStyles}</style>` : '';
+                      html = `${links}\n${styleTag}\n<div class="codex-import cols-1">${bodyHTML}</div>`;
+                    }
+                  }
+                }
+              }catch(err){ console.warn('Editable copy snapshot failed', err); }
+              window._codexState.splice(idx+1,0,{type:'html', html, title: (entry.title||'')});
+              buildCodexPages();
+            };
+            // Same-origin: Edit as code → load source and open modal; on save, create html page copy
+            const codeBtn = document.createElement('button'); codeBtn.className='btn'; codeBtn.textContent='Edit as code';
+            codeBtn.onclick = async ()=>{
+              try{
+                const same = new URL(entry.src, location.href).origin === location.origin;
+                if(!same){ alert('Cross-origin: cannot open source. Use Make editable copy.'); return; }
+                const r = await fetch(entry.src, {cache:'no-store'}); if(!r.ok) throw new Error('Fetch failed');
+                const txt = await r.text();
+                openCodeModal({ title: entry.title||'Page', html: txt, css: '', onSave: (newHtml, newCss)=>{
+                  const content = newCss ? `<style>${newCss}</style>\n${newHtml}` : newHtml;
+                  window._codexState.splice(idx+1,0,{type:'html', html: content, title: (entry.title||'')}); buildCodexPages();
+                }});
+              }catch(err){ alert('Could not open source: '+err.message); }
+            };
+            makeEd.appendChild(btn); makeEd.appendChild(codeBtn); page.appendChild(makeEd);
+          }
+        } else if(entry.type==='html' && entry.html){
+          const div = document.createElement('div'); div.className='clone'; div.innerHTML = entry.html;
+          // strip obvious controls within the clone
+          div.querySelectorAll('.titlebar,.controls,.btn').forEach(el=>el.remove());
+          // Apply page theme
+          const pt = entry.pageTheme || 'auto';
+          if(pt==='light' || pt==='dark'){
+            const style = document.createElement('style');
+            style.textContent = pt==='light'
+              ? '.codexPage .clone{background:#ffffff !important;color:#0b0f16 !important} .codexPage .clone *{color:inherit}'
+              : '.codexPage .clone{background:#0f1520 !important;color:#e8eef9 !important} .codexPage .clone *{color:inherit}';
+            page.appendChild(style);
+          }
+          // Apply style mode
+          const sm = entry.styleMode || 'preserve';
+          if(sm==='harmonize' || sm==='clean'){
+            const style = document.createElement('style');
+            style.textContent = `
+              .codexPage .clone, .codexPage .clone * { font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Inter,Roboto,Helvetica,Arial,sans-serif; }
+              .codexPage .clone { color: var(--ink); }
+              .codexPage .clone a { color: var(--ink); text-decoration: underline; }
+              ${sm==='clean' ? '.codexPage .clone * { background: transparent !important; background-image: none !important; color: var(--ink) !important; }' : ''}
+            `;
+            page.appendChild(style);
+          }
+          if(editMode){
+            div.contentEditable = 'true'; div.classList.add('codexEditable');
+            div.addEventListener('focusin', ()=>{ _codexCurrentEditable = div; });
+            div.addEventListener('input', ()=>{ entry.html = div.innerHTML; });
+            // If contains Mermaid, add Edit diagram toggle
+            if(div.querySelector('.mermaid')){
+              const editD = document.createElement('button'); editD.className='btn'; editD.textContent='Edit diagram'; editD.style.float='right'; editD.onclick = ()=>{
+                const block = div.querySelector('.mermaid'); if(!block) return;
+                const init = block.textContent||''; openCodeModal({ title: entry.title||'Diagram', html: init, css:'', mode:'mermaid', onSave:(code)=>{ block.textContent = code; entry.html = div.innerHTML; buildCodexPages(); } });
+              };
+              head.appendChild(editD);
+            }
+            // Add Code button to edit HTML source of this page
+            const codeBtn2 = document.createElement('button'); codeBtn2.className='btn'; codeBtn2.textContent='Code'; codeBtn2.style.float='right'; codeBtn2.onclick = ()=>{
+              openCodeModal({ title: entry.title||'Section', html: div.innerHTML, css:'', onSave:(newHtml, newCss)=>{ entry.html = newCss ? `<style>${newCss}</style>`+newHtml : newHtml; buildCodexPages(); } });
+            };
+            head.appendChild(codeBtn2);
+          }
+          page.appendChild(div);
+        }
+        pages.appendChild(page);
+        // Render mermaid, if present
+        renderMermaidIn?.(page);
+      });
+    }
+
+    function toggleCodex(show){
+      const on = (typeof show === 'boolean') ? show : (codex.style.display!=='block');
+      codex.style.display = on ? 'block' : 'none';
+      if(on){ window._codexState = null; buildCodexPages(); }
+    }
+    codexBtn.addEventListener('click', ()=> toggleCodex(true));
+    codex.querySelector('#codexClose')?.addEventListener('click', ()=>{
+      const zen = !!document.getElementById('codexEdit')?.checked;
+      const dirty = _codexHistory?.length > 0;
+      if(zen || dirty){
+        const ok = confirm('Close Codex? Unsaved edits will be lost. Use Export to save.');
+        if(!ok) return;
+      }
+      toggleCodex(false);
+    });
+    codex.querySelector('#codexWidth')?.addEventListener('input', buildCodexPages);
+    codex.querySelector('#codexTwoCol')?.addEventListener('change', buildCodexPages);
+    codex.querySelector('#codexEdit')?.addEventListener('change', buildCodexPages);
+    codex.querySelector('#codexUndo')?.addEventListener('click', ()=>{
+      if(_codexCurrentEditable){ document.execCommand('undo'); return; }
+      undoState();
+    });
+    codex.querySelector('#codexRedo')?.addEventListener('click', ()=>{
+      if(_codexCurrentEditable){ document.execCommand('redo'); return; }
+      redoState();
+    });
+    // Mermaid loader
+    let _mermaidReady = false; let _mermaidLoading = false;
+    async function ensureMermaid(){
+      if(_mermaidReady || _mermaidLoading) return;
+      _mermaidLoading = true;
+      const s = document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+      s.onload = ()=>{ try{ window.mermaid?.initialize({startOnLoad:false, theme: document.body.classList.contains('studio')? 'neutral':'dark'}); _mermaidReady=true; }catch(_){} };
+      document.head.appendChild(s);
+    }
+    async function renderMermaidIn(el){
+      try{ await ensureMermaid(); if(window.mermaid){ const blocks = el.querySelectorAll('.mermaid'); blocks.forEach(b=>{ try{ window.mermaid.init(undefined, b); }catch(_){} }); } }catch(_){}
+    }
+
+    codex.querySelector('#codexAdd')?.addEventListener('change', async (e)=>{
+      const v = e.target.value; if(!v) return; e.target.value=''; pushHistory();
+      const title = v==='blank' ? 'Section' : v==='title' ? 'Title' : v==='twocol' ? 'Two-column' : v==='image' ? 'Image' : v==='quote' ? 'Quote' : 'Embed';
+      if(v==='iframe'){
+        let url = prompt('Enter app/page URL to embed:');
+        if(url){
+          // Transform YouTube watch URLs to embed
+          try{
+            const u = new URL(url, location.href);
+            if(/^(www\.)?youtube\.com$/.test(u.hostname) && u.searchParams.get('v')){
+              url = `https://www.youtube.com/embed/${u.searchParams.get('v')}`;
+            } else if(/^(youtu\.be)$/.test(u.hostname)){
+              url = `https://www.youtube.com/embed${u.pathname}`;
+            }
+          }catch(_){ }
+          window._codexState.push({type:'iframe', src:url, title});
+        }
+      } else if(v==='blank'){
+        window._codexState.push({type:'html', title, html:'<p>Write here…</p>'});
+      } else if(v==='title'){
+        window._codexState.push({type:'html', title, html:'<h1 style="margin:0">Title</h1><p class="muted">Subtitle</p>'});
+      } else if(v==='twocol'){
+        window._codexState.push({type:'html', title, html:'<div style="column-count:2;column-gap:24px"><p>Column text…</p><p>More…</p></div>'});
+      } else if(v==='image'){
+        const url = prompt('Image URL (https://…)');
+        const html = `<figure style="text-align:center"><img src="${url||''}" alt="" style="max-width:100%"><figcaption class="muted">Caption</figcaption></figure>`;
+        window._codexState.push({type:'html', title, html});
+      } else if(v==='quote'){
+        window._codexState.push({type:'html', title, html:'<blockquote>Quote…</blockquote><p class="muted">— Source</p>'});
+      } else if(v==='image-url'){
+        const url = prompt('Image URL (https://…)'); if(url){ window._codexState.push({type:'html', title:'Image', html:`<p style="text-align:center"><img src="${url}" alt="" style="max-width:100%"></p>`}); }
+      } else if(v==='youtube'){
+        let url = prompt('YouTube URL'); if(url){
+          try{ const u = new URL(url, location.href); if(/^(www\.)?youtube\.com$/.test(u.hostname) && u.searchParams.get('v')){ url = `https://www.youtube.com/embed/${u.searchParams.get('v')}`; } else if(/^youtu\.be$/.test(u.hostname)){ url = `https://www.youtube.com/embed${u.pathname}`; } }catch(_){ }
+          window._codexState.push({type:'iframe', title:'YouTube', src:url});
+        }
+      } else if(v==='mermaid'){
+        await ensureMermaid();
+        const sample = `graph TD\nA[Start] --> B{Choice}\nB -->|Yes| C[Path 1]\nB -->|No| D[Path 2]`;
+        window._codexState.push({type:'html', title:'Diagram', html:`<div class="codex-mermaid"><div class="mermaid">${sample}</div><p class="muted">Edit the text above to update the diagram.</p></div>`});
+      }
+      buildCodexPages();
+    });
+    codex.querySelector('#codexExport')?.addEventListener('click', ()=>{
+      try{
+        const data = { v:1, width: parseInt(document.getElementById('codexWidth')?.value||'980',10), twoCol: !!document.getElementById('codexTwoCol')?.checked, light: !!document.getElementById('codexLight')?.checked, pages: window._codexState||[] };
+        const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href=url; a.download='codex.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(url), 2000);
+      }catch(err){ alert('Export failed: '+err.message); }
+    });
+    codex.querySelector('#codexExportHtml')?.addEventListener('click', ()=>{
+      try{
+        const data = { v:1, width: parseInt(document.getElementById('codexWidth')?.value||'980',10), twoCol: !!document.getElementById('codexTwoCol')?.checked, theme: document.body.classList.contains('studio')? 'light':'dark', pages: window._codexState||[] };
+        const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const win = window.open(`codex-export.html?src=${encodeURIComponent(url)}`, '_blank');
+        // Best-effort cleanup after new window loads (cannot know reliably); revoke after 30s
+        setTimeout(()=>URL.revokeObjectURL(url), 30000);
+      }catch(err){ alert('Export HTML failed: '+err.message); }
+    });
+    codex.querySelector('#codexImportFile')?.addEventListener('change', async (e)=>{
+      const file = e.target.files?.[0]; if(!file) return; try{
+        const text = await file.text(); const obj = JSON.parse(text);
+        if(obj && Array.isArray(obj.pages)){
+          document.getElementById('codexWidth').value = String(obj.width || 980);
+          document.getElementById('codexTwoCol').checked = !!obj.twoCol;
+          document.getElementById('codexLight').checked = !!obj.light; codex.classList.toggle('light', !!obj.light);
+          window._codexState = obj.pages; buildCodexPages();
+        }
+      }catch(err){ console.error('Import failed', err); }
+      e.target.value = '';
+    });
+    // Codex editor toolbar actions
+    function applyCmd(cmd, val){
+      if(!_codexCurrentEditable) return; _codexCurrentEditable.focus();
+      if(cmd==='insertTable'){
+        const html = '<table border="1" style="border-collapse:collapse;width:100%"><tr><th>Header</th><th>Header</th></tr><tr><td>Cell</td><td>Cell</td></tr></table>';
+        document.execCommand('insertHTML', false, html);
+        return;
+      }
+      if(cmd==='fontUp' || cmd==='fontDown'){
+        const cur = parseInt(_codexCurrentEditable.dataset.fs||'16',10);
+        const next = Math.max(10, Math.min(36, cur + (cmd==='fontUp'?2:-2)));
+        _codexCurrentEditable.dataset.fs = String(next);
+        _codexCurrentEditable.style.fontSize = next + 'px';
+        return;
+      }
+      if(cmd.startsWith('formatBlock:')){
+        const tag = cmd.split(':')[1];
+        document.execCommand('formatBlock', false, tag);
+        return;
+      }
+      document.execCommand(cmd, false, val||null);
+    }
+    const tools = codex.querySelector('#codexTools');
+    tools?.addEventListener('click', (e)=>{
+      const b = e.target.closest('button'); if(!b) return;
+      const data = b.getAttribute('data-cmd');
+      if(data){ applyCmd(data); }
+    });
+    // Edit/Pages menu toggles and focus-driven tool visibility
+    let _codexToolsPinned = false;
+    const pagesControls = codex.querySelector('#codexPagesControls');
+    codex.querySelector('#codexEditMenu')?.addEventListener('click', ()=>{
+      _codexToolsPinned = !_codexToolsPinned;
+      const vis = (tools.style.display !== 'none');
+      tools.style.display = _codexToolsPinned ? 'flex' : (vis ? 'none' : 'flex');
+    });
+    codex.querySelector('#codexPagesMenu')?.addEventListener('click', ()=>{
+      const on = pagesControls.style.display !== 'flex';
+      pagesControls.style.display = on ? 'flex' : 'none';
+    });
+    const codexPages = codex.querySelector('#codexPages');
+    codexPages?.addEventListener('focusin', (e)=>{
+      if(e.target && e.target.isContentEditable){ _codexCurrentEditable = e.target; tools.style.display = 'flex'; }
+    });
+    codexPages?.addEventListener('focusout', (e)=>{
+      // Hide if leaving edit context and not pinned, but keep visible briefly to allow toolbar clicks
+      setTimeout(()=>{
+        const ae = document.activeElement;
+        const stillIn = codexPages.contains(ae) && ae.isContentEditable;
+        if(!_codexToolsPinned && !stillIn){ tools.style.display = 'none'; _codexCurrentEditable = null; }
+      }, 50);
+    });
+    function updateCodexToolbarCompact(on){
+      const bar = codex.querySelector('.codexBar');
+      if(!bar) return;
+      bar.classList.toggle('compact', !!on);
+      const idIcon = new Map(Object.entries({
+        codexUndo:'↶', codexRedo:'↷', codexSimple:'◎',
+        codexTable:'⌸', codexFontUp:'A+', codexFontDown:'A-',
+        codexCols1:'1', codexCols2:'2', codexCols3:'3',
+        codexGapUp:'+', codexGapDown:'−', codexExport:'⤓',
+        codexExportHtml:'</>', codexClose:'✕'
+      }));
+      idIcon.forEach((glyph, id)=>{
+        const el = codex.querySelector('#'+id); if(!el) return;
+        if(on){ if(!el.dataset.label){ el.dataset.label = el.textContent; } el.textContent = glyph; }
+        else if(el.dataset.label){ el.textContent = el.dataset.label; }
+      });
+      const cmdIcon = {
+        'formatBlock:H1':'H1', 'formatBlock:H2':'H2', 'formatBlock:P':'¶',
+        bold:'B', italic:'I', insertUnorderedList:'•', insertOrderedList:'1', 'formatBlock:BLOCKQUOTE':'❝'
+      };
+      codex.querySelectorAll('#codexTools [data-cmd]').forEach(btn=>{
+        const d = btn.getAttribute('data-cmd'); const g = cmdIcon[d]; if(!g) return;
+        if(on){ if(!btn.dataset.label){ btn.dataset.label = btn.innerHTML; } btn.textContent = g; }
+        else if(btn.dataset.label){ btn.innerHTML = btn.dataset.label; }
+      });
+    }
+    codex.querySelector('#codexSimple')?.addEventListener('click', ()=>{
+      const tools = document.getElementById('codexTools');
+      tools.classList.toggle('simple');
+      tools.querySelectorAll('.adv').forEach(el=>{ el.style.display = tools.classList.contains('simple')? 'none':'inline-block'; });
+      window._codexPrefs = window._codexPrefs||{}; window._codexPrefs.simple = tools.classList.contains('simple');
+    });
+    codex.querySelector('#codexTable')?.addEventListener('click', ()=> applyCmd('insertTable'));
+    codex.querySelector('#codexFontUp')?.addEventListener('click', ()=> applyCmd('fontUp'));
+    codex.querySelector('#codexFontDown')?.addEventListener('click', ()=> applyCmd('fontDown'));
+    function setCols(n){ if(!_codexCurrentEditable) return; _codexCurrentEditable.classList.remove('cols-1','cols-2','cols-3'); _codexCurrentEditable.classList.add('cols-'+n); }
+    codex.querySelector('#codexCols1')?.addEventListener('click', ()=> setCols(1));
+    codex.querySelector('#codexCols2')?.addEventListener('click', ()=> setCols(2));
+    codex.querySelector('#codexCols3')?.addEventListener('click', ()=> setCols(3));
+    function adjustGap(delta){ if(!_codexCurrentEditable) return; const cs = getComputedStyle(_codexCurrentEditable); const cur = parseInt(cs.columnGap||'24',10); _codexCurrentEditable.style.columnGap = Math.max(0, cur+delta)+'px'; }
+    codex.querySelector('#codexGapUp')?.addEventListener('click', ()=> adjustGap(4));
+    codex.querySelector('#codexGapDown')?.addEventListener('click', ()=> adjustGap(-4));
+
+    // Reader theme force
+    function applyReaderTheme(){
+      const overlay = document.getElementById('codexOverlay'); if(!overlay) return;
+      const sel = document.getElementById('codexReaderTheme');
+      const also = document.getElementById('codexReaderAlsoPages');
+      overlay.classList.remove('force-light','force-dark','force-content');
+      const mode = sel?.value||'auto';
+      if(mode==='light'){ overlay.classList.add('force-light'); }
+      if(mode==='dark'){ overlay.classList.add('force-dark'); }
+      if(also?.checked && (mode==='light'||mode==='dark')) overlay.classList.add('force-content');
+      // persist
+      window._codexPrefs = window._codexPrefs||{}; window._codexPrefs.readerTheme = mode; window._codexPrefs.readerAlso = !!also?.checked;
+    }
+    codex.querySelector('#codexReaderTheme')?.addEventListener('change', applyReaderTheme);
+    codex.querySelector('#codexReaderAlsoPages')?.addEventListener('change', applyReaderTheme);
+    // restore persisted
+    (function(){
+      window._codexPrefs = window._codexPrefs||{};
+      const mode = window._codexPrefs.readerTheme||'auto';
+      const also = !!window._codexPrefs.readerAlso;
+      const sel = document.getElementById('codexReaderTheme'); if(sel) sel.value = mode;
+      const chk = document.getElementById('codexReaderAlsoPages'); if(chk) chk.checked = also;
+      applyReaderTheme();
+    })();
+
+    // Reusable code modal
+    let _codeModal = null; let _codeOnSave = null; let _codeMode = 'html';
+    function openCodeModal(opts){
+      const {title, html, css, mode, onSave} = opts||{}; _codeOnSave = onSave; _codeMode = mode||'html';
+      if(!_codeModal){
+        _codeModal = document.createElement('div'); _codeModal.id='codexCodeModal'; _codeModal.innerHTML = `
+          <div class="inner">
+            <div class="head"><div id="codeTitle"></div><div class="tabs"><button id="tabHtml" class="btn">HTML</button><button id="tabCss" class="btn">CSS</button></div></div>
+            <div class="body"><textarea id="codeArea"></textarea></div>
+            <div class="foot"><button id="codeCancel" class="btn">Cancel</button><button id="codeSave" class="btn">Save</button></div>
+          </div>`;
+        document.body.appendChild(_codeModal);
+        _codeModal.addEventListener('click', (e)=>{ if(e.target===_codeModal) closeCodeModal(); });
+        _codeModal.querySelector('#codeCancel').onclick = closeCodeModal;
+        _codeModal.querySelector('#codeSave').onclick = ()=>{
+          if(_codeMode==='mermaid'){ const val = _codeModal.querySelector('#codeArea').value; _codeOnSave?.(val); closeCodeModal(); return; }
+          const active = _codeModal.dataset.tab||'html';
+          const htmlVal = active==='html' ? _codeModal.querySelector('#codeArea').value : (_codeModal.dataset.html||'');
+          const cssVal = active==='css' ? _codeModal.querySelector('#codeArea').value : (_codeModal.dataset.css||'');
+          _codeOnSave?.(htmlVal, cssVal); closeCodeModal();
+        };
+        _codeModal.querySelector('#tabHtml').onclick = ()=> switchTab('html');
+        _codeModal.querySelector('#tabCss').onclick = ()=> switchTab('css');
+      }
+      _codeModal.style.display = 'flex';
+      _codeModal.querySelector('#codeTitle').textContent = title||'Edit';
+      _codeModal.dataset.html = html||''; _codeModal.dataset.css = css||'';
+      if(_codeMode==='mermaid'){ _codeModal.querySelector('#tabCss').style.display='none'; switchTab('html'); _codeModal.querySelector('#codeArea').value = html||''; }
+      else { _codeModal.querySelector('#tabCss').style.display='inline-block'; switchTab('html'); _codeModal.querySelector('#codeArea').value = html||''; }
+    }
+    function switchTab(tab){ if(!_codeModal) return; _codeModal.dataset.tab = tab; const ta = _codeModal.querySelector('#codeArea'); if(tab==='html'){ ta.value = _codeModal.dataset.html||''; } else { ta.value = _codeModal.dataset.css||''; } }
+    function closeCodeModal(){ if(_codeModal){ _codeModal.style.display='none'; } }
+
+    // Default to Simple toolbar on first open
+    (function(){
+      const tools = document.getElementById('codexTools'); if(!tools) return;
+      window._codexPrefs = window._codexPrefs||{};
+      const wantSimple = window._codexPrefs.simple !== false; // default true
+      if(wantSimple){
+        tools.classList.add('simple');
+        tools.querySelectorAll('.adv').forEach(el=>{ el.style.display='none'; });
+      }
+      // Move advanced controls into a transient More menu container
+      const moreBtn = document.createElement('button'); moreBtn.className='btn'; moreBtn.id='codexMore'; moreBtn.textContent='⋯'; moreBtn.title='More';
+      const toolsEl = document.getElementById('codexTools');
+      const firstAfterAdd = toolsEl.querySelector('#codexAdd')?.nextSibling;
+      toolsEl.insertBefore(moreBtn, firstAfterAdd||null);
+      const menu = document.createElement('div'); menu.id='codexMoreMenu'; menu.style.position='absolute'; menu.style.display='none'; menu.style.zIndex='2500'; menu.style.background='var(--paper)'; menu.style.border='1px solid var(--rule)'; menu.style.borderRadius='8px'; menu.style.boxShadow='var(--shadow)'; menu.style.padding='6px';
+      document.body.appendChild(menu);
+      // collect adv controls
+      function populateMenu(){ menu.innerHTML=''; toolsEl.querySelectorAll('.adv').forEach(b=>{ const clone = b.cloneNode(true); clone.onclick = b.onclick ? b.onclick.bind(b) : ()=> b.dispatchEvent(new Event('click')); clone.style.display='block'; clone.style.margin='4px 0'; menu.appendChild(clone); }); }
+      populateMenu();
+      moreBtn.addEventListener('click', (e)=>{ e.stopPropagation(); populateMenu(); const r = moreBtn.getBoundingClientRect(); menu.style.left = (r.left)+'px'; menu.style.top = (r.bottom+6)+'px'; menu.style.display = menu.style.display==='none' ? 'block':'none'; });
+      document.addEventListener('click', ()=>{ menu.style.display='none'; });
+    })();
+
+    // Build Windows lazily
+    const winState = {};
+    function openWin(id){
+      let w = document.querySelector(`.win[data-id="${id}"]`);
+      const m = modules.find(x=>x.id===id);
+      if(!w){
+        w = document.createElement('section');
+        w.className='win'; w.dataset.id=id;
+        w.style.left=(m.x||80)+'px'; w.style.top=(m.y||80)+'px';
+        w.style.width=(m.w||640)+'px'; w.style.height=(m.h||420)+'px';
+        w.innerHTML = `
+          <div class="titlebar">
+            <div class="dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+            <div class="name">${m.label}</div>
+            <div class="controls">
+              <button class="btn" data-act="min">—</button>
+              <button class="btn" data-act="max">▢</button>
+              <button class="btn" data-act="close">✕</button>
+            </div>
+          </div>
+          <div class="content">${m.html}</div>`;
+        desktop.appendChild(w);
+        makeDraggable(w);
+        makeResizable(w);
+        attachControls(w);
+        if(id==='apps') initAppLauncher(w);
+      }
+      bringToFront(w); w.classList.remove('hidden');
+      return w;
+    }
+    // expose globally for inline onclick handlers
+    window.openWin = openWin;
+
+    function attachControls(win){
+      const bar = win.querySelector('.titlebar');
+      bar.addEventListener('dblclick',()=>toggleMax(win));
+      win.querySelectorAll('.controls .btn').forEach(b=>{
+        b.addEventListener('click',()=>{
+          const act=b.dataset.act;
+          if(act==='close') win.classList.add('hidden');
+          if(act==='min')  win.style.height='42px';
+          if(act==='max')  toggleMax(win);
+        })
+      })
+    }
+
+    // Document Assembler (editable) ---------------------------------------
+    async function openAssembler(order, layout='1'){
+      const html = `
+        <div class="card" style="margin:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div class="pill">Editor</div>
+          <div class="muted">Drag sources into the document. Reorder sections by dragging.</div>
+          <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+            <label class="muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="edGuides"> Page Guides</label>
+            <label class="muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="edContinuous"> Continuous</label>
+            <button class="btn" id="edAddEmpty">+ Empty Section</button>
+            <button class="btn" data-act="bold"><b>B</b></button>
+            <button class="btn" data-act="italic"><i>I</i></button>
+            <button class="btn" data-act="h1">H1</button>
+            <button class="btn" data-act="h2">H2</button>
+            <button class="btn" data-act="p">P</button>
+            <button class="btn" id="edExport">Export PDF (continuous)</button>
+            <button class="btn" id="edExportHtml">Export HTML (continuous)</button>
+            <button class="btn" id="edPrint">Print</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:260px 1fr;gap:10px;height:calc(100% - 72px);padding:8px;box-sizing:border-box">
+          <div id="edSources" class="card" style="padding:10px;overflow:auto">
+            <div style="font-weight:700;margin-bottom:8px">Sources</div>
+            <div class="muted" style="margin-bottom:8px">Drag into the document →</div>
+            <div id="edSourcesList" style="display:grid;gap:6px"></div>
+          </div>
+          <div id="editorDocWrap" class="card" style="padding:0;overflow:auto">
+            <div id="editorDoc" style="padding:8px;display:grid;gap:12px;min-height:100%"></div>
+          </div>
+        </div>`;
+      const w = createDynamicWindow('Document Assembler', html, {w:980,h:680,x:160,y:90});
+      const host = w.querySelector('#editorDoc');
+      const sourcesList = w.querySelector('#edSourcesList');
+      const wrap = w.querySelector('#editorDocWrap');
+      const sections = [];
+      // Build sections similar to print but editable
+      for(const entry of order){
+        const winEl = document.querySelector(`.win[data-id="${entry.id}"]`);
+        if(!winEl) continue;
+        sections.push(createSectionFromWin(winEl));
+      }
+      sections.forEach(sec=>host.appendChild(sec));
+
+      // Populate sources sidebar with currently open windows (excluding this editor window)
+      const edWinId = w.dataset.id;
+      const wins = Array.from(document.querySelectorAll('.win')).filter(el=>el !== w);
+      wins.forEach(el=>{
+        const id = el.dataset.id || '';
+        const label = el.querySelector('.name')?.textContent || id;
+        const row = document.createElement('div');
+        row.className = 'src-row';
+        row.textContent = label;
+        row.style.padding='6px 8px'; row.style.border='1px solid var(--rule)'; row.style.borderRadius='8px'; row.style.cursor='grab';
+        row.setAttribute('draggable','true');
+        row.dataset.id = id;
+        row.addEventListener('dragstart', (e)=>{
+          e.dataTransfer.setData('text/plain', JSON.stringify({type:'source', id}));
+          e.dataTransfer.effectAllowed = 'copy';
+        });
+        sourcesList.appendChild(row);
+
+        // Also make the actual open window title draggable into the editor
+        const titleEl = el.querySelector('.head .name');
+        if(titleEl){
+          titleEl.setAttribute('draggable','true');
+          titleEl.title = 'Drag into Document Assembler';
+          titleEl.addEventListener('dragstart', (e)=>{
+            e.dataTransfer.setData('text/plain', JSON.stringify({type:'source', id}));
+            e.dataTransfer.effectAllowed = 'copy';
+          });
+        }
+      });
+
+      // Helper: create section from a window element
+      function createSectionFromWin(winEl){
+        const id = winEl.dataset.id || '';
+        const title = winEl.querySelector('.name')?.textContent || id;
+        const content = winEl.querySelector('.content');
+        const sec = document.createElement('section');
+        sec.className = 'ed-section';
+        sec.style.border = '1px solid var(--rule)';
+        sec.style.borderRadius = '10px';
+        sec.style.background = 'var(--panel)';
+        sec.style.padding = '10px';
+        sec.style.cursor='grab';
+        sec.setAttribute('draggable','true');
+        sec.dataset.sourceId = id;
+        sec.innerHTML = `
+          <div class="ed-head" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div class="ed-title" contenteditable="true" style="font-weight:700;font-size:20px;outline:none;border-bottom:1px dashed var(--rule);padding-bottom:4px">${title}</div>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <button class="btn" data-del="1">Delete</button>
+            </div>
+          </div>
+          <div class="ed-body"></div>`;
+        const body = sec.querySelector('.ed-body');
+        const srcIframe = content?.querySelector('iframe');
+        if(content && !srcIframe){
+          const editable = content.cloneNode(true);
+          editable.setAttribute('contenteditable','true');
+          editable.style.outline = 'none';
+          editable.style.background = 'transparent';
+          body.appendChild(editable);
+        } else if(srcIframe && srcIframe.src){
+          const preview = document.createElement('div');
+          preview.style.border = '1px solid var(--rule)'; preview.style.borderRadius='8px'; preview.style.overflow='hidden'; preview.style.height='420px';
+          const toolbar = document.createElement('div');
+          toolbar.style.display='flex'; toolbar.style.gap='6px'; toolbar.style.justifyContent='flex-end'; toolbar.style.margin='0 0 6px 0';
+          const btnEdit = document.createElement('button'); btnEdit.className='btn'; btnEdit.textContent='Edit App'; btnEdit.title='Enable editing inside the app (same-origin only)';
+          const btnCap = document.createElement('button'); btnCap.className='btn'; btnCap.textContent='Capture to Editable'; btnCap.title='Fetch app HTML and convert to editable section';
+          const btnCapKeep = document.createElement('button'); btnCapKeep.className='btn'; btnCapKeep.textContent='Capture (Keep Styles)'; btnCapKeep.title='Capture full HTML into an editable iframe, preserving app CSS';
+          toolbar.appendChild(btnEdit); toolbar.appendChild(btnCap); toolbar.appendChild(btnCapKeep);
+          const ifr = document.createElement('iframe'); ifr.src = srcIframe.src; ifr.style.width='100%'; ifr.style.height='100%'; ifr.style.border='0';
+          preview.appendChild(toolbar);
+          preview.appendChild(ifr);
+          const notes = document.createElement('div');
+          notes.className='ed-notes';
+          notes.setAttribute('contenteditable','true');
+          notes.style.outline='none'; notes.style.marginTop='8px'; notes.style.padding='8px'; notes.style.background='#0f1622'; notes.style.border='1px dashed #1a2331'; notes.style.borderRadius='8px';
+          notes.textContent = 'Notes… (editable)';
+          body.appendChild(preview); body.appendChild(notes);
+
+          // Enable in-place editing if same-origin
+          btnEdit.addEventListener('click',()=>{
+            try{
+              const doc = ifr.contentDocument || ifr.contentWindow?.document;
+              if(doc){
+                doc.designMode = (doc.designMode==='on') ? 'off' : 'on';
+                btnEdit.textContent = (doc.designMode==='on') ? 'Stop Editing' : 'Edit App';
+              }
+            }catch(e){ alert('Editing inside this app is blocked by browser security (cross-origin). Try Capture to Editable.'); }
+          });
+
+          // Capture iframe HTML into an editable section (fallback)
+          btnCap.addEventListener('click', async ()=>{
+            try{
+              const url = ifr.src;
+              const resp = await fetch(url, {cache:'no-store'});
+              if(!resp.ok) throw new Error('Fetch failed');
+              let html = await resp.text();
+              // Extract body content
+              const m = /<body[^>]*>([\s\S]*?)<\/body>/i.exec(html);
+              const bodyHTML = m ? m[1] : html;
+              const editable = document.createElement('div');
+              editable.setAttribute('contenteditable','true');
+              editable.style.outline='none'; editable.style.background='transparent';
+              editable.innerHTML = bodyHTML;
+              // Replace preview with editable content
+              preview.replaceWith(editable);
+            }catch(err){
+              alert('Could not capture app HTML (CORS or missing file).');
+            }
+          });
+
+          // Capture keeping original styles into an editable iframe via srcdoc
+          btnCapKeep.addEventListener('click', async ()=>{
+            try{
+              const url = ifr.src;
+              const resp = await fetch(url, {cache:'no-store'});
+              if(!resp.ok) throw new Error('Fetch failed');
+              let html = await resp.text();
+              // Ensure <base> to resolve relative URLs
+              const baseHref = url.replace(/([^\/]*)(\?.*)?$/, '');
+              if(!/\<base\s/i.test(html)){
+                html = html.replace(/<head(\s[^>]*)?>/i, (m)=> m + `\n<base href="${baseHref}">`);
+              }
+              const eif = document.createElement('iframe');
+              eif.style.width='100%'; eif.style.height='420px'; eif.style.border='0';
+              eif.srcdoc = html;
+              // After load, enable designMode for in-iframe editing
+              eif.addEventListener('load', ()=>{
+                try{ const d = eif.contentDocument || eif.contentWindow?.document; if(d){ d.designMode='on'; } }catch{}
+              }, {once:true});
+              preview.replaceWith(eif);
+            }catch(err){
+              alert('Could not capture app HTML (CORS or missing file).');
+            }
+          });
+        }
+        return sec;
+      }
+
+      function createEmptySection(title='Untitled'){
+        const sec = document.createElement('section');
+        sec.className = 'ed-section';
+        sec.style.border = '1px solid var(--rule)';
+        sec.style.borderRadius = '10px';
+        sec.style.background = 'var(--panel)';
+        sec.style.padding = '10px';
+        sec.style.cursor='grab';
+        sec.setAttribute('draggable','true');
+        sec.innerHTML = `
+          <div class="ed-head" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div class="ed-title" contenteditable="true" style="font-weight:700;font-size:20px;outline:none;border-bottom:1px dashed var(--rule);padding-bottom:4px">${title}</div>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <button class="btn" data-del="1">Delete</button>
+            </div>
+          </div>
+          <div class="ed-body"><div contenteditable="true" style="outline:none;background:transparent;min-height:60px"></div></div>`;
+        return sec;
+      }
+
+      // Drop placeholder line
+      const placeholder = document.createElement('div');
+      placeholder.style.height = '6px';
+      placeholder.style.border = '2px dashed var(--rule)';
+      placeholder.style.borderRadius = '4px';
+      placeholder.style.margin = '6px 2px';
+      placeholder.style.background = 'transparent';
+
+      function clearPlaceholder(){ if(placeholder.parentElement) placeholder.parentElement.removeChild(placeholder); }
+
+      // Canvas drop targets for adding new sections from sources
+      host.addEventListener('dragover',(e)=>{
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copyMove';
+        // place placeholder before or after nearest section
+        const targetSec = e.target.closest('.ed-section');
+        if(targetSec){
+          const rect = targetSec.getBoundingClientRect();
+          const before = (e.clientY - rect.top) < rect.height/2;
+          clearPlaceholder();
+          if(before) targetSec.parentElement.insertBefore(placeholder, targetSec);
+          else targetSec.parentElement.insertBefore(placeholder, targetSec.nextSibling);
+        } else if(!placeholder.parentElement){
+          host.appendChild(placeholder);
+        }
+      });
+      host.addEventListener('dragleave', (e)=>{
+        // Optional: do not clear immediately to avoid flicker
+      });
+      host.addEventListener('drop',(e)=>{
+        e.preventDefault();
+        const data = (()=>{ try{return JSON.parse(e.dataTransfer.getData('text/plain')||'{}');}catch{ return {}; } })();
+        const type = data.type;
+        if(type==='source' && data.id){
+          const winEl = document.querySelector(`.win[data-id="${data.id}"]`);
+          if(winEl){
+            const sec = createSectionFromWin(winEl);
+            if(placeholder.parentElement) placeholder.parentElement.insertBefore(sec, placeholder);
+            else host.appendChild(sec);
+          }
+        } else if(type==='reorder' && data.sid){
+          const dragging = host.querySelector(`.ed-section[data-sid="${data.sid}"]`);
+          if(dragging){
+            if(placeholder.parentElement) placeholder.parentElement.insertBefore(dragging, placeholder);
+          }
+        }
+        clearPlaceholder();
+      });
+
+      // Section drag to reorder
+      let sidCounter = 0;
+      function attachSectionDrag(sec){
+        const sid = (++sidCounter).toString();
+        sec.dataset.sid = sid;
+        sec.addEventListener('dragstart', (e)=>{
+          e.dataTransfer.setData('text/plain', JSON.stringify({type:'reorder', sid}));
+          e.dataTransfer.effectAllowed = 'move';
+        });
+      }
+      host.addEventListener('DOMNodeInserted', (e)=>{
+        const sec = e.target.closest?.('.ed-section');
+        if(sec && !sec.dataset.sid) attachSectionDrag(sec);
+      });
+      host.querySelectorAll('.ed-section').forEach(attachSectionDrag);
+
+      // Add empty section button
+      w.querySelector('#edAddEmpty')?.addEventListener('click',()=>{
+        const sec = createEmptySection();
+        host.appendChild(sec);
+      });
+
+      // Context menu for duplicate and add empty
+      const menu = document.createElement('div');
+      menu.style.position='fixed'; menu.style.zIndex='99999'; menu.style.background='var(--panel)'; menu.style.border='1px solid var(--rule)'; menu.style.borderRadius='8px'; menu.style.padding='6px'; menu.style.display='none';
+      menu.innerHTML = `
+        <div class="item" data-act="dup" style="padding:6px 10px;cursor:pointer">Duplicate Section</div>
+        <div class="item" data-act="add" style="padding:6px 10px;cursor:pointer">Add Empty Below</div>`;
+      w.appendChild(menu);
+      let ctxTarget = null;
+      host.addEventListener('contextmenu',(e)=>{
+        const sec = e.target.closest('.ed-section');
+        if(!sec) return;
+        e.preventDefault(); ctxTarget = sec;
+        menu.style.left = e.clientX+'px'; menu.style.top = e.clientY+'px'; menu.style.display='block';
+      });
+      document.addEventListener('click',()=>{ menu.style.display='none'; });
+      menu.addEventListener('click',(e)=>{
+        const act = e.target.closest('.item')?.dataset.act; if(!act||!ctxTarget) return;
+        if(act==='dup'){
+          const clone = ctxTarget.cloneNode(true);
+          // reset drag id so new one gets assigned
+          delete clone.dataset.sid;
+          if(ctxTarget.nextSibling) host.insertBefore(clone, ctxTarget.nextSibling); else host.appendChild(clone);
+        }
+        if(act==='add'){
+          const empty = createEmptySection();
+          if(ctxTarget.nextSibling) host.insertBefore(empty, ctxTarget.nextSibling); else host.appendChild(empty);
+        }
+        menu.style.display='none';
+      });
+
+      // Page guides toggle
+      const edGuides = w.querySelector('#edGuides');
+      function updateGuides(){
+        const PAGE_PX = 1056 - 75; // approx 11in at 96dpi minus ~2cm margins
+        if(edGuides.checked){
+          host.style.backgroundImage = `repeating-linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) ${PAGE_PX-1}px, rgba(255,255,255,0.08) ${PAGE_PX-1}px, rgba(255,255,255,0.12) ${PAGE_PX}px)`;
+          host.style.backgroundAttachment = 'local';
+        } else {
+          host.style.backgroundImage = 'none';
+        }
+      }
+      edGuides?.addEventListener('change', updateGuides);
+      updateGuides();
+
+      // Export as one long PDF (continuous)
+      w.querySelector('#edExport')?.addEventListener('click', async ()=>{
+        if(!printSheet) return;
+        printSheet.innerHTML='';
+        printSheet.classList.remove('layout-1','layout-2','layout-3','layout-4');
+        printSheet.classList.add('continuous');
+        const promises = [];
+        for(const sec of host.querySelectorAll('.ed-section')){
+          const out = document.createElement('section');
+          out.style.pageBreakAfter = 'auto';
+          out.style.margin='0 0 12px 0';
+          const h2 = document.createElement('h2');
+          h2.textContent = sec.querySelector('.ed-title')?.textContent || '';
+          h2.style.borderBottom='1px solid #ccc'; h2.style.padding='6px 0'; h2.style.margin='0 0 12px 0';
+          out.appendChild(h2);
+          const body = sec.querySelector('.ed-body') || sec; // support captured sections
+          const ifr = body?.querySelector('iframe');
+          const notes = body?.querySelector('.ed-notes');
+          if(ifr){
+            const pf = document.createElement('iframe'); pf.src = ifr.src; pf.style.width='100%'; pf.style.border='0'; pf.style.display='block';
+            out.appendChild(pf);
+            promises.push(new Promise(res=>{ pf.addEventListener('load',()=>res(),{once:true}); setTimeout(()=>res(),1000); }));
+            if(notes){ const nclone = notes.cloneNode(true); nclone.style.background='transparent'; nclone.style.border='0'; out.appendChild(nclone); }
+          } else {
+            const clone = (body.classList?.contains('ed-body') ? body : sec).cloneNode(true);
+            clone.querySelectorAll?.('.ed-notes').forEach(x=>{ x.style.background='transparent'; x.style.border='0'; });
+            clone.removeAttribute?.('contenteditable');
+            clone.querySelectorAll?.('[contenteditable]')?.forEach(el=>el.removeAttribute('contenteditable'));
+            out.appendChild(clone);
+          }
+          printSheet.appendChild(out);
+        }
+        if(promises.length){ try{ await Promise.all(promises); }catch(e){} }
+        setTimeout(()=>window.print(), 50);
+      });
+
+      // Deletion
+      host.addEventListener('click',(e)=>{
+        const btn = e.target.closest('button.btn'); if(!btn) return;
+        const sec = e.target.closest('.ed-section');
+        if(btn.dataset.del==='1' && sec){ sec.remove(); }
+      });
+
+      // Formatting toolbar (apply to active contenteditable)
+      const toolbar = w.querySelectorAll('.card [data-act]');
+      let focusEditable = null;
+      host.addEventListener('focusin', (e)=>{ if(e.target.isContentEditable) focusEditable = e.target; }, true);
+      toolbar.forEach(b=>{
+        b.addEventListener('click',()=>{
+          if(!focusEditable){ return; }
+          focusEditable.focus();
+          const act = b.dataset.act;
+          if(act==='bold') document.execCommand('bold');
+          if(act==='italic') document.execCommand('italic');
+          if(act==='h1') document.execCommand('formatBlock', false, 'h1');
+          if(act==='h2') document.execCommand('formatBlock', false, 'h2');
+          if(act==='p') document.execCommand('formatBlock', false, 'p');
+        });
+      });
+
+      // Print from editor: copy editor content into #printSheet and reuse layout tiling
+      w.querySelector('#edPrint')?.addEventListener('click', async ()=>{
+        if(!printSheet) return;
+        printSheet.innerHTML='';
+        printSheet.classList.remove('layout-1','layout-2','layout-3','layout-4');
+        printSheet.classList.add('layout-'+layout);
+        const promises = [];
+        for(const sec of host.querySelectorAll('.ed-section')){
+          const out = document.createElement('section');
+          out.style.pageBreakAfter = (layout==='1') ? 'always' : 'auto';
+          out.style.margin='0 0 12px 0';
+          const h2 = document.createElement('h2');
+          h2.textContent = sec.querySelector('.ed-title')?.textContent || '';
+          h2.style.borderBottom='1px solid #ccc'; h2.style.padding='6px 0'; h2.style.margin='0 0 12px 0';
+          out.appendChild(h2);
+          const body = sec.querySelector('.ed-body');
+          const ifr = body?.querySelector('iframe');
+          const notes = body?.querySelector('.ed-notes');
+          if(ifr){
+            // Printable iframe for app section
+            const pf = document.createElement('iframe'); pf.src = ifr.src; pf.style.width='100%'; pf.style.border='0'; pf.style.display='block';
+            out.appendChild(pf);
+            promises.push(new Promise(res=>{ pf.addEventListener('load',()=>res(),{once:true}); setTimeout(()=>res(),1000); }));
+            if(notes){ const nclone = notes.cloneNode(true); nclone.style.background='transparent'; nclone.style.border='0'; out.appendChild(nclone); }
+          } else {
+            const clone = body.cloneNode(true);
+            // remove editor-only wrappers and controls
+            clone.querySelectorAll('.ed-notes').forEach(x=>{ x.style.background='transparent'; x.style.border='0'; });
+            clone.removeAttribute('contenteditable');
+            clone.querySelectorAll('[contenteditable]')?.forEach(el=>el.removeAttribute('contenteditable'));
+            out.appendChild(clone);
+          }
+          printSheet.appendChild(out);
+        }
+        if(promises.length){ try{ await Promise.all(promises); }catch(e){} }
+        setTimeout(()=>window.print(), 50);
+      });
+    }
+
+    // App Launcher logic
+    const LS_LAST_APP = 'courseOS:lastAppPath';
+    function initAppLauncher(win){
+      try{
+        const sel = win.querySelector('#appSelect');
+        const frame = win.querySelector('#appFrame');
+        const loadBtn = win.querySelector('#appLoadBtn');
+        const reloadBtn = win.querySelector('#appReloadBtn');
+        const openTabBtn = win.querySelector('#appOpenTabBtn');
+        const launchWinBtn = win.querySelector('#appLaunchWinBtn');
+        const loadIndexBtn = win.querySelector('#appLoadIndex');
+        const localFilesInput = win.querySelector('#appLocalFiles');
+        if(!sel || !frame) return;
+        // Populate options
+        const populateOptions = () => {
+          sel.innerHTML = appRegistry.map(a=>`<option value="${a.path}">${a.label || a.path}</option>`).join('');
+        };
+        populateOptions();
+        // Restore last
+        const last = localStorage.getItem(LS_LAST_APP);
+        if(last && appRegistry.some(a=>a.path===last)) sel.value = last;
+        // Load helper
+        const doLoad = ()=>{
+          const path = sel.value;
+          localStorage.setItem(LS_LAST_APP, path);
+          // Append timestamp to bust cache while developing
+          const url = path + (path.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+          frame.src = url;
+        };
+        // Bind controls
+        loadBtn?.addEventListener('click', doLoad);
+        reloadBtn?.addEventListener('click', ()=>{ if(frame.src) frame.src = frame.src; else doLoad(); });
+        openTabBtn?.addEventListener('click', ()=>{ const path = sel.value; if(path) window.open(path, '_blank'); });
+        launchWinBtn?.addEventListener('click', ()=>{
+          const path = sel.value; const meta = appRegistry.find(a=>a.path===path) || {label:path};
+          const url = path + (path.includes('?') ? '&' : '?') + 'ts=' + Date.now();
+          const html = `<div class="iframe-viewport" style="height:100%"><iframe src="${url}" title="${meta.label}"></iframe></div>`;
+          createDynamicWindow(meta.label, html, {w:980,h:640,x:160,y:120});
+        });
+
+        // Load external index (apps-index.json) and merge
+        loadIndexBtn?.addEventListener('click', async ()=>{
+          try{
+            const resp = await fetch('apps-index.json', {cache:'no-store'});
+            if(!resp.ok){ alert('apps-index.json not found in repo root.'); return; }
+            const list = await resp.json();
+            if(!Array.isArray(list)){ alert('Invalid apps-index.json (expected JSON array of relative paths).'); return; }
+            let added = 0;
+            list.forEach((p,i)=>{
+              if(typeof p !== 'string') return;
+              if(!appRegistry.find(r=>r.path===p)){
+                appRegistry.push({id:`idx-${i}`, label:p, path:p});
+                added++;
+              }
+            });
+            if(added){ populateOptions(); window._refreshStartGrid?.(); alert(`Added ${added} apps from index.`); }
+            else alert('No new apps found to add.');
+          } catch(e){ alert('Failed to load apps-index.json'); }
+        });
+
+        // Add local HTML files via Blob URLs (session-only)
+        localFilesInput?.addEventListener('change', (e)=>{
+          const files = Array.from(localFilesInput.files||[]);
+          let added = 0;
+          files.forEach(file=>{
+            if(!/\.html?$/i.test(file.name)) return;
+            const url = URL.createObjectURL(file);
+            appRegistry.push({id:`local-${Date.now()}-${Math.random().toString(36).slice(2)}`, label:`Local: ${file.name}`, path:url});
+            added++;
+          });
+          if(added){ populateOptions(); window._refreshStartGrid?.(); sel.value = appRegistry[appRegistry.length-1].path; }
+        });
+        // Auto-load on first open
+        doLoad();
+
+        // Attempt to auto-merge apps-index.json on init (silent on failure)
+        (async ()=>{
+          try{
+            const resp = await fetch('apps-index.json', {cache:'no-store'});
+            if(!resp.ok) return;
+            const list = await resp.json();
+            if(!Array.isArray(list)) return;
+            let added = 0;
+            list.forEach((p,i)=>{
+              if(typeof p !== 'string') return;
+              if(!appRegistry.find(r=>r.path===p)){
+                appRegistry.push({id:`auto-${i}`, label:p, path:p});
+                added++;
+              }
+            });
+            if(added){
+              populateOptions();
+              window._refreshStartGrid?.();
+              // prefer previously selected or default to the first indexed app
+              if(!last) sel.value = appRegistry[appRegistry.length-1].path;
+            }
+          }catch(e){ /* likely file:// or CORS; ignore silently */ }
+        })();
+      } catch(e){ console.warn('App launcher init failed', e); }
+    }
+
+    function toggleMax(win){
+      const maximized = win.dataset.max==='1';
+      if(maximized){
+        const s = winState[win.dataset.id];
+        if(s) Object.assign(win.style,{left:s.left,top:s.top,width:s.width,height:s.height});
+        win.dataset.max='0';
+      } else {
+        winState[win.dataset.id] = {left:win.style.left, top:win.style.top, width:win.style.width, height:win.style.height};
+        Object.assign(win.style,{left:'10px',top:'66px',width:'calc(100% - 20px)',height:'calc(100% - 86px)'});
+        win.dataset.max='1';
+      }
+      bringToFront(win);
+    }
+
+    function bringToFront(win){
+      const z = 100 + Array.from(document.querySelectorAll('.win')).length;
+      win.style.zIndex = z;
+    }
+
+    // Track current desktop scale for pointer math
+    let currentScale = 1;
+
+    function makeDraggable(win){
+      const bar = win.querySelector('.titlebar');
+      let dx=0, dy=0, dragging=false;
+      bar.addEventListener('mousedown', (e)=>{ dragging=true; bringToFront(win); bar.style.cursor='grabbing'; dx=(e.clientX-parseFloat(win.style.left||'0'))/currentScale; dy=(e.clientY-parseFloat(win.style.top||'0'))/currentScale; document.addEventListener('mousemove',move); document.addEventListener('mouseup',up); });
+      function move(e){ if(!dragging) return; const x = (e.clientX - dx*currentScale); const y = (e.clientY - dy*currentScale); win.style.left=x+'px'; win.style.top=y+'px'; }
+      function up(){ dragging=false; bar.style.cursor='grab'; document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up); }
+    }
+
+    function makeResizable(win){
+      const ensure = (cls)=>{ let h = win.querySelector('.resizer.'+cls); if(!h){ h = document.createElement('div'); h.className='resizer '+cls; win.appendChild(h);} return h; };
+      const hSE = ensure('se');
+      const hE  = ensure('e');
+      const hS  = ensure('s');
+      let sx=0, sy=0, sw=0, sh=0, resizing=false, dir='';
+      const onDown = (d)=>(e)=>{ e.preventDefault(); resizing=true; dir=d; bringToFront(win); sx=e.clientX; sy=e.clientY; const cs=getComputedStyle(win); sw=parseFloat(cs.width); sh=parseFloat(cs.height); document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp); };
+      const onMove = (e)=>{
+        if(!resizing) return; const dx=(e.clientX - sx)/currentScale; const dy=(e.clientY - sy)/currentScale;
+        if(dir==='e' || dir==='se'){ win.style.width = Math.max(320, sw+dx) + 'px'; }
+        if(dir==='s' || dir==='se'){ win.style.height = Math.max(200, sh+dy) + 'px'; }
+      };
+      const onUp = ()=>{ resizing=false; dir=''; document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); };
+      hSE.addEventListener('mousedown', onDown('se'));
+      hE.addEventListener('mousedown', onDown('e'));
+      hS.addEventListener('mousedown', onDown('s'));
+    }
+
+    // Global zoom, resize-all, arrange
+    const zoomSlider = document.getElementById('zoomSlider');
+    function setDesktopScale(s){
+      currentScale = s;
+      desktop.style.transformOrigin='left top';
+      desktop.style.transform = `scale(${s})`;
+      // Resize desktop so scaled content fits viewport (no dead area)
+      desktop.style.width = (window.innerWidth / s) + 'px';
+      const vh = document.body.classList.contains('chrome-hidden') ? window.innerHeight : (window.innerHeight - 64);
+      desktop.style.height = (vh / s) + 'px';
+    }
+    zoomSlider?.addEventListener('input', ()=> setDesktopScale(parseFloat(zoomSlider.value||'1')));
+    setDesktopScale(1);
+
+    function arrangeWindows(){
+      const wins = Array.from(document.querySelectorAll('.win')).filter(w=>!w.classList.contains('hidden'));
+      if(!wins.length) return;
+      const areaW = window.innerWidth-24, areaH = window.innerHeight-140;
+      const n = wins.length; const cols = Math.ceil(Math.sqrt(n)); const rows = Math.ceil(n/cols);
+      const pad = 10; const cellW = Math.floor((areaW - pad*(cols+1))/cols); const cellH = Math.floor((areaH - pad*(rows+1))/rows);
+      wins.forEach((w,i)=>{
+        const r = Math.floor(i/cols), c = i%cols;
+        w.style.left = (12 + pad + c*(cellW+pad))+'px';
+        w.style.top  = (66 + pad + r*(cellH+pad))+'px';
+        w.style.width = cellW+'px'; w.style.height = cellH+'px';
+      });
+    }
+    function arrangeDepth(){
+      const wins = Array.from(document.querySelectorAll('.win')).filter(w=>!w.classList.contains('hidden'));
+      if(!wins.length) return;
+      const pad = 24; let x = 24, y = 72; const dx = 36, dy = 24;
+      wins.sort((a,b)=> (parseInt(a.style.zIndex||'0')||0) - (parseInt(b.style.zIndex||'0')||0));
+      wins.forEach((w,i)=>{
+        w.style.left = x+'px'; w.style.top = y+'px';
+        x += dx; y += dy;
+      });
+    }
+    document.getElementById('arrangeBtn')?.addEventListener('click', ()=>{
+      const mode = document.getElementById('layoutMode')?.value || 'free';
+      if(mode==='grid') arrangeWindows(); else if(mode==='depth') arrangeDepth();
+    });
+    document.getElementById('layoutMode')?.addEventListener('change', (e)=>{
+      const mode = e.target.value;
+      if(mode==='grid') arrangeWindows();
+      else if(mode==='depth') arrangeDepth();
+      // free: leave as-is
+    });
+
+    // Create a dynamic OS window (not from the static modules list)
+    function createDynamicWindow(label, html, opts={}){
+      const w = document.createElement('section');
+      w.className='win';
+      w.dataset.id = opts.id || ('dyn-'+Math.random().toString(36).slice(2));
+      w.style.left=(opts.x??120)+'px'; w.style.top=(opts.y??120)+'px';
+      w.style.width=(opts.w??860)+'px'; w.style.height=(opts.h??560)+'px';
+      w.innerHTML = `
+        <div class="titlebar">
+          <div class="dots"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span></div>
+          <div class="name">${label}</div>
+          <div class="controls">
+            <button class="btn" data-act="min">—</button>
+            <button class="btn" data-act="max">▢</button>
+            <button class="btn" data-act="close">✕</button>
+          </div>
+        </div>
+        <div class="content" style="padding:0;overflow:hidden">${html}</div>`;
+      desktop.appendChild(w);
+      makeDraggable(w); makeResizable(w); attachControls(w); bringToFront(w);
+      return w;
+    }
+
+    // Open core windows by default
+    ['syllabus','readings','assignments','schedule'].forEach(openWin);
+
+    // Theme & Brand Commander
+    const themeBtn = document.getElementById('themeBtn');
+    themeBtn.addEventListener('click',()=>{
+      document.body.classList.toggle('studio');
+      if(document.body.classList.contains('studio')){
+        document.documentElement.style.setProperty('--bg','#f6f7f9');
+        document.documentElement.style.setProperty('--panel','#ffffff');
+        document.documentElement.style.setProperty('--ink','#0c1420');
+        document.documentElement.style.setProperty('--muted','#5b6b83');
+        document.documentElement.style.setProperty('--rule','#e3e7ef');
+      } else {
+        document.documentElement.style.setProperty('--bg','#0e1116');
+        document.documentElement.style.setProperty('--panel','#131923');
+        document.documentElement.style.setProperty('--ink','#e7ebf2');
+        document.documentElement.style.setProperty('--muted','#9aa7bd');
+        document.documentElement.style.setProperty('--rule','#20293a');
+      }
+    });
+
+    const brandBtn = document.getElementById('brandBtn');
+    brandBtn.addEventListener('click',()=>{
+      document.body.classList.toggle('brand-skin');
+      openWin('brand');
+    });
+
+    // Fullscreen toggle
+    const fsBtn = document.getElementById('fsBtn');
+    function isFs(){ return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+    async function toggleFullscreen(){
+      try{
+        if(!isFs()){
+          const el = document.documentElement;
+          if(el.requestFullscreen) await el.requestFullscreen(); else if(el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+        } else {
+          if(document.exitFullscreen) await document.exitFullscreen(); else if(document.webkitExitFullscreen) await document.webkitExitFullscreen();
+        }
+      }catch(_){ }
+    }
+    fsBtn?.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', ()=>{
+      const on = isFs();
+      const b = document.getElementById('fsBtn'); if(b) b.textContent = on ? '⤡' : '⤢';
+      // On entering fullscreen, show menus by default
+      if(on){ document.body.classList.remove('chrome-hidden'); }
+      // Recompute scaled desktop size for new viewport chrome
+      try{ setDesktopScale(parseFloat(document.getElementById('zoomSlider')?.value||'1')); }catch(_){ }
+    });
+
+    // Hide Menus (chrome) toggle
+    const chromeBtn = document.getElementById('chromeBtn');
+    chromeBtn?.addEventListener('click', ()=>{
+      const on = document.body.classList.toggle('chrome-hidden');
+      // Update glyph: ⊟ hide, ⊞ show
+      chromeBtn.textContent = on ? '⊞' : '⊟';
+      chromeBtn.title = on ? 'Show Menus (topbar & dock)' : 'Hide Menus (topbar & dock)';
+      try{ setDesktopScale(parseFloat(document.getElementById('zoomSlider')?.value||'1')); }catch(_){ }
+    });
+
+    // Keyboard shortcuts: Esc to unhide menus; Cmd/Ctrl+Shift+M to toggle menus
+    document.addEventListener('keydown', (e)=>{
+      // Unhide on Escape
+      if(e.key === 'Escape'){
+        if(document.body.classList.contains('chrome-hidden')){
+          document.body.classList.remove('chrome-hidden');
+          try{ setDesktopScale(parseFloat(document.getElementById('zoomSlider')?.value||'1')); }catch(_){ }
+        }
+      }
+      // Toggle on Cmd/Ctrl+Shift+M
+      if((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'M' || e.key === 'm')){
+        e.preventDefault();
+        const on = document.body.classList.toggle('chrome-hidden');
+        const btn = document.getElementById('chromeBtn');
+        if(btn){ btn.textContent = on ? '⊞' : '⊟'; btn.title = on ? 'Show Menus (topbar & dock)' : 'Hide Menus (topbar & dock)'; }
+        try{ setDesktopScale(parseFloat(document.getElementById('zoomSlider')?.value||'1')); }catch(_){ }
+      }
+    });
+
+    // Print Pack selector
+    document.getElementById('printBtn').addEventListener('click', openPrintSelector);
+
+    function openPrintSelector(){
+      // Collect open windows
+      const openWins = Array.from(document.querySelectorAll('.win'))
+        .filter(w=>!w.classList.contains('hidden'))
+        .map(w=>({ id:w.dataset.id, name:w.querySelector('.name')?.textContent || w.dataset.id }));
+
+      const listItems = openWins.map((w,i)=>
+        `<div class="row" data-id="${w.id}">
+           <span><label><input type="checkbox" class="pick" checked> ${w.name}</label></span>
+           <span>
+             <button class="btn" data-act="up">↑</button>
+             <button class="btn" data-act="down">↓</button>
+             <button class="btn" data-act="top">⤒</button>
+           </span>
+         </div>`).join('');
+
+      const html = `
+        <div class="card" style="margin:12px">
+          <h3>Print Pack</h3>
+          <p class="muted">Select which windows to include and arrange their order. Choose a layout, then Build & Print.</p>
+          <div style="margin:8px 0">
+            <label class="pill" style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px">
+              Layout:
+              <select id="ppLayout" style="background:#0f1520;border:1px solid var(--rule);color:var(--ink);padding:6px 8px;border-radius:8px">
+                <option value="1">1 per page (full page)</option>
+                <option value="2">2 per page</option>
+                <option value="3">3 per page</option>
+                <option value="4">4 per page</option>
+              </select>
+            </label>
+          </div>
+          <div id="ppList" class="list">${listItems || '<div class="row"><span>No open windows.</span></div>'}</div>
+          <div class="footer">
+            <button class="btn" id="ppSelectAll">Select All</button>
+            <button class="btn" id="ppClear">Clear</button>
+            <button class="btn" id="ppEditor">Open in Editor</button>
+            <button class="btn accent" id="ppBuild">Build & Print</button>
+          </div>
+        </div>`;
+
+      const win = createDynamicWindow('Print Pack', html, {w:700,h:520,x:220,y:120});
+      const list = win.querySelector('#ppList');
+      function reorder(row, dir){
+        if(!row) return;
+        if(dir==='up' && row.previousElementSibling){ list.insertBefore(row, row.previousElementSibling); }
+        if(dir==='down' && row.nextElementSibling){ list.insertBefore(row.nextElementSibling, row); }
+        if(dir==='top'){ list.insertBefore(row, list.firstElementChild); }
+      }
+      list?.addEventListener('click',(e)=>{
+        const btn = e.target.closest('button.btn'); if(!btn) return;
+        const row = e.target.closest('.row');
+        const act = btn.dataset.act; reorder(row, act);
+      });
+      win.querySelector('#ppSelectAll')?.addEventListener('click',()=>{ list.querySelectorAll('.pick').forEach(cb=>cb.checked=true); });
+      win.querySelector('#ppClear')?.addEventListener('click',()=>{ list.querySelectorAll('.pick').forEach(cb=>cb.checked=false); });
+      win.querySelector('#ppEditor')?.addEventListener('click',()=>{
+        const order = Array.from(list.querySelectorAll('.row'))
+          .map(r=>({ id:r.dataset.id, on:r.querySelector('.pick')?.checked }))
+          .filter(x=>x.on);
+        const layoutSel = win.querySelector('#ppLayout');
+        const layout = (layoutSel?.value||'1');
+        openAssembler(order, layout);
+      });
+      win.querySelector('#ppBuild')?.addEventListener('click',async ()=>{
+        const order = Array.from(list.querySelectorAll('.row'))
+          .map(r=>({ id:r.dataset.id, on:r.querySelector('.pick')?.checked }))
+          .filter(x=>x.on);
+        const layoutSel = win.querySelector('#ppLayout');
+        const layout = (layoutSel?.value||'1');
+        await buildPrintSheet(order, layout);
+        setTimeout(()=>window.print(), 50);
+      });
+    }
+
+    async function buildPrintSheet(order, layout='1'){
+      if(!printSheet) return;
+      printSheet.innerHTML = '';
+      // Apply layout class
+      printSheet.classList.remove('layout-1','layout-2','layout-3','layout-4');
+      printSheet.classList.add('layout-'+layout);
+      const iframePromises = [];
+      order.forEach(entry=>{
+        const w = document.querySelector(`.win[data-id="${entry.id}"]`);
+        if(!w) return;
+        const title = w.querySelector('.name')?.textContent || entry.id;
+        const content = w.querySelector('.content');
+        const section = document.createElement('section');
+        // For layout 1 keep page breaks; others handled by print CSS
+        section.style.pageBreakAfter = (layout==='1') ? 'always' : 'auto';
+        section.style.margin='0 0 12px 0';
+        const head = document.createElement('h2');
+        head.textContent = title;
+        head.style.borderBottom='1px solid #ccc'; head.style.padding='6px 0'; head.style.margin='0 0 12px 0';
+        section.appendChild(head);
+        if(content){
+          const srcIframe = content.querySelector('iframe');
+          if(srcIframe && srcIframe.src){
+            const url = srcIframe.src;
+            const makeFrame = (attrs)=>{
+              return new Promise(res=>{
+                const pf = document.createElement('iframe');
+                pf.setAttribute('title', title);
+                pf.style.width = '100%'; pf.style.border = '0'; pf.style.display = 'block';
+                if(attrs.srcdoc) pf.srcdoc = attrs.srcdoc; else pf.src = attrs.src;
+                section.appendChild(pf);
+                const finalize = ()=>{
+                  try{
+                    const doc = pf.contentDocument || pf.contentWindow?.document;
+                    if(doc){
+                      const bh = doc.body ? Math.max(doc.body.scrollHeight, doc.body.offsetHeight) : 0;
+                      const dh = doc.documentElement ? Math.max(doc.documentElement.scrollHeight, doc.documentElement.offsetHeight) : 0;
+                      const h = Math.max(bh, dh);
+                      if(h && !isNaN(h)){
+                        if(layout==='1') pf.style.height = (h + 20) + 'px';
+                      } else if(layout==='1') {
+                        pf.style.height = '1800px';
+                      }
+                    }
+                  }catch(e){ if(layout==='1') pf.style.height = '1800px'; }
+                  res();
+                };
+                pf.addEventListener('load', finalize, {once:true});
+                setTimeout(finalize, 1200);
+              });
+            };
+            // Build a promise that fetches (if possible) then creates the frame, then resolves after iframe load
+            const perEntry = fetch(url, {cache:'no-store'})
+              .then(resp=>{
+                if(resp.ok){
+                  return resp.text().then(html=>{
+                    const baseHref = url.replace(/([^\/]*)(\?.*)?$/, '');
+                    if(!/\<base\s/i.test(html)){
+                      html = html.replace(/<head(\s[^>]*)?>/i, (m)=> m + `\n<base href="${baseHref}">`);
+                    }
+                    return makeFrame({srcdoc: html});
+                  });
+                }
+                return makeFrame({src: url});
+              })
+              .catch(()=> makeFrame({src: url}));
+            iframePromises.push(perEntry);
+          } else {
+            const clone = content.cloneNode(true);
+            clone.style.maxWidth='100%'; clone.style.overflow='hidden'; clone.style.height='auto';
+            section.appendChild(clone);
+          }
+        }
+        printSheet.appendChild(section);
+      });
+      // Remove trailing page break on last section
+      const last = printSheet.lastElementChild; if(last && layout==='1') last.style.pageBreakAfter='auto';
+      // Wait for any printable iframes to load
+      if(iframePromises.length){
+        try{ await Promise.all(iframePromises); } catch(e){}
+      }
+    }
+
+    // Tests button
+    document.getElementById('testsBtn').addEventListener('click',()=>{ openWin('diagnostics'); runTests(); });
+
+    // Search
+    const search = document.getElementById('search');
+    function doSearch(q){
+      q = q.toLowerCase().trim();
+      if(!q) return;
+      modules.forEach(m=>{
+        if((m.label.toLowerCase().includes(q)) || (m.html.toLowerCase().includes(q))){ openWin(m.id); }
+      });
+    }
+    search.addEventListener('keydown',(e)=>{ if(e.key==='Enter') doSearch(search.value); });
+    window.addEventListener('keydown',(e)=>{
+      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); search.focus(); }
+    });
+
+    // Schedule generator + ICS
+    window.generateSchedule = function(){
+      const s = document.getElementById('startDate').value;
+      const e = document.getElementById('endDate').value;
+      const startTime = document.getElementById('startTime').value;
+      const endTime = document.getElementById('endTime').value;
+      const dows = Array.from(document.querySelectorAll('.dow:checked')).map(cb=>parseInt(cb.value,10));
+      const list = document.getElementById('sessions');
+      list.innerHTML='';
+      const out=[];
+
+      let cur = new Date(s+'T00:00:00');
+      const end = new Date(e+'T23:59:59');
+
+      while(cur<=end){
+        const dow = cur.getDay(); // Sun=0
+        if(dows.includes(dow)){
+          const iso = cur.toISOString().slice(0,10);
+          const row = document.createElement('div'); row.className='row';
+          row.innerHTML = `<span>${iso}</span><span class="pill">${startTime}–${endTime} ET</span>`;
+          list.appendChild(row);
+          out.push({date:iso,start:startTime,end:endTime,title:'LMC 2400 Session'});
+        }
+        cur.setDate(cur.getDate()+1);
+      }
+      // ICS
+      const ics = makeICS(out);
+      const blob = new Blob([ics],{type:'text/calendar'});
+      const url = URL.createObjectURL(blob);
+      const icsBtn = document.getElementById('icsBtn');
+      icsBtn.disabled=false; icsBtn.onclick=()=>{ const a=document.createElement('a'); a.href=url; a.download='LMC2400_Schedule.ics'; document.body.appendChild(a); a.click(); a.remove(); };
+    }
+
+    function dtStamp(){
+      const d = new Date();
+      return d.toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+    }
+    function makeICS(events){
+      const uid = Math.random().toString(36).slice(2);
+      let s = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//LMC2400//CourseOS//EN\n';
+      events.forEach(ev=>{
+        const dt = ev.date.replace(/-/g,'');
+        const dtstart = dt+'T'+ev.start.replace(':','')+'00';
+        const dtend   = dt+'T'+ev.end.replace(':','')+'00';
+        s += 'BEGIN:VEVENT\n';
+        s += 'UID:'+uid+dt+'@courseos\n';
+        s += 'DTSTAMP:'+dtStamp()+'\n';
+        s += 'SUMMARY:'+ev.title+'\n';
+        s += 'DTSTART;TZID=America/New_York:'+dtstart+'\n';
+        s += 'DTEND;TZID=America/New_York:'+dtend+'\n';
+        s += 'END:VEVENT\n';
+      });
+      s += 'END:VCALENDAR';
+      return s;
+    }
+
+    // System Map
+    document.getElementById('newWinBtn').addEventListener('click',()=>{
+      const w = openWin('help'); bringToFront(w);
+    });
+
+    // --- Minimal Test Harness ---------------------------------------------
+    function addResult(msg, ok){
+      const list = document.getElementById('testResults');
+      if(!list) return;
+      const row = document.createElement('div');
+      row.className='row';
+      row.innerHTML = `<span>${msg}</span><span class="pill ${ok?'pass':'fail'}">${ok?'PASS':'FAIL'}</span>`;
+      list.appendChild(row);
+    }
+
+    window.runTests = function(){
+      openWin('diagnostics');
+      const list = document.getElementById('testResults');
+      if(list) list.innerHTML='';
+      try { addResult('window.openWin exists', typeof window.openWin === 'function'); } catch(e){ addResult('window.openWin exists', false); }
+      try { const w1 = openWin('schedule'); addResult('openWin("schedule") returns a window', !!w1); } catch(e){ addResult('openWin("schedule")', false); }
+      try { const w2 = openWin('rubrics'); addResult('openWin("rubrics") returns a window', !!w2); } catch(e){ addResult('openWin("rubrics")', false); }
+      try {
+        // Set a tiny date range and generate one session (Tue only)
+        openWin('schedule');
+        document.getElementById('startDate').value = '2025-08-19'; // Tue
+        document.getElementById('endDate').value   = '2025-08-19';
+        document.querySelectorAll('.dow').forEach(cb=>cb.checked=false);
+        document.querySelector('.dow[value="2"]').checked=true;
+        generateSchedule();
+        const hasRows = document.getElementById('sessions').children.length >= 1;
+        addResult('Schedule generator creates at least one session', hasRows);
+        const icsEnabled = !document.getElementById('icsBtn').disabled;
+        addResult('.ics button enabled after generate', icsEnabled);
+      } catch(e){ addResult('Schedule generator smoke test', false); }
+    }
+  };
+
+  // Ensure DOM is ready before init
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else { init(); }
+})();
+</script>
+</body>
+</html>

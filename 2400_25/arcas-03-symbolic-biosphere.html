@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Symbolic Biosphere — Experimental Media Syllabus (Canvas)</title>
+  <style>
+    :root{
+      --bg:#0b1020;          /* deep space */
+      --panel:#0f172a;       /* slate-900 */
+      --muted:#1e293b;       /* slate-800 */
+      --grid:#111827;        /* gray-900 */
+      --line:#1f2937;        /* gray-800 */
+      --text:#e5e7eb;        /* gray-200 */
+      --sub:#94a3b8;         /* slate-400 */
+      --on:#4f46e5;          /* indigo-600 */
+      --mut:#f59e0b;         /* amber-500 */
+      --constraint:#ef4444;  /* red-500 */
+      --noise:#06b6d4;       /* cyan-500 */
+      --self:#84cc16;        /* lime-500 */
+      --break:#64748b;       /* slate-500 */
+      --accent:#22d3ee;      /* cyan-400 */
+      --ok:#10b981;          /* emerald */
+      --warn:#fbbf24;        /* amber */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{margin:0;background:linear-gradient(180deg,var(--bg),#060913);color:var(--text);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Noto Sans",sans-serif;}
+    header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(34,211,238,0.06),rgba(0,0,0,0));}
+    header h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.4px}
+    header .sig{opacity:.8;color:var(--sub)}
+    .app{display:grid;grid-template-columns:310px 1fr;gap:12px;height:calc(100% - 54px);}
+    aside{background:rgba(15,23,42,.7);backdrop-filter:saturate(120%) blur(6px);border-right:1px solid var(--line);padding:14px 12px;overflow:auto}
+    main{position:relative;padding:8px 12px}
+    .card{background:rgba(2,6,23,.6);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+    .row{display:flex;align-items:center;gap:8px;margin:8px 0}
+    .btn{appearance:none;border:1px solid var(--muted);background:var(--panel);color:var(--text);padding:8px 10px;border-radius:10px;font-weight:600;cursor:pointer;transition:160ms ease;}
+    .btn:hover{border-color:var(--accent);box-shadow:0 0 0 2px rgba(34,211,238,.15) inset}
+    .btn.primary{background:linear-gradient(180deg,rgba(79,70,229,.25),rgba(79,70,229,.15));border-color:rgba(79,70,229,.7)}
+    .btn.ghost{background:transparent}
+    .btn.small{padding:6px 8px;font-size:12px}
+    .btn-group{display:flex;gap:8px;flex-wrap:wrap}
+    .slider{width:100%}
+    label{font-size:12px;color:var(--sub)}
+    .legend{display:grid;grid-template-columns:repeat(6, minmax(0,1fr));gap:8px;margin-top:8px}
+    .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 8px;background:rgba(2,6,23,.4)}
+    .dot{width:12px;height:12px;border-radius:3px}
+    .grid-wrap{position:relative}
+    canvas{display:block;border-radius:12px;border:1px solid var(--line);background:radial-gradient(1200px 600px at 70% 10%, rgba(79,70,229,.08), transparent), linear-gradient(180deg,rgba(2,6,23,.5),rgba(2,6,23,.9));}
+    .overlay{position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:12px}
+    .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(2,6,23,.5);font-size:12px;color:var(--sub)}
+    .tooltip{position:absolute;pointer-events:none;transform:translate(-50%, -110%);background:rgba(2,6,23,.95);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:220px;z-index:10;display:none}
+    .tooltip h4{margin:0 0 6px 0;font-size:13px;color:var(--text)}
+    .tooltip .kv{display:grid;grid-template-columns:84px 1fr;gap:6px}
+    .rule-toggles{display:grid;grid-template-columns:repeat(2, minmax(0,1fr));gap:8px}
+    .switch{display:flex;align-items:center;gap:8px}
+    .switch input{accent-color:var(--on)}
+    .mini{font-size:11px;color:var(--sub)}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;background:#0b1220;border:1px solid var(--line);border-bottom-color:#000;padding:2px 6px;border-radius:6px;font-size:11px}
+    .footer-note{font-size:12px;color:var(--sub)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Symbolic Biosphere — Experimental Media Syllabus</h1>
+    <div class="sig">Command Signature: <span class="kbd">Seed the universe, compute the emergence.</span></div>
+  </header>
+  <div class="app">
+    <aside>
+      <div class="card">
+        <div class="row btn-group">
+          <button id="playBtn" class="btn primary" title="Play/Pause (Space)">▶ Play</button>
+          <button id="stepBtn" class="btn" title="Step (.)">Step</button>
+          <button id="resetBtn" class="btn ghost" title="Reset (R)">Reset</button>
+        </div>
+        <div class="row">
+          <label for="speed">Tick (ms)</label>
+        </div>
+        <div class="row">
+          <input id="speed" class="slider" type="range" min="60" max="1200" value="420" />
+        </div>
+        <div class="row" style="justify-content:space-between">
+          <span class="mini">Faster</span>
+          <span class="mini">Slower</span>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <div class="rule-toggles">
+            <label class="switch"><input id="ruleSeed" type="checkbox" checked/> Seed</label>
+            <label class="switch"><input id="ruleMerge" type="checkbox" checked/> Merge</label>
+            <label class="switch"><input id="ruleNoise" type="checkbox" checked/> Noise</label>
+            <label class="switch"><input id="ruleConstraint" type="checkbox" checked/> Constraint</label>
+            <label class="switch"><input id="ruleSelf" type="checkbox" checked/> Self-Model</label>
+            <label class="switch"><input id="showLabels" type="checkbox" checked/> Labels</label>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <strong>Modules (rows)</strong>
+          <span class="mini">Hover grid for details</span>
+        </div>
+        <ul id="moduleList" style="list-style:none;margin:8px 0 0 0;padding:0;display:grid;gap:6px">
+          <!-- populated by JS -->
+        </ul>
+      </div>
+      <div class="card">
+        <strong>Legend</strong>
+        <div class="legend">
+          <div class="chip"><span class="dot" style="background:var(--on)"></span>ON (Reading)</div>
+          <div class="chip"><span class="dot" style="background:var(--mut)"></span>MUT (Merge)</div>
+          <div class="chip"><span class="dot" style="background:var(--constraint)"></span>Constraint</div>
+          <div class="chip"><span class="dot" style="background:var(--noise)"></span>Noise</div>
+          <div class="chip"><span class="dot" style="background:var(--self)"></span>Self-Model</div>
+          <div class="chip"><span class="dot" style="background:var(--break)"></span>Break</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row btn-group">
+          <button id="exportBtn" class="btn small">Export PNG</button>
+          <button id="randomizeBtn" class="btn small">Random Spark</button>
+        </div>
+        <div class="footer-note">Keyboard: <span class="kbd">Space</span> Play/Pause · <span class="kbd">.</span> Step · <span class="kbd">R</span> Reset</div>
+      </div>
+    </aside>
+    <main>
+      <div class="grid-wrap">
+        <div class="overlay">
+          <div class="pill">Current Week: <span id="weekLbl">2</span></div>
+          <div class="pill">Tick: <span id="tickLbl">0</span></div>
+          <div class="pill">State Changes: <span id="deltaLbl">0</span></div>
+          <div class="pill">Tests: <span id="testLbl">—</span></div>
+        </div>
+        <canvas id="grid" width="1400" height="760" aria-label="Symbolic Biosphere Canvas" role="img"></canvas>
+        <div id="tooltip" class="tooltip" aria-live="polite">
+          <h4 id="ttTitle">Cell</h4>
+          <div class="kv">
+            <div class="mini">Module</div><div id="ttModule">—</div>
+            <div class="mini">Week</div><div id="ttWeek">—</div>
+            <div class="mini">State</div><div id="ttState">—</div>
+            <div class="mini">Label</div><div id="ttLabel">—</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script>
+  ;(() => {
+    // ---------- CONFIG ----------
+    const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const COLS = 16;           // weeks 1..16 (we seed from week 2)
+    const ROWS = 9;            // F1..F9
+    const PADDING = 24;        // canvas padding
+    const GRID_GAP = 2;        // inner gap between cells
+
+    const State = Object.freeze({ OFF:0, ON:1, MUT:2, CONSTRAINT:3, NOISE:4, SELF:5, BREAK:6 });
+    const StateName = {
+      [State.OFF]: 'OFF', [State.ON]: 'ON (Reading)', [State.MUT]:'MUT (Merge)',
+      [State.CONSTRAINT]:'Constraint', [State.NOISE]:'Noise', [State.SELF]:'Self-Model', [State.BREAK]:'Break'
+    };
+    const Colors = {
+      [State.OFF]:'#0d1224', [State.ON]:'var(--on)', [State.MUT]:'var(--mut)',
+      [State.CONSTRAINT]:'var(--constraint)', [State.NOISE]:'var(--noise)',
+      [State.SELF]:'var(--self)', [State.BREAK]:'var(--break)'
+    };
+
+    // Module rows (F1..F9)
+    const modules = [
+      { key:'F1', name:'Foundational Catalysts', row:0, weeks:[2,3,4], readings:['McLuhan','Ong','Higgins','Bazin (Ontology)'] },
+      { key:'F2', name:'Noise & Resonance',      row:1, weeks:[5], readings:['Gitelman','Dutchen','Enright'], noise:true },
+      { key:'F3', name:'Performance & Spectacle',row:2, weeks:[6], readings:['Auslander','Bazin (Myth)'] },
+      { key:'F4', name:'Machine Reflexivity',    row:3, weeks:[7], readings:['Turing','Buolamwini','Kantayya'], constraint:true },
+      { key:'F5', name:'Play & Games',           row:4, weeks:[8], readings:['Montfort','Bogost','Boellstorff'] },
+      { key:'F6', name:'Immersion & Empathy',    row:5, weeks:[9], readings:['Milk','Rouse','Bolter'], noise:true },
+      { key:'F7', name:'Network & Viral',        row:6, weeks:[10], readings:['Brock','Maguire'], noise:true },
+      { key:'F8', name:'Identity & Power',       row:7, weeks:[12], readings:['Lovelock','Benjamin'], constraint:true },
+      { key:'F9', name:'Futures & Speculation',  row:8, weeks:[13,14,15,16], readings:['Metaverse','Student Projects'], self:true },
+    ];
+
+    // Weeks with break (no seeding)
+    const BREAK_WEEKS = new Set([11]);
+
+    // ---------- STATE ----------
+    let grid = createGrid(ROWS, COLS, State.OFF);
+    let labels = createLabelGrid(ROWS, COLS, '');
+    let tick = 0;        // ticks since reset
+    let week = 2;        // current week pointer (2..16)
+    let playing = false;
+    let timer = null;
+
+    // rule toggles
+    const rule = { seed:true, merge:true, noise:true, constraint:true, self:true };
+
+    // canvas + metrics
+    const canvas = document.getElementById('grid');
+    const ctx = canvas.getContext('2d');
+
+    // --------------------
+    // UI elements (DEFINE BEFORE ANY DRAW CALLS)
+    // --------------------
+    const speedEl = document.getElementById('speed');
+    const weekLbl = document.getElementById('weekLbl');
+    const tickLbl = document.getElementById('tickLbl');
+    const deltaLbl = document.getElementById('deltaLbl');
+    const testLbl = document.getElementById('testLbl');
+    const moduleList = document.getElementById('moduleList');
+    const showLabelsEl = document.getElementById('showLabels');
+
+    // Now safe to size/draw
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Tooltip
+    const tt = {
+      el: document.getElementById('tooltip'),
+      title: document.getElementById('ttTitle'),
+      module: document.getElementById('ttModule'),
+      week: document.getElementById('ttWeek'),
+      state: document.getElementById('ttState'),
+      label: document.getElementById('ttLabel')
+    };
+
+    // Populate module list
+    modules.forEach(m => {
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="chip" title="Row ${m.row+1}"><span class="dot" style="background:${m.noise? 'var(--noise)': m.constraint? 'var(--constraint)': m.self? 'var(--self)': 'var(--on)'}"></span><strong>${m.key}</strong>: ${m.name} <span class="mini" style="margin-left:auto">weeks ${m.weeks.join(',')}</span></div>`;
+      moduleList.appendChild(li);
+    });
+
+    // Hook controls
+    document.getElementById('playBtn').addEventListener('click', togglePlay);
+    document.getElementById('stepBtn').addEventListener('click', () => step(true));
+    document.getElementById('resetBtn').addEventListener('click', reset);
+    document.getElementById('exportBtn').addEventListener('click', exportPNG);
+    document.getElementById('randomizeBtn').addEventListener('click', randomSpark);
+
+    document.getElementById('ruleSeed').addEventListener('change', e => rule.seed = e.target.checked);
+    document.getElementById('ruleMerge').addEventListener('change', e => rule.merge = e.target.checked);
+    document.getElementById('ruleNoise').addEventListener('change', e => rule.noise = e.target.checked);
+    document.getElementById('ruleConstraint').addEventListener('change', e => rule.constraint = e.target.checked);
+    document.getElementById('ruleSelf').addEventListener('change', e => rule.self = e.target.checked);
+
+    // Keyboard
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+      else if (e.key === '.') { e.preventDefault(); step(true); }
+      else if (e.key.toLowerCase() === 'r') { e.preventDefault(); reset(); }
+    });
+
+    // Mouse hover tooltip
+    canvas.addEventListener('mousemove', (e) => {
+      const {row, col, x, y} = mouseToCell(e);
+      if (row < 0 || col < 0) { hideTooltip(); return; }
+      const st = grid[row][col];
+      const m = modules[row];
+      const w = col;
+      tt.title.textContent = `Cell r${row+1}:c${col}`;
+      tt.module.textContent = `${m.key} — ${m.name}`;
+      tt.week.textContent = w;
+      tt.state.textContent = StateName[st];
+      tt.label.textContent = labels[row][col] || '—';
+      tt.el.style.left = `${x}px`;
+      tt.el.style.top = `${y}px`;
+      tt.el.style.display = 'block';
+    });
+    canvas.addEventListener('mouseleave', hideTooltip);
+
+    // Click to toggle cell (for sandboxing)
+    canvas.addEventListener('click', (e) => {
+      const {row, col} = mouseToCell(e);
+      if (row < 0 || col < 0) return;
+      // cycle through ON -> MUT -> SELF -> OFF
+      const st = grid[row][col];
+      let next = State.ON;
+      if (st === State.ON) next = State.MUT; else if (st === State.MUT) next = State.SELF; else if (st === State.SELF) next = State.OFF; else next = State.ON;
+      grid[row][col] = next;
+      labels[row][col] = labels[row][col] || inferLabel(row, col);
+      draw();
+    });
+
+    // ---------- CORE ----------
+    reset();
+    runTests();
+
+    function reset(){
+      grid = createGrid(ROWS, COLS, State.OFF);
+      labels = createLabelGrid(ROWS, COLS, '');
+      tick = 0; week = 2;
+      // Place Break week marker
+      modules.forEach(m => BREAK_WEEKS.forEach(bw => grid[m.row][bw] = State.BREAK));
+      playing = false; updatePlayBtn();
+      draw();
+    }
+
+    function togglePlay(){
+      playing = !playing; updatePlayBtn();
+      if (playing) run(); else stop();
+    }
+
+    function updatePlayBtn(){
+      const b = document.getElementById('playBtn');
+      b.textContent = playing ? '⏸ Pause' : '▶ Play';
+    }
+
+    function stop(){ if (timer) { clearTimeout(timer); timer = null; } }
+
+    function run(){
+      step(false);
+      timer = setTimeout(run, +speedEl.value);
+    }
+
+    function step(manual){
+      const prevChanges = countActive(grid);
+      // SEED for current week
+      if (rule.seed && !BREAK_WEEKS.has(week)) seedWeek(week);
+      // Apply CA rules
+      const next = createGrid(ROWS, COLS, State.OFF);
+      for (let r=0;r<ROWS;r++){
+        for (let c=0;c<COLS;c++){
+          next[r][c] = evolveCell(r,c);
+        }
+      }
+      grid = next;
+      tick++; if (!manual) week = Math.min(16, week + 1); else week = Math.min(16, week);
+      weekLbl.textContent = week; tickLbl.textContent = tick;
+      deltaLbl.textContent = Math.max(0, countActive(grid) - prevChanges);
+      draw();
+    }
+
+    function seedWeek(w){
+      modules.forEach(m => {
+        if (m.weeks.includes(w)){
+          // Base seed as ON (reading) or special markers
+          const st = m.constraint ? State.CONSTRAINT : m.noise ? State.NOISE : m.self ? State.SELF : State.ON;
+          grid[m.row][w] = st;
+          labels[m.row][w] = `${m.key}: ${m.readings.join(', ')}`;
+        }
+      });
+    }
+
+    function evolveCell(r,c){
+      const st = grid[r][c];
+      const neigh = neighbors(r,c);
+      const onCount = neigh.filter(n => n.state === State.ON).length;
+      const mutCount = neigh.filter(n => n.state === State.MUT).length;
+      const noiseHere = neigh.some(n => n.state === State.NOISE) || grid[r][c] === State.NOISE;
+      const constraintHere = neigh.some(n => n.state === State.CONSTRAINT) || grid[r][c] === State.CONSTRAINT;
+      const selfHere = neigh.some(n => n.state === State.SELF) || grid[r][c] === State.SELF;
+
+      // Preserve break markers
+      if (st === State.BREAK) return State.BREAK;
+
+      // Default carry-over
+      let next = st;
+
+      // Merge Rule: any ON cell with >=2 other ON neighbors becomes MUT
+      if (rule.merge && st === State.ON && onCount >= 2) next = State.MUT;
+
+      // Noise Rule: if noise near, OFF may ignite to ON with small chance
+      if (rule.noise && (st === State.OFF) && noiseHere && Math.random() < 0.09) next = State.ON;
+
+      // Constraint Rule: if constraint around, MUT may be suppressed back to ON
+      if (rule.constraint && (st === State.MUT) && constraintHere && Math.random() < 0.7) next = State.ON;
+
+      // Self-Model Rule: near SELF, any MUT upgrades to SELF; ON may upgrade with small chance
+      if (rule.self && selfHere) {
+        if (st === State.MUT) next = State.SELF; else if (st === State.ON && Math.random()<0.12) next = State.SELF;
+      }
+
+      return next;
+    }
+
+    function neighbors(r,c){
+      const list = [];
+      for (let dr=-1; dr<=1; dr++){
+        for (let dc=-1; dc<=1; dc++){
+          if (dr===0 && dc===0) continue;
+          const rr = r+dr, cc = c+dc;
+          if (rr>=0 && rr<ROWS && cc>=0 && cc<COLS){ list.push({r:rr,c:cc,state:grid[rr][cc]}); }
+        }
+      }
+      return list;
+    }
+
+    // ---------- DRAW ----------
+    function resizeCanvas(){
+      const wrap = canvas.parentElement;
+      const W = Math.max(980, wrap.clientWidth - 4);
+      const H = Math.max(520, Math.min(860, window.innerHeight - 160));
+      canvas.width = W * DPR; canvas.height = H * DPR; canvas.style.width = W+'px'; canvas.style.height = H+'px';
+      draw();
+    }
+
+    function draw(){
+      const W = canvas.width, H = canvas.height; ctx.save(); ctx.scale(DPR, DPR);
+      // background
+      ctx.clearRect(0,0,W,H);
+      // grid metrics
+      const innerW = canvas.clientWidth - PADDING*2;
+      const innerH = canvas.clientHeight - PADDING*2;
+      const cellW = Math.floor((innerW - GRID_GAP*(COLS-1)) / COLS);
+      const cellH = Math.floor((innerH - GRID_GAP*(ROWS-1)) / ROWS);
+      const originX = PADDING, originY = PADDING;
+
+      // draw grid cells
+      for (let r=0;r<ROWS;r++){
+        for (let c=0;c<COLS;c++){
+          const x = originX + c*(cellW+GRID_GAP);
+          const y = originY + r*(cellH+GRID_GAP);
+          const st = grid[r][c];
+          const color = Colors[st];
+          // cell bg
+          ctx.fillStyle = color || '#0d1224';
+          roundRect(ctx, x, y, cellW, cellH, 6, true, false);
+          // label (optional) — guard against early access
+          if (showLabelsEl && showLabelsEl.checked && labels[r][c]){
+            ctx.fillStyle = 'rgba(255,255,255,.92)';
+            ctx.font = '11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+            wrapText(ctx, labels[r][c], x+6, y+6, cellW-12, 13);
+          }
+          // current week frame
+          if (c === week){
+            ctx.strokeStyle = 'rgba(34,211,238,.85)';
+            ctx.lineWidth = 2; roundRect(ctx, x-1, y-1, cellW+2, cellH+2, 8, false, true);
+          }
+        }
+      }
+
+      // axes labels
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+      // Weeks along X
+      for (let c=1;c<=16;c++){
+        const x = originX + (c)*(cellW+GRID_GAP) - cellW/2 - GRID_GAP/2;
+        ctx.fillText(String(c), x-3, originY - 6);
+      }
+      // Module labels on Y
+      modules.forEach(m => {
+        const y = originY + m.row*(cellH+GRID_GAP) + cellH/2 + 4;
+        ctx.fillStyle = 'rgba(148,163,184,.95)';
+        ctx.fillText(`${m.key}`, originX - 24, y);
+      });
+
+      ctx.restore();
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke){
+      if (w<2*r) r=w/2; if (h<2*r) r=h/2;
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.arcTo(x+w, y, x+w, y+h, r);
+      ctx.arcTo(x+w, y+h, x, y+h, r);
+      ctx.arcTo(x, y+h, x, y, r);
+      ctx.arcTo(x, y, x+w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill(); if (stroke) ctx.stroke();
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+      const words = text.split(/\s+/); let line = ''; let yy=y;
+      for (let n=0;n<words.length;n++){
+        const test = line + words[n] + ' ';
+        if (ctx.measureText(test).width > maxWidth && n>0){
+          ctx.fillText(line, x, yy); line = words[n] + ' '; yy += lineHeight;
+        } else { line = test; }
+      }
+      ctx.fillText(line.trim(), x, yy);
+    }
+
+    function mouseToCell(e){
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
+      const innerW = canvas.clientWidth - PADDING*2;
+      const innerH = canvas.clientHeight - PADDING*2;
+      const cellW = Math.floor((innerW - GRID_GAP*(COLS-1)) / COLS);
+      const cellH = Math.floor((innerH - GRID_GAP*(ROWS-1)) / ROWS);
+      const ox = mx - PADDING; const oy = my - PADDING;
+      if (ox < 0 || oy < 0) return {row:-1,col:-1,x:mx,y:my};
+      const c = Math.floor(ox / (cellW+GRID_GAP));
+      const r = Math.floor(oy / (cellH+GRID_GAP));
+      if (r<0||r>=ROWS||c<0||c>=COLS) return {row:-1,col:-1,x:mx,y:my};
+      return {row:r,col:c,x:mx,y:my};
+    }
+
+    function hideTooltip(){ tt.el.style.display='none'; }
+
+    function inferLabel(row,col){
+      const m = modules[row];
+      if (!m) return '';
+      const wk = col; const base = `${m.key}@W${wk}`;
+      if (m.weeks.includes(wk)) return `${base}: ${m.readings.join(', ')}`;
+      return `${base}`;
+    }
+
+    function countActive(g){
+      let n=0; for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if (g[r][c]!==State.OFF) n++; return n;
+    }
+
+    function exportPNG(){
+      const a = document.createElement('a');
+      a.download = `symbolic-biosphere-w${week}-t${tick}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    }
+
+    function randomSpark(){
+      // add a few random ON/MUT cells for exploration
+      for (let i=0;i<6;i++){
+        const r = Math.floor(Math.random()*ROWS);
+        const c = 2 + Math.floor(Math.random()*14);
+        grid[r][c] = (Math.random() < 0.5) ? State.ON : State.MUT;
+        labels[r][c] = inferLabel(r,c);
+      }
+      draw();
+    }
+
+    function createGrid(rows, cols, fill){
+      return Array.from({length:rows}, () => Array.from({length:cols}, () => fill));
+    }
+    function createLabelGrid(rows, cols, fill){
+      return Array.from({length:rows}, () => Array.from({length:cols}, () => fill));
+    }
+
+    // ---------- RUNTIME TESTS (sanity) ----------
+    function runTests(){
+      let passed=0, failed=0;
+      const T = (cond, msg) => { if (cond){ passed++; } else { failed++; console.warn('[TEST FAIL]', msg); } };
+      try {
+        T(!!document.getElementById('showLabels'), 'showLabels checkbox exists');
+        T(Object.keys(StateName).length===7, 'StateName has 7 entries');
+        T(modules.length===9, '9 modules configured');
+        T(grid.length===ROWS && grid[0].length===COLS, 'grid dimensions ok');
+        T(grid[0][11]===State.BREAK, 'break marker set at week 11 for row 1');
+      } catch(e){ failed++; console.error('Test exception', e); }
+      if (testLbl) testLbl.textContent = `${passed}✓ / ${failed}✗`;
+      console.log(`[Symbolic Biosphere] Tests: ${passed} passed, ${failed} failed`);
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LMC 2400 — Course Operating System</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121923; --ink:#eef2f7; --muted:#9fb0c8; --rule:#1b2838;
+    --accent:#3aa6ff; --accent2:#28d07f; --warn:#f39c12; --danger:#e74c3c;
+    --good:#28d07f; --bad:#ff6b6b; --mid:#ffc857;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Inter,Roboto;background:var(--bg);color:var(--ink)}
+  .app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+  aside{background:linear-gradient(180deg,#0e141c 0%, #0a1017 100%);border-right:1px solid var(--rule);padding:14px;position:sticky;top:0;height:100vh;overflow:auto}
+  main{padding:20px}
+  h1{font-size:18px;margin:0 0 8px}
+  h2{font-size:16px;margin:16px 0 8px;color:var(--muted)}
+  .brand{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+  .glyph{font-size:20px}
+  .nav{display:grid;gap:6px}
+  .nav button{all:unset;cursor:pointer;padding:8px 10px;border:1px solid var(--rule);border-radius:10px;color:var(--ink);background:#0f1520}
+  .nav button.active{outline:2px solid var(--accent)}
+  .stack{display:grid;gap:12px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .card h3{margin:0 0 8px;font-size:15px}
+  .kv{display:grid;grid-template-columns:160px 1fr;gap:6px 12px;align-items:center}
+  input[type="text"], input[type="number"], select, textarea{width:100%;padding:8px;border-radius:10px;border:1px solid var(--rule);background:#0e131b;color:var(--ink)}
+  textarea{min-height:80px}
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--rule);background:#0f1520;color:var(--muted);font-size:12px}
+  .btn{all:unset;display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid var(--rule);background:#0e141c;cursor:pointer}
+  .btn.primary{background:linear-gradient(180deg,#1e6bf1,#184dc9);border:none}
+  .btn.green{background:linear-gradient(180deg,#2bbd7e,#1b9d64);border:none}
+  .btn.warn{background:linear-gradient(180deg,#f39c12,#c7780e);border:none}
+  .btn.red{background:linear-gradient(180deg,#e74c3c,#c73b2c);border:none}
+  .btn:disabled{opacity:0.5;cursor:not-allowed}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .tag{border:1px dashed var(--rule);padding:4px 8px;border-radius:999px;color:var(--muted);font-size:12px}
+  .rule{height:1px;background:var(--rule);margin:8px 0}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px;border-bottom:1px solid var(--rule);text-align:left}
+  th{color:var(--muted);font-weight:600}
+  tr:hover td{background:#0c121a}
+  .right{justify-content:flex-end}
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;background:#132033;border:1px solid var(--rule);font-size:12px}
+  .ok{color:var(--good)} .warnc{color:var(--warn)} .bad{color:var(--danger)}
+  .small{font-size:12px;color:var(--muted)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .footer{opacity:.7;margin-top:8px}
+  .chip{display:inline-flex;gap:6px;align-items:center;padding:6px 8px;border-radius:999px;background:#0f1520;border:1px solid var(--rule)}
+  .flex{display:flex;gap:10px;align-items:center}
+  .grow{flex:1}
+  .center{display:flex;align-items:center;justify-content:center}
+  .notice{padding:8px 10px;border-left:3px solid var(--accent);background:#0e1622;color:#cfe4ff;border-radius:10px}
+  .success{border-left-color:var(--good);background:#0f1e16;color:#c8f3db}
+  .danger{border-left-color:var(--danger);background:#1f1111;color:#f5c5c5}
+  .shadow-soft{box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .muted{color:var(--muted)}
+  .hl{color:#b3d7ff}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+  .switch{position:relative;display:inline-block;width:42px;height:24px}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#253142;transition:.2s;border-radius:999px;border:1px solid var(--rule)}
+  .slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:2.5px;background:white;border-radius:50%;transition:.2s}
+  .switch input:checked + .slider{background:#21568c}
+  .switch input:checked + .slider:before{transform:translateX(18px)}
+  .progress{height:8px;background:#0e1622;border-radius:999px;overflow:hidden;border:1px solid var(--rule)}
+  .progress > div{height:100%;background:linear-gradient(90deg,#2bbd7e,#3aa6ff)}
+  .mini{height:6px}
+  .sr{position:absolute;left:-9999px}
+  .kbd{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;background:#0f1520;border:1px solid var(--rule);border-radius:6px;padding:2px 6px;color:#cfd9e6}
+  .hint{color:#a1b4cf}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand">
+      <div class="glyph" title="Instructor OS">𓉗</div>
+      <div>
+        <h1>LMC 2400 — Course OS</h1>
+        <div class="small">Intro to Media Studies · Fall 2025</div>
+      </div>
+    </div>
+    <div class="nav" id="nav"></div>
+    <div class="rule"></div>
+    <div class="stack">
+      <div class="card">
+        <h3>Quick Actions</h3>
+        <div class="toolbar">
+          <button class="btn primary" id="btnExport">Export JSON</button>
+          <label class="btn">
+            <input type="file" id="importFile" class="sr" accept="application/json" />
+            Import JSON
+          </label>
+          <button class="btn" id="btnReset">Reset OS</button>
+        </div>
+        <div class="small muted" style="margin-top:6px">Data saves to your browser (localStorage). Export a backup before resetting.</div>
+      </div>
+      <div class="card">
+        <h3>Legend</h3>
+        <div class="row">
+          <span class="chip">𓉗 Week Tile</span>
+          <span class="chip">𓃑 Assignments</span>
+          <span class="chip">░▒▓ Signals</span>
+          <span class="chip">⿰ Scaffolds</span>
+          <span class="chip">⌸ Role</span>
+          <span class="chip">ᕰ Actions</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <main>
+    <div id="view"></div>
+  </main>
+</div>
+
+<script>
+// ====== COURSE OS DATA MODEL ======
+const OS_KEY = "LMC2400_OS_v1";
+
+function defaultOS(){
+  const weeks = Array.from({length:16}, (_,i)=>({
+    week:i+1,
+    topic:[
+      "Orientation & Tools","What is Media?","Culture & Media (short week)",
+      "Media & Myth (Leader #1)","Authorship & Media (SP1 Draft Week)",
+      "Short Paper 1 Due","Media Industries (Revision window)",
+      "Fall Break / Politics (short)","Media Technologies (SP2 T-10)",
+      "Short Paper 2 Due","Audiences & Reception","Global Media (Final T-10)",
+      "Media Futures (Final Draft Week)","Thanksgiving (short)",
+      "Final Paper Week","Reflection & Wrap"
+    ][i] || `Week ${i+1}`,
+    readings:[`Reading ${i+1}A`,`Reading ${i+1}B`],
+    assignments:{ perusall: ![1,3,8,14,16].includes(i+1), response: ![1,3,8,14,16].includes(i+1), leader: [4,9,12].includes(i+1) },
+    released:true,
+    summary:""
+  }));
+
+  const weights = { participation:0.10, perusall:0.10, responses:0.10, leader:0.10, sp1:0.15, sp2:0.15, final:0.20 };
+  const papers = { sp1:{name:"Short Paper 1", dueWeek:6, weight:weights.sp1}, sp2:{name:"Short Paper 2", dueWeek:10, weight:weights.sp2}, final:{name:"Final Paper", dueWeek:15, weight:weights.final} };
+  const policies = { freeAbsences:2, lateWork:"Email before due time for extension; late penalty otherwise.", ai:"AI allowed for brainstorming if cited; uncited AI = 0.", revisionTokens:2 };
+
+  // Starter roster aligned with earlier archetypes
+  const students = [
+    mkStudent("Planner","planner@demo.edu",4),
+    mkStudent("Sprinter","sprinter@demo.edu",9),
+    mkStudent("Overloaded","over@demo.edu",12)
+  ];
+
+  return { meta:{course:"LMC 2400", term:"Fall 2025", meeting:"Mon/Wed 3:30–4:45 ET"}, weeks, weights, papers, policies, students, commentBank:defaultComments() };
+}
+
+function mkStudent(name,email,leaderWeek){
+  return {
+    id:crypto.randomUUID(), name, email, leaderWeek,
+    absences:0, attendance:{},
+    perusall:{}, responses:{}, participation:{},
+    paper:{ sp1:mkPaper(), sp2:mkPaper(), final:mkPaper() },
+    tokens:{ revisions:0 }, notes:""
+  };
+}
+function mkPaper(){ return { checklist10:false, draft7:false, officeHours:0, finalScore:null, revisionUsed:false, rubric:{} } }
+
+function defaultComments(){ return [
+  "Clarify thesis in first paragraph.",
+  "Anchor each claim with one quote + page #.",
+  "Summarize X before evaluating; avoid strawman.",
+  "Compare two authors directly (X vs Y).",
+  "Tighten topic sentences; signal the move.",
+  "Integrate evidence -> analysis -> implication.",
+  "Add counterexample and address it.",
+  "Check MLA citations and page numbers.",
+  "Conclude by returning to your question, not a summary.",
+]}
+
+// ====== PERSISTENCE ======
+let OS = load();
+function load(){ try{ return JSON.parse(localStorage.getItem(OS_KEY)) || defaultOS(); }catch(e){ return defaultOS(); } }
+function save(){ localStorage.setItem(OS_KEY, JSON.stringify(OS)); render(); }
+
+// ====== NAVIGATION ======
+const NAV_ITEMS = [
+  {id:"dashboard", label:"𓉗 Week Dashboard"},
+  {id:"gradebook", label:"░▒▓ Gradebook"},
+  {id:"papers", label:"⿰ Scaffolds & Papers"},
+  {id:"policy", label:"𓈌 Policies"},
+  {id:"roster", label:"⌸ Roles & Roster"},
+  {id:"radar", label:"ᕰ Agent Radar"},
+  {id:"about", label:"❏ Help & Notes"}
+];
+let state = { tab:"dashboard", week:1, studentId:null };
+
+function setTab(id){ state.tab=id; render(); }
+function setWeek(w){ state.week=w; render(); }
+
+// ====== HELPERS ======
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); const node=t.content.firstElementChild; if(!node){ console.warn('el(): empty HTML passed', html); } return node; }
+function fmtPct(x){ return (x*100).toFixed(1)+"%" }
+function activeWeeks(){ return OS.weeks.filter(w=>w.assignments.perusall || w.assignments.response) }
+function weeklyUnit(key){ return (OS.weights[key] / Math.max(1, activeWeeks().length)); }
+function getStudent(id){ return OS.students.find(s=>s.id===id) }
+function paperKeys(){ return ["sp1","sp2","final"] }
+
+// ====== GRADE ENGINE ======
+function computeGrades(student){
+  const cat = {participation:0, perusall:0, responses:0, leader:0, sp1:0, sp2:0, final:0};
+  const aw = activeWeeks();
+  // participation from attendance: full if 2/2 present, 0.5 if 1/2, 0 if 0/2
+  aw.forEach(w=>{
+    const a = student.attendance[w.week] || {mon:true, wed:true};
+    let pct = (a.mon?0.5:0) + (a.wed?0.5:0); // 0..1
+    cat.participation += weeklyUnit("participation") * pct;
+  });
+  // Perusall
+  aw.forEach(w=>{ const ps = student.perusall[w.week]; const done = ps?.done?1:0; cat.perusall += weeklyUnit("perusall") * done; });
+  // Responses: 3 checks => 1.0; 2 => 0.5; <=1 => 0
+  aw.forEach(w=>{ const r = student.responses[w.week]; let val=0; if(r){ const c = [r.quote,r.compare,r.apply].filter(Boolean).length; val = c>=3?1:(c===2?0.5:0); } cat.responses += weeklyUnit("responses") * val; });
+  // Leader
+  if(student.leaderWeek){ const pass = (student.responses[student.leaderWeek]?.leaderOk)||false; cat.leader += (pass?OS.weights.leader:0); }
+  // Papers
+  paperKeys().forEach(k=>{ const p=student.paper[k]; if(typeof p.finalScore==="number"){ cat[k] += OS.weights[k] * (p.finalScore/100); } });
+  const total = Object.values(cat).reduce((a,b)=>a+b,0);
+  return { cat, total };
+}
+
+// ====== RENDERING ======
+function render(){
+  // nav
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  NAV_ITEMS.forEach(item=>{
+    const b = el(`<button>${item.label}</button>`);
+    if(state.tab===item.id) b.classList.add('active');
+    b.addEventListener('click',()=>setTab(item.id));
+    nav.appendChild(b);
+  });
+
+  const view = document.getElementById('view');
+  view.innerHTML='';
+
+  if(state.tab==='dashboard') view.appendChild(viewDashboard());
+  if(state.tab==='gradebook') view.appendChild(viewGradebook());
+  if(state.tab==='papers') view.appendChild(viewPapers());
+  if(state.tab==='policy') view.appendChild(viewPolicy());
+  if(state.tab==='roster') view.appendChild(viewRoster());
+  if(state.tab==='radar') view.appendChild(viewRadar());
+  if(state.tab==='about') view.appendChild(viewAbout());
+}
+
+// ====== DASHBOARD ======
+function viewDashboard(){
+  const wrap = el(`<div class="stack"></div>`);
+
+  // Week selector & summary
+  const weeks = OS.weeks.map(w=>`<option value="${w.week}">Week ${w.week} — ${w.topic}</option>`).join('');
+  const header = el(`
+    <div class="card">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="flex">
+          <span class="chip">𓉗 Week Tile</span>
+          <select id="selWeek">${weeks}</select>
+        </div>
+        <div class="toolbar">
+          <button class="btn" id="toggleRelease"></button>
+          <button class="btn" id="btnPostSummary">Save Summary</button>
+        </div>
+      </div>
+      <div class="rule"></div>
+      <div class="grid-3">
+        <div><div class="small muted">Course</div><div>${OS.meta.course} · ${OS.meta.term}</div></div>
+        <div><div class="small muted">Meeting</div><div>${OS.meta.meeting}</div></div>
+        <div><div class="small muted">Active Weeks</div><div>${activeWeeks().length}</div></div>
+      </div>
+    </div>
+  `);
+  header.querySelector('#selWeek').value = state.week;
+  header.querySelector('#selWeek').addEventListener('change',e=>{ state.week=+e.target.value; render(); });
+  const relBtn = header.querySelector('#toggleRelease');
+  function setReleaseBtn(){ relBtn.textContent = (OS.weeks[state.week-1].released? 'Hide Module' : 'Release Module'); }
+  relBtn.addEventListener('click',()=>{ OS.weeks[state.week-1].released = !OS.weeks[state.week-1].released; save(); });
+  setReleaseBtn();
+  header.querySelector('#btnPostSummary').addEventListener('click',()=>{ alert('Week summary saved.'); });
+  wrap.appendChild(header);
+
+  // Week Detail
+  const W = OS.weeks[state.week-1];
+  const weekCard = el(`
+    <div class="card">
+      <h3>Week ${W.week} — ${W.topic}</h3>
+      <div class="grid-2">
+        <div>
+          <div class="kv">
+            <div class="muted">Readings</div>
+            <div>${W.readings.join(', ')}</div>
+            <div class="muted">Assignments</div>
+            <div>
+              <span class="pill">Perusall: ${W.assignments.perusall?'<span class="ok">ON</span>':'<span class="bad">OFF</span>'}</span>
+              <span class="pill">Response: ${W.assignments.response?'<span class="ok">ON</span>':'<span class="bad">OFF</span>'}</span>
+              <span class="pill">Leader: ${W.assignments.leader?'<span class="ok">YES</span>':'NO'}</span>
+            </div>
+            <div class="muted">Released</div>
+            <div>${W.released?'<span class="ok">Visible</span>':'<span class="bad">Hidden</span>'}</div>
+          </div>
+        </div>
+        <div>
+          <div class="muted">Instructor Summary</div>
+          <textarea id="weekSummary" placeholder="Notes, surprises (δ), and next tweaks (α/γ)...">${W.summary||''}</textarea>
+        </div>
+      </div>
+    </div>
+  `);
+  weekCard.querySelector('#weekSummary').addEventListener('input',e=>{ W.summary = e.target.value; save(); });
+  wrap.appendChild(weekCard);
+
+  // Quick Marking: Responses, Perusall, Attendance, Leader
+  wrap.appendChild(viewQuickMarking(W.week));
+
+  return wrap;
+}
+
+function viewQuickMarking(week){
+  const card = el(`<div class="card"><h3>𓃑 Quick Marking — Week ${week}</h3></div>`);
+  const tbl = el(`<table class="mono"><thead><tr>
+    <th>Student</th><th>Perusall</th><th>Resp: Quote</th><th>Compare</th><th>Apply</th>
+    <th>Leader</th><th>Attendance Mon</th><th>Wed</th>
+  </tr></thead><tbody></tbody></table>`);
+  const tbody = tbl.querySelector('tbody');
+  OS.students.forEach(s=>{
+    const r = s.responses[week] || {quote:false,compare:false,apply:false,leaderOk:false};
+    const p = s.perusall[week] || {done:false};
+    const a = s.attendance[week] || {mon:true, wed:true};
+    const leaderCell = (s.leaderWeek===week)
+      ? `<label class="switch"><input data-role="leader" type="checkbox" ${r.leaderOk?'checked':''}/><span class="slider"></span></label>`
+      : '—';
+    const tr = el(`<tr>
+      <td>${s.name}</td>
+      <td><label class="switch"><input data-role="perusall" type="checkbox" ${p.done?'checked':''}/><span class="slider"></span></label></td>
+      <td><input data-role="resp-quote" type="checkbox" ${r.quote?'checked':''}></td>
+      <td><input data-role="resp-compare" type="checkbox" ${r.compare?'checked':''}></td>
+      <td><input data-role="resp-apply" type="checkbox" ${r.apply?'checked':''}></td>
+      <td>${leaderCell}</td>
+      <td><label class="switch"><input data-role="att-mon" type="checkbox" ${a.mon?'checked':''}/><span class="slider"></span></label></td>
+      <td><label class="switch"><input data-role="att-wed" type="checkbox" ${a.wed?'checked':''}/><span class="slider"></span></label></td>
+    </tr>`);
+
+    // Look up by role — robust even when leader column is absent
+    const perusallC = tr.querySelector('input[data-role="perusall"]');
+    const qC = tr.querySelector('input[data-role="resp-quote"]');
+    const cC = tr.querySelector('input[data-role="resp-compare"]');
+    const aC = tr.querySelector('input[data-role="resp-apply"]');
+    const leaderC = tr.querySelector('input[data-role="leader"]');
+    const monC = tr.querySelector('input[data-role="att-mon"]');
+    const wedC = tr.querySelector('input[data-role="att-wed"]');
+
+    if(perusallC) perusallC.addEventListener('change',e=>{ s.perusall[week]={done:e.target.checked}; save(); });
+    if(qC) qC.addEventListener('change',e=>{ s.responses[week] = {...(s.responses[week]||{}), quote:e.target.checked}; save(); });
+    if(cC) cC.addEventListener('change',e=>{ s.responses[week] = {...(s.responses[week]||{}), compare:e.target.checked}; save(); });
+    if(aC) aC.addEventListener('change',e=>{ s.responses[week] = {...(s.responses[week]||{}), apply:e.target.checked}; save(); });
+    if(leaderC) leaderC.addEventListener('change',e=>{ s.responses[week] = {...(s.responses[week]||{}), leaderOk:e.target.checked}; save(); });
+    if(monC) monC.addEventListener('change',e=>{ s.attendance[week] = {...(s.attendance[week]||{}), mon:e.target.checked}; save(); });
+    if(wedC) wedC.addEventListener('change',e=>{ s.attendance[week] = {...(s.attendance[week]||{}), wed:e.target.checked}; save(); });
+
+    tbody.appendChild(tr);
+  });
+  card.appendChild(tbl);
+  return card;
+}
+
+// ====== GRADEBOOK ======
+function viewGradebook(){
+  const wrap = el(`<div class="stack"></div>`);
+  const head = el(`<div class="card"><h3>░▒▓ Gradebook Summary</h3>
+    <div class="row">
+      <div class="pill">Participation: <b class="hl">${fmtPct(OS.weights.participation)}</b></div>
+      <div class="pill">Perusall: <b class="hl">${fmtPct(OS.weights.perusall)}</b></div>
+      <div class="pill">Responses: <b class="hl">${fmtPct(OS.weights.responses)}</b></div>
+      <div class="pill">Leader: <b class="hl">${fmtPct(OS.weights.leader)}</b></div>
+      <div class="pill">SP1: <b class="hl">${fmtPct(OS.weights.sp1)}</b></div>
+      <div class="pill">SP2: <b class="hl">${fmtPct(OS.weights.sp2)}</b></div>
+      <div class="pill">Final: <b class="hl">${fmtPct(OS.weights.final)}</b></div>
+    </div>
+  </div>`);
+  wrap.appendChild(head);
+
+  const tbl = el(`<div class="card"><table class="mono"><thead><tr>
+    <th>Student</th>
+    <th>Part %</th><th>Perusall %</th><th>Resp %</th><th>Leader %</th>
+    <th>SP1 %</th><th>SP2 %</th><th>Final %</th>
+    <th>Total %</th>
+  </tr></thead><tbody></tbody></table></div>`);
+  const tbody = tbl.querySelector('tbody');
+  OS.students.forEach(s=>{
+    const g = computeGrades(s);
+    const td = el(`<tr>
+      <td>${s.name}</td>
+      <td>${fmtPct(g.cat.participation)}</td>
+      <td>${fmtPct(g.cat.perusall)}</td>
+      <td>${fmtPct(g.cat.responses)}</td>
+      <td>${fmtPct(g.cat.leader)}</td>
+      <td>${fmtPct(g.cat.sp1)}</td>
+      <td>${fmtPct(g.cat.sp2)}</td>
+      <td>${fmtPct(g.cat.final)}</td>
+      <td><b>${fmtPct(g.total)}</b></td>
+    </tr>`);
+    tbody.appendChild(td);
+  });
+  wrap.appendChild(tbl);
+
+  return wrap;
+}
+
+// ====== PAPERS & SCAFFOLDS ======
+function viewPapers(){
+  const wrap = el(`<div class="stack"></div>`);
+  const grid = el(`<div class="grid-3"></div>`);
+
+  paperKeys().forEach(key=>{
+    const P = OS.papers[key];
+    const card = el(`<div class="card shadow-soft">
+      <h3>⿰ ${P.name}</h3>
+      <div class="kv">
+        <div class="muted">Due Week</div>
+        <div><input type="number" min="1" max="16" id="wk${key}" value="${P.dueWeek}"></div>
+        <div class="muted">Weight</div>
+        <div>${fmtPct(P.weight)}</div>
+      </div>
+      <div class="rule"></div>
+      <div class="small muted">Quick Comment Bank</div>
+      <div class="row" id="cb_${key}"></div>
+    </div>`);
+    card.querySelector(`#wk${key}`).addEventListener('input',e=>{ P.dueWeek = Math.max(1,Math.min(16, +e.target.value||P.dueWeek)); save(); });
+    const cRow = card.querySelector(`#cb_${key}`);
+    OS.commentBank.forEach(txt=>{
+      const b = el(`<button class="btn">${txt}</button>`);
+      b.addEventListener('click',()=> navigator.clipboard.writeText(txt));
+      cRow.appendChild(b);
+    });
+    grid.appendChild(card);
+  });
+  wrap.appendChild(grid);
+
+  // Per-student paper panel
+  const per = el(`<div class="card"><h3>Paper Grading & Scaffolds (per student)</h3>
+    <div class="row">
+      <select id="stuSel">${OS.students.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select>
+      <div class="pill">T-10 releases auto when ≤10 weeks before due</div>
+      <div class="pill">T-7 draft check</div>
+    </div>
+    <div id="paperStu"></div>
+  </div>`);
+  let cur = state.studentId || OS.students[0].id;
+  per.querySelector('#stuSel').value = cur;
+  per.querySelector('#stuSel').addEventListener('change',e=>{ state.studentId = e.target.value; render(); });
+
+  function renderStu(){
+    const s = getStudent(cur);
+    const box = per.querySelector('#paperStu');
+    box.innerHTML = '';
+    paperKeys().forEach(key=>{
+      const P = OS.papers[key];
+      const SP = s.paper[key];
+      const weeksTo = Math.max(0, P.dueWeek - state.week);
+      const t10Active = (weeksTo<=10);
+      const t7Active = (weeksTo<=7);
+      const comp = el(`<div class="row" style="align-items:flex-start">
+        <div class="card grow">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div class="flex"><span class="chip">${P.name}</span><span class="tag">Due W${P.dueWeek}</span></div>
+            <div class="small muted">Weeks to due: ${weeksTo}</div>
+          </div>
+          <div class="grid-3" style="margin-top:8px">
+            <div>
+              <div class="muted">T-10 Checklist</div>
+              <label class="switch"><input id="t10_${key}" type="checkbox" ${SP.checklist10?'checked':''} ${!t10Active?'disabled':''}/><span class="slider"></span></label>
+              ${!t10Active?'<div class="small hint">(locks until ≤10 weeks)</div>':''}
+            </div>
+            <div>
+              <div class="muted">T-7 Draft</div>
+              <label class="switch"><input id="t7_${key}" type="checkbox" ${SP.draft7?'checked':''} ${!t7Active?'disabled':''}/><span class="slider"></span></label>
+              ${!t7Active?'<div class="small hint">(locks until ≤7 weeks)</div>':''}
+            </div>
+            <div>
+              <div class="muted">Office Hours</div>
+              <div class="row"><button class="btn" id="ohm_${key}">−</button><div class="chip">${SP.officeHours}h</div><button class="btn" id="ohp_${key}">+</button></div>
+            </div>
+          </div>
+          <div class="rule"></div>
+          <div class="grid-3">
+            <div>
+              <div class="muted">Final Score (0–100)</div>
+              <input type="number" min="0" max="100" id="score_${key}" value="${SP.finalScore??''}" placeholder="e.g., 88"/>
+            </div>
+            <div>
+              <div class="muted">Revision Token Used</div>
+              <label class="switch"><input id="rev_${key}" type="checkbox" ${SP.revisionUsed?'checked':''}/><span class="slider"></span></label>
+            </div>
+            <div>
+              <div class="muted">Weight</div>
+              <div class="pill">${fmtPct(OS.weights[key])}</div>
+            </div>
+          </div>
+        </div>
+      </div>`);
+      const t10 = comp.querySelector('#t10_'+key);
+      const t7 = comp.querySelector('#t7_'+key);
+      const ohm = comp.querySelector('#ohm_'+key);
+      const ohp = comp.querySelector('#ohp_'+key);
+      const score = comp.querySelector('#score_'+key);
+      const rev = comp.querySelector('#rev_'+key);
+      if(t10) t10.addEventListener('change',e=>{ SP.checklist10 = e.target.checked; save(); });
+      if(t7) t7.addEventListener('change',e=>{ SP.draft7 = e.target.checked; save(); });
+      if(ohm) ohm.addEventListener('click',()=>{ SP.officeHours=Math.max(0,SP.officeHours-1); save(); });
+      if(ohp) ohp.addEventListener('click',()=>{ SP.officeHours=Math.min(10,SP.officeHours+1); save(); });
+      if(score) score.addEventListener('input',e=>{ const v=+e.target.value; SP.finalScore = Number.isFinite(v)?v:null; save(); });
+      if(rev) rev.addEventListener('change',e=>{ SP.revisionUsed = e.target.checked; save(); });
+      box.appendChild(comp);
+    });
+  }
+  renderStu();
+  wrap.appendChild(per);
+
+  return wrap;
+}
+
+// ====== POLICY ======
+function viewPolicy(){
+  const card = el(`<div class="card"><h3>𓈌 Policies & Weights</h3>
+    <div class="grid-2">
+      <div>
+        <div class="kv">
+          <div class="muted">Free Absences</div>
+          <div><input id="polAbs" type="number" min="0" max="6" value="${OS.policies.freeAbsences}"></div>
+          <div class="muted">Late Work</div>
+          <div><input id="polLate" type="text" value="${OS.policies.lateWork}"></div>
+          <div class="muted">AI Use</div>
+          <div><input id="polAI" type="text" value="${OS.policies.ai}"></div>
+          <div class="muted">Revision Tokens</div>
+          <div><input id="polRev" type="number" min="0" max="4" value="${OS.policies.revisionTokens}"></div>
+        </div>
+      </div>
+      <div>
+        <div class="muted">Weights (sum to 1.00)</div>
+        <div class="grid-3">
+          ${Object.entries(OS.weights).map(([k,v])=>`
+            <div class="kv"><div class="muted">${k.toUpperCase()}</div><div><input class="wgt" data-k="${k}" type="number" step="0.01" min="0" max="1" value="${v.toFixed(2)}"></div></div>
+          `).join('')}
+        </div>
+        <div class="row right" style="margin-top:8px"><button class="btn green" id="saveWeights">Save Weights</button></div>
+      </div>
+    </div>
+  </div>`);
+  card.querySelector('#polAbs').addEventListener('input',e=>{ OS.policies.freeAbsences=+e.target.value; save(); })
+  card.querySelector('#polLate').addEventListener('input',e=>{ OS.policies.lateWork=e.target.value; save(); })
+  card.querySelector('#polAI').addEventListener('input',e=>{ OS.policies.ai=e.target.value; save(); })
+  card.querySelector('#polRev').addEventListener('input',e=>{ OS.policies.revisionTokens=+e.target.value; save(); })
+  card.querySelector('#saveWeights').addEventListener('click',()=>{
+    const inputs = card.querySelectorAll('.wgt');
+    let sum=0; inputs.forEach(inp=>sum+=+inp.value);
+    if(Math.abs(sum-1)>1e-6){ alert('Weights must sum to 1.00'); return; }
+    inputs.forEach(inp=> OS.weights[inp.dataset.k] = +inp.value);
+    // reflect into papers
+    OS.papers.sp1.weight = OS.weights.sp1; OS.papers.sp2.weight = OS.weights.sp2; OS.papers.final.weight = OS.weights.final;
+    save();
+  })
+  return card;
+}
+
+// ====== ROSTER & ROLES ======
+function viewRoster(){
+  const wrap = el(`<div class="stack"></div>`);
+  const tbl = el(`<div class="card"><h3>⌸ Roster & Roles</h3>
+  <div class="row"><button class="btn" id="addStu">Add Student</button></div>
+  <table class="mono" style="margin-top:8px"><thead><tr>
+    <th>Name</th><th>Email</th><th>Leader Week</th><th>Notes</th><th>Del</th>
+  </tr></thead><tbody></tbody></table></div>`);
+  const tbody = tbl.querySelector('tbody');
+  OS.students.forEach(s=>{
+    const tr = el(`<tr>
+      <td><input type="text" value="${s.name}"></td>
+      <td><input type="text" value="${s.email}"></td>
+      <td><input type="number" min="1" max="16" value="${s.leaderWeek||''}"></td>
+      <td><input type="text" value="${s.notes||''}"></td>
+      <td><button class="btn red">✕</button></td>
+    </tr>`);
+    const [n,e,w,no,del] = tr.querySelectorAll('input,button');
+    n.addEventListener('input',ev=>{ s.name=ev.target.value; save(); });
+    e.addEventListener('input',ev=>{ s.email=ev.target.value; save(); });
+    w.addEventListener('input',ev=>{ s.leaderWeek=+ev.target.value; save(); });
+    no.addEventListener('input',ev=>{ s.notes=ev.target.value; save(); });
+    del.addEventListener('click',()=>{ if(confirm('Remove student?')){ OS.students = OS.students.filter(x=>x.id!==s.id); save(); }});
+    tbody.appendChild(tr);
+  });
+  tbl.querySelector('#addStu').addEventListener('click',()=>{ OS.students.push(mkStudent("Student "+(OS.students.length+1),"",null)); save(); })
+  wrap.appendChild(tbl);
+  return wrap;
+}
+
+// ====== AGENT RADAR (at‑risk signals) ======
+function viewRadar(){
+  const wrap = el(`<div class="stack"></div>`);
+  const card = el(`<div class="card"><h3>ᕰ Agent Radar — At‑Risk Signals</h3>
+    <div class="small muted">Heuristic flags computed from scaffolds, deadlines, and weekly checks.</div>
+  </div>`);
+
+  const tbl = el(`<div class="card"><table class="mono"><thead><tr>
+    <th>Student</th><th>Risk</th><th>Why</th><th>Now Do</th>
+  </tr></thead><tbody></tbody></table></div>`);
+  const tbody = tbl.querySelector('tbody');
+  OS.students.forEach(s=>{
+    const risks=[]; const acts=[];
+    // late on T-10 or T-7 near any paper
+    paperKeys().forEach(k=>{
+      const P=OS.papers[k]; const SP=s.paper[k]; const weeksTo = Math.max(0,P.dueWeek - state.week);
+      if(weeksTo<=10 && !SP.checklist10) { risks.push(`${P.name}: T-10 missing`); acts.push(`Release checklist + sample outline`); }
+      if(weeksTo<=7 && !SP.draft7) { risks.push(`${P.name}: Draft missing`); acts.push(`Book 15‑min OH; draft 150w thesis + 3 quotes`); }
+      if(weeksTo<=1 && SP.finalScore==null){ risks.push(`${P.name}: No final score yet`); acts.push(`Send 24h reminder; late policy note`); }
+    });
+    // response gaps
+    const aw = activeWeeks().map(w=>w.week);
+    const recent = aw.filter(w=>w<=state.week).slice(-3);
+    const missResp = recent.filter(w=>{ const r=s.responses[w]; return !(r && (r.quote||r.compare||r.apply)); });
+    if(missResp.length>=2) { risks.push(`Missing responses W${missResp.join(',')}`); acts.push(`Repost 3‑check rubric; show A/B exemplars`); }
+    // absences
+    const att = (s.attendance[state.week]||{mon:true,wed:true}); if(!att.mon||!att.wed){ risks.push(`Attendance dip this week`); acts.push(`Check‑in; remind ${OS.policies.freeAbsences} free absences`); }
+
+    const riskLevel = risks.length>=3 ? 'High' : risks.length===2 ? 'Medium' : risks.length===1 ? 'Low' : 'OK';
+    const color = riskLevel==='High'?'bad':riskLevel==='Medium'?'warnc':'ok';
+
+    const tr = el(`<tr>
+      <td>${s.name}</td>
+      <td class="${color}"><b>${riskLevel}</b></td>
+      <td>${risks.join(' · ')||'—'}</td>
+      <td>${acts.join(' · ')||'—'}</td>
+    </tr>`);
+    tbody.appendChild(tr);
+  })
+
+  wrap.appendChild(card);
+  wrap.appendChild(tbl);
+  return wrap;
+}
+
+// ====== ABOUT / HELP ======
+function viewAbout(){
+  const wrap = el(`<div class="stack"></div>`);
+  wrap.appendChild(el(`<div class="card notice">
+    <b>How to run this OS:</b> Each Monday, select the week, mark quick checks, release scaffolds (⿰), and paste comments from the bank. The gradebook computes totals automatically. Use Export JSON to back up.
+  </div>`));
+  wrap.appendChild(el(`<div class="card">
+    <h3>Keyboard Tips</h3>
+    <div class="row">
+      <span class="kbd">G</span> open Gradebook
+      <span class="kbd">W</span> open Week Dashboard
+      <span class="kbd">P</span> open Papers
+    </div>
+  </div>`));
+  wrap.appendChild(el(`<div class="footer small muted">Built as a single‑file HTML/CSS/JS Instructor OS. Data stays in your browser.</div>`));
+  return wrap;
+}
+
+// ====== EXPORT / IMPORT / RESET ======
+const btnExport = document.getElementById('btnExport');
+btnExport.addEventListener('click',()=>{
+  const blob = new Blob([JSON.stringify(OS,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='LMC2400_OS.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+document.getElementById('importFile').addEventListener('change',e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rdr = new FileReader(); rdr.onload=()=>{ try{ OS = JSON.parse(rdr.result); save(); }catch(err){ alert('Invalid JSON'); } };
+  rdr.readAsText(f);
+});
+
+document.getElementById('btnReset').addEventListener('click',()=>{
+  if(confirm('Reset OS to defaults? This will erase current data unless you exported a backup.')){
+    localStorage.removeItem(OS_KEY); OS = defaultOS(); render();
+  }
+});
+
+// Keyboard shortcuts
+window.addEventListener('keydown',e=>{
+  if(e.target.closest('input,textarea,select')) return;
+  if(e.key.toLowerCase()==='g') setTab('gradebook');
+  if(e.key.toLowerCase()==='w') setTab('dashboard');
+  if(e.key.toLowerCase()==='p') setTab('papers');
+});
+
+// ====== SELF-TESTS (non-intrusive) ======
+(function selfTest(){
+  try {
+    console.assert(el('<div>ok</div>') instanceof HTMLElement, 'el() should return an element');
+    // Build quick marking rows off-DOM to ensure listeners attach in both cases
+    const w1 = 1; // non-leader weeks for all starter students
+    const wLeader = 4; // Planner leader week
+    viewQuickMarking(w1); // should not throw
+    viewQuickMarking(wLeader); // should not throw
+    console.log('[Course OS] Self-tests passed');
+  } catch (err) {
+    console.warn('[Course OS] Self-test failed:', err);
+  }
+})();
+
+// Init
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+id,name,kind,clusters,required_methods,due_week,points,rubric_ref
+a_major_media_dossier,Major 1 — Media Analysis Dossier,major,cluster_images_apparatus; cluster_media_ecology_bias; cluster_foundations_extensions,close_reading; concept_mapping; evidence_citation,W7,20,rubric_major_1
+a_major_narrative_system,Major 2 — Narrative Mini-System,major,cluster_augmentation_origins; cluster_ai_identity_method; cluster_platforms_power,prompt_specification; bias_audit; design_rationale,W14,25,rubric_major_2
+a_minor_close_reading,Minor — Close Reading Brief,minor,cluster_culture_interpretation; cluster_images_apparatus,thick_description,W9,10,rubric_minor_close
+a_minor_platform_affordance,Minor — Platform/Affordance Map,minor,cluster_media_ecology_bias; cluster_platforms_power,system_diagram; affordance_analysis,W6,10,rubric_minor_map
+a_minor_critique_memo,Minor — Critique Memo,minor,cluster_ai_identity_method; cluster_culture_interpretation,argument_structure; counterexample,W12,10,rubric_minor_memo
+a_capsule_alignment_check,Capsule — Text↔Image Alignment Check,capsule,cluster_images_apparatus,operationalize_rubric,W13,5,rubric_capsule_alignment
+a_make_podcast_or_language_game,Make a Podcast or a Language Game,minor,cluster_augmentation_origins; cluster_culture_interpretation,medium_specificity; iteration,,10,rubric_make_project

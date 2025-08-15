@@ -1,0 +1,65 @@
+flowchart-elk LR
+classDef default fill:#f8f8f8,stroke:#999,stroke-width:1px,color:#111;
+classDef rootNode fill:#eef6ff,stroke:#4a90e2,color:#0b3d91,stroke-width:1.5px;
+classDef categoryNode fill:#f5f0ff,stroke:#8a63d2,color:#402080,stroke-width:1.5px;
+classDef leafNode fill:#f0fff4,stroke:#2e8540,color:#0f3d1e,stroke-width:1px;
+
+A["Course Arcs → Weeks"]
+class A rootNode
+arc_A_foundations["A. Foundations & Lenses (Weeks 1–3)"]
+A --> arc_A_foundations
+W1["W1"]
+arc_A_foundations --> W1
+class W1 leafNode
+W2["W2"]
+arc_A_foundations --> W2
+class W2 leafNode
+W3["W3"]
+arc_A_foundations --> W3
+class W3 leafNode
+class arc_A_foundations categoryNode
+arc_B_infrastructure_power["B. Infrastructure, Bias & Power (Weeks 4–7)"]
+A --> arc_B_infrastructure_power
+W4["W4"]
+arc_B_infrastructure_power --> W4
+class W4 leafNode
+W5["W5"]
+arc_B_infrastructure_power --> W5
+class W5 leafNode
+W6["W6"]
+arc_B_infrastructure_power --> W6
+class W6 leafNode
+W7["W7"]
+arc_B_infrastructure_power --> W7
+class W7 leafNode
+class arc_B_infrastructure_power categoryNode
+arc_C_culture_systems["C. Culture as System (Weeks 8–11)"]
+A --> arc_C_culture_systems
+W8["W8"]
+arc_C_culture_systems --> W8
+class W8 leafNode
+W9["W9"]
+arc_C_culture_systems --> W9
+class W9 leafNode
+W10["W10"]
+arc_C_culture_systems --> W10
+class W10 leafNode
+W11["W11"]
+arc_C_culture_systems --> W11
+class W11 leafNode
+class arc_C_culture_systems categoryNode
+arc_D_ai_method_making["D. AI, Identity & Making (Weeks 12–15)"]
+A --> arc_D_ai_method_making
+W12["W12"]
+arc_D_ai_method_making --> W12
+class W12 leafNode
+W13["W13"]
+arc_D_ai_method_making --> W13
+class W13 leafNode
+W14["W14"]
+arc_D_ai_method_making --> W14
+class W14 leafNode
+W15["W15"]
+arc_D_ai_method_making --> W15
+class W15 leafNode
+class arc_D_ai_method_making categoryNode

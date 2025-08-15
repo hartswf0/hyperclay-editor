@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LMC 2400 — Negative Space Syllabus OS (Fall 2025)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --black:#000; --white:#fff; --text:#111827; --bg:#ffffff; --ink:#0f172a;
+  --border:#d0d5dc; --muted:#6b7280; --accent:#0f3d91; --soft:#f6f7f9; --chip:#eef2ff; --danger:#b91c1c; --warn:#b45309; --ok:#065f46;
+  --font-serif:'Crimson Pro',serif; --font-sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--font-sans);line-height:1.6;color:var(--text);background:var(--bg)}
+.container{max-width:1200px;margin:0 auto;padding:0 20px}
+.header{background:var(--bg);border-bottom:2px solid var(--border);padding:12px 0;position:sticky;top:0;z-index:20}
+.logo{font-size:20px;font-weight:700;font-family:var(--font-serif)}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.header-actions button{border:1px solid var(--border);background:var(--bg);padding:6px 10px;cursor:pointer;font-size:13px;border-radius:8px}
+.header-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.main{display:grid;grid-template-columns:1fr 300px;gap:24px;padding:20px 0}
+@media (max-width:1000px){.main{grid-template-columns:1fr}.sidebar{position:static}}
+.section{margin-bottom:22px}
+.section-header{display:flex;align-items:center;margin:24px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--border)}
+.section-number{background:var(--ink);color:var(--white);padding:4px 8px;font-weight:700;border-radius:6px}
+.section-title{margin-left:10px;font-family:var(--font-serif);font-size:1.45rem;font-weight:700}
+.sidebar{position:sticky;top:76px;height:fit-content}
+.sidebar-section{border:1px solid var(--border);padding:12px;margin-bottom:16px;border-radius:10px}
+.sidebar-title{font-weight:700;margin-bottom:6px}
+.toc-item{display:block;padding:4px 0;font-size:14px;text-decoration:none;color:var(--text)}
+.toc-item:hover{text-decoration:underline}
+.content-card{margin-bottom:14px;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card-head{display:flex;justify-content:space-between;align-items:center;background:#f8f8f8;padding:10px 12px;border-bottom:1px solid var(--border);font-weight:700}
+.card-body{padding:12px}
+.small{font-size:12px;color:var(--muted)}
+.badge{display:inline-block;background:var(--chip);border:1px solid #dbe5ff;color:#1f3a8a;border-radius:999px;padding:2px 8px;font-size:12px;margin-left:6px}
+.kv{display:grid;grid-template-columns:150px 1fr;gap:8px}
+.notice{background:#fff7e6;border-left:4px solid #ffb84d;padding:10px 12px;border-radius:8px}
+.rule{background:#eef2ff;border-left:4px solid #93c5fd;padding:8px 10px;border-radius:8px;margin:.5rem 0}
+.flag{padding:8px 10px;border-radius:10px;border:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.flag.ok{background:#ecfdf5;border-color:#a7f3d0}
+.flag.warn{background:#fffbeb;border-color:#fed7aa}
+.flag.danger{background:#fef2f2;border-color:#fecaca}
+.flag b{display:block}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:.5rem 0 1rem}
+.controls input,.controls button,.controls select,.controls textarea{border:1px solid var(--border);background:var(--bg);padding:6px 8px;font-size:13px;border-radius:8px}
+.controls button.primary{background:var(--accent);color:#fff;border-color:var(--accent);cursor:pointer}
+.table{width:100%;border-collapse:collapse;margin-top:8px}
+.table th,.table td{border:1px solid var(--border);padding:6px;font-size:13px;vertical-align:top}
+.table th{background:#f6f7f9;text-align:left}
+.details{margin-bottom:10px}
+summary{cursor:pointer;font-weight:600}
+hr.div{border:none;border-top:2px dashed var(--border);margin:10px 0}
+/* Calendar */
+.cal-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(310px,1fr))}
+.cal-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.cal-head{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cal-title{font-weight:700;color:#0b3a83}
+.cal-sub{margin-left:auto;font-size:12px;color:var(--muted)}
+.cal-body{padding:10px 12px}
+.cal-table{width:100%;border-collapse:collapse;margin-top:6px}
+.cal-table th,.cal-table td{border:1px solid var(--border);padding:6px;font-size:12.5px}
+.cal-table th{background:#f6f7f9}
+.readings{margin-top:8px}
+.readings h4{font-size:13px;margin:4px 0;color:#111}
+.readings ul{margin-left:18px}
+/* Print */
+@media print{
+  .header,.sidebar,.controls button{display:none!important}
+  body{color:#000}
+  .content-card{box-shadow:none}
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div class="logo">LMC 2400 — Negative Space Syllabus OS (Fall 2025)</div>
+    <div class="header-actions">
+      <button id="expandAll">Expand All</button>
+      <button id="collapseAll">Collapse All</button>
+      <button class="primary" onclick="window.print()">Print</button>
+    </div>
+  </div>
+</header>
+<main class="container main">
+  <div class="content-area" id="syllabus">
+
+    <!-- 0. OS CONSOLE -->
+    <section id="os" class="section">
+      <div class="section-header"><div class="section-number">0</div><div class="section-title">Course Operating System (Negative Space Kernel)</div></div>
+
+      <div class="content-card">
+        <div class="card-head">0.1 Not‑List & Anti‑Metrics <span class="small">(Defines what this course will NOT do)</span></div>
+        <div class="card-body">
+          <div class="rule"><b>Hard Constraints</b></div>
+          <ul style="margin-left:18px;font-size:14px">
+            <li>No major assignment released with &lt; <b>7 days</b> lead time.</li>
+            <li>No feedback/grades hidden for &gt; <b>14 days</b> after submission.</li>
+            <li>No changes to specs or due dates without a <b>timestamped LMS log</b>.</li>
+            <li>No assignment without: <b>goal</b>, <b>tasks</b>, <b>deliverables</b>, <b>rubric</b>, <b>time budget</b>, <b>example</b>, <b>submission link</b>.</li>
+            <li>No single‑channel announcements. <b>If not in LMS, it is not official.</b></li>
+            <li>Weekly outside‑class workload capped at <b>3–5 hrs</b> (3‑credit course).</li>
+          </ul>
+          <div class="rule"><b>Anti‑Metrics (we refuse to optimize)</b></div>
+          <ul style="margin-left:18px;font-size:14px">
+            <li>Novelty over clarity.</li>
+            <li>Scope over feedback cadence.</li>
+            <li>Amount of work over learning demonstrated.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-head">0.2 Add↔Remove Law, Freeze Windows, Kill Criteria</div>
+        <div class="card-body">
+          <div class="controls">
+            <label>Assignment Format Freeze (Week)
+              <input type="number" id="freezeAssign" min="1" max="16" value="2">
+            </label>
+            <label>Topic Freeze (Week)
+              <input type="number" id="freezeTopic" min="1" max="16" value="5">
+            </label>
+            <label>Workload Cap / Week (hrs)
+              <input type="number" id="capHours" min="1" max="8" value="5">
+            </label>
+          </div>
+          <div class="flag ok" id="osStatus"><b>OS Status:</b> GREEN — within constraints.</div>
+          <hr class="div"/>
+          <details class="details"><summary><b>Kill Criteria (auto‑triggers)</b></summary>
+            <ul style="margin-left:18px;font-size:14px">
+              <li>&gt; <b>25%</b> midterm pulse says “Can’t find instructions” ⇒ <b>pause</b> new releases until index posted + acknowledged.</li>
+              <li>&gt; <b>15%</b> of graded work exceeds 14‑day feedback SLO ⇒ <b>pause</b> new assignments; run grading sprint.</li>
+              <li>Any major assignment shipped with &lt; 7‑day lead ⇒ <b>auto‑extend</b> due date and log redesign.</li>
+              <li>&gt;2 late starts or &gt;2 run‑overs in a month ⇒ enable <b>timebox protocol</b>.</li>
+            </ul>
+          </details>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-head">0.3 Release Train (Do‑Not‑Ship Gates)</div>
+        <div class="card-body">
+          <ul style="margin-left:18px;font-size:14px">
+            <li>❌ Missing rubric ⇒ do not ship.</li>
+            <li>❌ Missing submission link ⇒ do not ship.</li>
+            <li>❌ Missing time budget ⇒ do not ship.</li>
+            <li>❌ Missing example(s) ⇒ do not ship.</li>
+            <li>❌ No red‑team sanity check ⇒ do not ship.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-head">0.4 Stop‑Doing Ledger <span class="small">(every addition requires an equal‑or‑greater subtraction)</span></div>
+        <div class="card-body">
+          <div class="controls">
+            <label>Stopped Item
+              <input id="sd_item" placeholder="e.g., Cut W4 discussion board"/>
+            </label>
+            <label>Capacity Freed (mins)
+              <input id="sd_minutes" type="number" min="0" value="45"/>
+            </label>
+            <label>Owner
+              <input id="sd_owner" placeholder="Instructor / TA"/>
+            </label>
+            <label>Date
+              <input id="sd_date" type="date"/>
+            </label>
+            <button class="primary" id="sd_add">Add to Ledger</button>
+          </div>
+          <table class="table" id="sd_table"><thead><tr><th>Stopped Item</th><th>Capacity (mins)</th><th>Owner</th><th>Date</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-head">0.5 Change Log & Decision Record</div>
+        <div class="card-body">
+          <div class="controls">
+            <label>Change
+              <input id="cl_change" placeholder="What changed?"/>
+            </label>
+            <label>Reason
+              <input id="cl_reason" placeholder="Why?"/>
+            </label>
+            <label>Impact
+              <input id="cl_impact" placeholder="Impact on students / schedule"/>
+            </label>
+            <label>Freeze (weeks)
+              <input id="cl_freeze" type="number" min="0" value="4"/>
+            </label>
+            <label>Reopen Trigger
+              <input id="cl_trigger" placeholder=">15% SLO breach, etc."/>
+            </label>
+            <button class="primary" id="cl_add">Log Change</button>
+          </div>
+          <table class="table" id="cl_table"><thead><tr><th>Date</th><th>Change</th><th>Reason</th><th>Impact</th><th>Freeze</th><th>Reopen Trigger</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-head">0.6 Pulse Checks & SLO Monitors</div>
+        <div class="card-body">
+          <div class="controls">
+            <label>Week #
+              <input id="pulse_week" type="number" min="1" max="16" value="1"/>
+            </label>
+            <label>Respondents
+              <input id="pulse_total" type="number" min="0" value="20"/>
+            </label>
+            <label>“Could you locate what to do next?” — Yes
+              <input id="pulse_find_yes" type="number" min="0" value="18"/>
+            </label>
+            <label>“Did you get feedback in last 14 days?” — Yes
+              <input id="pulse_fb_yes" type="number" min="0" value="17"/>
+            </label>
+            <button class="primary" id="pulse_add">Record Pulse</button>
+          </div>
+          <table class="table" id="pulse_table"><thead><tr><th>Week</th><th>Resp</th><th>Find % Yes</th><th>Feedback % Yes</th><th>Flags</th><th></th></tr></thead><tbody></tbody></table>
+          <hr class="div"/>
+          <details class="details"><summary><b>Feedback SLO Tracker</b> (≤14 days)</summary>
+            <div class="controls">
+              <label>Assignment
+                <input id="slo_title" placeholder="Assignment name"/>
+              </label>
+              <label>Submission Date
+                <input id="slo_sub" type="date"/>
+              </label>
+              <label>Feedback Posted
+                <input id="slo_fb" type="date"/>
+              </label>
+              <button class="primary" id="slo_add">Log Feedback</button>
+            </div>
+            <table class="table" id="slo_table"><thead><tr><th>Assignment</th><th>Submitted</th><th>Feedback</th><th>Days</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+          </details>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-head">0.7 Assignment Packet Builder (enforces Release Gates & Add↔Remove law)</div>
+        <div class="card-body">
+          <div class="notice">Adding an assignment <b>requires</b> a matching Stop‑Doing entry of equal/greater minutes <em>this week</em>. Lead time must be ≥ 7 days.</div>
+          <div class="controls">
+            <label>Title
+              <input id="ap_title" placeholder="e.g., Media Artifact 1"/>
+            </label>
+            <label>Week #
+              <input id="ap_week" type="number" min="1" max="16" value="3"/>
+            </label>
+            <label>Release Date/Time
+              <input id="ap_release" type="datetime-local"/>
+            </label>
+            <label>Due Date/Time
+              <input id="ap_due" type="datetime-local"/>
+            </label>
+            <label>Time Budget (hrs)
+              <input id="ap_hours" type="number" min="0" step="0.5" value="3"/>
+            </label>
+            <label>Deliverables (comma‑sep)
+              <input id="ap_deliv" placeholder="PDF, link, assets"/>
+            </label>
+            <label>Rubric (3–5 criteria; semicolon‑sep)
+              <input id="ap_rubric" placeholder="Clarity; Evidence; Analysis; Craft"/>
+            </label>
+            <label>Example Link
+              <input id="ap_example" placeholder="https://..."/>
+            </label>
+            <label>Submission Link
+              <input id="ap_submit" placeholder="LMS link"/>
+            </label>
+            <label>Red‑Team Checked?
+              <select id="ap_redteam"><option value="no">No</option><option value="yes">Yes</option></select>
+            </label>
+            <button class="primary" id="ap_add">Propose Assignment</button>
+          </div>
+          <div id="ap_gate" class="flag ok" style="display:none"></div>
+          <table class="table" id="ap_table"><thead><tr><th>Title</th><th>Week</th><th>Lead (days)</th><th>Hours</th><th>Gates</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1. OVERVIEW (content layer begins after OS) -->
+    <section id="overview" class="section">
+      <div class="section-header"><div class="section-number">1</div><div class="section-title">Overview (Content Layer)</div></div>
+      <div class="content-card">
+        <div class="card-head">Course Shell</div>
+        <div class="card-body kv">
+          <div>Title</div><div><strong>Intro to Media Studies</strong> — LMC 2400‑B1</div>
+          <div>Term</div><div>Fall 2025</div>
+          <div>Instructor</div><div>Watson Hartsoe (he/him), Ph.D. Student, Digital Media — <a href="mailto:whartsoe3@gatech.edu">whartsoe3@gatech.edu</a></div>
+          <div>Core IMPACTS</div><div>Ethical Reasoning, Information Literacy, Intercultural Competence</div>
+          <div>Question</div><div><em>How do I interpret the human experience through creative, linguistic, and philosophical works?</em></div>
+          <div>Learning Outcome</div><div>Analyze and interpret the meaning, cultural significance, and ethical implications of media in various forms.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. CALENDAR -->
+    <section id="calendar" class="section">
+      <div class="section-header"><div class="section-number">2</div><div class="section-title">Calendar (ET)</div></div>
+      <div class="notice">Configure meeting pattern; cards show sessions and weekly <strong>Readings</strong>. All times in <strong>ET</strong>. Workload cap is enforced via OS.</div>
+      <div class="controls">
+        <label>Start (Mon)
+          <input id="start-date" type="date" value="2025-08-25">
+        </label>
+        <label>End (Fri)
+          <input id="end-date" type="date" value="2025-12-05">
+        </label>
+        <label>Days (comma)
+          <input id="days" type="text" value="Mon,Wed">
+        </label>
+        <label>Class Start (24h)
+          <input id="start-time" type="time" value="14:00">
+        </label>
+        <label>Class End (24h)
+          <input id="end-time" type="time" value="15:15">
+        </label>
+        <label>Time Zone
+          <input id="tz" type="text" value="America/New_York">
+        </label>
+        <button id="regen" class="primary">Regenerate</button>
+      </div>
+      <details class="details" style="margin:.5rem 0 1rem"><summary><strong>Observed Breaks & No‑Class Dates</strong></summary>
+        <ul id="breaks" style="margin:.5rem 0 .2rem 1rem">
+          <li>Labor Day — Mon, Sep 1, 2025</li>
+          <li>Thanksgiving — Thu–Fri, Nov 27–28, 2025</li>
+        </ul>
+      </details>
+      <div id="calendar-grid" class="cal-grid"></div>
+    </section>
+
+    <!-- 3. MODULES (high level) -->
+    <section id="modules" class="section">
+      <div class="section-header"><div class="section-number">3</div><div class="section-title">Modules & Readings Map (High Level)</div></div>
+      <div class="content-card"><div class="card-body">
+        <ol style="margin-left:18px">
+          <li><strong>CONFIGURATION (Week 1)</strong> — Syllabus, tools, expectations.</li>
+          <li><strong>PRIMER (Week 2)</strong> — Heidegger, Carr, Geertz.</li>
+          <li><strong>FOUNDATION (Weeks 3–4)</strong> — McLuhan, Innis, McCloud, Bolter & Engberg.</li>
+          <li><strong>HISTORY (Weeks 5–6)</strong> — Sontag, Harari, Toynbee, Foucault.</li>
+          <li><strong>CULTURE (Weeks 7–8)</strong> — Adorno & Horkheimer, Stiegler, Appadurai, Williams.</li>
+          <li><strong>LANGUAGE (Weeks 9–10)</strong> — Pinker, Berners‑Lee, Saussure, Chomsky.</li>
+          <li><strong>SOCIETY (Weeks 11–12)</strong> — Zinn, Lessig, Boyle, Finn.</li>
+          <li><strong>POWER (Week 13)</strong> — Lukes, Foucault, Bourdieu, Chomsky, Mill.</li>
+          <li><strong>FUTURE (Week 14)</strong> — Arendt, Habermas, Haraway, Dreyfus, Winograd.</li>
+        </ol>
+      </div></div>
+    </section>
+
+    <!-- 4. PAPERS (examples retained) -->
+    <section id="papers" class="section">
+      <div class="section-header"><div class="section-number">4</div><div class="section-title">Papers (Content Examples)</div></div>
+      <div class="content-card">
+        <div class="card-head">Position Papers</div>
+        <div class="card-body">
+          <details open class="details">
+            <summary>Module 2 — Position Paper <span class="badge">PP1</span></summary>
+            <p style="font-size:14px">Research Innis and McLuhan on oral vs. print culture; choose a topic and argue merits/limits.</p>
+            <p class="small"><b>Rubric</b>: Substance; Structure; Clarity; Analysis; Evidence; Originality; Engagement.</p>
+          </details>
+          <details class="details">
+            <summary>Module 3 — Newspaper Position Paper <span class="badge">PP2</span></summary>
+            <p style="font-size:14px">Create a newspaper’s main idea & editorial stance; include a Letter to the Editor reflecting alignment.</p>
+            <p class="small"><b>Rubric</b>: Viewpoint; Editorial Stance; Editor Spotlight; Position.</p>
+          </details>
+          <details class="details">
+            <summary>Radio Broadcast Composer / Language Game Creator <span class="badge">PP3</span></summary>
+            <p style="font-size:14px">Develop a radio script integrating linguistic, sociological, and philosophical theories, or design a language game.</p>
+            <p class="small"><b>Rubric</b>: Analysis; Concept; Defense; Synthesis; Components; Evaluation.</p>
+          </details>
+          <details class="details">
+            <summary>Ownership & Ethics of AI‑Generated Content <span class="badge">PP4</span></summary>
+            <p style="font-size:14px">Analyze ownership of AI‑generated content; audit data flows; argue using Lessig’s frameworks.</p>
+            <p class="small"><b>Rubric</b>: Lessig Analysis; Claim via GenAI; Data Audit; Philosophy of Ownership.</p>
+          </details>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-head">Comment Papers</div>
+        <div class="card-body">
+          <details open class="details">
+            <summary>Module 2 — Comment Paper <span class="badge">CP1</span></summary>
+            <p style="font-size:14px">Peer review two position papers; be analytic, comparative, and constructive.</p>
+            <p class="small"><b>Guidelines</b>: Specific; Examples; Balanced; Respectful; Objective.</p>
+          </details>
+          <details class="details">
+            <summary>Module 3 — Newspaper Comment Paper <span class="badge">CP2</span></summary>
+            <p style="font-size:14px">Write a Letter to the Editor evaluating an article against the newspaper’s stance.</p>
+            <p class="small"><b>Guidelines</b>: Word Limit; Structure; Coherence; Clarity; Critical Analysis; Constructive Feedback.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. ASSESSMENT -->
+    <section id="assessment" class="section">
+      <div class="section-header"><div class="section-number">5</div><div class="section-title">Assessment & Grades</div></div>
+      <div class="content-card"><div class="card-head">Grade Ranges</div>
+        <div class="card-body">
+          <table class="table"><thead><tr><th>Letter</th><th>ID</th><th>Description</th><th>Points</th><th>%</th></tr></thead>
+          <tbody>
+            <tr><td>A</td><td>GR01</td><td>Excellent</td><td>900–1000</td><td>90–100%</td></tr>
+            <tr><td>B</td><td>GR02</td><td>Good</td><td>800–899</td><td>80–89%</td></tr>
+            <tr><td>C</td><td>GR03</td><td>Satisfactory</td><td>700–799</td><td>70–79%</td></tr>
+            <tr><td>D</td><td>GR04</td><td>Passing</td><td>600–699</td><td>60–69%</td></tr>
+            <tr><td>F</td><td>GR05</td><td>Failing</td><td>&lt; 600</td><td>&lt; 60%</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+      <div class="content-card"><div class="card-head">Components</div>
+        <div class="card-body">
+          <details class="details" open>
+            <summary>ShowUp <span class="badge">C01</span> <span class="small">5% • 50 pts</span></summary>
+            <p class="small"><b>Description</b>: Attendance, arriving on time, being prepared, staying on task.</p>
+          </details>
+          <details class="details">
+            <summary>Significance <span class="badge">C02</span> <span class="small">27% • 270 pts</span></summary>
+            <table class="table"><thead><tr><th>Element</th><th>ID</th><th>Points</th><th>%</th></tr></thead>
+            <tbody><tr><td>Reading Reflection</td><td>C02A</td><td>90</td><td>9%</td></tr>
+                   <tr><td>Online Discussion</td><td>C02B</td><td>90</td><td>9%</td></tr>
+                   <tr><td>AI Playground</td><td>C02C</td><td>90</td><td>9%</td></tr></tbody></table>
+            <p class="small"><b>Skills</b>: Comprehension, Analysis.</p>
+          </details>
+          <details class="details">
+            <summary>Substance <span class="badge">C03</span> <span class="small">38% • 380 pts</span></summary>
+            <p class="small">Tests research, argument development, and critical thinking.</p>
+          </details>
+          <details class="details">
+            <summary>Synthesis <span class="badge">C04</span> <span class="small">30% • 300 pts</span></summary>
+            <table class="table"><thead><tr><th>Component</th><th>ID</th><th>Points</th><th>%</th></tr></thead>
+            <tbody><tr><td>Written Portion</td><td>C04A</td><td>150</td><td>15%</td></tr>
+                   <tr><td>Artifact Creation</td><td>C04B</td><td>150</td><td>15%</td></tr></tbody></table>
+          </details>
+          <details class="details">
+            <summary>Extra Credit <span class="badge">C05</span> <span class="small">Up to 5%</span></summary>
+            <p class="small">WeekOff up to 50 pts; tasks vary by difficulty (check with instructor).</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Table of Contents</div>
+      <a class="toc-item" href="#os">OS Console</a>
+      <a class="toc-item" href="#overview">Overview</a>
+      <a class="toc-item" href="#calendar">Calendar</a>
+      <a class="toc-item" href="#modules">Modules</a>
+      <a class="toc-item" href="#papers">Papers</a>
+      <a class="toc-item" href="#assessment">Assessment & Grades</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Contact</div>
+      <div class="small">whartsoe3@gatech.edu</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">OS Status</div>
+      <div id="sidebarStatus" class="small">Initializing…</div>
+    </div>
+  </aside>
+</main>
+<footer class="container" style="padding:16px 0;border-top:2px solid var(--border);font-size:12px">© 2025 LMC 2400 — Negative Space Syllabus OS</footer>
+
+<script>
+// ===== UTIL =====
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+function atMidnight(date){const d=new Date(date);d.setHours(0,0,0,0);return d}
+function fmtDate(d,opts={month:'short',day:'numeric'}){return d.toLocaleDateString('en-US',opts)}
+function fmtRange(a,b){return `${fmtDate(a)} – ${fmtDate(b)}`}
+function parseDays(str){return str.split(',').map(s=>s.trim().slice(0,3).toLowerCase())}
+function* weeksBetween(start,end){let cur=atMidnight(start);const day=(cur.getDay()+6)%7;cur.setDate(cur.getDate()-day);let idx=1;while(cur<=end){const ws=new Date(cur);const we=new Date(cur);we.setDate(ws.getDate()+6);yield{idx:idx++,start:ws,end:we};cur.setDate(cur.getDate()+7)}}
+function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/(1000*60*60*24))}
+function save(key,val){localStorage.setItem(key,JSON.stringify(val))}
+function load(key,def){try{const v=JSON.parse(localStorage.getItem(key));return v??def}catch{ return def }}
+
+// ===== EXPAND/COLLAPSE =====
+$('#expandAll').addEventListener('click',()=>$$('details').forEach(d=>d.open=true));
+$('#collapseAll').addEventListener('click',()=>$$('details').forEach(d=>d.open=false));
+
+// ===== READINGS MAP =====
+const readingsByWeek={
+  1:{module:'CONFIGURATION',items:['Syllabus & Community Agreement','Tooling Onboarding (Canvas, Zotero, Git, AI Playground)']},
+  2:{module:'PRIMER',items:['Heidegger — The Question Concerning Technology (selections)','Carr — Is Google Making Us Stupid?','Geertz — Thick Description (intro)']},
+  3:{module:'FOUNDATION',items:['McLuhan — The Medium Is the Message','Innis — Bias of Communication (selections)']},
+  4:{module:'FOUNDATION',items:['McCloud — Understanding Comics (ch. 1–3)','Bolter & Engberg — Remediation (selections)']},
+  5:{module:'HISTORY',items:['Sontag — On Photography (selections)','Harari — Sapiens (media/culture selections)']},
+  6:{module:'HISTORY',items:['Toynbee — A Study of History (excerpts)','Foucault — Archaeology of Knowledge (selections)']},
+  7:{module:'CULTURE',items:['Adorno & Horkheimer — Culture Industry','Stiegler — Technics and Time (selections)']},
+  8:{module:'CULTURE',items:['Appadurai — Modernity at Large (selections)','Raymond Williams — Keywords (selected entries)']},
+  9:{module:'LANGUAGE',items:['Pinker — Language Instinct (selections)','Saussure — Course in General Linguistics (signifier/signified)']},
+ 10:{module:'LANGUAGE',items:['Chomsky — Syntactic Structures (selections)','Berners-Lee — Information Management: A Proposal (excerpts)']},
+ 11:{module:'SOCIETY',items:['Zinn — A People\'s History (media/public excerpts)','Lessig — Free Culture (selections)']},
+ 12:{module:'SOCIETY',items:['Boyle — The Public Domain (selections)','Finn — What Algorithms Want (selections)']},
+ 13:{module:'POWER',items:['Lukes — Power: A Radical View (selections)','Foucault — Discipline and Punish (panopticon)','Bourdieu — Symbolic Power (selections)','Chomsky — Manufacturing Consent (excerpts)','Mill — On Liberty (ch. 1–2)']},
+ 14:{module:'FUTURE',items:['Arendt — The Human Condition (labor/work/action)','Habermas — Public Sphere (selections)','Haraway — Cyborg Manifesto (excerpts)','Dreyfus — What Computers Still Can\'t Do (selections)','Winograd & Flores — Understanding Computers and Cognition (selections)']}
+};
+
+// ===== BREAKS =====
+const breaks = new Set(['2025-09-01','2025-11-27','2025-11-28']);
+
+// ===== CALENDAR RENDER =====
+function renderCalendar(){
+  const start=atMidnight($('#start-date').value);
+  const end=atMidnight($('#end-date').value);
+  const days=parseDays($('#days').value);
+  const st=$('#start-time').value; const et=$('#end-time').value;
+  const grid=$('#calendar-grid'); grid.innerHTML='';
+  for(const w of weeksBetween(start,end)){
+    if(w.end<start||w.start>end) continue;
+    const card=document.createElement('article');card.className='cal-card';
+    const head=document.createElement('div');head.className='cal-head';
+    const title=document.createElement('div');title.className='cal-title';title.textContent=`Week ${w.idx}`;
+    const sub=document.createElement('div');sub.className='cal-sub';sub.textContent=fmtRange(w.start,w.end);
+    head.appendChild(title);head.appendChild(sub);
+
+    const body=document.createElement('div');body.className='cal-body';
+    const r=readingsByWeek[w.idx];
+    const modLabel=document.createElement('div');modLabel.innerHTML=`<strong>Module:</strong> ${r? r.module : '—'}`; body.appendChild(modLabel);
+    if(r){
+      const reads=document.createElement('div');reads.className='readings'; reads.innerHTML='<h4>Readings</h4>';
+      const ul=document.createElement('ul'); r.items.forEach(it=>{const li=document.createElement('li');li.textContent=it;ul.appendChild(li)});
+      reads.appendChild(ul); body.appendChild(reads);
+    }
+    const tbl=document.createElement('table');tbl.className='cal-table';
+    tbl.innerHTML = '<thead><tr><th>Date</th><th>Day</th><th>Time (ET)</th><th>Notes</th></tr></thead>';
+    const tb=document.createElement('tbody');
+    for(let i=0;i<7;i++){
+      const d=new Date(w.start); d.setDate(w.start.getDate()+i);
+      const dateISO=d.toISOString().slice(0,10);
+      const dayShort=d.toLocaleDateString('en-US',{weekday:'short'}).toLowerCase().slice(0,3);
+      const isClass=days.includes(dayShort) && d>=start && d<=end && !breaks.has(dateISO);
+      if(isClass){
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${fmtDate(d,{month:'short',day:'numeric',year:'numeric'})}</td><td>${d.toLocaleDateString('en-US',{weekday:'short'})}</td><td>${st}–${et}</td><td></td>`;
+        tb.appendChild(tr);
+      }
+      if(breaks.has(dateISO) && d>=start && d<=end){
+        const tr=document.createElement('tr'); tr.style.opacity=.7;
+        const label=(dateISO==='2025-09-01')?'Labor Day (No Class)':'Thanksgiving Break (No Class)';
+        tr.innerHTML=`<td>${fmtDate(d,{month:'short',day:'numeric',year:'numeric'})}</td><td>${d.toLocaleDateString('en-US',{weekday:'short'})}</td><td>—</td><td>${label}</td>`;
+        tb.appendChild(tr);
+      }
+    }
+    tbl.appendChild(tb); body.appendChild(tbl);
+
+    // Show assignments for this week
+    const assignments=load('nsds_assignments',[]).filter(a=>Number(a.week)===Number(w.idx));
+    if(assignments.length){
+      const wrap=document.createElement('div'); wrap.className='readings';
+      wrap.innerHTML='<h4>Assignments (auto‑validated)</h4>';
+      const ul=document.createElement('ul');
+      assignments.forEach(a=>{
+        const li=document.createElement('li');
+        li.innerHTML=`<b>${a.title}</b> — Due ${new Date(a.due).toLocaleString()} • ${a.hours} hrs • Gates: ${a.gateSummary}`;
+        ul.appendChild(li);
+      });
+      wrap.appendChild(ul); body.appendChild(wrap);
+    }
+
+    card.appendChild(head); card.appendChild(body); grid.appendChild(card);
+  }
+  computeOSStatus();
+}
+$('#regen').addEventListener('click',renderCalendar);
+
+// ===== STOP‑DOING LEDGER =====
+function renderLedger(){
+  const data=load('nsds_ledger',[]);
+  const tb=$('#sd_table tbody'); tb.innerHTML='';
+  data.forEach((row,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${row.item}</td><td>${row.minutes}</td><td>${row.owner}</td><td>${row.date}</td><td><button data-idx="${idx}">Remove</button></td>`;
+    tr.querySelector('button').addEventListener('click',()=>{const d=load('nsds_ledger',[]);d.splice(idx,1);save('nsds_ledger',d);renderLedger();});
+    tb.appendChild(tr);
+  });
+}
+$('#sd_add').addEventListener('click',()=>{
+  const item=$('#sd_item').value.trim();
+  const minutes=Number($('#sd_minutes').value||0);
+  const owner=$('#sd_owner').value.trim();
+  const date=$('#sd_date').value;
+  if(!item||!minutes||!owner||!date){alert('All Stop‑Doing fields are required.');return}
+  const data=load('nsds_ledger',[]); data.push({item,minutes,owner,date}); save('nsds_ledger',data); renderLedger();
+  $('#sd_item').value=''; $('#sd_minutes').value=45; $('#sd_owner').value=''; $('#sd_date').value='';
+  computeOSStatus();
+});
+
+// ===== CHANGE LOG =====
+function renderChangeLog(){
+  const data=load('nsds_changelog',[]);
+  const tb=$('#cl_table tbody'); tb.innerHTML='';
+  data.forEach((row,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${row.date}</td><td>${row.change}</td><td>${row.reason}</td><td>${row.impact}</td><td>${row.freeze}</td><td>${row.trigger}</td><td><button data-idx="${idx}">Remove</button></td>`;
+    tr.querySelector('button').addEventListener('click',()=>{const d=load('nsds_changelog',[]);d.splice(idx,1);save('nsds_changelog',d);renderChangeLog();});
+    tb.appendChild(tr);
+  });
+}
+$('#cl_add').addEventListener('click',()=>{
+  const change=$('#cl_change').value.trim();
+  const reason=$('#cl_reason').value.trim();
+  const impact=$('#cl_impact').value.trim();
+  const freeze=Number($('#cl_freeze').value||0);
+  const trigger=$('#cl_trigger').value.trim();
+  if(!change||!reason||!impact||!trigger){alert('All Change Log fields are required.');return}
+  const date=new Date().toISOString().slice(0,10);
+  const data=load('nsds_changelog',[]); data.push({date,change,reason,impact,freeze,trigger}); save('nsds_changelog',data); renderChangeLog();
+  $('#cl_change').value=''; $('#cl_reason').value=''; $('#cl_impact').value=''; $('#cl_freeze').value=4; $('#cl_trigger').value='';
+});
+
+// ===== PULSE CHECKS & SLO =====
+function renderPulses(){
+  const data=load('nsds_pulses',[]); const tb=$('#pulse_table tbody'); tb.innerHTML='';
+  data.forEach((p,idx)=>{
+    const findPct = p.total? Math.round((p.findYes/p.total)*100):0;
+    const fbPct   = p.total? Math.round((p.fbYes/p.total)*100):0;
+    const flags=[]; if(100-findPct>25) flags.push('Clarity Kill'); if(100-fbPct>85) flags.push('Feedback Kill');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${p.week}</td><td>${p.total}</td><td>${findPct}%</td><td>${fbPct}%</td><td>${flags.join(', ')}</td><td><button data-idx="${idx}">Remove</button></td>`;
+    tr.querySelector('button').addEventListener('click',()=>{const d=load('nsds_pulses',[]);d.splice(idx,1);save('nsds_pulses',d);renderPulses();computeOSStatus();});
+    tb.appendChild(tr);
+  });
+}
+$('#pulse_add').addEventListener('click',()=>{
+  const week=Number($('#pulse_week').value||0);
+  const total=Number($('#pulse_total').value||0);
+  const findYes=Number($('#pulse_find_yes').value||0);
+  const fbYes=Number($('#pulse_fb_yes').value||0);
+  if(!week||!total){alert('Pulse requires week and respondents.');return}
+  const data=load('nsds_pulses',[]); data.push({week,total,findYes,fbYes}); save('nsds_pulses',data); renderPulses(); computeOSStatus();
+});
+
+function renderSLO(){
+  const data=load('nsds_slo',[]); const tb=$('#slo_table tbody'); tb.innerHTML='';
+  data.forEach((r,idx)=>{
+    const days=daysBetween(r.sub,r.fb);
+    const ok=days<=14 && days>=0; const status= ok? 'OK' : 'BREACH';
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${r.title}</td><td>${r.sub}</td><td>${r.fb}</td><td>${isNaN(days)?'—':days}</td><td style="color:${ok?'#065f46':'#b91c1c'}">${status}</td><td><button data-idx="${idx}">Remove</button></td>`;
+    tr.querySelector('button').addEventListener('click',()=>{const d=load('nsds_slo',[]);d.splice(idx,1);save('nsds_slo',d);renderSLO();computeOSStatus();});
+    tb.appendChild(tr);
+  });
+}
+$('#slo_add').addEventListener('click',()=>{
+  const title=$('#slo_title').value.trim();
+  const sub=$('#slo_sub').value; const fb=$('#slo_fb').value;
+  if(!title||!sub||!fb){alert('All SLO fields required.');return}
+  const data=load('nsds_slo',[]); data.push({title,sub,fb}); save('nsds_slo',data); renderSLO(); computeOSStatus();
+  $('#slo_title').value=''; $('#slo_sub').value=''; $('#slo_fb').value='';
+});
+
+// ===== ASSIGNMENT PACKETS =====
+function leadTimeDays(releaseISO,dueISO){ if(!releaseISO||!dueISO) return -1; return daysBetween(releaseISO,dueISO); }
+function gateCheck(a){
+  const issues=[];
+  if(!a.rubric || a.rubric.split(';').filter(s=>s.trim()).length<3) issues.push('Rubric<3');
+  if(!a.submit) issues.push('NoSubmit');
+  if(!(a.hours>0)) issues.push('NoTime');
+  if(!a.example) issues.push('NoExample');
+  if(a.redteam!=='yes') issues.push('NoRedTeam');
+  const lt=leadTimeDays(a.release,a.due); if(lt<7) issues.push('Lead<7');
+  // Add↔Remove: check ledger capacity this week >= hours*60
+  const ledger=load('nsds_ledger',[]);
+  const week=Number(a.week);
+  const start=atMidnight($('#start-date').value);
+  const wkStart=new Date(start); wkStart.setDate(start.getDate() + (week-1)*7);
+  const wkEnd=new Date(wkStart); wkEnd.setDate(wkStart.getDate()+6);
+  const cap=ledger.filter(x=>{const d=new Date(x.date); return d>=wkStart && d<=wkEnd;}).reduce((s,x)=>s+Number(x.minutes||0),0);
+  if(cap < (a.hours*60)) issues.push('InsufficientSubtraction');
+  return {issues, lead:lt, cap};
+}
+
+function renderAssignments(){
+  const data=load('nsds_assignments',[]); const tb=$('#ap_table tbody'); tb.innerHTML='';
+  data.forEach((a,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${a.title}</td><td>${a.week}</td><td>${a.lead}</td><td>${a.hours}</td><td>${a.gateSummary}</td><td><button data-idx="${idx}">Remove</button></td>`;
+    tr.querySelector('button').addEventListener('click',()=>{const d=load('nsds_assignments',[]);d.splice(idx,1);save('nsds_assignments',d);renderAssignments();renderCalendar();computeOSStatus();});
+    tb.appendChild(tr);
+  });
+}
+
+$('#ap_add').addEventListener('click',()=>{
+  const a={
+    title: $('#ap_title').value.trim(),
+    week: Number($('#ap_week').value||0),
+    release: $('#ap_release').value,
+    due: $('#ap_due').value,
+    hours: Number($('#ap_hours').value||0),
+    deliv: $('#ap_deliv').value.trim(),
+    rubric: $('#ap_rubric').value.trim(),
+    example: $('#ap_example').value.trim(),
+    submit: $('#ap_submit').value.trim(),
+    redteam: $('#ap_redteam').value
+  };
+  if(!a.title||!a.week||!a.release||!a.due){alert('Title, week, release, and due are required.');return}
+  const {issues,lead,cap}=gateCheck(a);
+  const gate=$('#ap_gate');
+  if(issues.length){
+    gate.className='flag danger'; gate.style.display='flex';
+    gate.innerHTML = `<b>BLOCKED</b> • ${issues.join(', ')} • Lead=${lead}d • SubtractionCap=${cap} mins (need ${Math.ceil((a.hours*60))})`;
+    return;
+  }
+  gate.className='flag ok'; gate.style.display='flex'; gate.innerHTML=`<b>READY</b> • All gates passed • Lead=${lead}d • SubtractionCap=${cap} mins`;
+  a.lead=lead; a.gateSummary='PASS';
+  const data=load('nsds_assignments',[]); data.push(a); save('nsds_assignments',data);
+  renderAssignments(); renderCalendar(); computeOSStatus();
+  // clear
+  $('#ap_title').value=''; $('#ap_week').value=3; $('#ap_release').value=''; $('#ap_due').value='';
+  $('#ap_hours').value=3; $('#ap_deliv').value=''; $('#ap_rubric').value=''; $('#ap_example').value=''; $('#ap_submit').value=''; $('#ap_redteam').value='no';
+});
+
+// ===== OS STATUS =====
+function currentWeekIndex(){
+  const start=new Date($('#start-date').value); const now=new Date();
+  const diff=Math.floor((atMidnight(now)-atMidnight(start))/(1000*60*60*24));
+  return diff<0?1:Math.floor(diff/7)+1;
+}
+function computeOSStatus(){
+  const capHrs=Number($('#capHours').value||5);
+  const wk=currentWeekIndex();
+  const freezeAssign=Number($('#freezeAssign').value||2);
+  const freezeTopic=Number($('#freezeTopic').value||5);
+
+  let level='GREEN'; let notes=[];
+  // Check pulses
+  const pulses=load('nsds_pulses',[]);
+  const mid=pulses.find(p=>p.week===7); // midterm example
+  if(mid){
+    const findPct = mid.total? Math.round((mid.findYes/mid.total)*100):100;
+    if(100-findPct>25){ level='RED'; notes.push('Clarity Kill triggered'); }
+  }
+  // Check SLO breaches
+  const slos=load('nsds_slo',[]);
+  const breaches=slos.filter(r=>{const d=daysBetween(r.sub,r.fb); return !(d<=14 && d>=0)}).length;
+  if(breaches>0){ level = (level==='RED')?'RED':'AMBER'; notes.push(`${breaches} feedback SLO breach(es)`); }
+
+  // Check workload per week from assignments
+  const assigns=load('nsds_assignments',[]);
+  const wkHours=assigns.filter(a=>Number(a.week)===wk).reduce((s,a)=>s+Number(a.hours||0),0);
+  if(wkHours>capHrs){ level='AMBER'; notes.push(`Workload cap exceeded this week (${wkHours}h>${capHrs}h)`); }
+
+  // Freeze windows messaging
+  if(wk>=freezeAssign){ notes.push('Assignment format freeze active'); }
+  if(wk>=freezeTopic){ notes.push('Topic freeze active'); }
+
+  const os=$('#osStatus');
+  const side=$('#sidebarStatus');
+  if(level==='GREEN'){ os.className='flag ok'; os.innerHTML='<b>OS Status:</b> GREEN — within constraints.'; }
+  if(level==='AMBER'){ os.className='flag warn'; os.innerHTML=`<b>OS Status:</b> AMBER — ${notes.join(' • ')}`; }
+  if(level==='RED'){ os.className='flag danger'; os.innerHTML=`<b>OS Status:</b> RED — ${notes.join(' • ')}`; }
+  side.textContent = os.textContent;
+}
+
+// ===== INIT =====
+renderLedger(); renderChangeLog(); renderPulses(); renderSLO(); renderAssignments(); renderCalendar(); computeOSStatus();
+</script>
+</body>
+</html>

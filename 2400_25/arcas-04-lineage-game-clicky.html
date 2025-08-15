@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LMC 2400 — CourseOS • LGM + Evolutionary Reading Map (HTML/CSS/JS)</title>
+<style>
+:root{
+  --bg:#0b0c10; --panel:#0f131c; --ink:#e9ecf1; --muted:#92a0b8; --rule:#1f2738;
+  --accent:#3aa7ff; --ok:#28d07f; --bad:#ff6b6b; --glow:#1b2b47;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:13.5px/1.45 ui-sans-serif,system-ui,Segoe UI,Inter,Roboto}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;background:#0f131c;border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:10}
+header h1{margin:0;font-size:18px;letter-spacing:.2px}
+header .sig{color:var(--muted);font-size:12px}
+header .scores{display:flex;gap:10px}
+.badge{background:#121824;padding:6px 8px;border:1px solid var(--rule);border-radius:10px}
+.nav{display:flex;gap:8px;align-items:center}
+.tab{padding:8px 12px;border:1px solid var(--rule);border-radius:10px;background:#0c111b;color:var(--ink);cursor:pointer}
+.tab.on{background:#12203a;border-color:#23406d;box-shadow:0 0 0 2px #1c2e50 inset}
+
+main{display:grid;grid-template-columns:320px 1fr;gap:16px;padding:16px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:14px}
+.card h3{margin:0 0 8px 0;font-size:14px;letter-spacing:.3px}
+.small{font-size:12px}
+.muted{color:var(--muted)}
+
+/* Shared */
+.tree{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.tree li{display:grid;grid-template-columns:48px 1fr;align-items:center;gap:10px;padding:6px 8px;border-radius:10px;border:1px solid var(--rule);background:#0c111b}
+.tree li.active{outline:2px solid var(--accent)}
+.tree li.done{opacity:.9;background:#0e1622}
+.tree .node{font-weight:700;color:#9fc8ff}
+.tree .name{color:var(--muted);font-size:12px}
+.evo{margin-top:8px;color:var(--muted);font-size:12px}
+
+.scarcity{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pill{padding:2px 8px;border-radius:999px;border:1px solid var(--rule);display:inline-block}
+.pill.mythic{background:#31214a}
+.pill.rare{background:#1d2a3e}
+.pill.epic{background:#233428}
+
+.chip{padding:6px 10px;border:1px solid var(--rule);border-radius:999px;background:#101725;color:var(--ink);cursor:pointer}
+.chip.on{background:#173057;border-color:#2f5da1}
+
+/* Workspace */
+.smts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.step{position:relative;text-align:center;padding:8px 6px;border:1px solid var(--rule);border-radius:10px;background:#0c111b;color:var(--muted)}
+.step.on{color:var(--ink);background:#12203a;border-color:#23406d;box-shadow:0 0 0 2px #1c2e50 inset}
+.species{margin:6px 0 10px 0;color:#9fc8ff}
+.pane{display:flex;flex-direction:column;gap:10px}
+.lab{font-size:12px;color:var(--muted)}
+textarea,input{background:#0b1422;border:1px solid var(--rule);color:var(--ink);padding:10px;border-radius:10px}
+textarea{min-height:110px}
+.row{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.btn{background:#0f1b31;border:1px solid #2a3d60;color:#dbe9ff;padding:10px 12px;border-radius:10px;cursor:pointer}
+.btn.primary{background:#0e2a52;border-color:#3869b5}
+.btn:hover{filter:brightness(1.1)}
+
+.frames{display:flex;flex-wrap:wrap;gap:8px}
+.radio{display:flex;align-items:center;gap:8px;border:1px solid var(--rule);padding:6px 10px;border-radius:10px;background:#0c111b;cursor:pointer}
+.radio.on{outline:2px solid #2f5da1}
+.radio input{display:none}
+.glyph{font-weight:700;font-size:16px;width:24px;text-align:center}
+.ops{display:flex;flex-wrap:wrap;gap:8px}
+
+.audit{display:flex;flex-direction:column;gap:10px}
+.verdict{font-weight:800;font-size:18px;padding:8px 10px;border-radius:10px;text-align:center}
+.verdict.ok{background:#13281e;border:1px solid #2d6f4d;color:#72f1b8}
+.verdict.bad{background:#2a1212;border:1px solid #7a2b2b;color:#ffb1b1}
+.kv{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.kv div{background:#0c111b;border:1px solid var(--rule);border-radius:10px;padding:8px;text-align:center}
+.kv span{color:var(--muted);font-size:11px;display:block}
+.fails,.clues{background:#0c111b;border:1px solid var(--rule);border-radius:10px;padding:10px}
+.fails h4,.clues h4{margin:0 0 6px 0;font-size:13px}
+.fails ul,.clues ul{margin:0;padding-left:18px}
+
+.log{width:100%;border-collapse:collapse}
+.log th,.log td{border-bottom:1px solid var(--rule);padding:8px;text-align:left;font-size:12px}
+.titlecell{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Live causal strip */
+.causal{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}
+.causal .box{background:#0c111b;border:1px solid var(--rule);border-radius:10px;padding:8px;text-align:center}
+.causal .box b{display:block;font-size:16px;margin-bottom:4px}
+.causal .box span{color:var(--muted);font-size:12px}
+
+/* MAP TAB */
+#mapTab{display:none}
+.grid{display:grid;grid-template-columns:260px 1fr 320px;gap:16px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.layerCard{background:#0c111b;border:1px solid var(--rule);border-radius:10px;padding:10px}
+.layerCard h4{margin:0 0 6px 0}
+.layerCard .ops{gap:6px}
+.nodeCard{background:#0b1422;border:1px solid var(--rule);border-radius:10px;padding:10px;margin-bottom:8px}
+.nodeCard .meta{color:var(--muted);font-size:12px}
+.nodeCard .btns{display:flex;gap:6px;margin-top:8px}
+.trail{background:#0c111b;border:1px dashed var(--rule);border-radius:10px;padding:10px;min-height:120px}
+.trailItem{display:flex;align-items:center;gap:8px;padding:6px;border:1px solid var(--rule);border-radius:10px;background:#101725;margin-bottom:6px}
+.trailItem .del{margin-left:auto;cursor:pointer;color:#ffb1b1}
+
+.export{background:#0c111b;border:1px solid var(--rule);border-radius:10px;padding:10px}
+.export textarea{width:100%;min-height:120px}
+
+footer{padding:12px;border-top:1px solid var(--rule);background:#0f131c}
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>LMC 2400 — CourseOS • Lineage Game Master + Evolutionary Reading Map</h1>
+      <div class="sig">Brand Commander: “Transform the interface, command the thought.” · Media for Thinking the Unthinkable</div>
+    </div>
+    <div class="nav">
+      <button class="tab on" id="tabGM">Game Master</button>
+      <button class="tab" id="tabMap">Evolutionary Reading Map</button>
+    </div>
+    <div class="scores">
+      <div class="badge">Total <b id="totalPoints">0</b> pts</div>
+      <div class="badge">Streak <b id="streak">0</b>× (cap +10%)</div>
+      <div class="badge">Flags <span id="flags">—</span></div>
+    </div>
+  </header>
+
+  <!-- ========================= GAME MASTER TAB ========================= -->
+  <main id="gmTab">
+    <aside>
+      <section class="card">
+        <h3>Species Lineage</h3>
+        <ul id="speciesTree" class="tree"></ul>
+        <div class="evo">ROOT → RR → DL → SP1 → SP2 → FINAL</div>
+      </section>
+
+      <section class="card">
+        <h3>Scarcity Table</h3>
+        <div class="scarcity">
+          <div><span class="pill mythic">mythic</span> <b id="mythic">1</b></div>
+          <div><span class="pill rare">rare</span> <b id="rare">3</b></div>
+          <div><span class="pill epic">epic</span> <b id="epic">5</b></div>
+        </div>
+        <p class="muted small">Rare awards decrement on verified Proof.</p>
+      </section>
+
+      <section class="card">
+        <h3>Theme Clades</h3>
+        <div id="clades" class="ops"></div>
+        <p class="muted small">Clades feed species via side‑edges. SP2 synergy: Film × Games.</p>
+      </section>
+
+      <section class="card">
+        <h3>Live Causal Strip</h3>
+        <div class="causal">
+          <div class="box"><b id="wc">0</b><span>Words (Abstract)</span></div>
+          <div class="box"><b id="authors">0</b><span>Course Authors Cited</span></div>
+          <div class="box"><b id="opsCount">0</b><span>Ops Used</span></div>
+          <div class="box"><b id="cladesCount">0</b><span>Clades Selected</span></div>
+          <div class="box"><b id="triad">0/3</b><span>Triad Terms</span></div>
+        </div>
+      </section>
+    </aside>
+
+    <section>
+      <div class="card">
+        <div class="smts">
+          <div class="step on" id="s0">ᕰ Sense</div>
+          <div class="step" id="s1">ᕱ Model</div>
+          <div class="step" id="s2">ᕲ Test</div>
+          <div class="step" id="s3">ᕳ Ship</div>
+        </div>
+        <div class="species">Now evolving: <b id="nowSpecies"></b></div>
+
+        <div id="paneSense" class="pane">
+          <label class="lab">⌸ Notes (scan readings/media)</label>
+          <textarea id="senseNotes" placeholder="What signals? Which readings? What data?"></textarea>
+          <div class="row">
+            <button class="btn" id="toModel">Next ᕱ Model →</button>
+          </div>
+        </div>
+
+        <div id="paneModel" class="pane" style="display:none">
+          <div class="row" style="justify-content:space-between">
+            <div class="col" style="flex:1">
+              <label class="lab">Frame (deliverable shell)</label>
+              <div id="frames" class="frames"></div>
+            </div>
+            <div class="col" style="flex:1">
+              <label class="lab">Ops (choose up to 3 for rigor bonus)</label>
+              <div id="ops" class="ops"></div>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn" id="backToSense">← Back</button>
+            <button class="btn" id="toTest">Next ᕲ Test →</button>
+          </div>
+        </div>
+
+        <div id="paneTest" class="pane" style="display:none">
+          <div class="row" style="justify-content:flex-start">
+            <div class="col">
+              <label class="lab">Intensity Budget</label>
+              <div id="intensities" class="frames"></div>
+            </div>
+          </div>
+          <label class="lab">Title</label>
+          <input id="title" placeholder="Artifact title" />
+          <label class="lab">Abstract / Core Claim</label>
+          <textarea id="abstract" placeholder="Compose within budget; include evidence & theory as required by current species"></textarea>
+          <label class="lab">Citations / Links</label>
+          <textarea id="citations" placeholder="pp. 23–25; URL; author names; external source for FINAL"></textarea>
+          <div class="row">
+            <button class="btn" id="backToModel">← Back</button>
+            <button class="btn primary" id="ship">ᕳ Ship — Submit for Audit</button>
+          </div>
+        </div>
+
+        <div id="paneShip" class="pane" style="display:none">
+          <div class="audit">
+            <div class="verdict" id="verdictBox">—</div>
+            <div class="kv">
+              <div><span>Base</span><b id="aBase">0</b></div>
+              <div><span>× Mult</span><b id="aMult">1.0</b></div>
+              <div><span>Rigor +</span><b id="aRigor">0</b></div>
+              <div><span>Synergy +</span><b id="aSyn">0</b></div>
+              <div><span>Streak +%</span><b id="aStreak">0%</b></div>
+              <div><span>Total</span><b id="aTotal">0</b></div>
+            </div>
+            <div class="fails" id="failsBox" style="display:none">
+              <h4>Selection Pressures (Failed)</h4>
+              <ul id="failsList"></ul>
+            </div>
+            <div class="clues" id="cluesBox">
+              <h4>Fitness Signals</h4>
+              <ul id="cluesList"></ul>
+            </div>
+            <div class="row">
+              <button class="btn" id="runNext">Run Next Week (SMTS) ↻</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>Lineage Log</h3>
+        <p id="logEmpty" class="muted">Ship artifacts to populate your lineage. Visible wear‑tests earn flags.</p>
+        <table id="logTable" class="log" style="display:none">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Species</th>
+              <th>Frame</th>
+              <th>Ops</th>
+              <th>Clades</th>
+              <th>Title</th>
+              <th>Verdict</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody id="logBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================= EVOLUTIONARY READING MAP TAB ========================= -->
+  <main id="mapTab">
+    <section class="grid">
+      <!-- LEFT: Layers List -->
+      <div class="stack">
+        <section class="card">
+          <h3>Layers (Weeks → Operators)</h3>
+          <div id="layerList" class="stack"></div>
+        </section>
+        <section class="card">
+          <h3>Computational Evolution Flow</h3>
+          <div class="muted small">F1→F9 chain; export Mermaid below.</div>
+          <ol id="flowList" class="small"></ol>
+        </section>
+      </div>
+
+      <!-- CENTER: Reading Nodes -->
+      <section class="card">
+        <h3>Reading Nodes — Click to Add to Trail</h3>
+        <div id="nodeArea" class="stack"></div>
+      </section>
+
+      <!-- RIGHT: Thought Trail & Export -->
+      <section class="card">
+        <h3>Thought Trail (◻ nodes → morphisms →)</h3>
+        <div id="trail" class="trail"></div>
+        <div class="btns" style="margin-top:8px;display:flex;gap:6px">
+          <button class="btn" id="clearTrail">Clear Trail</button>
+          <button class="btn primary" id="syncGM">Sync to Game Master</button>
+        </div>
+        <div class="export" style="margin-top:10px">
+          <h3>Mermaid Export</h3>
+          <textarea id="mermaidOut" readonly></textarea>
+          <div class="row" style="justify-content:flex-start">
+            <button class="btn" id="copyMermaid">Copy</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer>
+    <div class="muted small">Directive: never separate behavior from cause/effect. Every reading node carries operators (→) and functions. You can route selected nodes into the LGM to pre‑configure frames, ops, clades, and intensity.</div>
+  </footer>
+
+<script>
+// ============================ SHARED CONFIG ============================
+const SPECIES_ORDER = ["RR","DL","SP1","SP2","FINAL"];
+const SPECIES_NAMES = { RR:"Reading Response", DL:"Discussion Leader", SP1:"Studio Project 1", SP2:"Studio Project 2", FINAL:"Final Project" };
+const SPECIES_BASE_POINTS = { RR:10, DL:25, SP1:60, SP2:80, FINAL:120 };
+const FRAMES = [
+  { key:"essay", glyph:"❏", label:"Essay / Commentary" },
+  { key:"thread", glyph:"❐", label:"Thread / Post" },
+  { key:"slides", glyph:"❑", label:"Slide Deck" },
+  { key:"proto", glyph:"❒", label:"Prototype / Demo" }
+];
+const OPS = [
+  { key:"scan", glyph:"⌸", label:"scan" },
+  { key:"sample", glyph:"⌹", label:"sample" },
+  { key:"link", glyph:"⍁", label:"link" },
+  { key:"slice", glyph:"⍂", label:"slice" },
+  { key:"diff", glyph:"⍃", label:"diff" },
+  { key:"merge", glyph:"⍄", label:"merge" },
+  { key:"merge2", glyph:"⿰", label:"merge (side-by-side)" },
+  { key:"stack", glyph:"⿱", label:"stack (vertical)" },
+  { key:"overlay", glyph:"⿻", label:"overlay (interlock)" }
+];
+const CLADES = [
+  { key:"film", label:"Film" },
+  { key:"games", label:"Games" },
+  { key:"xr", label:"XR" },
+  { key:"platforms", label:"Platforms" },
+  { key:"power", label:"Power" }
+];
+const INTENSITIES = [
+  { key:"light", glyph:"░", label:"Light (30m)", cost:1 },
+  { key:"medium", glyph:"▒", label:"Medium (60m)", cost:2 },
+  { key:"heavy", glyph:"▓", label:"Heavy (90m)", cost:3 }
+];
+const AUTHOR_CANON = ["McLuhan","Ong","Higgins","Bazin","Gitelman","Dutchen","Enright","Auslander","Turing","Buolamwini","Kantayya","Montfort","Bogost","Boellstorff","Milk","Rouse","Bolter","Brock","Maguire","Lovelock","Benjamin"];
+
+// ============================ GAME MASTER STATE ============================
+let currentSpeciesIdx = 0;
+let completed = {}; let streak = 0; let totalPoints = 0; let flags = []; let scarcity = { mythic:1, rare:3, epic:5 };
+let step = 0; // 0..3
+let senseInputs = { clades:new Set(), notes:"" };
+let modelInputs = { frame: FRAMES[0].key, ops:new Set() };
+let testInputs = { intensity: INTENSITIES[0].key, title:"", abstract:"", citations:"" };
+let proof = null; let lineageLog = [];
+
+// ============================ MAP DATA ============================
+const LAYERS = [
+  { id:"F1", title:"Foundational Catalysts", weeks:"2–4", ops:["Encode","Distinguish","Historicize"], function:"Establishes first constraints: medium as computation; redundancy baseline.", preset:{ frame:"essay", ops:["slice","diff","stack"], clades:["film","platforms"], intensity:"medium" }, readings:[
+    { id:"F1-McLuhan", author:"McLuhan", work:"Medium is the Message", note:"Medium = operator.", entities:["medium","form"], morphisms:["encode"], fn:"See medium as computation." },
+    { id:"F1-Ong", author:"Ong", work:"Orality of Language", note:"Redundancy, mnemonic constraints.", entities:["orality"], morphisms:["repeat"], fn:"Error-correction in cultural memory." },
+    { id:"F1-Higgins", author:"Higgins", work:"Intermedia", note:"Merge rule across media.", entities:["intermedia"], morphisms:["merge"], fn:"Symbiogenesis of forms." },
+    { id:"F1-Bazin", author:"Bazin", work:"Ontology of the Photographic Image", note:"Indexical claim.", entities:["image","index"], morphisms:["stabilize"], fn:"Image as ontological constraint." }
+  ]},
+  { id:"F2", title:"Noise & Resonance", weeks:"5", ops:["Perturb","Vibrate","Stabilize"], function:"Injects perturbation/error → need redundancy.", preset:{ frame:"thread", ops:["sample","merge","overlay"], clades:["platforms"], intensity:"light" }, readings:[
+    { id:"F2-Gitelman", author:"Gitelman", work:"New Media Publics", note:"Publics as infrastructures.", entities:["public","infrastructure"], morphisms:["filter"], fn:"Noise-handling produces publics." },
+    { id:"F2-Dutchen", author:"Dutchen", work:"Noise & Health", note:"Physio-cultural noise.", entities:["noise"], morphisms:["perturb"], fn:"Noise as system parameter." },
+    { id:"F2-Enright", author:"Enright", work:"War Against Noise", note:"Politics of noise.", entities:["policy"], morphisms:["constrain"], fn:"Governance of signal/noise." }
+  ]},
+  { id:"F3", title:"Performance & Spectacle", weeks:"6", ops:["Replay","Mediate","Spectacle"], function:"Presence simulated; system turns reflexive.", preset:{ frame:"slides", ops:["scan","link","merge2"], clades:["film","xr"], intensity:"medium" }, readings:[
+    { id:"F3-Auslander", author:"Auslander", work:"Liveness", note:"Mediatized presence.", entities:["live"], morphisms:["stage"], fn:"Presence as staged mediation." },
+    { id:"F3-Bazin2", author:"Bazin", work:"Myth of Total Cinema", note:"Asymptote of total capture.", entities:["myth"], morphisms:["attract"], fn:"Mythic horizon guides tech." }
+  ]},
+  { id:"F4", title:"Machine Reflexivity", weeks:"7", ops:["Simulate","Contest","Audit"], function:"Machines as mirrors of culture; recursive self-modeling.", preset:{ frame:"essay", ops:["slice","diff","overlay"], clades:["platforms","power"], intensity:"medium" }, readings:[
+    { id:"F4-Turing", author:"Turing", work:"Computing Machinery & Intelligence", note:"Imitation game.", entities:["test"], morphisms:["simulate"], fn:"Define machine intelligence by protocol." },
+    { id:"F4-Buolamwini", author:"Buolamwini", work:"AI, Ain’t I a Woman?", note:"Bias exposure.", entities:["bias"], morphisms:["expose"], fn:"Error as political signal." },
+    { id:"F4-Kantayya", author:"Kantayya", work:"Coded Bias", note:"Public critique.", entities:["public"], morphisms:["mobilize"], fn:"Feedback loop to policy." }
+  ]},
+  { id:"F5", title:"Play & Game", weeks:"8", ops:["Play","Rule","World‑build"], function:"Rules as computation; worlds as culture.", preset:{ frame:"proto", ops:["merge2","stack","link"], clades:["games"], intensity:"heavy" }, readings:[
+    { id:"F5-Montfort", author:"Montfort", work:"Stella", note:"Code as medium.", entities:["code"], morphisms:["execute"], fn:"Meaning in code paths." },
+    { id:"F5-Bogost", author:"Bogost", work:"Procedural Rhetoric", note:"Argument via rules.", entities:["rules"], morphisms:["constrain"], fn:"Rules generate claims." },
+    { id:"F5-Boellstorff", author:"Boellstorff", work:"Second Life (opt)", note:"Virtual anthropology.", entities:["culture"], morphisms:["stabilize"], fn:"Communities in virtual worlds." }
+  ]},
+  { id:"F6", title:"Immersion & Empathy", weeks:"9", ops:["Embody","Resist","Reframe"], function:"Affective computation; empathy contested.", preset:{ frame:"slides", ops:["scan","merge","link"], clades:["xr"], intensity:"medium" }, readings:[
+    { id:"F6-Milk", author:"Milk", work:"VR Empathy Machine", note:"Empathy as operator.", entities:["affect"], morphisms:["induce"], fn:"Engineered compassion claim." },
+    { id:"F6-Rouse", author:"Rouse", work:"Against Instrumental Empathy", note:"Critique of empathy use.", entities:["critique"], morphisms:["resist"], fn:"Expose instrumentalization." },
+    { id:"F6-Bolter", author:"Bolter", work:"Reality Media", note:"XR continuum.", entities:["mediation"], morphisms:["reframe"], fn:"Presence as calibration." }
+  ]},
+  { id:"F7", title:"Network & Viral", weeks:"10", ops:["Stream","Viralize","Amplify"], function:"Memes replicate; platforms as fitness functions.", preset:{ frame:"thread", ops:["sample","link","stack"], clades:["platforms"], intensity:"light" }, readings:[
+    { id:"F7-Brock", author:"Brock", work:"Twitter as Cultural Conversation", note:"Conversation as computation.", entities:["conversation"], morphisms:["circulate"], fn:"Signal in Black digital practice." },
+    { id:"F7-Maguire", author:"Maguire", work:"Viral Economies", note:"Micro-trend markets.", entities:["attention"], morphisms:["amplify"], fn:"Economy of replication." }
+  ]},
+  { id:"F8", title:"Identity & Power", weeks:"12", ops:["Expose","Critique","Constraint"], function:"Bias as constraint; visibility as survival test.", preset:{ frame:"essay", ops:["diff","overlay","slice"], clades:["power"], intensity:"medium" }, readings:[
+    { id:"F8-Lovelock", author:"Lovelock", work:"Queerness in Reality TV", note:"Authenticity as construct.", entities:["authenticity"], morphisms:["stage"], fn:"Rules define realness." },
+    { id:"F8-Benjamin", author:"Benjamin", work:"Race After Technology", note:"Coded constraint.", entities:["race"], morphisms:["constrain"], fn:"Power baked into design." }
+  ]},
+  { id:"F9", title:"Speculative Futures", weeks:"13–16", ops:["Speculate","Merge","Narrate"], function:"Final phase shift; self‑modeling futures.", preset:{ frame:"proto", ops:["merge","merge2","stack"], clades:["xr","platforms","games","power"], intensity:"heavy" }, readings:[
+    { id:"F9-Metaverse", author:"Metaverse", work:"Emerging Metaverse", note:"Myth horizon.", entities:["myth"], morphisms:["attract"], fn:"Strange attractor for futures." },
+    { id:"F9-Students", author:"Students", work:"Speculative Projects", note:"New instructions.", entities:["future"], morphisms:["generate"], fn:"Autocatalytic outputs." }
+  ]}
+];
+
+// ============================ DOM HOOKS (GM) ============================
+const el = (id)=>document.getElementById(id);
+const tabGM = el('tabGM'); const tabMap = el('tabMap');
+const gmTab = document.getElementById('gmTab'); const mapTab = document.getElementById('mapTab');
+
+const speciesTree = el('speciesTree'); const nowSpecies = el('nowSpecies');
+const totalPointsEl = el('totalPoints'); const streakEl = el('streak'); const flagsEl = el('flags');
+const mythicEl = el('mythic'); const rareEl = el('rare'); const epicEl = el('epic');
+const paneSense = el('paneSense'); const paneModel = el('paneModel'); const paneTest = el('paneTest'); const paneShip = el('paneShip');
+const stepEls = [el('s0'), el('s1'), el('s2'), el('s3')];
+const senseNotes = el('senseNotes'); const framesWrap = el('frames'); const opsWrap = el('ops');
+const cladesWrap = el('clades'); const intensitiesWrap = el('intensities');
+const titleInput = el('title'); const abstractInput = el('abstract'); const citationsInput = el('citations');
+const wcEl = el('wc'); const authorsEl = el('authors'); const opsCountEl = el('opsCount'); const cladesCountEl = el('cladesCount'); const triadEl = el('triad');
+const verdictBox = el('verdictBox'); const aBase = el('aBase'); const aMult = el('aMult'); const aRigor = el('aRigor'); const aSyn = el('aSyn'); const aStreak = el('aStreak'); const aTotal = el('aTotal'); const failsBox = el('failsBox'); const failsList = el('failsList'); const cluesList = el('cluesList');
+const logEmpty = el('logEmpty'); const logTable = el('logTable'); const logBody = el('logBody');
+
+el('toModel').onclick = ()=> setStep(1);
+el('backToSense').onclick = ()=> setStep(0);
+el('toTest').onclick = ()=> setStep(2);
+el('backToModel').onclick = ()=> setStep(1);
+el('ship').onclick = shipProof;
+el('runNext').onclick = resetLoop;
+
+// ============================ DOM HOOKS (MAP) ============================
+const layerList = el('layerList'); const nodeArea = el('nodeArea'); const flowList = el('flowList');
+const trailBox = el('trail'); const clearTrailBtn = el('clearTrail'); const syncGMbtn = el('syncGM');
+const mermaidOut = el('mermaidOut'); const copyMermaid = el('copyMermaid');
+
+// ============================ HELPERS ============================
+const wordCount = s => (s||"").trim().split(/\s+/).filter(Boolean).length;
+const hasAny = (text, arr) => arr.some(a => (text||"").toLowerCase().includes(a.toLowerCase()));
+function countAuthors(text){ const t = text || ""; let c=0; AUTHOR_CANON.forEach(n=>{ if(new RegExp(`\\b${n}\\b`,`i`).test(t)) c++; }); return c; }
+function opsUsedCount(){ return modelInputs.ops.size; }
+function getIntensity(key){ return INTENSITIES.find(i=>i.key===key) || INTENSITIES[0]; }
+function getFrame(key){ return FRAMES.find(f=>f.key===key) || FRAMES[0]; }
+function computeNewFlags(total){ const th=[{t:50,f:"⡰"},{t:120,f:"⡱"},{t:200,f:"⡲"},{t:300,f:"⡳"},{t:450,f:"⡴"},{t:600,f:"⡵"},{t:800,f:"⡶"},{t:1000,f:"⡷"},{t:1250,f:"⡸"},{t:1500,f:"⡹"},{t:1800,f:"⡺"},{t:2100,f:"⡻"},{t:2400,f:"⡼"},{t:2800,f:"⡽"},{t:3200,f:"⡾"},{t:3600,f:"⡿"}]; return th.filter(x=> total>=x.t && !flags.includes(x.f)).map(x=>x.f); }
+
+// ============================ RENDER: GM ============================
+function renderSpeciesTree(){ speciesTree.innerHTML = ''; SPECIES_ORDER.forEach((sp,i)=>{ const li=document.createElement('li'); li.className = i===currentSpeciesIdx ? 'active' : (completed[sp] ? 'done' : 'todo'); li.innerHTML = `<span class="node">${sp}</span><span class="name">${SPECIES_NAMES[sp]}</span>`; speciesTree.appendChild(li); }); }
+function renderFrames(){ framesWrap.innerHTML=''; FRAMES.forEach(f=>{ const lab=document.createElement('label'); lab.className = 'radio'+(modelInputs.frame===f.key?' on':''); lab.innerHTML = `<input type="radio" name="frame"/><span class="glyph">${f.glyph}</span><span>${f.label}</span>`; lab.onclick = ()=>{ modelInputs.frame=f.key; renderFrames(); updateMetrics(); }; framesWrap.appendChild(lab); }); }
+function renderOps(){ opsWrap.innerHTML=''; OPS.forEach(o=>{ const b=document.createElement('button'); b.className='chip'+(modelInputs.ops.has(o.key)?' on':''); b.textContent = `${o.glyph} ${o.label}`; b.onclick = ()=>{ if(modelInputs.ops.has(o.key)) modelInputs.ops.delete(o.key); else if(modelInputs.ops.size<3) modelInputs.ops.add(o.key); renderOps(); updateMetrics(); }; opsWrap.appendChild(b); }); }
+function renderClades(){ cladesWrap.innerHTML=''; CLADES.forEach(c=>{ const b=document.createElement('button'); b.className='chip'+(senseInputs.clades.has(c.key)?' on':''); b.textContent = c.label; b.onclick = ()=>{ senseInputs.clades.has(c.key)?senseInputs.clades.delete(c.key):senseInputs.clades.add(c.key); renderClades(); updateMetrics(); }; cladesWrap.appendChild(b); }); }
+function renderIntensities(){ intensitiesWrap.innerHTML=''; INTENSITIES.forEach(i=>{ const lab=document.createElement('label'); lab.className='radio'+(testInputs.intensity===i.key?' on':''); lab.innerHTML = `<input type="radio" name="intensity"/><span class="glyph">${i.glyph}</span><span>${i.label}</span>`; lab.onclick = ()=>{ testInputs.intensity=i.key; renderIntensities(); }; intensitiesWrap.appendChild(lab); }); }
+function setStep(n){ step=n; [paneSense,paneModel,paneTest,paneShip].forEach((p,i)=> p.style.display = (i===n?'block':'none')); stepEls.forEach((e,i)=> e.classList.toggle('on', i===n)); }
+function updateHeader(){ totalPointsEl.textContent = totalPoints; streakEl.textContent = streak; flagsEl.textContent = flags.length? flags.join(' ') : '—'; mythicEl.textContent = scarcity.mythic; rareEl.textContent = scarcity.rare; epicEl.textContent = scarcity.epic; nowSpecies.textContent = SPECIES_ORDER[currentSpeciesIdx] + ' · ' + SPECIES_NAMES[SPECIES_ORDER[currentSpeciesIdx]]; }
+function updateMetrics(){ const wc = wordCount(abstractInput.value); const auth = countAuthors(abstractInput.value + '\n' + citationsInput.value); const opsC = opsUsedCount(); const clC = senseInputs.clades.size; const triadCount = ['form','creator','culture'].reduce((n,t)=> n + ((abstractInput.value.toLowerCase().includes(t))?1:0), 0); wcEl.textContent = wc; authorsEl.textContent = auth; opsCountEl.textContent = opsC; cladesCountEl.textContent = clC; triadEl.textContent = `${triadCount}/3`; }
+abstractInput && abstractInput.addEventListener('input', updateMetrics); citationsInput && citationsInput.addEventListener('input', updateMetrics);
+function renderLog(){ if(lineageLog.length===0){ logEmpty.style.display='block'; logTable.style.display='none'; return; } logEmpty.style.display='none'; logTable.style.display='table'; logBody.innerHTML=''; lineageLog.forEach(r=>{ const tr=document.createElement('tr'); const opsGlyphs = r.ops.map(k=> (OPS.find(o=>o.key===k)||{}).glyph).join(' '); tr.innerHTML = `<td>${new Date(r.ts).toLocaleString()}</td><td>${r.species}</td><td>${r.frameGlyph}</td><td>${opsGlyphs}</td><td>${r.clades.join(', ')||'—'}</td><td class="titlecell">${r.title||'—'}</td><td>${r.verdict}</td><td>${r.points}</td>`; logBody.appendChild(tr); }); }
+
+// ============================ AUDIT ENGINE ============================
+function audit(species, data){ const { frameKey, opsSet, cladesSet, title, abstract, citations, intensityKey } = data; const opsCount = opsSet.size; const frame = getFrame(frameKey); const intensity = getIntensity(intensityKey); const base = SPECIES_BASE_POINTS[species]; const clues=[]; const fails=[]; const rigorBonus = Math.min(3, opsCount)*5; const streakBonusPct = Math.min(10, streak*2); let multiplier=1.0, grade='meets'; if(species==='RR'){ const wc = wordCount(abstract); if(wc>200) fails.push('RR word limit exceeded (≤200 words)'); const hasPages = /(p\.|pp\.|\b\d{1,3}\b)/i.test(citations); if(!hasPages) fails.push('RR requires page citation(s)'); const diffOK = /(vs\.|versus|whereas|contrast|compared)/i.test(abstract) || countAuthors(abstract)>=2; if(!diffOK) fails.push('RR needs explicit differentiation (contrast two ideas/authors)'); if(!fails.length){ if(wc<=160 && hasPages && countAuthors(abstract)>=2){ multiplier=1.4; grade='exemplary'; } else if(wc<=200 && hasPages){ multiplier=1.2; grade='strong'; } } clues.push('Fitness keys: ≤200 words, page cites, explicit contrast'); }
+ if(species==='DL'){ const hasPrompt = /(prompt|question|ask|consider)/i.test(abstract); const hasAuthor = countAuthors(abstract)>=1 || /\b(author|theorist)\b/i.test(abstract); if(!hasPrompt) fails.push('DL needs a catalytic prompt (pose a question)'); if(!hasAuthor) fails.push('DL must preserve author context (name or concept)'); if(!fails.length){ if(hasPrompt && hasAuthor && opsCount>=2){ multiplier=1.4; grade='exemplary'; } else if(hasPrompt && hasAuthor){ multiplier=1.2; grade='strong'; } } clues.push('Fitness keys: catalytic prompt + correct author framing'); }
+ if(species==='SP1'){ const lensOK = /McLuhan|Pacey/i.test(abstract); const evidenceOK = /(example|e\.g\.|case|evidence|cite|quote)/i.test(abstract) || /http/i.test(citations); if(!lensOK) fails.push('SP1 requires a named lens (McLuhan or Pacey)'); if(!evidenceOK) fails.push('SP1 needs concrete evidence (case/quote/link)'); if(!fails.length){ if(lensOK && evidenceOK && opsCount>=2){ multiplier=1.4; grade='exemplary'; } else { multiplier=1.2; grade='strong'; } } clues.push('Fitness keys: lens fidelity + evidence'); }
+ if(species==='SP2'){ const hasFilm = hasAny(abstract, ['film','cinema','shot','frame','screen']); const hasGames = hasAny(abstract, ['game','mechanic','level','play','rules']); const hasCounter = /(counterexample|failure case|edge case|however|but)/i.test(abstract); if(!hasFilm) fails.push('SP2 must reference film lens/terms'); if(!hasGames) fails.push('SP2 must reference game mechanics/terms'); if(!hasCounter) fails.push('SP2 requires a counterexample pathway'); if(!fails.length){ if(hasFilm && hasGames && hasCounter && opsCount>=2){ multiplier=1.4; grade='exemplary'; } else { multiplier=1.2; grade='strong'; } } clues.push('Fitness keys: film × game symbiogenesis + counterexample'); }
+ if(species==='FINAL'){ const hasTriad = /(form|creator|culture)/i.test(abstract); const authorsMentioned = countAuthors(abstract+'\n'+citations); const externalMentioned = /(external|Latour|Suchman|Nelson|Haraway|Graeber|Kuhn|Scott|Beer|Wiener|Bateson)/i.test(abstract+'\n'+citations); if(!hasTriad) fails.push('FINAL must address Form/Creator/Culture triad'); if(authorsMentioned<3) fails.push('FINAL needs ≥3 course authors cited'); if(!externalMentioned) fails.push('FINAL needs ≥1 external author/source'); if(!fails.length){ if(authorsMentioned>=4 && opsCount>=3 && hasTriad){ multiplier=1.4; grade='exemplary'; } else { multiplier=1.2; grade='strong'; } } clues.push('Fitness keys: triad + ≥3 course authors + ≥1 external'); }
+ let synergyBonus = 0; if(species==='SP2'){ const hasFilmClade = senseInputs.clades.has('film'); const hasGamesClade = senseInputs.clades.has('games'); if(hasFilmClade && hasGamesClade) synergyBonus += 10; }
+ const points = fails.length? 0 : Math.round((base*multiplier + Math.min(15, Math.min(3,opsCount)*5) + synergyBonus) * (1 + Math.min(10,streak*2)/100));
+ const verdict = fails.length? 'REPAIR' : (grade.toUpperCase());
+ return { passed:!fails.length, base, multiplier, grade, rigorBonus:Math.min(15, Math.min(3,opsCount)*5), synergyBonus, streakBonusPct:Math.min(10,streak*2), points, fails, clues, frame, intensity };
+}
+
+function shipProof(){ const data = { frameKey: modelInputs.frame, opsSet: modelInputs.ops, cladesSet: senseInputs.clades, title: titleInput.value, abstract: abstractInput.value, citations: citationsInput.value, intensityKey: testInputs.intensity }; const res = audit(SPECIES_ORDER[currentSpeciesIdx], data); proof = res; verdictBox.textContent = res.passed ? res.grade.toUpperCase() : 'REPAIR'; verdictBox.className = 'verdict ' + (res.passed ? 'ok' : 'bad'); aBase.textContent = res.base; aMult.textContent = res.multiplier.toFixed(1); aRigor.textContent = res.rigorBonus; aSyn.textContent = res.synergyBonus; aStreak.textContent = res.streakBonusPct+'%'; aTotal.textContent = res.points; if(res.fails.length){ failsBox.style.display='block'; failsList.innerHTML = res.fails.map(f=>`<li>• ${f}</li>`).join(''); } else { failsBox.style.display='none'; failsList.innerHTML=''; } cluesList.innerHTML = res.clues.map(c=>`<li>• ${c}</li>`).join(''); const entry = { ts:Date.now(), species:SPECIES_ORDER[currentSpeciesIdx], frameGlyph:getFrame(modelInputs.frame).glyph, intensity:getIntensity(testInputs.intensity).glyph, ops:[...modelInputs.ops], clades:[...senseInputs.clades], title:titleInput.value, points:res.points, verdict: res.passed? res.grade.toUpperCase() : 'REPAIR' }; lineageLog.unshift(entry); renderLog(); if(res.passed){ completed[SPECIES_ORDER[currentSpeciesIdx]] = true; streak += 1; totalPoints += res.points; const newFlags = computeNewFlags(totalPoints); if(newFlags.length) flags = flags.concat(newFlags); scarcity.rare = Math.max(0, scarcity.rare - 1); if(currentSpeciesIdx < SPECIES_ORDER.length-1) currentSpeciesIdx += 1; } else { streak = 0; } updateHeader(); renderSpeciesTree(); setStep(3); }
+function resetLoop(){ setStep(0); senseInputs = { clades:new Set(), notes:"" }; modelInputs = { frame: FRAMES[0].key, ops:new Set() }; testInputs = { intensity: INTENSITIES[0].key, title:"", abstract:"", citations:"" }; proof=null; senseNotes.value=''; titleInput.value=''; abstractInput.value=''; citationsInput.value=''; renderFrames(); renderOps(); renderClades(); renderIntensities(); updateMetrics(); }
+
+// ============================ RENDER: MAP ============================
+let TRAIL = [];
+function renderLayers(){ layerList.innerHTML=''; LAYERS.forEach(L=>{ const d=document.createElement('div'); d.className='layerCard'; d.innerHTML = `<h4>${L.id} · ${L.title} <span class="muted small">(Weeks ${L.weeks})</span></h4><div class="ops">${L.ops.map(o=>`<span class='chip'>${o}</span>`).join(' ')}</div><p class='small muted'>${L.function}</p><div class='btns'><button class='btn small' data-layer='${L.id}'>Add all to Trail</button> <button class='btn small' data-preset='${L.id}'>Preset → GM</button></div>`; layerList.appendChild(d); });
+  // wire buttons
+  layerList.querySelectorAll('button[data-layer]').forEach(b=> b.onclick = ()=>{ const L = LAYERS.find(x=>x.id===b.dataset.layer); L.readings.forEach(r=> addToTrail({layer:L.id, id:r.id, label:`${r.author}: ${r.work}`, preset:L.preset})); exportMermaid(); });
+  layerList.querySelectorAll('button[data-preset]').forEach(b=> b.onclick = ()=>{ const L = LAYERS.find(x=>x.id===b.dataset.preset); applyPreset(L.preset); });
+}
+function renderNodes(){ nodeArea.innerHTML=''; LAYERS.forEach(L=>{ const sec=document.createElement('div'); sec.className='nodeCard'; sec.innerHTML = `<b>${L.id} · ${L.title}</b> <span class='meta'>Weeks ${L.weeks}</span><div class='small muted' style='margin:6px 0'>Ops: ${L.ops.join(' → ')}</div>`; L.readings.forEach(r=>{ const n=document.createElement('div'); n.className='trailItem'; n.innerHTML = `<span>◻</span><b>${r.author}</b> — <span class='small'>${r.work}</span><span class='muted small'> · ${r.note}</span><span class='chip'>${r.entities.join('/')}</span>`; n.onclick = ()=>{ addToTrail({layer:L.id, id:r.id, label:`${r.author}: ${r.work}`, preset:L.preset}); exportMermaid(); }; sec.appendChild(n); }); nodeArea.appendChild(sec); }); }
+function addToTrail(item){ TRAIL.push(item); renderTrail(); }
+function renderTrail(){ trailBox.innerHTML=''; if(TRAIL.length===0){ trailBox.innerHTML = `<div class='muted small'>Click any reading node to build a causal chain. Drag order not supported; remove and re-add to reorder.</div>`; return; } TRAIL.forEach((t,i)=>{ const d=document.createElement('div'); d.className='trailItem'; d.innerHTML = `<span>◻</span><b>${t.label}</b> <span class='muted small'>(${t.layer})</span> ${i<TRAIL.length-1?"<span>→</span>":""} <span class='del'>✕</span>`; d.querySelector('.del').onclick = ()=>{ TRAIL.splice(i,1); renderTrail(); exportMermaid(); }; trailBox.appendChild(d); }); }
+function exportMermaid(){ let out = 'graph TD\n'; // nodes
+ const ids = TRAIL.map((t,i)=> `N${i}`); TRAIL.forEach((t,i)=>{ out += `${ids[i]}["${t.label} (${t.layer})"]\n`; }); for(let i=0;i<ids.length-1;i++){ out += `${ids[i]} --> ${ids[i+1]}\n`; } mermaidOut.value = out; }
+
+function renderFlow(){ flowList.innerHTML=''; LAYERS.forEach(L=>{ const li=document.createElement('li'); li.textContent = `${L.id} ${L.title} → ${L.ops.join(' → ')}`; flowList.appendChild(li); }); }
+
+clearTrailBtn.onclick = ()=>{ TRAIL=[]; renderTrail(); exportMermaid(); };
+syncGMbtn.onclick = ()=>{ // compute aggregate preset from trail (use last layer's preset)
+  if(TRAIL.length===0){ alert('Add readings to trail first.'); return; }
+  const last = LAYERS.find(L=> L.id === TRAIL[TRAIL.length-1].layer) || LAYERS[0];
+  applyPreset(last.preset); tabGM.click(); setStep(1);
+};
+copyMermaid.onclick = ()=>{ mermaidOut.select(); document.execCommand('copy'); };
+
+function applyPreset(p){ // Set clades, ops, frame, intensity in GM
+  senseInputs.clades = new Set(p.clades||[]); renderClades(); updateMetrics();
+  modelInputs.ops = new Set(); (p.ops||[]).forEach(k=> modelInputs.ops.add(k)); renderOps(); updateMetrics();
+  modelInputs.frame = p.frame || 'essay'; renderFrames();
+  testInputs.intensity = p.intensity || 'medium'; renderIntensities();
+}
+
+// ============================ INIT ============================
+function initGM(){ renderSpeciesTree(); renderFrames(); renderOps(); renderClades(); renderIntensities(); updateHeader(); updateMetrics(); }
+function initMap(){ renderLayers(); renderNodes(); renderFlow(); renderTrail(); exportMermaid(); }
+initGM(); initMap();
+
+// Tabs
+tabGM.onclick = ()=>{ tabGM.classList.add('on'); tabMap.classList.remove('on'); gmTab.style.display='grid'; mapTab.style.display='none'; };
+tabMap.onclick = ()=>{ tabMap.classList.add('on'); tabGM.classList.remove('on'); gmTab.style.display='none'; mapTab.style.display='grid'; };
+</script>
+</body>
+</html>

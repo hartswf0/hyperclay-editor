@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LMC 2400 — ISRU Mode · Course Operating System</title>
+<style>
+  :root{
+    --bg:#0b0c10; --panel:#10141e; --ink:#e9ecf1; --muted:#8fa1b9; --rule:#1b2334;
+    --accent:#3aa7ff; --ok:#28d07f; --warn:#ffcc00; --bad:#ff5c77; --glow:#6ad3ff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Inter,Roboto}
+  a{color:var(--accent);text-decoration:none}
+  .bar{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--rule);background:linear-gradient(180deg,#0e1320,#0b0c10)}
+  .brand{font-weight:800;letter-spacing:.4px}
+  .sig{margin-left:auto;color:var(--muted);font-size:12px}
+  .sig b{color:var(--ink)}
+
+  .layout{display:grid;grid-template-columns:240px 1fr 320px;gap:12px;max-width:1600px;margin:0 auto;padding:12px}
+  aside,.main,.rail{background:var(--panel);border:1px solid var(--rule);border-radius:14px;min-height:40vh}
+
+  /* Left NAV */
+  .nav{padding:12px}
+  .nav h3{margin:4px 0 8px;font-size:12px;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
+  .btn{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:#0f1422;cursor:pointer;margin-bottom:8px}
+  .btn:hover{border-color:#273149}
+  .glyph{font-size:18px}
+  .btn small{color:var(--muted)}
+
+  /* Main */
+  .main{padding:14px;display:grid;grid-template-columns:1fr;gap:12px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .panel{border:1px solid var(--rule);border-radius:12px;padding:12px;background:#0f1422}
+  .panel h2{margin:0 0 8px;font-size:14px;letter-spacing:.3px}
+  .panel .sub{color:var(--muted);font-size:12px;margin-bottom:8px}
+
+  .row{display:grid;grid-template-columns:160px 1fr;gap:8px;margin:8px 0}
+  label{color:var(--muted);font-size:12px}
+  input[type="text"],textarea,select{width:100%;background:#0c111b;border:1px solid var(--rule);border-radius:10px;color:var(--ink);padding:8px}
+  textarea{min-height:80px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid var(--rule);border-radius:999px;padding:3px 8px;font-size:12px}
+
+  .barline{display:flex;align-items:center;gap:8px}
+  .barline .dot{width:10px;height:10px;border-radius:999px;background:#223}
+
+  .meter{display:flex;gap:4px;flex-wrap:wrap}
+  .meter span{width:18px;height:18px;display:inline-grid;place-items:center;border:1px solid var(--rule);border-radius:4px;color:#9fb5d6}
+  .m-░{background:#101621}
+  .m-▒{background:#1a2232}
+  .m-▓{background:#243048}
+  .meter .hit{outline:2px solid var(--glow)}
+
+  .rvec{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .toggle{border:1px solid var(--rule);padding:6px;border-radius:10px;cursor:pointer;background:#0f1422}
+  .toggle.active{background:#13314d;border-color:#295a8b}
+
+  .list{display:grid;gap:8px}
+  .card{border:1px solid var(--rule);border-radius:12px;padding:10px;background:#0e1524}
+
+  .right{padding:12px;display:grid;gap:12px}
+  .stat{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--rule);border-radius:12px;padding:10px;background:#0e1423}
+  .stat b{font-size:18px}
+
+  .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:12px;background:#0b111e;padding:2px 6px;border-radius:6px;border:1px solid #223}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+
+  .table{width:100%;border-collapse:collapse}
+  .table th,.table td{border-bottom:1px solid var(--rule);padding:8px;text-align:left}
+  .muted{color:var(--muted)}
+  .btnline{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{border:1px solid var(--rule);border-radius:999px;padding:6px 10px;background:#132035;cursor:pointer}
+  .pill.ok{background:#0f2b21;border-color:#1c5c44}
+  .pill.warn{background:#322a12;border-color:#5b4f19}
+  .pill.bad{background:#341821;border-color:#5f2036}
+
+  .footer{padding:8px 16px;color:var(--muted);border-top:1px solid var(--rule);display:flex;justify-content:space-between}
+
+  @media (max-width:1100px){
+    .layout{grid-template-columns:1fr;}
+    .rail{order:3}
+  }
+</style>
+</head>
+<body>
+  <div class="bar">
+    <div class="brand">LMC 2400 — ISRU Mode · <span class="mono">CourseOS</span></div>
+    <div class="sig"><span class="mono">"Distinguish to indicate, ritualize to master."</span></div>
+  </div>
+
+  <div class="layout">
+    <aside>
+      <div class="nav">
+        <h3>Command Deck</h3>
+        <div class="btn" data-jump="#status"><span class="glyph">⌸</span> Status & Streak <small>◻ Streak · Belts · Badges</small></div>
+        <div class="btn" data-jump="#missions"><span class="glyph">𓃑</span> Missions <small>→ S/M/L · Challenge Drop</small></div>
+        <div class="btn" data-jump="#proof"><span class="glyph">❏</span> Proof-Pack <small>❏❐❑❒</small></div>
+        <div class="btn" data-jump="#rubric"><span class="glyph">⡰</span> Rubric Vector <small>16 toggles</small></div>
+        <div class="btn" data-jump="#audit"><span class="glyph">▜</span> Audit Simulator <small>seeded tiles</small></div>
+        <div class="btn" data-jump="#olog"><span class="glyph">◻→</span> Olog Builder <small>entities & morphisms</small></div>
+        <div class="btn" data-jump="#compose"><span class="glyph">⿴</span> Composition Ops <small>⿰ ⿱ ⿲ ⿴ ⿻ …</small></div>
+        <div class="btn" data-jump="#timeline"><span class="glyph">⌹</span> Timeline <small>week-by-week</small></div>
+        <div class="btn" data-jump="#readprompts"><span class="glyph">𓉗</span> Reading Prompts <small>surface/depth/meta</small></div>
+        <div class="btn" data-jump="#leader"><span class="glyph">★</span> Leaderboard <small>points & ranks</small></div>
+      </div>
+    </aside>
+
+    <section class="main">
+
+      <!-- STATUS -->
+      <div id="status" class="panel">
+        <h2>⌸ Status · Streak · Belts · Badges</h2>
+        <div class="sub">Spencer-Brown Index active: ◻ Entities · → Morphisms · ❏❐❑❒ Proof · 𓃑 Missions · 𓉗 Registers.</div>
+        <div class="grid2">
+          <div>
+            <div class="row"><label>Streak (14-day sprint ░▒▓)</label>
+              <div class="meter" id="streakMeter"></div>
+            </div>
+            <div class="btnline">
+              <button class="pill ok" id="markToday">→ mark today</button>
+              <button class="pill" id="resetStreak">reset</button>
+            </div>
+          </div>
+          <div>
+            <div class="row"><label>Belt</label><div><b id="beltNow">Observer</b></div></div>
+            <div class="row"><label>Badges</label><div class="chips" id="badges"></div></div>
+            <div class="row"><label>Points</label><div><b id="pointsNow">0</b></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MISSIONS -->
+      <div id="missions" class="panel">
+        <h2>𓃑 Missions · Challenge Drop</h2>
+        <div class="sub">Select tier S/M/L, assign Register 𓉗, then instantiate mission. Scarcity: EE ≤3/wk; Gold Star ≤1/module.</div>
+        <div class="grid2">
+          <div>
+            <div class="row"><label>Tier</label>
+              <select id="tier">
+                <option value="S">S · Decode</option>
+                <option value="M">M · Compare/Map</option>
+                <option value="L">L · Make/Speculate</option>
+              </select>
+            </div>
+            <div class="row"><label>Register 𓉗</label>
+              <select id="register">
+                <option>Image</option><option>Text</option><option>Sound</option><option>Interface</option><option>Algorithm</option><option>Metric</option><option>Platform</option><option>Ritual</option><option>Law</option><option>Labor</option>
+              </select>
+            </div>
+            <div class="row"><label>Title</label><input id="missionTitle" type="text" placeholder="e.g., Procedural Rhetoric in Platform Feeds"/></div>
+            <div class="row"><label>Notes</label><textarea id="missionNotes" placeholder="Brief method, sources, targets"></textarea></div>
+            <div class="btnline">
+              <button class="pill ok" id="startMission">→ instantiate</button>
+              <button class="pill" id="giveEE">授 EE</button>
+              <button class="pill" id="giveGold">★ Gold Star</button>
+            </div>
+          </div>
+          <div>
+            <div class="list" id="missionList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROOF PACK -->
+      <div id="proof" class="panel">
+        <h2>❏❐❑❒ Proof-Pack · State Machine</h2>
+        <div class="sub">Document or it did not occur. Progress through states, then bundle → ProofPack.</div>
+        <div class="grid2">
+          <div>
+            <div class="row"><label>Artifact (❏ capture)</label><input id="proofArtifact" type="text" placeholder="link or artifact ref"/></div>
+            <div class="row"><label>Composition (❐)</label><textarea id="proofCompose" placeholder="150–300 word structured synthesis"></textarea></div>
+            <div class="row"><label>Citations (❑)</label><input id="proofCite" type="text" placeholder="MLA refs; comma-separated"/></div>
+            <div class="row"><label>Certification (❒)</label><input id="proofCert" type="text" placeholder="Perusall clip ID · timelog"/></div>
+            <div class="btnline"><button class="pill ok" id="bundleProof">→ bundle ProofPack</button></div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="muted">Bundled ProofPacks</div>
+              <table class="table" id="proofTable"><thead><tr><th>ts</th><th>artifact</th><th>score</th><th>audit</th></tr></thead><tbody></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RUBRIC VECTOR -->
+      <div id="rubric" class="panel">
+        <h2>⡰ Rubric Vector · 16-dim</h2>
+        <div class="sub">Toggle criteria to weight scoring. Active bits raise mission points.</div>
+        <div class="rvec" id="rubricVec"></div>
+      </div>
+
+      <!-- AUDIT -->
+      <div id="audit" class="panel">
+        <h2>▜▙▚▞▛▟ Audit Simulator</h2>
+        <div class="sub">Seeded random tile selection. Fail → point clawback + streak decay.</div>
+        <div class="btnline">
+          <button class="pill warn" id="runAudit">→ run audit</button>
+          <span class="muted">last: <span id="lastAudit">none</span></span>
+        </div>
+      </div>
+
+      <!-- OLOG BUILDER -->
+      <div id="olog" class="panel">
+        <h2>◻→ Olog Builder</h2>
+        <div class="sub">Emit typed object–arrow facts. Store to knowledge log.</div>
+        <div class="grid2">
+          <div>
+            <div class="row"><label>◻ Entity A</label><input id="entityA" type="text" placeholder="e.g., ProofPack"/></div>
+            <div class="row"><label>→ Morphism</label><input id="morphism" type="text" placeholder="e.g., audited_by"/></div>
+            <div class="row"><label>◻ Entity B</label><input id="entityB" type="text" placeholder="e.g., ▛"/></div>
+            <div class="btnline"><button class="pill ok" id="addOlog">→ assert triple</button></div>
+          </div>
+          <div>
+            <div class="card mono" id="ologLog" style="white-space:pre-wrap;min-height:120px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPOSITION OPS -->
+      <div id="compose" class="panel">
+        <h2>⿰ ⿱ ⿲ ⿳ ⿴ ⿵ ⿶ ⿷ ⿸ ⿹ ⿺ ⿻ · Composition</h2>
+        <div class="sub">Build expressions from sources using operators.</div>
+        <div class="grid2">
+          <div>
+            <div class="row"><label>Source A</label><input id="srcA" type="text" placeholder="e.g., Benjamin"/></div>
+            <div class="row"><label>Operator</label>
+              <select id="op">
+                <option>⿰</option><option>⿱</option><option>⿲</option><option>⿳</option>
+                <option>⿴</option><option>⿵</option><option>⿶</option><option>⿷</option>
+                <option>⿸</option><option>⿹</option><option>⿺</option><option>⿻</option>
+              </select>
+            </div>
+            <div class="row"><label>Source B</label><input id="srcB" type="text" placeholder="e.g., McLuhan"/></div>
+            <div class="btnline"><button class="pill ok" id="composeBtn">→ compose</button></div>
+          </div>
+          <div>
+            <div class="card mono" id="composeOut">⟦ expression ⟧</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div id="timeline" class="panel">
+        <h2>⌹ Week-by-Week</h2>
+        <div class="sub">Activate components by week; click to view.</div>
+        <div id="weeks" class="list"></div>
+      </div>
+
+      <!-- READING PROMPTS -->
+      <div id="readprompts" class="panel">
+        <h2>𓉗 Reading Prompt Generator</h2>
+        <div class="sub">Generate surface / depth / meta prompts bound to Geertz components.</div>
+        <div class="grid2">
+          <div>
+            <div class="row"><label>Reading</label>
+              <select id="reading">
+                <option>Benjamin — Work of Art</option>
+                <option>McLuhan — Medium/Message</option>
+                <option>Noble — Algorithms of Oppression</option>
+                <option>Bogost — Procedural Rhetoric</option>
+                <option>Bazin — Ontology of the Photographic Image</option>
+                <option>Halberstam — Queer Art of Failure</option>
+                <option>Turing — Computing Machinery and Intelligence</option>
+              </select>
+            </div>
+            <div class="btnline"><button class="pill ok" id="genPrompts">→ generate</button></div>
+          </div>
+          <div>
+            <div class="card" id="promptOut"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD -->
+      <div id="leader" class="panel">
+        <h2>★ Leaderboard</h2>
+        <table class="table" id="leaderTable"><thead><tr><th>#</th><th>Operator</th><th>Points</th><th>Belt</th></tr></thead><tbody></tbody></table>
+      </div>
+
+    </section>
+
+    <section class="rail right">
+      <div class="stat"><div>Mode</div><b>Brand Commander</b></div>
+      <div class="stat"><div>Authority</div><b id="authState">Clean</b></div>
+      <div class="stat"><div>EE remaining (wk)</div><b id="eeRemain">3</b></div>
+      <div class="stat"><div>Gold Star (module)</div><b id="gsRemain">1</b></div>
+      <div class="panel">
+        <h2>Registers 𓉗</h2>
+        <div class="chips" id="regs">
+          <span class="chip">Image</span><span class="chip">Text</span><span class="chip">Sound</span><span class="chip">Interface</span><span class="chip">Algorithm</span><span class="chip">Metric</span><span class="chip">Platform</span><span class="chip">Ritual</span><span class="chip">Law</span><span class="chip">Labor</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Belts</h2>
+        <div class="list">
+          <div class="card">Observer → Decoder → Critic → Synthesist → <b>Architect</b></div>
+          <div class="muted">Architect scarce: top 10% + clean audits + Final pass</div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Proof State</h2>
+        <div class="barline"><span class="dot"></span>❏ capture <span class="dot"></span>❐ compose <span class="dot"></span>❑ cite <span class="dot"></span>❒ certify</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer">
+    <div class="muted">All knowledge is distinction (◻) and indication (→).</div>
+    <div class="muted">CourseOS v1.0</div>
+  </div>
+
+<script>
+// ===== Core State =====
+const state = JSON.parse(localStorage.getItem('courseOS')||'{}');
+state.points ??= 0;
+state.belt ??= 'Observer';
+state.badges ??= [];
+state.streak ??= Array(14).fill('░');
+state.streakDay ??= 0; // rotates through 14-day sprint
+state.missions ??= [];
+state.proofs ??= [];
+state.auditLog ??= [];
+state.leader ??= [{name:'You (ᕰ)',points:0,belt:'Observer'},{name:'Peer α (ᕱ)',points:42,belt:'Decoder'},{name:'Peer β (ᕱ)',points:67,belt:'Critic'}];
+state.eeRemain ??= 3; // per week
+state.gsRemain ??= 1; // per module
+state.rvec ??= [
+  'clarity','evidence','method','theory_alignment',
+  'novelty','composition_fidelity','citation_quality','reproducibility',
+  'ethical_awareness','medium_specificity','audience_fit','design_craft',
+  'data_legibility','counterexample_handling','reflexivity','time_scope'
+];
+state.rvecActive ??= new Set(['clarity','evidence','method','theory_alignment']);
+
+// ===== Utilities =====
+const $ = sel => document.querySelector(sel);
+const $$ = sel => [...document.querySelectorAll(sel)];
+function save(){ localStorage.setItem('courseOS', JSON.stringify(state)); render(); }
+function pointsForTier(t){ return t==='S'?10 : t==='M'?20 : 35; }
+function streakMultiplier(){ const count = state.streak.filter(x=>x!=='░').length; return Math.min(1 + Math.floor(count/7)*0.02 + 0.02, 1.10); }
+function evalBelt(){
+  const p = state.points; const auditsClean = !state.auditLog.some(a=>a.result==='Fail');
+  if(p>=200 && auditsClean) state.belt='Synthesist';
+  if(p>=280 && auditsClean) state.belt='Architect';
+  else if(p>=140) state.belt='Critic';
+  else if(p>=60) state.belt='Decoder';
+}
+
+// ===== Renderers =====
+function renderStreak(){
+  const meter = $('#streakMeter'); meter.innerHTML='';
+  state.streak.forEach((v,i)=>{
+    const s=document.createElement('span'); s.textContent=v; s.className='m-'+v + (i===state.streakDay?' hit':''); meter.appendChild(s);
+  });
+}
+
+function renderStatus(){
+  $('#pointsNow').textContent = Math.round(state.points);
+  $('#beltNow').textContent = state.belt;
+  $('#badges').innerHTML = state.badges.map(b=>`<span class="chip">${b}</span>`).join('') || '<span class="muted">none</span>';
+  $('#eeRemain').textContent = state.eeRemain;
+  $('#gsRemain').textContent = state.gsRemain;
+}
+
+function renderMissions(){
+  const box = $('#missionList');
+  if(!state.missions.length){ box.innerHTML = '<div class="muted">no missions yet</div>'; return; }
+  box.innerHTML = state.missions.map((m,i)=>`<div class="card"><b>${m.tier}</b> · 𓉗 ${m.register}<br><span class="muted">${m.title||'untitled'}</span><div class="btnline" style="margin-top:6px"><button class="pill ok" onclick="completeMission(${i})">→ complete</button><button class="pill" onclick="removeMission(${i})">remove</button></div></div>`).join('');
+}
+
+function renderProofs(){
+  const tbody = $('#proofTable tbody');
+  tbody.innerHTML = state.proofs.map(p=>`<tr><td>${new Date(p.ts).toLocaleTimeString()}</td><td>${p.artifact}</td><td>${p.score}</td><td>${p.audit||'-'}</td></tr>`).join('');
+}
+
+function renderRubric(){
+  const r = $('#rubricVec'); r.innerHTML='';
+  state.rvec.forEach(k=>{
+    const div=document.createElement('div'); div.className='toggle'+(state.rvecActive.has(k)?' active':'');
+    div.textContent = k; div.onclick=()=>{ if(state.rvecActive.has(k)) state.rvecActive.delete(k); else state.rvecActive.add(k); save(); };
+    r.appendChild(div);
+  });
+}
+
+function renderLeader(){
+  const rows = state.leader.sort((a,b)=>b.points-a.points).map((e,i)=>`<tr><td>${i+1}</td><td>${e.name}</td><td>${Math.round(e.points)}</td><td>${e.belt}</td></tr>`).join('');
+  $('#leaderTable tbody').innerHTML = rows;
+}
+
+function renderWeeks(){
+  const weeks = window.weeksData;
+  const box = $('#weeks');
+  box.innerHTML = weeks.map(w=>`<div class="card"><b>Week ${w.week}</b> · <span class="muted">${w.date_range}</span><div class="muted">${w.themes.join(' · ')}</div><div class="chips">${w.geertz_components.map(x=>`<span class='chip'>${x}</span>`).join('')}</div></div>`).join('');
+}
+
+function render(){ renderStreak(); renderStatus(); renderMissions(); renderProofs(); renderLeader(); renderRubric(); renderWeeks(); }
+
+// ===== Actions =====
+$('#markToday').onclick = ()=>{ state.streak[state.streakDay] = ['▒','▓'][Math.floor(Math.random()*2)]; state.streakDay=(state.streakDay+1)%14; save(); };
+$('#resetStreak').onclick = ()=>{ state.streak = Array(14).fill('░'); state.streakDay=0; save(); };
+
+$('#startMission').onclick = ()=>{
+  const m = { tier:$('#tier').value, register:$('#register').value, title:$('#missionTitle').value, notes:$('#missionNotes').value };
+  state.missions.push(m); save(); };
+
+window.removeMission = (i)=>{ state.missions.splice(i,1); save(); };
+
+window.completeMission = (i)=>{
+  const m = state.missions[i]; const base=pointsForTier(m.tier); const mult=streakMultiplier(); const rv = 1 + (state.rvecActive.size/16)*0.25;
+  const pts = base * mult * rv; state.points += pts;
+  state.missions.splice(i,1);
+  evalBelt();
+  state.leader[0].points = state.points; state.leader[0].belt = state.belt;
+  save();
+};
+
+$('#bundleProof').onclick = ()=>{
+  const art=$('#proofArtifact').value.trim(); if(!art){ alert('artifact required (❏)'); return; }
+  const comp=$('#proofCompose').value.trim(); const cite=$('#proofCite').value.trim(); const cert=$('#proofCert').value.trim();
+  const score = Math.round( 50 + state.rvecActive.size*3 + Math.random()*20 );
+  const pack={ts:Date.now(),artifact:art,score, audit:null};
+  state.proofs.push(pack); state.points += Math.round(score/5); evalBelt(); state.leader[0].points = state.points; save();
+  $('#proofArtifact').value=''; $('#proofCompose').value=''; $('#proofCite').value=''; $('#proofCert').value='';
+};
+
+$('#runAudit').onclick = ()=>{
+  const tiles=['▜','▙','▚','▞','▛','▟']; const pick = tiles[Math.floor(Math.random()*tiles.length)];
+  const pass = Math.random()>0.2; // 80% pass
+  const result = pass?'Pass':'Fail';
+  state.auditLog.push({ts:Date.now(),tile:pick,result});
+  state.proofs.length && (state.proofs[state.proofs.length-1].audit = pick+':'+result);
+  if(!pass){ state.points = Math.max(0, state.points-15); // clawback
+    // streak decay today (if not already empty)
+    const idx = (state.streakDay+13)%14; state.streak[idx] = '░';
+  }
+  $('#lastAudit').textContent = pick+ ' · '+result; evalBelt(); state.leader[0].points = state.points; save();
+};
+
+$('#giveEE').onclick = ()=>{
+  if(state.eeRemain<=0){ alert('EE scarce slots exhausted.'); return; }
+  state.badges.push('EE'); state.eeRemain--; state.points+=10; evalBelt(); state.leader[0].points = state.points; save();
+};
+$('#giveGold').onclick = ()=>{
+  if(state.gsRemain<=0){ alert('Gold Star slot exhausted.'); return; }
+  state.badges.push('Gold★'); state.gsRemain--; state.points+=15; evalBelt(); state.leader[0].points = state.points; save();
+};
+
+$('#addOlog').onclick = ()=>{
+  const a=$('#entityA').value.trim(), m=$('#morphism').value.trim(), b=$('#entityB').value.trim();
+  if(!(a&&m&&b)) return;
+  const line = `◻ ${a} →[${m}] ◻ ${b}`; const box=$('#ologLog'); box.textContent += (box.textContent?'\n':'') + line;
+  $('#entityA').value=''; $('#morphism').value=''; $('#entityB').value='';
+};
+
+$('#composeBtn').onclick = ()=>{
+  const a=$('#srcA').value.trim()||'A'; const b=$('#srcB').value.trim()||'B'; const op=$('#op').value; $('#composeOut').textContent = `⟦ ${a} ${op} ${b} ⟧`;
+};
+
+$('#genPrompts').onclick = ()=>{
+  const r=$('#reading').value; const out=$('#promptOut');
+  const surf = `Surface → How does ${r.split(' — ')[0]} function as a symbolic anchor this week?`;
+  const depth = `Depth → Where does ${r} align with or challenge the course's Aura of Factuality?`;
+  const meta = `Meta → Remove ${r.split(' — ')[0]} from the canon: what collapses or reconfigures in the symbolic system?`;
+  out.innerHTML = `<div class='mono'>${surf}\n${depth}\n${meta}</div>`;
+};
+
+// ===== Weeks Data (sample) =====
+window.weeksData = [
+  {week:1,date_range:'Aug 18–Aug 24',themes:['Orientation','Why Media Studies'],geertz_components:['System of Symbols','Moods/Motivations']},
+  {week:2,date_range:'Aug 25–Aug 31',themes:['Benjamin','Aura/Reproduction'],geertz_components:['System of Symbols','Aura of Factuality']},
+  {week:3,date_range:'Sep 1–Sep 7',themes:['McLuhan'],geertz_components:['Conceptions of Order']},
+  {week:4,date_range:'Sep 8–Sep 14',themes:['Pacey'],geertz_components:['Conceptions of Order','Moods/Motivations']},
+  {week:5,date_range:'Sep 15–Sep 21',themes:['SP1 Workshop'],geertz_components:['Aura of Factuality','System of Symbols']},
+  {week:6,date_range:'Sep 22–Sep 28',themes:['Noble'],geertz_components:['Aura of Factuality','Conceptions of Order']},
+  {week:7,date_range:'Sep 29–Oct 5',themes:['SP1 Due'],geertz_components:['Moods/Motivations','Aura of Factuality']},
+  {week:8,date_range:'Oct 6–Oct 12',themes:['Bazin / Halberstam'],geertz_components:['Conceptions of Order']},
+  {week:9,date_range:'Oct 13–Oct 19',themes:['Bogost'],geertz_components:['Moods/Motivations','System of Symbols']},
+  {week:10,date_range:'Oct 20–Oct 26',themes:['SP2 Workshop'],geertz_components:['Aura of Factuality']},
+  {week:11,date_range:'Oct 27–Nov 2',themes:['Platforms'],geertz_components:['Moods/Motivations','Conceptions of Order']},
+  {week:12,date_range:'Nov 3–Nov 9',themes:['AI Foundations'],geertz_components:['Conceptions of Order','Aura of Factuality']},
+  {week:13,date_range:'Nov 10–Nov 16',themes:['Speculative Exercise'],geertz_components:['Uniquely Realistic','Moods/Motivations']},
+  {week:14,date_range:'Nov 17–Nov 23',themes:['Readout'],geertz_components:['Uniquely Realistic']},
+  {week:15,date_range:'Nov 24–Dec 2',themes:['Final Work Time'],geertz_components:['All Components']}
+];
+
+// ===== Init =====
+$$('.btn[data-jump]').forEach(b=> b.onclick=()=>{ const t=b.getAttribute('data-jump'); document.querySelector(t).scrollIntoView({behavior:'smooth',block:'start'}); });
+render();
+</script>
+</body>
+</html>
+
