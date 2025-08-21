@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Hyperclay — Mobile Soft‑Body Video MUSH + Potter's Wheel</title>
+  <style>
+    :root{ --bg:#090b10; --ink:#eae7df; --muted:#9aa0a6; --accent:#22b3a6; --rose:#d35; --gold:#caa24a; }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    header{display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem .7rem;background:linear-gradient(180deg,#0d1117,#0a0c10)}
+    header h1{margin:0;font-size:.95rem;font-weight:700;letter-spacing:.2px}
+    .controls{display:flex;gap:.4rem;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;gap:.4rem;background:#0f131a;border:1px solid #1b2230;padding:.45rem .7rem;border-radius:999px;font-size:.85rem}
+    .btn{background:#121722;border:1px solid #1b2230;color:var(--ink);padding:.55rem .8rem;border-radius:.8rem}
+    .btn.primary{background:var(--accent);color:#051a18;font-weight:800}
+
+    main{display:grid;grid-template-rows:1fr auto;gap:.5rem;height:calc(100dvh - 56px);padding:.5rem}
+    #stage{position:relative;border:1px solid #18202b;border-radius:1rem;overflow:hidden;background:#000}
+    canvas{width:100%;height:100%;display:block;touch-action:none}
+    .hud{position:absolute;left:.6rem;bottom:.6rem;background:#0b0f16cc;border:1px solid #1b2230;border-radius:.8rem;padding:.45rem .6rem;font-size:.8rem}
+    .wheelHud{position:absolute;inset:0;pointer-events:none}
+
+    .footer{display:grid;gap:.5rem}
+    .clips{display:flex;gap:.5rem;overflow:auto}
+    .chip{min-width:160px;background:#0c1118;border:1px solid #1b2230;border-radius:.9rem;padding:.55rem}
+    .chip h4{margin:.1rem 0 .3rem;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .small{font-size:.75rem;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hyperclay — Soft‑Body Mush + Wheel</h1>
+    <div class="controls">
+      <label class="pill"><input id="filepick" type="file" accept="video/*" multiple hidden>➕ Load</label>
+      <button id="play" class="btn primary">▶︎ Play</button>
+      <button id="record" class="btn">● Record</button>
+      <label class="pill"><input id="audio" type="checkbox" checked> Audio</label>
+      <label class="pill">Viscosity <input id="visc" type="range" min="0.85" max="0.995" step="0.001" value="0.96"></label>
+      <label class="pill">Stiffness <input id="stiff" type="range" min="2" max="30" step="1" value="12"></label>
+      <label class="pill"><input id="wheelToggle" type="checkbox"> Wheel</label>
+      <label class="pill">Edge Fog <input id="fog" type="range" min="0" max="1" step="0.02" value="0.5"></label>
+      <label class="pill">Noise <input id="noise" type="range" min="0" max="1" step="0.02" value="0.6"></label>
+    </div>
+  </header>
+
+  <main>
+    <section id="stage">
+      <canvas id="c"></canvas>
+      <canvas id="wheel" class="wheelHud"></canvas>
+      <div id="hud" class="hud">Load 2–6 clips → ▶︎. Mush blobs. Toggle <b>Wheel</b> to sculpt on a potter’s wheel — spin to time‑throw; pinch to pull walls. Edges use fog + noise for organic blending.</div>
+    </section>
+
+    <section class="footer">
+      <div id="clips" class="clips"></div>
+    </section>
+  </main>
+
+  <div id="bucket" style="display:none"></div>
+
+  <script>
+  // ===== Soft‑body Hyperclay with Fog/Noise edges + Potter's Wheel timeline =====
+  const c = document.getElementById('c');
+  const ctx = c.getContext('2d');
+  const wheelCanvas = document.getElementById('wheel');
+  const wctx = wheelCanvas.getContext('2d');
+  let W=0,H=0; const DPR = Math.min(2, devicePixelRatio||1);
+  function fit(){ const r=c.parentElement.getBoundingClientRect(); W=r.width*DPR; H=r.height*DPR; c.width=W; c.height=H; wheelCanvas.width=W; wheelCanvas.height=H; drawWheel(); }
+  addEventListener('resize', fit); fit();
+
+  const hud = document.getElementById('hud');
+  const filepick = document.getElementById('filepick');
+  const playBtn = document.getElementById('play');
+  const recordBtn = document.getElementById('record');
+  const audioCb = document.getElementById('audio');
+  const viscSl = document.getElementById('visc');
+  const stiffSl = document.getElementById('stiff');
+  const fogSl = document.getElementById('fog');
+  const noiseSl = document.getElementById('noise');
+  const wheelToggle = document.getElementById('wheelToggle');
+  const clipsDiv = document.getElementById('clips');
+  const bucket = document.getElementById('bucket');
+
+  let VISC = parseFloat(viscSl.value);
+  let STIFF = parseFloat(stiffSl.value);
+  let FOG = parseFloat(fogSl.value);     // 0..1 fog width
+  let NOISE = parseFloat(noiseSl.value); // 0..1 noise strength
+  viscSl.oninput = ()=> VISC = parseFloat(viscSl.value);
+  stiffSl.oninput = ()=> STIFF = parseFloat(stiffSl.value);
+  fogSl.oninput = ()=> FOG = parseFloat(fogSl.value);
+  noiseSl.oninput = ()=> NOISE = parseFloat(noiseSl.value);
+
+  // Touch management
+  const touches = new Map(); // id -> {x,y}
+  c.addEventListener('pointerdown',e=>{ c.setPointerCapture(e.pointerId); const p=pt(e); touches.set(e.pointerId,p); if(navigator.vibrate) navigator.vibrate(8); if(wheelToggle.checked) wheelTouchStart(p); });
+  c.addEventListener('pointermove',e=>{ if(!touches.has(e.pointerId))return; const p=pt(e); touches.set(e.pointerId,p); if(wheelToggle.checked) wheelTouchMove(p); });
+  c.addEventListener('pointerup',e=>{ touches.delete(e.pointerId); if(wheelToggle.checked) wheelTouchEnd(); });
+  c.addEventListener('pointercancel',e=>{ touches.delete(e.pointerId); });
+  function pt(e){ const r=c.getBoundingClientRect(); return {x:(e.clientX-r.left)*DPR, y:(e.clientY-r.top)*DPR}; }
+
+  // Blob = soft ring + video
+  const blobs = []; // {video, nodes:[...], cx,cy, r, gain, theta}
+
+  function makeBlob(video){
+    const r = Math.min(W,H)*0.18; // base radius
+    const cx = (Math.random()*0.6+0.2)*W; const cy = (Math.random()*0.6+0.2)*H;
+    const n = 20; const nodes = [];
+    for(let i=0;i<n;i++){ const a=(i/n)*Math.PI*2; nodes.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a), vx:0, vy:0, ox:Math.cos(a), oy:Math.sin(a)}); }
+    return {video, nodes, cx, cy, r, gain:null, enabled:true, theta:Math.random()*Math.PI*2, roff:0};
+  }
+
+  // Audio
+  let AC=null, mix=null, mediaDest=null; let recording=false, recorder=null, chunks=[];
+  async function ensureAudio(){ if(AC||!audioCb.checked) return; const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx) return; AC=new Ctx(); mix=AC.createGain(); mix.gain.value=0.9; mix.connect(AC.destination); mediaDest=AC.createMediaStreamDestination(); mix.connect(mediaDest); blobs.forEach(b=>{ try{const src=AC.createMediaElementSource(b.video); const g=AC.createGain(); g.gain.value=0; src.connect(g).connect(mix); b.gain=g;}catch{} }); }
+
+  // File loading
+  document.querySelector('label.pill')?.addEventListener('click', (e)=>{ const input=e.currentTarget.querySelector('input[type=file]'); if(input){ input.value=''; input.click(); }});
+  filepick.addEventListener('change', async (e)=>{ const list=Array.from(e.target.files||[]); for(const f of list){ await addClip(f); } hud.textContent = `Loaded ${blobs.length} blobs. ▶︎ then mush or spin.`; drawWheel(); });
+  async function addClip(file){ const url=URL.createObjectURL(file); const v=document.createElement('video'); v.src=url; v.muted=true; v.playsInline=true; v.loop=true; v.preload='metadata'; v.crossOrigin='anonymous'; bucket.appendChild(v); await v.play().catch(()=>{}); v.pause(); const blob=makeBlob(v); blobs.push(blob); addCard(file.name, blob); }
+  function addCard(name, blob){ const el=document.createElement('div'); el.className='chip'; el.innerHTML=`<h4>🎞️ ${name}</h4><div class="small">Double‑tap to toggle. In Wheel mode, drag around rim to place.</div>`; el.ondblclick=()=>{ blob.enabled=!blob.enabled; el.style.opacity=blob.enabled?1:0.35; drawWheel(); }; clipsDiv.appendChild(el); }
+
+  // Transport
+  let running=false, raf=null; function playAll(){ blobs.forEach(b=>b.video.play().catch(()=>{})); running=true; playBtn.textContent='⏸︎ Pause'; loop(); }
+  function pauseAll(){ blobs.forEach(b=>b.video.pause()); running=false; cancelAnimationFrame(raf); playBtn.textContent='▶︎ Play'; draw(); }
+  playBtn.onclick=async ()=>{ await ensureAudio(); running?pauseAll():playAll(); if(AC&&AC.state==='suspended') AC.resume(); };
+
+  // Recording
+  recordBtn.onclick=async ()=>{ if(!recording){ await ensureAudio(); const vstream=c.captureStream(30); let stream=vstream; if(mediaDest){ const a=mediaDest.stream.getAudioTracks()[0]; if(a) stream=new MediaStream([vstream.getVideoTracks()[0], a]); } chunks=[]; recorder=new MediaRecorder(stream, {mimeType:'video/webm;codecs=vp9'}); recorder.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); }; recorder.onstop=()=>{ const blob=new Blob(chunks,{type:'video/webm'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='hyperclay_wheel.webm'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),4000); }; recorder.start(100); recording=true; recordBtn.textContent='■ Stop'; if(!running) playAll(); } else { recording=false; recordBtn.textContent='● Record'; recorder?.stop(); } };
+
+  // ===== Potter's Wheel timeline =====
+  const wheel = {on:false, angle:0, omega:0, friction:0.985, radius:0.38};
+  wheelToggle.onchange = ()=>{ wheel.on = wheelToggle.checked; drawWheel(); };
+  function drawWheel(){ wctx.clearRect(0,0,W,H); if(!wheel.on) return; const cx=W/2, cy=H/2, r=Math.min(W,H)*wheel.radius; wctx.save(); wctx.strokeStyle='rgba(200,162,74,.25)'; wctx.lineWidth=2; wctx.beginPath(); wctx.arc(cx,cy,r,0,Math.PI*2); wctx.stroke(); // ticks
+    for(let i=0;i<24;i++){ const a=i*(Math.PI*2/24)+wheel.angle; const x1=cx+(r-8)*Math.cos(a), y1=cy+(r-8)*Math.sin(a); const x2=cx+(r+8)*Math.cos(a), y2=cy+(r+8)*Math.sin(a); wctx.beginPath(); wctx.moveTo(x1,y1); wctx.lineTo(x2,y2); wctx.stroke(); }
+    // blob dots
+    for(const b of blobs){ if(!b.enabled) continue; const a=b.theta+wheel.angle; const bx=cx+(r)*Math.cos(a), by=cy+(r)*Math.sin(a); wctx.fillStyle='rgba(200,162,74,.8)'; wctx.beginPath(); wctx.arc(bx,by,5,0,Math.PI*2); wctx.fill(); }
+  wctx.restore(); }
+
+  // Wheel interactions
+  let wheelDragging=false, lastWheelP=null;
+  function wheelTouchStart(p){ if(!wheel.on) return; lastWheelP=p; wheelDragging=true; }
+  function wheelTouchMove(p){ if(!wheel.on||!wheelDragging) return; const cx=W/2, cy=H/2; const a1=Math.atan2(lastWheelP.y-cy,lastWheelP.x-cx); const a2=Math.atan2(p.y-cy,p.x-cx); let da=a2-a1; // wrap
+    if(da>Math.PI) da-=2*Math.PI; if(da<-Math.PI) da+=2*Math.PI; wheel.omega += da*2; lastWheelP=p; drawWheel(); }
+  function wheelTouchEnd(){ wheelDragging=false; }
+
+  // Video time driven by wheel speed (throwing = scrub)
+  let baseT=0; // virtual timeline
+
+  // ===== Edge Fog + Noise =====
+  const noiseTex = document.createElement('canvas'); const nctx=noiseTex.getContext('2d');
+  function makeNoise(size=256){ noiseTex.width=noiseTex.height=size; const img=nctx.createImageData(size,size); const d=img.data; for(let y=0;y<size;y++){ for(let x=0;x<size;x++){ const i=(y*size+x)*4; const v=(Math.random()*255)|0; d[i]=d[i+1]=d[i+2]=v; d[i+3]=255; } } nctx.putImageData(img,0,0); }
+  makeNoise(256);
+
+  // Physics constants
+  const REPULSE = 12000; const TOUCH_FORCE = 26000; const EDGE = 0.8;
+
+  function step(dt){
+    // Wheel dynamics
+    if(wheel.on){ wheel.angle += wheel.omega*dt; wheel.omega *= wheel.friction; baseT += 0.5 * wheel.omega * dt; // scrub speed factor
+      // place blobs on ring, allow small radial offsets via roff (pinch to adjust)
+      const cx=W/2, cy=H/2, r=Math.min(W,H)*wheel.radius; for(const b of blobs){ if(!b.enabled) continue; b.cx = cx + (r + b.roff)*Math.cos(b.theta+wheel.angle); b.cy = cy + (r + b.roff)*Math.sin(b.theta+wheel.angle); }
+    }
+
+    // Soft ring springs
+    for(const b of blobs){ if(!b.enabled) continue; const ns=b.nodes; const n=ns.length; // pinch adjusts radius slightly
+      let pinch=0; touches.forEach(t=>{ const d=Math.hypot(t.x-b.cx, t.y-b.cy); if(d<b.r*1.2) pinch+=1; }); if(pinch>=2) b.r*=0.995; else b.r*=1.0005; b.r=Math.max(60, Math.min(Math.min(W,H)*0.32, b.r));
+      // integrate towards circular ring around (b.cx, b.cy)
+      for(let i=0;i<n;i++){ const p=ns[i]; const a=Math.atan2(p.oy,p.ox); const tx=b.cx + b.r*Math.cos(a); const ty=b.cy + b.r*Math.sin(a); p.vx += (tx-p.x)*STIFF*dt; p.vy += (ty-p.y)*STIFF*dt; // walls
+        if(p.x< (1-EDGE)*W) p.vx += ((1-EDGE)*W - p.x)*40*dt; if(p.x> EDGE*W) p.vx += (EDGE*W - p.x)*40*dt; if(p.y< (1-EDGE)*H) p.vy += ((1-EDGE)*H - p.y)*40*dt; if(p.y> EDGE*H) p.vy += (EDGE*H - p.y)*40*dt; }
+    }
+
+    // Inter‑blob coupling
+    for(let i=0;i<blobs.length;i++) for(let j=i+1;j<blobs.length;j++){ const A=blobs[i], B=blobs[j]; if(!A.enabled||!B.enabled) continue; const dx=B.cx-A.cx, dy=B.cy-A.cy; const d=Math.hypot(dx,dy)+1e-3; const push=(REPULSE/(d*d)); const fx=push*dx/d, fy=push*dy/d; for(const p of A.nodes){ p.vx -= fx*dt/ A.nodes.length; p.vy -= fy*dt/ A.nodes.length; } for(const p of B.nodes){ p.vx += fx*dt/ B.nodes.length; p.vy += fy*dt/ B.nodes.length; } const K=0.6; const pull=K*Math.min(1, (A.r+B.r)/Math.max(d,1)); for(let k=0;k<A.nodes.length;k+=3){ const pa=A.nodes[k]; pa.vx += (B.cx - pa.x)*pull*dt; pa.vy += (B.cy - pa.y)*pull*dt; } for(let k=0;k<B.nodes.length;k+=3){ const pb=B.nodes[k]; pb.vx += (A.cx - pb.x)*pull*dt; pb.vy += (A.cy - pb.y)*pull*dt; } }
+
+    // Touch forces + wheel drag gesture (radial adjusts roff)
+    touches.forEach(t=>{ for(const b of blobs){ if(!b.enabled) continue; const dx=t.x-b.cx, dy=t.y-b.cy; const d2=dx*dx+dy*dy+1; const f=TOUCH_FORCE/d2; for(const p of b.nodes){ p.vx += f*dx*dt; p.vy += f*dy*dt; } if(wheel.on){ const d=Math.hypot(dx,dy); const cx=W/2, cy=H/2; const dr=d - Math.min(W,H)*wheel.radius; b.roff += Math.max(-2, Math.min(2, dr*0.02)); b.roff = Math.max(-40, Math.min(80, b.roff)); } });
+
+    // Integrate & damp
+    for(const b of blobs){ if(!b.enabled) continue; for(const p of b.nodes){ p.vx*=VISC; p.vy*=VISC; p.x+=p.vx*dt*60; p.y+=p.vy*dt*60; } }
+  }
+
+  // Draw each blob via masked pass: video → offscreen → destination-in (gradient fog) → destination-in (tiled noise)
+  const off = document.createElement('canvas'); const offctx=off.getContext('2d');
+  function drawBlob(b, alpha){ const v=b.video; if(v.readyState<2) return; // bounds box
+    const vw=v.videoWidth||W, vh=v.videoHeight||H; const s=(2*b.r)/Math.min(vw,vh); const dw=vw*s, dh=vh*s; const bx=b.cx-dw/2, by=b.cy-dh/2;
+    off.width = Math.ceil(dw); off.height = Math.ceil(dh);
+    offctx.clearRect(0,0,off.width,off.height);
+    offctx.globalCompositeOperation='source-over'; offctx.globalAlpha=1; offctx.filter='none';
+    offctx.drawImage(v, 0, 0, dw, dh);
+
+    // Build feather gradient mask centered, fading at edge with FOG
+    const g = offctx.createRadialGradient(dw/2, dh/2, Math.max(1, (1-FOG)*Math.min(dw,dh)/2), dw/2, dh/2, Math.min(dw,dh)/2);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    offctx.globalCompositeOperation='destination-in'; offctx.fillStyle=g; offctx.fillRect(0,0,dw,dh);
+
+    // Noise mask near edge (multiply alpha with jitter)
+    const tile = noiseTex; const repsX=Math.ceil(dw/tile.width)+1, repsY=Math.ceil(dh/tile.height)+1; offctx.globalCompositeOperation='destination-in'; offctx.globalAlpha = 0.35*NOISE; for(let y=0;y<repsY;y++){ for(let x=0;x<repsX;x++){ offctx.drawImage(tile, (x-0.5)*tile.width + (performance.now()*0.02%tile.width), (y-0.5)*tile.height, tile.width, tile.height); } }
+
+    // Paint to main with alpha
+    ctx.globalAlpha = alpha; ctx.drawImage(off, bx, by);
+  }
+
+  function draw(){ ctx.clearRect(0,0,W,H); ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H); if(wheel.on) drawWheel();
+    // alphas from overlaps (same as before)
+    const alphas = blobs.map(_=>0.9); for(let i=0;i<blobs.length;i++) for(let j=i+1;j<blobs.length;j++){ const A=blobs[i], B=blobs[j]; if(!A.enabled||!B.enabled) continue; const d=Math.hypot(A.cx-B.cx, A.cy-B.cy); const overlap = Math.max(0, (A.r+B.r)-d); const boost = Math.min(0.6, overlap / Math.max(A.r,B.r)); alphas[i]+=boost*0.5; alphas[j]+=boost*0.5; }
+    const order = blobs.map((b,i)=>({i,a:alphas[i]})).sort((A,B)=>A.a-B.a).map(o=>o.i);
+    ctx.globalCompositeOperation='screen';
+    for(const idx of order){ const b=blobs[idx]; if(!b.enabled) continue; // sync time to virtual base
+      try{ const t0=(blobs[0]?.video.currentTime)||0; const target = Math.max(0, t0 + baseT); if(Math.abs(b.video.currentTime-target)>0.03) b.video.currentTime=target; }catch{}
+      drawBlob(b, Math.max(0.18, Math.min(1.0, alphas[idx])));
+      // rim hint
+      ctx.save(); ctx.globalAlpha=0.25; ctx.strokeStyle='rgba(200,162,74,.45)'; ctx.lineWidth=2; ctx.beginPath(); const ns=b.nodes; ctx.moveTo(ns[0].x, ns[0].y); for(let i=1;i<ns.length;i++){ const p=ns[i]; ctx.lineTo(p.x,p.y); } ctx.closePath(); ctx.stroke(); ctx.restore();
+    }
+
+    // Audio gains from size
+    if(AC && audioCb.checked){ for(const b of blobs){ if(!b.gain) continue; const g = 0.2 + 0.8 * Math.max(0.05, Math.min(1, (b.r/Math.min(W,H)))); b.gain.gain.setTargetAtTime(g, AC.currentTime, 0.05); } }
+  }
+
+  // Main loop
+  let last=performance.now();
+  function loop(){ raf=requestAnimationFrame(loop); const t=performance.now(); let dt=(t-last)/1000; last=t; dt=Math.min(0.05, dt); step(dt); draw(); }
+
+  // Kick first paint
+  draw();
+  </script>
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Cinome Sculpting Chamber — Centered Infinity</title>
+<style>
+  :root{
+    --bg:#07080b; --ink:#e8e8ea; --muted:#9aa0a6; --accent:#13bfa8; --hot:#ff5a3c; --edge:#202734; --card:#0e1218;
+    --yaw:0deg; --pitch:0deg; --zoom:1000px; --tap:60px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,sans-serif}
+  header{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,#07080bf0,#07080bcc 60%,#07080b00);backdrop-filter:blur(8px);display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--edge)}
+  .title{font-weight:600;letter-spacing:.2px}
+  .grow{flex:1}
+  .btn{appearance:none;border:1px solid var(--edge);background:var(--card);color:var(--ink);height:var(--tap);min-width:var(--tap);padding:0 12px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:18px}
+  .btn.small{height:40px;min-width:40px;border-radius:10px;font-size:16px}
+  .btn.ghost{background:transparent}
+  .tools{display:flex;gap:8px;flex-wrap:wrap}
+
+  #stageWrap{position:relative;width:100%;height:62vh;min-height:420px;border-bottom:1px solid var(--edge)}
+  .world{position:absolute;inset:0;perspective:1200px;overflow:hidden}
+  .camera{position:absolute;left:50%;top:50%;transform-style:preserve-3d;transition:transform .08s linear;transform:translate3d(-50%,-50%,0) rotateX(var(--pitch)) rotateY(var(--yaw)) translateZ(calc(-1 * var(--zoom)))}
+  .space{position:relative;transform-style:preserve-3d}
+  .vignette{pointer-events:none;position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.35) 100%)}
+
+  .codon{position:absolute;width:22vmin;height:12vmin;border-radius:10px;border:1px solid #1f2634;box-shadow:0 6px 18px rgba(0,0,0,.5);overflow:hidden;transform-style:preserve-3d;will-change:transform,opacity}
+  .codon canvas{width:100%;height:100%;display:block}
+  .codon .badge{position:absolute;left:6px;top:6px;background:#0b0f1490;color:#d1d5db;border:1px solid #1f2634;padding:2px 6px;border-radius:6px;font-size:10px}
+  .codon.focus{outline:2px solid var(--accent)}
+
+  #panel{position:fixed;right:8px;bottom:86px;z-index:42;background:#0b0f1495;border:1px solid #1c232f;border-radius:16px;padding:10px;backdrop-filter:blur(6px);display:none;min-width:268px}
+  #panel.show{display:block}
+  #panel label{display:flex;justify-content:space-between;font-size:12px;color:#cdd6e3;margin:6px 0}
+  #panel input[type=range]{width:150px}
+  #panel .row{display:flex;gap:8px}
+  #panel .btn{height:36px;min-width:36px;font-size:14px}
+
+  #timeline{position:sticky;bottom:0;background:linear-gradient(180deg,#07080bcc,#07080bee);backdrop-filter:blur(8px);border-top:1px solid var(--edge);padding:10px 8px;z-index:41}
+  #lane{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
+  .scene{flex:0 0 auto;scroll-snap-align:center;min-width:170px;height:60px;border:1px solid var(--edge);border-radius:12px;background:#0e141b;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .scene.active{outline:2px solid var(--accent)}
+  .meta{font-size:12px;color:#9aa0a6}
+  .playbar{position:relative;height:6px;border:1px solid var(--edge);border-radius:6px;background:#0e141b;margin-top:8px}
+  .cursor{position:absolute;left:0;top:-4px;width:2px;height:14px;background:var(--hot)}
+
+  #bonds{position:absolute;inset:0;z-index:30;pointer-events:none}
+
+  #protein{position:fixed;right:8px;top:64px;z-index:45;width:220px;height:124px;border:1px solid var(--edge);border-radius:12px;overflow:hidden;background:#000}
+  #protein video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .6s ease}
+  #protein .label{position:absolute;left:6px;top:6px;background:#0b0f1490;color:#d1d5db;border:1px solid #1f2634;padding:2px 6px;border-radius:6px;font-size:10px;z-index:2}
+
+  /* Zen mode keeps the center pristine */
+  body.zen header, body.zen #timeline, body.zen #panel, body.zen #protein{opacity:0;pointer-events:none;transition:opacity .25s ease}
+  body.zen #stageWrap{height:100vh}
+
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+  <header>
+    <div class="title">Cinome — Centered Infinity</div>
+    <div class="grow"></div>
+    <div class="tools">
+      <button id="addClipsBtn" class="btn">＋ Clips</button>
+      <button id="bondBtn" class="btn ghost" title="Pair codons (bond mode)">⊶⊷</button>
+      <button id="foldBtn" class="btn ghost" title="Fold / Unfold">🧬</button>
+      <button id="expressBtn" class="btn ghost" title="Express protein (play film)">▶︎</button>
+      <button id="filtersBtn" class="btn ghost" title="Codon settings">◫</button>
+      <button id="lockBtn" class="btn ghost" title="Precision orbit lock">⌁</button>
+      <button id="zenBtn" class="btn ghost" title="Zen center">◎</button>
+      <button id="exportBtn" class="btn ghost" title="Export">⇪</button>
+      <button id="importBtn" class="btn ghost" title="Import">⇲</button>
+      <button id="resetBtn" class="btn ghost" title="New">⟲</button>
+    </div>
+    <input id="clipInput" type="file" multiple accept="video/*" />
+    <input id="jsonInput" type="file" accept="application/json" />
+  </header>
+
+  <section id="stageWrap">
+    <canvas id="bonds"></canvas>
+    <div class="world" id="world">
+      <div class="camera" id="camera">
+        <div class="space" id="space"></div>
+      </div>
+      <div class="vignette"></div>
+    </div>
+  </section>
+
+  <div id="protein">
+    <div class="label">Protein Preview</div>
+    <video id="vA" muted playsinline></video>
+    <video id="vB" muted playsinline style="opacity:0"></video>
+  </div>
+
+  <section id="timeline">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <button id="playBtn" class="btn">⏵ Play</button>
+      <button id="stopBtn" class="btn small ghost">■</button>
+      <button id="addSceneBtn" class="btn small ghost">＋ Scene</button>
+      <span style="font-size:12px;color:#9aa0a6">Center-anchored sculpting · Drag orbit · Pinch world-scale+zoom · Bond mode: tap two codons</span>
+    </div>
+    <div id="lane"></div>
+    <div class="playbar"><div class="cursor" id="cursor"></div></div>
+  </section>
+
+  <aside id="panel">
+    <label>Codons per Worm <input id="rCodons" type="range" min="12" max="48" step="3" value="24"></label>
+    <label>Capture FPS <input id="rFPS" type="range" min="6" max="30" step="1" value="12"></label>
+    <label>Radius <input id="rRad" type="range" min="40" max="140" step="1" value="80"></label>
+    <label>Pitch (Z) <input id="rPitch" type="range" min="10" max="40" step="1" value="20"></label>
+    <label>Weave Speed <input id="rSpeed" type="range" min="0" max="0.06" step="0.002" value="0.02"></label>
+    <label>World Scale <input id="rScale" type="range" min="0.6" max="2.5" step="0.01" value="1"></label>
+    <label>Infinity Depth <input id="rDepth" type="range" min="60" max="400" step="5" value="160"></label>
+    <div class="row">
+      <button id="alphaBtn" class="btn small" title="Alpha-helix bias">α</button>
+      <button id="betaBtn" class="btn small" title="Beta-sheet bias">β</button>
+      <button id="randomBtn" class="btn small" title="Randomize phases">⟲</button>
+    </div>
+  </aside>
+
+<script>
+(function(){
+  'use strict';
+  const el=s=>document.querySelector(s), els=s=>Array.from(document.querySelectorAll(s));
+  const world=el('#world'), camera=el('#camera'), space=el('#space');
+  const bondsCanvas=el('#bonds'), bondsCtx=bondsCanvas.getContext('2d');
+  const lane=el('#lane'), cursor=el('#cursor');
+  const vA=el('#vA'), vB=el('#vB');
+
+  let idc=1, rafId=null, lastT=0, acc=0;
+  const state={
+    camera:{yaw:0,pitch:0,zoom:1000, tyaw:0, tpitch:0},
+    worms:[],
+    params:{codons:24,fps:12,radius:80,pitch:20,speed:0.02,t:0, mode:'sculpt', fold:false, worldScale:1, infinityDepth:160},
+    bonds:[],
+    playing:false, playStart:0, playIndex:0,
+    bondSel:null
+  };
+
+  function applyCamera(){
+    state.camera.yaw += (state.camera.tyaw - state.camera.yaw)*0.15;
+    state.camera.pitch += (state.camera.tpitch - state.camera.pitch)*0.15;
+    const qYaw=Math.round(state.camera.yaw*100)/100;
+    const qPitch=Math.round(state.camera.pitch*100)/100;
+    document.documentElement.style.setProperty('--yaw', qYaw+'deg');
+    document.documentElement.style.setProperty('--pitch', qPitch+'deg');
+    document.documentElement.style.setProperty('--zoom', state.camera.zoom+'px');
+  }
+
+  function fitCanvas(){ const r=el('#stageWrap').getBoundingClientRect(); bondsCanvas.width=r.width*devicePixelRatio; bondsCanvas.height=r.height*devicePixelRatio; bondsCanvas.style.width=r.width+'px'; bondsCanvas.style.height=r.height+'px'; bondsCtx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+  addEventListener('resize', fitCanvas);
+  addEventListener('orientationchange', ()=> setTimeout(()=>{ fitCanvas(); applyCamera(); }, 60));
+
+  // UI
+  el('#addClipsBtn').addEventListener('click',()=> el('#clipInput').click());
+  el('#clipInput').addEventListener('change', e=> addClips(e.target.files));
+  el('#filtersBtn').addEventListener('click', ()=> el('#panel').classList.toggle('show'));
+  el('#bondBtn').addEventListener('click', ()=>{ state.params.mode = (state.params.mode==='bond'?'sculpt':'bond'); el('#bondBtn').style.outline = state.params.mode==='bond'? '2px solid var(--accent)':'none'; state.bondSel=null; });
+  el('#foldBtn').addEventListener('click', ()=>{ state.params.fold=!state.params.fold; el('#foldBtn').style.outline = state.params.fold? '2px solid var(--accent)':'none'; });
+  el('#expressBtn').addEventListener('click', expressProtein);
+  el('#exportBtn').addEventListener('click', exportProject);
+  el('#importBtn').addEventListener('click', ()=> el('#jsonInput').click());
+  el('#jsonInput').addEventListener('change', importProject);
+  el('#resetBtn').addEventListener('click', ()=>{ if(confirm('Start new cinome?')) resetProject(); });
+  el('#zenBtn').addEventListener('click', ()=> document.body.classList.toggle('zen'));
+  let orbitLocked=false; el('#lockBtn').addEventListener('click', ()=>{ orbitLocked=!orbitLocked; el('#lockBtn').style.outline = orbitLocked? '2px solid var(--accent)':'none'; });
+
+  // Panel controls
+  el('#rCodons').addEventListener('input', e=>{ state.params.codons=+e.target.value; rebuildAll(); });
+  el('#rFPS').addEventListener('input', e=>{ state.params.fps=+e.target.value; });
+  el('#rRad').addEventListener('input', e=>{ state.params.radius=+e.target.value; });
+  el('#rPitch').addEventListener('input', e=>{ state.params.pitch=+e.target.value; });
+  el('#rSpeed').addEventListener('input', e=>{ state.params.speed=+e.target.value; });
+  el('#rScale').addEventListener('input', e=>{ state.params.worldScale=+e.target.value; });
+  el('#rDepth').addEventListener('input', e=>{ state.params.infinityDepth=+e.target.value; });
+  el('#alphaBtn').addEventListener('click', ()=> biasShape('alpha'));
+  el('#betaBtn').addEventListener('click', ()=> biasShape('beta'));
+  el('#randomBtn').addEventListener('click', ()=> randomizePhases());
+
+  // Gestures
+  let tStart={x:0,y:0,d:0,touches:0};
+  const stage=el('#stageWrap');
+  stage.addEventListener('touchstart', e=>{ if(e.target.closest('.codon')) return; if(e.touches.length===1){ tStart.x=e.touches[0].clientX; tStart.y=e.touches[0].clientY; } if(e.touches.length===2){ const a=e.touches; tStart.d=Math.hypot(a[0].clientX-a[1].clientX, a[0].clientY-a[1].clientY);} tStart.touches=e.touches.length; }, {passive:true});
+  stage.addEventListener('touchmove', e=>{
+    if(e.target.closest('.codon')) return;
+    if(e.touches.length===1 && tStart.touches===1){ const dx=e.touches[0].clientX-tStart.x; const dy=e.touches[0].clientY-tStart.y; if(!orbitLocked){ state.camera.tyaw += dx*.08; state.camera.tpitch += -dy*.06; } state.camera.tpitch=Math.max(-60,Math.min(60,state.camera.tpitch)); tStart.x=e.touches[0].clientX; tStart.y=e.touches[0].clientY; applyCamera(); }
+    if(e.touches.length===2){ const a=e.touches; const d=Math.hypot(a[0].clientX-a[1].clientX, a[0].clientY-a[1].clientY); const dd=d - tStart.d; state.params.worldScale = Math.max(0.6, Math.min(2.5, state.params.worldScale * (1 + dd/6000))); state.camera.zoom = Math.max(300,Math.min(2200,state.camera.zoom - dd*0.8)); tStart.d=d; applyCamera(); }
+  }, {passive:true});
+
+  function addClips(fileList){ if(!fileList||!fileList.length) return; Array.from(fileList).slice(0,6).forEach(file=>{ if(!file.type.startsWith('video')) return; const url=URL.createObjectURL(file); const vid=document.createElement('video'); vid.src=url; vid.muted=true; vid.playsInline=true; vid.loop=true; vid.autoplay=true; vid.controls=false; vid.preload='auto'; vid.addEventListener('canplay', ()=>{ try{vid.play();}catch(e){} }); const worm={ id:idc++, name:file.name, video:vid, buffer:[], codons:[], phase: Math.random()*Math.PI*2 }; buildWorm(worm); state.worms.push(worm); }); fitCanvas(); }
+  function buildWorm(w){ w.codons.forEach(c=> c.el.remove()); w.codons.length=0; w.buffer.length=0; const C=state.params.codons; for(let i=0;i<C;i++){ const seg=document.createElement('div'); seg.className='codon'; seg.dataset.worm=w.id; seg.dataset.idx=i; const badge=document.createElement('div'); badge.className='badge'; badge.textContent=w.name.slice(0,12)+` · ${i+1}/${C}`; seg.appendChild(badge); const canv=document.createElement('canvas'); canv.width=192; canv.height=108; seg.appendChild(canv); seg.addEventListener('click', onCodonTap); seg.addEventListener('touchstart', onCodonTouchStart, {passive:true}); space.appendChild(seg); w.codons.push({el:seg, canvas:canv, pos:{x:0,y:0,z:0}, off:{x:0,y:0,z:0}}); } }
+  function rebuildAll(){ state.worms.forEach(buildWorm); }
+
+  function onCodonTap(e){ const wId=+e.currentTarget.dataset.worm; const idx=+e.currentTarget.dataset.idx; if(state.params.mode!=='bond'){ focus(e.currentTarget); return; } if(!state.bondSel){ state.bondSel={w:wId, idx}; pulse(e.currentTarget); } else { const a=state.bondSel, b={w:wId, idx}; if(a.w===b.w && a.idx===b.idx){ state.bondSel=null; return; } state.bonds.push({a,b,type:'dissolve'}); state.bondSel=null; flash('Bond formed'); } }
+  function onCodonTouchStart(e){ if(e.touches && e.touches.length===2){ const a=document.elementFromPoint(e.touches[0].clientX, e.touches[0].clientY)?.closest('.codon'); const b=document.elementFromPoint(e.touches[1].clientX, e.touches[1].clientY)?.closest('.codon'); if(a && b && a!==b){ state.bonds.push({a:{w:+a.dataset.worm, idx:+a.dataset.idx}, b:{w:+b.dataset.worm, idx:+b.dataset.idx}, type:'dissolve'}); flash('Bond formed'); } } }
+  function pulse(elm){ elm.animate([{transform:elm.style.transform},{transform:elm.style.transform+' scale(1.08)'}],{duration:160,iterations:1}); }
+  function focus(elm){ els('.codon').forEach(e=> e.classList.remove('focus')); elm.classList.add('focus'); }
+
+  function biasShape(kind){ if(kind==='alpha'){ state.worms.forEach(w=> w.phase=0); } if(kind==='beta'){ state.worms.forEach(w=> w.phase=Math.PI/2); } }
+  function randomizePhases(){ state.worms.forEach(w=> w.phase=Math.random()*Math.PI*2); }
+
+  function expressProtein(){ if(!state.worms.length) return flash('Load clips first'); const order = state.bonds.length? state.bonds: synthFallbackOrder(); const vids = state.worms.map(w=> w.video); if(!vids[0]) return; [vA.src, vB.src] = [vids[0].src, vids[0].src]; vA.play().catch(()=>{}); vB.play().catch(()=>{}); let cur=0, onA=true; const step=()=>{ if(cur>=order.length){ return; } const wIdx = order[cur].a? order[cur].a.w-1 : order[cur].w; const nextSrc = state.worms[wIdx]?.video?.src; if(!nextSrc){ cur++; setTimeout(step, 400); return; } if(onA){ vB.src=nextSrc; vB.currentTime=0; vB.style.opacity=0; vB.play().catch(()=>{}); requestAnimationFrame(()=> vB.style.opacity=1); } else { vA.src=nextSrc; vA.currentTime=0; vA.style.opacity=0; vA.play().catch(()=>{}); requestAnimationFrame(()=> vA.style.opacity=1); } onA=!onA; cur++; setTimeout(step, 1800); }; step(); }
+  function synthFallbackOrder(){ const seq=[]; for(let i=0;i<state.worms.length;i++){ seq.push({w:i}); } return seq; }
+
+  function animate(ts){ if(!lastT) lastT=ts; const dt=(ts-lastT)/1000; lastT=ts; acc+=dt; state.params.t += state.params.speed; const step=1/Math.max(1,state.params.fps); if(acc>=step){ acc=0; state.worms.forEach(w=> captureHeadFrame(w)); } layoutCodons(); drawBonds(); applyCamera(); rafId=requestAnimationFrame(animate); }
+
+  function captureHeadFrame(w){ const v=w.video; if(!v.videoWidth) return; const head=document.createElement('canvas'); head.width=192; head.height=108; const cx=head.getContext('2d'); cx.drawImage(v,0,0,head.width,head.height); w.buffer.unshift(head); if(w.buffer.length>(state.params.codons+2)) w.buffer.pop(); for(let i=0;i<w.codons.length;i++){ const cod=w.codons[i]; const ctx=cod.canvas.getContext('2d'); const f0=w.buffer[i]||head, f1=w.buffer[i+1]||f0, f2=w.buffer[i+2]||f1; const W=cod.canvas.width, H=cod.canvas.height; ctx.clearRect(0,0,W,H); ctx.globalAlpha=1; ctx.drawImage(f0, 0,0, W/3, H); ctx.filter='hue-rotate(20deg) saturate(1.1)'; ctx.drawImage(f1, W/3,0, W/3, H); ctx.filter='hue-rotate(-20deg) saturate(1.1)'; ctx.drawImage(f2, 2*W/3,0, W/3, H); ctx.filter='none'; } }
+
+  function layoutCodons(){
+    const R=state.params.radius*state.params.worldScale;
+    const P=state.params.pitch*state.params.worldScale;
+    const t=state.params.t; const C=state.params.codons;
+    const depthCycle = state.params.infinityDepth*state.params.worldScale;
+    state.worms.forEach((w, wi)=>{
+      const twist=(wi/state.worms.length)*Math.PI*2 + w.phase;
+      for(let i=0;i<C;i++){
+        const cod=w.codons[i]; const s=i/Math.max(1,(C-1)); const strand=i%2;
+        const theta = s*Math.PI*4 + (strand?Math.PI:0) + t + twist;
+        const x = Math.cos(theta)*R; const y = Math.sin(theta)*(R*0.45);
+        let z = (s-0.5)*(P*C) + Math.sin(theta*0.5 + w.phase)*P*0.4;
+        if(depthCycle>1){ z = ((z + depthCycle/2) % depthCycle + depthCycle) % depthCycle - depthCycle/2; }
+        const off = cod.off; off.x*=0.9; off.y*=0.9; off.z*=0.9;
+        if(state.params.fold){ for(const bd of state.bonds){ const ta=(bd.a.w===w.id && bd.a.idx===i), tb=(bd.b.w===w.id && bd.b.idx===i); if(ta||tb){ const other=ta? getCodon(bd.b.w, bd.b.idx):getCodon(bd.a.w, bd.a.idx); if(other){ const dx=(other.pos?.x||0)-x, dy=(other.pos?.y||0)-y, dz=(other.pos?.z||0)-z; off.x += dx*0.018; off.y += dy*0.018; off.z += dz*0.018; } } } }
+        const px=x+off.x, py=y+off.y, pz=z+off.z; cod.pos={x:px,y:py,z:pz};
+        const fade = 0.55 + 0.45*(1 - Math.abs(pz)/(depthCycle*0.5));
+        const sc = 0.92 + 0.12*(0.5+0.5*Math.sin(theta*1.1));
+        cod.el.style.opacity = Math.max(0.2, Math.min(1, fade)).toFixed(3);
+        cod.el.style.transform = `translate3d(${px}vmin, ${py}vmin, ${pz}vmin) rotateY(${(-theta*180/Math.PI)%360}deg) scale(${sc})`;
+      }
+    });
+  }
+
+  function getCodon(wId, idx){ const w=state.worms.find(x=> x.id===wId); return w? w.codons[idx]:null; }
+
+  function drawBonds(){ fitCanvas(); bondsCtx.clearRect(0,0,bondsCanvas.width, bondsCanvas.height); const stageRect = el('#stageWrap').getBoundingClientRect(); for(const bd of state.bonds){ const a=getCodon(bd.a.w, bd.a.idx), b=getCodon(bd.b.w, bd.b.idx); if(!a||!b) continue; const ra=a.el.getBoundingClientRect(), rb=b.el.getBoundingClientRect(); const ax= (ra.left+ra.width/2) - stageRect.left, ay=(ra.top+ra.height/2) - stageRect.top; const bx=(rb.left+rb.width/2) - stageRect.left, by=(rb.top+rb.height/2) - stageRect.top; const mx=(ax+bx)/2, my=(ay+by)/2; bondsCtx.lineWidth=2.5; const grad=bondsCtx.createLinearGradient(ax,ay,bx,by); grad.addColorStop(0,'#13bfa8'); grad.addColorStop(1,'#ff5a3c'); bondsCtx.strokeStyle=grad; bondsCtx.beginPath(); bondsCtx.moveTo(ax,ay); bondsCtx.quadraticCurveTo(mx, my-30, bx,by); bondsCtx.stroke(); bondsCtx.fillStyle='#13bfa8'; bondsCtx.beginPath(); bondsCtx.arc(ax,ay,3,0,Math.PI*2); bondsCtx.fill(); bondsCtx.fillStyle='#ff5a3c'; bondsCtx.beginPath(); bondsCtx.arc(bx,by,3,0,Math.PI*2); bondsCtx.fill(); } }
+
+  function addScene(){ const id = Date.now()+Math.random(); const sc={id, name:`Scene ${lane.children.length+1}`, params: JSON.parse(JSON.stringify(state.params)), camera: JSON.parse(JSON.stringify(state.camera)), duration:4.0}; const card=document.createElement('div'); card.className='scene'; card.dataset.id=id; card.innerHTML=`<div>${sc.name}</div><div class="meta">${state.params.codons} codons · ${sc.duration}s</div>`; card.addEventListener('click',()=> loadScene(id)); lane.appendChild(card); if(!state.scenes) state.scenes=[]; state.scenes.push(sc); }
+  function loadScene(id){ const sc=state.scenes.find(s=> s.id===id); if(!sc) return; state.params = JSON.parse(JSON.stringify(sc.params)); state.camera = JSON.parse(JSON.stringify(sc.camera)); applyCamera(); rebuildAll(); }
+  el('#addSceneBtn').addEventListener('click', addScene);
+  el('#playBtn').addEventListener('click', ()=> flash('Use ▶︎ Express to preview protein film'));
+  el('#stopBtn').addEventListener('click', ()=>{});
+
+  function exportProject(){ const data={ params:state.params, bonds:state.bonds, worms: state.worms.map(w=> ({id:w.id,name:w.name})) }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cinome-centered-infinity.json'; a.click(); }
+  function importProject(e){ const file=e.target.files?.[0]; if(!file) return; const fr=new FileReader(); fr.onload=()=>{ try{ const data=JSON.parse(fr.result); state.params=data.params||state.params; state.bonds=data.bonds||[]; flash('Project imported (re‑add clips to bind)'); rebuildAll(); }catch(err){ alert('Invalid JSON'); } }; fr.readAsText(file); }
+
+  function resetProject(){ cancelAnimationFrame(rafId); state.worms.forEach(w=> w.codons.forEach(c=> c.el.remove())); state.worms=[]; state.bonds=[]; if(lane) lane.innerHTML=''; state.params={codons:24,fps:12,radius:80,pitch:20,speed:0.02,t:0,mode:'sculpt',fold:false,worldScale:1,infinityDepth:160}; start(); }
+
+  function flash(msg){ const b=document.createElement('div'); b.textContent=msg; b.style.position='fixed'; b.style.right='8px'; b.style.top='8px'; b.style.background='#10151b99'; b.style.border='1px solid #1c232f'; b.style.color='#cbd5e1'; b.style.padding='6px 10px'; b.style.borderRadius='999px'; b.style.fontSize='12px'; b.style.zIndex=50; document.body.appendChild(b); setTimeout(()=> b.remove(), 1400); }
+
+  function start(){ fitCanvas(); applyCamera(); cancelAnimationFrame(rafId); requestAnimationFrame(animate); }
+  start();
+})();
+</script>
+</body>
+</html>

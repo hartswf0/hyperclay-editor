@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>POTTERS_WHEEL — Minimal (iPod style)</title>
+<style>
+  /* ——— Craighill object: modest, precise, earthy ——— */
+  :root{
+    /* Light (slip/ivory) */
+    --bgL:#f6f3ef; --inkL:#1c1b19; --mutedL:#6f6a66; --glassL:#ffffff; --lineL:#dfd9d3;
+    /* Dark (kiln/charcoal) */
+    --bgD:#111312; --inkD:#f3f2ef; --mutedD:#b6b1aa; --glassD:#171918; --lineD:#232422;
+    /* Accents (earth/metals) */
+    --brass:#b38a58; --terracotta:#a56344; --iron:#333231;
+    --focus: color-mix(in oklab, var(--brass) 48%, transparent);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font:500 14px/1.38 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;letter-spacing:.08px}
+  body[data-theme="light"]{background:var(--bgL);color:var(--inkL)}
+  body[data-theme="dark"]{background:var(--bgD);color:var(--inkD)}
+
+  /* Layout: glass window up top, centered wheel below. No top nav. */
+  .wrap{height:100dvh;display:grid;grid-template-rows:1fr auto;gap:0}
+
+  /* Glass window */
+  .window{max-width:900px;margin:0 auto;width:100%;height:58vh;border:1px solid;border-radius:12px;overflow:hidden;position:relative;transition:border-color .2s ease}
+  @media(max-width:860px){ .window{ height:72vh } }
+  body[data-theme="light"] .window{background:var(--glassL);border-color:var(--lineL)}
+  body[data-theme="dark"] .window{background:var(--glassD);border-color:var(--lineD)}
+  .titlebar{position:absolute;left:12px;right:12px;top:10px;height:40px;display:flex;justify-content:space-between;align-items:center;pointer-events:none;z-index:2; backdrop-filter: blur(6px)}
+  body[data-theme="light"] .titlebar{background:linear-gradient(180deg, rgba(255,255,255,.7), rgba(255,255,255,0));}
+  body[data-theme="dark"] .titlebar{background:linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,0));}
+  .readout{font:600 12px/1 ui-sans-serif;letter-spacing:.16px;text-transform:uppercase;opacity:.8}
+  .mode{display:flex;gap:8px;pointer-events:auto}
+  .btn{border:1px solid;border-radius:999px;padding:8px 12px;background:transparent;cursor:pointer;font:600 11px/1 ui-sans-serif}
+  body[data-theme="light"] .btn{border-color:var(--lineL);color:inherit}
+  body[data-theme="dark"] .btn{border-color:var(--lineD);color:inherit}
+  .btn[aria-pressed="true"]{border-color:var(--terracotta);color:var(--terracotta)}
+
+  /* List & Preview regions */
+  .pane{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr; padding-top:48px; overflow:hidden}
+  @media(max-width:860px){ .pane{grid-template-columns:1fr} }
+  .pane > *{min-width:0}
+  .list{overflow-y:auto; overflow-x:hidden; border-right:1px solid}
+  body[data-theme="light"] .list{border-color:var(--lineL)}
+  body[data-theme="dark"] .list{border-color:var(--lineD)}
+  .row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:14px 12px;border-bottom:1px solid;cursor:pointer;-webkit-tap-highlight-color: transparent}
+  body[data-theme="light"] .row{border-bottom-color:var(--lineL)}
+  body[data-theme="dark"] .row{border-bottom-color:var(--lineD)}
+  .row:hover{background:color-mix(in oklab, var(--terracotta) 8%, transparent)}
+  .row:active{background:color-mix(in oklab, var(--terracotta) 14%, transparent)}
+  .row .t{font:600 13px/1.15 ui-sans-serif; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .row .m{font:500 12px/1 ui-sans-serif;opacity:.7}
+  .open{border:1px solid;border-radius:10px;padding:6px 10px;text-decoration:none; display:inline-grid; place-items:center; min-width:44px; min-height:34px}
+  body[data-theme="light"] .open{border-color:var(--lineL);color:inherit}
+  body[data-theme="dark"] .open{border-color:var(--lineD);color:inherit}
+  .open:hover{border-color:var(--terracotta);color:var(--terracotta)}
+
+  /* Scaled preview with fixed aspect ratio to avoid scrollbars */
+  .previewWrap{position:relative; width:100%; height:100%; display:grid; place-items:center; overflow:hidden}
+  .previewInner{ position:relative; width:min(100%, 1024px); aspect-ratio:16 / 10; }
+  @media(max-width:860px){ .previewInner{ --previewScale:.8; aspect-ratio:16/9; } }
+  .frame{position:absolute; inset:0; border:0; width:calc(100% / var(--previewScale, .9)); height:calc(100% / var(--previewScale, .9)); transform:scale(var(--previewScale, .9)); transform-origin: top left; background:#101113}
+  .previewToolbar{ position:absolute; right:8px; top:8px; display:flex; gap:8px; z-index:3 }
+  .previewToolbar .btn{ border:1px solid; border-radius:999px; padding:8px 10px; font:600 11px/1 ui-sans-serif; background:rgba(0,0,0,.35); color:#fff; cursor:pointer }
+  body[data-theme="light"] .previewToolbar .btn{ background:rgba(255,255,255,.65); color:#000; border-color:var(--lineL)}
+  body[data-theme="dark"] .previewToolbar .btn{ background:rgba(0,0,0,.45); color:#fff; border-color:var(--lineD)}
+
+  /* Centered Wheel */
+  .wheelWrap{position:relative;display:grid;place-items:center;height:42vh}
+  @media(max-width:860px){ .wheelWrap{ height:28vh } }
+  .wheel{position:relative;width:min(64vw,420px);height:min(64vw,420px);border-radius:50%;border:1px solid;touch-action:none;user-select:none;transition:border-color .2s ease, box-shadow .2s ease}
+  body[data-theme="light"] .wheel{background:
+      radial-gradient(60% 60% at 48% 46%, #fff 0, #f2ece6 60%),
+      repeating-radial-gradient(circle at 50% 50%, rgba(0,0,0,.06) 0 1px, rgba(0,0,0,0) 1px 6px);
+    border-color:var(--lineL)}
+  body[data-theme="dark"] .wheel{background:
+      radial-gradient(60% 60% at 48% 46%, #1b1e1c 0, #131514 60%),
+      repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.09) 0 1px, rgba(255,255,255,0) 1px 6px);
+    border-color:var(--lineD)}
+  .wheel:after{content:"";position:absolute;inset:12%;border:1px solid rgba(0,0,0,.08);border-radius:50%}
+  .notch{position:absolute;left:50%;top:6%;width:2px;height:18px;background:var(--brass);transform-origin:50% calc(50% + 120px);}
+  .ok{position:absolute;inset:calc(50% - 56px);border-radius:50%;border:1px solid;display:grid;place-items:center;font:600 12px/1 ui-sans-serif;text-transform:uppercase}
+  body[data-theme="light"] .ok{background:#fff;border-color:var(--lineL)}
+  body[data-theme="dark"] .ok{background:#151715;border-color:var(--lineD)}
+
+  /* Fade-away when idle */
+  .controlsDock{position:absolute;bottom:10px;display:flex;gap:8px}
+  .ghost{opacity:.35;transition:opacity .25s ease}
+  .ghost:hover,.ghost:focus-within{opacity:1}
+
+  /* a11y */
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:10px}
+</style>
+</head>
+<body data-theme="dark">
+  <div class="wrap">
+    <!-- Minimal glass window -->
+    <section class="window">
+      <div class="titlebar">
+        <div class="readout" id="readout">—</div>
+        <div class="mode">
+          <button class="btn" id="viewList" aria-pressed="true">List</button>
+          <button class="btn" id="viewPreview" aria-pressed="false">Preview</button>
+          <button class="btn" id="theme">Theme</button>
+        </div>
+      </div>
+      <div class="pane" id="pane">
+        <div class="list" id="list"></div>
+        <div class="previewWrap" id="previewWrap">
+          <div class="previewToolbar">
+            <button class="btn" id="openTabBtn" title="Open in new tab">Open ⧉</button>
+          </div>
+          <div class="previewInner">
+            <iframe class="frame" id="frame" sandbox="allow-scripts allow-same-origin allow-forms" allow="autoplay; clipboard-write; encrypted-media; fullscreen"></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Centered wheel (no header, modest tool) -->
+    <section class="wheelWrap">
+      <div class="wheel ghost" id="wheel" tabindex="0" aria-label="Potter wheel navigator">
+        <div class="notch" id="notch"></div>
+        <button class="ok" id="okBtn" title="Open / Toggle">Open</button>
+        <div class="controlsDock">
+          <button class="btn" id="prev">Prev</button>
+          <button class="btn" id="next">Next</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+(async function(){
+  // ——— Build PAGES from manifest.json (families -> items) ———
+  let manifest=null;
+  try{
+    const res=await fetch('manifest.json', {cache:'no-store'});
+    if(!res.ok) throw new Error('manifest fetch failed');
+    manifest=await res.json();
+  }catch(e){
+    document.getElementById('list').innerHTML='<div style="padding:12px;opacity:.7">manifest.json not found. Run <code>node build_manifest.js</code>.</div>';
+    return;
+  }
+  const PAGES = manifest.families.map(f=>({
+    name: f.family,
+    items: f.items.map(it=>({ t: it.name, url: it.name }))
+  })).filter(p=>p.items.length>0);
+
+  // ——— State ———
+  let prefs = { theme:'dark', page:0, mode:'list' };
+
+  // ——— DOM ———
+  const readout = document.getElementById('readout');
+  const list = document.getElementById('list');
+  const frame = document.getElementById('frame');
+  const viewList = document.getElementById('viewList');
+  const viewPreview = document.getElementById('viewPreview');
+  const pane = document.getElementById('pane');
+  const wheel = document.getElementById('wheel');
+  const notch = document.getElementById('notch');
+  const okBtn = document.getElementById('okBtn');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const themeBtn = document.getElementById('theme');
+  const openTabBtn = document.getElementById('openTabBtn');
+  const previewWrap = document.getElementById('previewWrap');
+
+  // ——— Theme ———
+  function setTheme(x){ document.body.dataset.theme=x; }
+  setTheme(prefs.theme);
+  themeBtn.onclick=()=>{ prefs.theme = prefs.theme==='dark'?'light':'dark'; setTheme(prefs.theme); };
+
+  // ——— Build / Render ———
+  let currentUrl = '';
+  function setPage(i){ prefs.page=(i+PAGES.length)%PAGES.length; readout.textContent=PAGES[prefs.page].name; renderList(); }
+  function setMode(m){ prefs.mode=m; viewList.setAttribute('aria-pressed', m==='list'); viewPreview.setAttribute('aria-pressed', m==='preview'); pane.style.gridTemplateColumns = (m==='list'?'1fr 1fr':'0 1fr'); }
+  viewList.onclick=()=>setMode('list');
+  viewPreview.onclick=()=>setMode('preview');
+
+  function renderList(){
+    list.innerHTML='';
+    const items=PAGES[prefs.page].items;
+    items.forEach((it,i)=>{
+      const r=document.createElement('div'); r.className='row';
+      const L=document.createElement('div'); L.innerHTML=`<div class="t">${it.t}</div><div class="m">preview</div>`;
+      const R=document.createElement('div');
+      const a=document.createElement('a'); a.href=it.url; a.target='_blank'; a.rel='noopener'; a.className='open'; a.textContent='Open';
+      R.appendChild(a); r.appendChild(L); r.appendChild(R);
+      r.onclick=(e)=>{ if(e.target===a) return; frame.src=it.url; currentUrl = it.url; setMode('preview'); };
+      if(i===0){ frame.src=it.url; currentUrl = it.url; }
+      list.appendChild(r);
+    });
+  }
+
+  // ——— Wheel interactions (centered, iPod-like) ———
+  let angle=0, dragging=false, startA=0, startAngle=0, anim=null, idleTimer=null;
+
+  function center(el){ const r=el.getBoundingClientRect(); return {cx:r.left+r.width/2, cy:r.top+r.height/2}; }
+  function atan(x,y){ return Math.atan2(y,x); }
+  function deg(rad){ return rad*180/Math.PI; }
+  function norm(a){ a%=360; if(a<0) a+=360; return a; }
+
+  function clickTick(){ if('vibrate' in navigator) try{ navigator.vibrate(8); }catch(e){}
+    try{ const AC=window.__ac||(window.__ac=new (window.AudioContext||window.webkitAudioContext)()); const o=AC.createOscillator(); const g=AC.createGain(); o.type='triangle'; o.frequency.value=480; g.gain.value=0.00015; o.connect(g); g.connect(AC.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.00001, AC.currentTime+0.06); o.stop(AC.currentTime+0.06);}catch(e){}
+  }
+
+  function updateNotch(){ notch.style.transform=`rotate(${angle}deg)`; }
+  function pageFromAngle(a){ const slice=360/Math.max(1,PAGES.length); return Math.round(norm(a)/slice)%Math.max(1,PAGES.length); }
+  function angleFromEvent(ev){ const {cx,cy}=center(wheel); const x=(ev.touches?ev.touches[0].clientX:ev.clientX)-cx; const y=(ev.touches?ev.touches[0].clientY:ev.clientY)-cy; return deg(atan(x,y)); }
+
+  function animateTo(target){ cancelAnimationFrame(anim); const start=angle; const dist=((target-start+540)%360)-180; const dur=220; const t0=performance.now(); const ease=t=>1-Math.pow(1-t,3); const step=(now)=>{ const p=Math.min(1,(now-t0)/dur); angle=start+dist*ease(p); updateNotch(); if(p<1) anim=requestAnimationFrame(step); }; anim=requestAnimationFrame(step); }
+  function spinTo(idx){ const slice=360/Math.max(1,PAGES.length); const target=slice*idx; animateTo(target); if(idx!==prefs.page){ setPage(idx); clickTick(); } }
+
+  function start(ev){ dragging=true; startA=angleFromEvent(ev); startAngle=angle; wheel.classList.remove('ghost'); ev.preventDefault(); }
+  function move(ev){ if(!dragging) return; const cur=angleFromEvent(ev); angle=startAngle+(cur-startA); updateNotch(); const idx=pageFromAngle(angle); if(idx!==prefs.page){ setPage(idx); clickTick(); } }
+  function end(){ dragging=false; restartIdle(); }
+
+  function restartIdle(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=>wheel.classList.add('ghost'), 1600); }
+
+  // Pointer/touch
+  if('onpointerdown' in wheel){ wheel.addEventListener('pointerdown', start); wheel.addEventListener('pointermove', move); window.addEventListener('pointerup', end);} else { wheel.addEventListener('mousedown', start); window.addEventListener('mousemove', move); window.addEventListener('mouseup', end); wheel.addEventListener('touchstart', start, {passive:false}); wheel.addEventListener('touchmove', move, {passive:false}); wheel.addEventListener('touchend', end); }
+
+  // Keyboard
+  wheel.addEventListener('keydown', (e)=>{ if(e.key==='Enter') okBtn.click(); if(e.key==='ArrowRight'||e.key==='ArrowDown') spinTo(prefs.page+1); if(e.key==='ArrowLeft'||e.key==='ArrowUp') spinTo(prefs.page-1); wheel.classList.remove('ghost'); restartIdle(); });
+
+  // Desktop scroll (outside list/iframe)
+  window.addEventListener('wheel', (e)=>{
+    const overList = !!e.target.closest('.list');
+    const overFrame = !!e.target.closest('iframe');
+    const mod = e.altKey || e.ctrlKey || e.metaKey;
+    if(overFrame) return; // never hijack inside the preview
+    if(overList && !mod) return; // allow natural list scroll
+    // With modifier held (or outside list), switch families
+    const d = Math.sign(e.deltaY || e.deltaX);
+    if(d!==0){
+      e.preventDefault();
+      if(d>0) spinTo(prefs.page+1); else spinTo(prefs.page-1);
+      wheel.classList.remove('ghost');
+      restartIdle();
+    }
+  }, {passive:false});
+
+  // Center press
+  okBtn.onclick=()=>{ const items=PAGES[prefs.page].items; if(items[0]){ frame.src=items[0].url; setMode('preview'); } };
+  prevBtn.onclick=()=>spinTo(prefs.page-1);
+  nextBtn.onclick=()=>spinTo(prefs.page+1);
+
+  // Open-in-new-tab
+  openTabBtn.onclick=()=>{ if(currentUrl) window.open(currentUrl, '_blank'); };
+  // Long-press on preview to open
+  let lpTimer=null;
+  const lpStart=(e)=>{ lpTimer=setTimeout(()=>{ if(currentUrl) window.open(currentUrl, '_blank'); }, 500); };
+  const lpEnd=()=>{ clearTimeout(lpTimer); lpTimer=null; };
+  previewWrap.addEventListener('touchstart', lpStart, {passive:true});
+  previewWrap.addEventListener('touchend', lpEnd);
+  previewWrap.addEventListener('touchcancel', lpEnd);
+  previewWrap.addEventListener('mousedown', lpStart);
+  previewWrap.addEventListener('mouseup', lpEnd);
+  previewWrap.addEventListener('mouseleave', lpEnd);
+
+  // Init
+  setMode(prefs.mode);
+  setPage(prefs.page);
+  updateNotch();
+  restartIdle();
+})();
+</script>
+</body>
+</html>

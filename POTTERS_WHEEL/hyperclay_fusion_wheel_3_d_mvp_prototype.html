@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Hyperclay Fusion Wheel (3D) — MVP</title>
+<style>
+  :root{
+    --bg:#0a0b0f; --ink:#e9e6df; --muted:#a4a9b3; --accent:#42f5c5; --accent2:#f5a142; --core:#1a1d25;
+    --hud:#0f1218cc; --panel:#0b0e14ef; --ok:#45e0a5; --warn:#f1c40f; --err:#ff5c73;
+  }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif;}
+  #root{position:fixed;inset:0;overflow:hidden;}
+  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;background:radial-gradient(120% 120% at 50% 50%, #0f1420 0%, #0a0b0f 70%);}  
+  /* HUD */
+  .hud{position:absolute;left:8px;top:8px;display:flex;gap:8px;z-index:10;}
+  .btn{background:var(--hud);backdrop-filter:blur(8px);border:1px solid #222835;border-radius:14px;padding:8px 10px;font-size:14px;line-height:1;display:flex;align-items:center;gap:6px}
+  .btn:active{transform:scale(.98)}
+  .badge{padding:4px 8px;border-radius:10px;background:#141923;border:1px solid #252b36;}
+  .panel{position:absolute;right:8px;top:8px;z-index:12;background:var(--panel);backdrop-filter:blur(8px);border:1px solid #222835;border-radius:16px;max-width:min(92vw,420px);padding:12px;}
+  .panel h3{margin:6px 0 8px 0;font-weight:700;font-size:16px}
+  .row{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .row label{flex:0 0 120px;color:var(--muted);font-size:12px}
+  .row input[type=range]{flex:1}
+  .meters{position:absolute;left:8px;bottom:8px;display:flex;flex-wrap:wrap;gap:8px;z-index:11}
+  .meter{background:var(--hud);backdrop-filter:blur(8px);border:1px solid #222835;border-radius:14px;padding:8px 10px;font-size:12px;color:var(--muted)}
+  .toggle{position:absolute;right:8px;bottom:8px;display:flex;gap:8px;z-index:11}
+  .hidden{display:none}
+  details.eval{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;z-index:9;background:var(--hud);border:1px solid #222835;border-radius:12px;padding:6px 10px;max-width:92vw}
+  .toast{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#0b111aee;border:1px solid #1f2937;color:#cfe7ff;padding:10px 12px;border-radius:12px;z-index:50;opacity:0;transition:opacity .25s ease}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="root">
+  <canvas id="scene" aria-label="Hyperclay canvas"></canvas>
+  <div class="hud">
+    <button class="btn" id="gear" title="Tuner (⚙)">⚙ Tuner</button>
+    <button class="btn" id="rec" title="Record Fusion Core (WebM)">🎥 REC</button>
+    <button class="btn" id="stamp" title="Stamp current core to a new clip">📦 Stamp</button>
+    <button class="btn" id="motion" title="Enable motion parallax">🧭 Motion</button>
+    <span class="btn" id="snapToggle" title="Toggle snap grid (⌗)">⌗ Snap</span>
+    <span class="btn" id="help">❓</span>
+  </div>
+  <div class="meters" id="meters"></div>
+  <div class="toggle">
+    <span class="badge" id="blendBadge">Blend: screen</span>
+    <span class="badge" id="rpmBadge">RPM: 0.0</span>
+    <span class="badge" id="coreBadge">Core R: 160</span>
+  </div>
+  <div class="panel hidden" id="tuner">
+    <h3>Fusion Tuner</h3>
+    <div class="row"><label>Core Sensitivity</label><input type="range" id="coreSens" min="0" max="2" value="1" step="0.01"></div>
+    <div class="row"><label>Mist Density</label><input type="range" id="mistDensity" min="0" max="1" value="0.15" step="0.01"></div>
+    <div class="row"><label>Mist Swirl</label><input type="range" id="mistSwirl" min="-0.02" max="0.02" value="0.005" step="0.001"></div>
+    <div class="row"><label>Edge Feather (px)</label><input type="range" id="featherPx" min="0" max="120" value="60" step="1"></div>
+    <div class="row"><label>Depth Bias</label><input type="range" id="depthBias" min="-1" max="1" value="0" step="0.01"></div>
+    <div class="row"><label>Parallax Strength</label><input type="range" id="parallaxStr" min="0" max="1.2" value="0.4" step="0.01"></div>
+    <div class="row"><label>Blend Order</label>
+      <select id="blendOrder">
+        <option>screen,overlay,hard-light,multiply,lighten</option>
+        <option>overlay,screen,multiply,hard-light,lighten</option>
+        <option>multiply,screen,overlay,hard-light,lighten</option>
+      </select>
+    </div>
+    <div class="row"><label>Exposure</label><input type="range" id="exposure" min="0.2" max="2" value="1" step="0.01"></div>
+    <div class="row"><label>Gamma</label><input type="range" id="gamma" min="0.6" max="1.6" value="1" step="0.01"></div>
+    <div class="row"><label>Calibrate (🧭)</label><button class="btn" id="calibrate">Hold 2s</button></div>
+    <div class="row"><label>Demo Deck</label><button class="btn" id="loadDemo">Load 3 Procedurals</button></div>
+    <div class="row" style="justify-content:space-between"><button class="btn" id="closeTuner">Close</button><button class="btn" id="exportLog">Export Log</button></div>
+  </div>
+  <details class="eval" id="eval">
+    <summary>Evaluation: How this helps you “think the unthinkable”</summary>
+    <small>
+      Wheel-as-time makes phase tangible; depth and parallax make layer causality legible; fog edges reveal composite influence zones; Fusion Core proximity exposes non-binary merges; meters/ghosts externalize usually-hidden dynamics (RPM, z tension, alpha load); undo-braid + process log make experimentation safe, reversible, and reviewable.
+    </small>
+  </details>
+  <div class="toast" id="toast">Saved</div>
+</div>
+<script>
+(() => { 'use strict';
+const TAU = Math.PI*2;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp = (a,b,t)=>a+(b-a)*t;
+const now = ()=>performance.now()/1000;
+const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+
+// Canvas setup
+const cvs = document.getElementById('scene');
+const ctx = cvs.getContext('2d', { alpha:true, desynchronized:true, willReadFrequently:false });
+let W=0,H=0,CX=0,CY=0; resize();
+window.addEventListener('resize', resize);
+function resize(){ W = Math.floor(innerWidth*dpr); H = Math.floor(innerHeight*dpr); cvs.width=W; cvs.height=H; cvs.style.width=innerWidth+'px'; cvs.style.height=innerHeight+'px'; CX=W/2; CY=H/2; drawOnce=true; }
+
+// Offscreen Fusion Core buffer
+const core = document.createElement('canvas');
+const coreCtx = core.getContext('2d', {alpha:true});
+function resizeCore(){ core.width = Math.floor(Math.min(W,H)); core.height = core.width; }
+resizeCore();
+
+// State
+let clips=[]; // array of Clip
+let nextId=1;
+let running=true;
+let wheel={ theta:0, omega:0, lastT:now(), inertia:0.995, radius:Math.min(W,H)/3, snapSectors:24, spinActive:false, lastDragT:0 };
+let coreState={ radius: Math.min(W,H)/5, mist:true, mistDensity:0.15, mistSwirl:0.005, exposure:1, gamma:1, blendModes:['screen','overlay','hard-light','multiply','lighten'], blendIndex:0, sensitivity:1 };
+let view={ tiltX:0, tiltY:0, parallax:0.4 };
+let toggles={ snap:true };
+let meters = { rpm:0, blend:'screen', coreR: coreState.radius, depthHist: new Array(8).fill(0), alphaLoad:0 };
+let processLog=[]; // gesture events
+let undoStack=[];
+let drawOnce=false;
+
+// Audio + haptics
+const audio = (function(){
+  let ctxA, masterGain, padOsc, subOsc, noiseBuf, noiseSrc, noiseGain;
+  function init(){ if(ctxA) return; ctxA = new (window.AudioContext||window.webkitAudioContext)();
+    masterGain = ctxA.createGain(); masterGain.gain.value=0.0; masterGain.connect(ctxA.destination);
+    padOsc = ctxA.createOscillator(); let padGain=ctxA.createGain(); padOsc.type='sine'; padOsc.frequency.value=96; padGain.gain.value=0.0; padOsc.connect(padGain).connect(masterGain); padOsc.start();
+    subOsc = ctxA.createOscillator(); let subGain=ctxA.createGain(); subOsc.type='triangle'; subOsc.frequency.value=48; subGain.gain.value=0.0; subOsc.connect(subGain).connect(masterGain); subOsc.start();
+    // noise
+    noiseBuf = ctxA.createBuffer(1, ctxA.sampleRate*2, ctxA.sampleRate);
+    let data = noiseBuf.getChannelData(0); for(let i=0;i<data.length;i++){ data[i]=Math.random()*2-1; }
+    noiseSrc = ctxA.createBufferSource(); noiseSrc.buffer=noiseBuf; noiseSrc.loop=true; noiseGain = ctxA.createGain(); noiseGain.gain.value=0; noiseSrc.connect(noiseGain).connect(masterGain); noiseSrc.start();
+    return {ctxA, masterGain, padGain, subGain, noiseGain};
+  }
+  function update(coreStrength, depthTension, rpm){ if(!ctxA) return; const m = clamp(coreStrength, 0, 1.2); const d = clamp(depthTension, 0, 1); const r = clamp(rpm/3, 0, 1); masterGain.gain.linearRampToValueAtTime( clamp(0.06+m*0.1,0,0.25), ctxA.currentTime+0.05 );
+    padOsc.frequency.linearRampToValueAtTime( 80+ r*160, ctxA.currentTime+0.1 );
+    ctxA._padGain = ctxA._padGain||masterGain; // no-op, keep ctx
+    // set inner node gains by traversing connections is messy; keep references
+  }
+  return {init, update, ctx:()=>audioCtx()};
+})();
+function haptic(ms=20){ if(navigator.vibrate) navigator.vibrate(ms); }
+
+// Utility: deep clone clips for undo
+function snapshot(){ return JSON.parse(JSON.stringify({clips, wheel, coreState, view})); }
+function restore(snap){ if(!snap) return; clips = snap.clips; wheel = snap.wheel; coreState = snap.coreState; view = snap.view; drawOnce=true; }
+
+// Clip factory
+function makeClip(kind='plasma'){
+  const id = nextId++;
+  const baseR = wheel.radius*0.65;
+  const ang = Math.random()*TAU;
+  const r = baseR* (0.5+Math.random()*0.5);
+  const x = CX + Math.cos(ang)*r;
+  const y = CY + Math.sin(ang)*r;
+  const z = (Math.random()*2-1)*0.5; // -1..1
+  const scale = 1;
+  const hue = Math.floor(Math.random()*360);
+  const alpha = 0.8;
+  const phaseOffset = Math.random();
+  const fog = { radius: 140, spread: 0.8, noise: 0.6, featherPx: 60 };
+  const blendMode = 'source-over';
+  const proc = makeProcedural(kind, hue);
+  return { id, kind, x, y, z, r, theta:ang, scale, hue, alpha, blendMode, fogRadius:fog.radius, fogNoise:fog.noise, feather:fog.featherPx, phaseOffset };
+}
+
+// Procedural content generators
+function makeProcedural(kind, hue){
+  const off = document.createElement('canvas'); off.width=256; off.height=256; const c=off.getContext('2d');
+  return { canvas:off, draw:(t)=>{
+    c.clearRect(0,0,off.width,off.height);
+    if(kind==='plasma'){
+      const img = c.createImageData(off.width, off.height);
+      const d = img.data; const w=off.width, h=off.height;
+      for(let y=0;y<h;y++){
+        for(let x=0;x<w;x++){
+          const nx=x/w-0.5, ny=y/h-0.5; const v = (Math.sin(10*nx+ t*2)+Math.sin(10*ny+ t*1.7)+Math.sin(10*(nx+ny)+t*1.3))/3; const col = Math.floor((v*0.5+0.5)*255);
+          const i=(y*w+x)*4; d[i]=col; d[i+1]=(col+ (hue%255))%255; d[i+2]=255-col; d[i+3]=255;
+        }
+      }
+      c.putImageData(img,0,0);
+    } else if(kind==='rings'){
+      const g = c.createRadialGradient(128,128,0,128,128,128);
+      for(let i=0;i<10;i++){ const p=i/9; const vv = (Math.sin(t*2 + i)+1)/2; g.addColorStop(p, `hsla(${(hue+ i*18)%360},80%,${40+vv*20}%,1)`); }
+      c.fillStyle=g; c.beginPath(); c.arc(128,128,128,0,TAU); c.fill();
+      c.globalCompositeOperation='overlay';
+      c.strokeStyle='rgba(255,255,255,0.15)';
+      for(let r=16;r<=128;r+=16){ c.beginPath(); c.arc(128,128,r+Math.sin(t*2+r*0.1)*2,0,TAU); c.stroke(); }
+      c.globalCompositeOperation='source-over';
+    } else if(kind==='stripes'){
+      for(let i=0;i<12;i++){
+        c.fillStyle=`hsla(${(hue+i*12)%360},90%,50%,0.7)`;
+        const w=32; const x=(i*w + (Math.sin(t*1.5+i)*48))% (off.width+64) - 64; c.fillRect(x,0,w,off.height);
+      }
+      c.globalCompositeOperation='lighten';
+      c.fillStyle='rgba(255,255,255,0.08)';
+      for(let i=0;i<6;i++){ c.fillRect(0,i*42,off.width,21); }
+      c.globalCompositeOperation='source-over';
+    }
+  }}
+}
+
+// Initial demo clips
+function loadDemo(){ clips=[]; clips.push(makeClip('plasma')); clips.push(makeClip('rings')); clips.push(makeClip('stripes')); toast('Loaded 3 procedural clips'); }
+loadDemo();
+
+// Touch handling & gestures
+const touches = new Map();
+let gesture = { target:null, mode:null, t0:0, pt0:null, lastPos:null, clipStart:null, twoStart:null, threeStart:null, onCore:false, tapCount:0, lastTapT:0 };
+
+cvs.addEventListener('touchstart', onTouchStart, {passive:false});
+cvs.addEventListener('touchmove', onTouchMove, {passive:false});
+cvs.addEventListener('touchend', onTouchEnd, {passive:false});
+cvs.addEventListener('touchcancel', onTouchEnd, {passive:false});
+// mouse fallback
+cvs.addEventListener('mousedown', e=>{ const t=mouseToTouch(e); onTouchStart(t); document.addEventListener('mousemove', onMouseMove, {passive:false}); document.addEventListener('mouseup', onMouseUp, {passive:false}); });
+function onMouseMove(e){ onTouchMove(mouseToTouch(e)); }
+function onMouseUp(e){ onTouchEnd(mouseToTouch(e)); document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); }
+function mouseToTouch(e){ e.preventDefault(); return {preventDefault:()=>{}, changedTouches:[{identifier:0, clientX:e.clientX, clientY:e.clientY}]}; }
+
+function pickClip(px,py){ // pick topmost by z & distance
+  let best=null; let bestScore=1e9;
+  for(const clip of clips){ const dx=px-(clip.x/dpr), dy=py-(clip.y/dpr); const dist=Math.hypot(dx,dy) - (clip.fogRadius*clip.scale/dpr); const score = dist - clip.z*10; if(score<bestScore){ best=clip; bestScore=score; } }
+  return best;
+}
+function onTouchStart(e){ e.preventDefault(); const t=now(); for(const touch of e.changedTouches){ touches.set(touch.identifier, {x:touch.clientX*dpr, y:touch.clientY*dpr, t}); }
+  const pts=[...touches.values()];
+  if(pts.length===1){ const p=pts[0]; const onRim = Math.abs(Math.hypot(p.x-CX,p.y-CY)-wheel.radius*dpr) < 30*dpr; const onCore = Math.hypot(p.x-CX,p.y-CY) < coreState.radius*dpr; const clip = pickClip(p.x/dpr, p.y/dpr);
+    gesture.t0=t; gesture.pt0={x:p.x,y:p.y}; gesture.lastPos=gesture.pt0; gesture.clipStart=clip?JSON.parse(JSON.stringify(clip)):null; gesture.onCore=onCore;
+    if(onRim){ gesture.mode='spin'; wheel.spinActive=true; } else if(clip){ gesture.mode='drag-clip'; gesture.target=clip; pushUndo(); log('begin','clip',clip,{...clip}); } else if(onCore){ gesture.mode='core'; } else { gesture.mode='tilt'; }
+    // double/triple tap on core
+    const dt=t - gesture.lastTapT; if(onCore && dt<0.35){ gesture.tapCount++; } else { gesture.tapCount=1; }
+    gesture.lastTapT=t;
+  }
+  if(pts.length===2){ const [a,b]=pts; gesture.twoStart={a, b, dist:dist2(a,b), ang:Math.atan2(b.y-a.y, b.x-a.x)}; if(gesture.target){ gesture.mode='pinch-clip'; }
+    else if(Math.hypot((a.x+b.x)/2 - CX, (a.y+b.y)/2 - CY) < coreState.radius*dpr){ gesture.mode='pinch-core'; }
+    else { gesture.mode='tilt'; }
+  }
+  if(pts.length===3 && gesture.target){ gesture.mode='z-clip'; gesture.threeStart={z:gesture.target.z, yAvg:avgY(pts)}; showMeter(`z:${gesture.target.z.toFixed(2)}`); }
+}
+function onTouchMove(e){ e.preventDefault(); const t=now(); for(const touch of e.changedTouches){ const obj = touches.get(touch.identifier); if(obj){ obj.x=touch.clientX*dpr; obj.y=touch.clientY*dpr; obj.t=t; } }
+  const pts=[...touches.values()];
+  if(gesture.mode==='spin' && pts.length===1){ const p=pts[0]; const a0=Math.atan2(gesture.pt0.y-CY, gesture.pt0.x-CX); const a1=Math.atan2(p.y-CY, p.x-CX); const da=a1-a0; wheel.theta+=da; wheel.omega = da/(t-gesture.t0+1e-4); gesture.pt0={x:p.x,y:p.y}; gesture.t0=t; }
+  else if(gesture.mode==='drag-clip' && pts.length===1 && gesture.target){ const p=pts[0]; const dx=(p.x-gesture.lastPos.x); const dy=(p.y-gesture.lastPos.y); gesture.lastPos={x:p.x,y:p.y}; gesture.target.x+=dx; gesture.target.y+=dy; updatePolar(gesture.target); }
+  else if(gesture.mode==='pinch-clip' && pts.length===2 && gesture.target){ const [a,b]=pts; const d=dist2(a,b); const s=d/(gesture.twoStart.dist+1e-6); gesture.target.scale = clamp((gesture.clipStart?gesture.clipStart.scale:gesture.target.scale)*s, 0.25, 4);
+    const angNow=Math.atan2(b.y-a.y, b.x-a.x); const dang=angNow-gesture.twoStart.ang; gesture.target.phaseOffset = (gesture.clipStart?gesture.clipStart.phaseOffset:gesture.target.phaseOffset) + (dang/TAU);
+    gesture.target.feather = clamp(gesture.target.feather + (s-1)*30, 0, 160);
+  }
+  else if(gesture.mode==='pinch-core' && pts.length===2){ const [a,b]=pts; const d=dist2(a,b); const s=d/(gesture.twoStart.dist+1e-6); coreState.radius = clamp(coreState.radius*s, 40, Math.min(W,H)/2); meters.coreR=coreState.radius; }
+  else if(gesture.mode==='z-clip' && pts.length>=3 && gesture.target){ const yA=avgY(pts); const dy=(yA - gesture.threeStart.yAvg); gesture.target.z = clamp( (gesture.threeStart.z - dy/(200*dpr)), -1.5, 1.5 ); showMeter(`z:${gesture.target.z.toFixed(2)}`); }
+  else if(gesture.mode==='tilt'){ if(pts.length===2){ const [a,b]=pts; const cx=(a.x+b.x)/2, cy=(a.y+b.y)/2; view.tiltX = clamp((cy-CY)/H, -1, 1); view.tiltY = clamp((cx-CX)/W, -1, 1); }}
+}
+function onTouchEnd(e){ e.preventDefault(); const t=now(); for(const touch of e.changedTouches){ touches.delete(touch.identifier); }
+  const pts=[...touches.values()];
+  if(gesture.mode==='drag-clip' && gesture.target){ log('end','clip',gesture.target,gesture.clipStart); haptic(10); }
+  if(gesture.mode==='spin'){ wheel.spinActive=false; meters.rpm = (wheel.omega*60/(TAU))|0; }
+  if(gesture.onCore && gesture.tapCount===2){ nextBlendMode(); haptic(15); }
+  if(gesture.onCore && gesture.tapCount>=3){ coreState.mist=!coreState.mist; toast(coreState.mist? 'Mist ON':'Mist OFF'); haptic(30); }
+  // throw: if velocity high and near rim -> snap sector
+  if(gesture.mode==='drag-clip' && gesture.target){ const v = Math.hypot((gesture.lastPos.x-gesture.pt0.x)/(t-gesture.t0+1e-4), (gesture.lastPos.y-gesture.pt0.y)/(t-gesture.t0+1e-4)); const distToRim = Math.abs(Math.hypot(gesture.target.x-CX, gesture.target.y-CY) - wheel.radius);
+    if(v>600 && distToRim<80){ // throw
+      const ang=Math.atan2(gesture.target.y-CY, gesture.target.x-CX);
+      const snap=TAU/wheel.snapSectors; const snapped = Math.round(ang/snap)*snap; const R = wheel.radius*(0.98);
+      gesture.target.x = CX + Math.cos(snapped)*R; gesture.target.y = CY + Math.sin(snapped)*R; updatePolar(gesture.target); toast('Snapped'); haptic(20);
+    }
+  }
+  gesture.mode=null; }
+
+function dist2(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
+function avgY(pts){ return pts.reduce((s,p)=>s+p.y,0)/pts.length; }
+function updatePolar(clip){ const dx=clip.x-CX, dy=clip.y-CY; clip.r = Math.hypot(dx,dy); clip.theta = Math.atan2(dy,dx); }
+function log(op, targetKind, target, before){ processLog.push({t:Date.now(), targetId:target.id, op, params_before:before, params_after:{...target}}); }
+function pushUndo(){ const snap=snapshot(); undoStack.push(snap); if(undoStack.length>50) undoStack.shift(); }
+
+// Undo-braid: two-finger hold then swipe left
+let undoArm={armed:false, t0:0, x0:0};
+setInterval(()=>{ if(touches.size===2){ const pts=[...touches.values()]; if(!undoArm.armed){ undoArm.armed=true; undoArm.t0=now(); undoArm.x0=(pts[0].x+pts[1].x)/2; }
+  const dt=now()-undoArm.t0; const dx=((pts[0].x+pts[1].x)/2 - undoArm.x0);
+  if(dt>0.4 && dx<-60*dpr){ restore(undoStack.pop()); toast('Undo'); haptic(30); undoArm.armed=false; }
+} else { undoArm.armed=false; } }, 60);
+
+// Blend mode cycling
+function nextBlendMode(){ coreState.blendIndex = (coreState.blendIndex+1)%coreState.blendModes.length; meters.blend = coreState.blendModes[coreState.blendIndex]; document.getElementById('blendBadge').textContent = 'Blend: '+meters.blend; }
+
+// Drawing
+let lastTime=now(); let frame=0;
+function loop(){ if(!running) return; requestAnimationFrame(loop); const t=now(); const dt = Math.min(0.05, t-lastTime); lastTime=t; update(dt); render(t); }
+function update(dt){ // wheel inertia
+  if(!wheel.spinActive){ wheel.theta += wheel.omega*dt; wheel.omega *= wheel.inertia; if(Math.abs(wheel.omega)<0.0001) wheel.omega=0; }
+  meters.rpm = Math.abs(wheel.omega)*60/TAU;
+}
+
+function render(t){ // Scene background
+  ctx.clearRect(0,0,W,H);
+  // soft grid/snap indicators
+  if(toggles.snap){ drawSnapGrid(); }
+  // draw wheel
+  ctx.save(); ctx.translate(CX,CY);
+  ctx.beginPath(); ctx.arc(0,0,wheel.radius,0,TAU); ctx.strokeStyle='rgba(200,220,255,0.08)'; ctx.lineWidth=2*dpr; ctx.stroke();
+  // rim ticks
+  const sectors=wheel.snapSectors; for(let i=0;i<sectors;i++){ const a=i*TAU/sectors + wheel.theta; const x=Math.cos(a)*wheel.radius, y=Math.sin(a)*wheel.radius; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x*0.94,y*0.94); ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.stroke(); }
+  ctx.restore();
+
+  // Fusion Core render to offscreen
+  coreCtx.clearRect(0,0,core.width,core.height);
+  if(coreState.mist){ // feedback
+    coreCtx.save(); coreCtx.globalAlpha = coreState.mistDensity; coreCtx.translate(core.width/2, core.height/2);
+    coreCtx.rotate(coreState.mistSwirl); const s = 1+coreState.mistSwirl*1.2; coreCtx.scale(s,s); coreCtx.translate(-core.width/2, -core.height/2);
+    coreCtx.drawImage(cvs, CX-core.width/2, CY-core.height/2, core.width, core.height, 0,0, core.width, core.height);
+    coreCtx.restore();
+  }
+
+  // depth sort clips (furthest first)
+  const sorted = [...clips].sort((a,b)=>a.z-b.z);
+  // parallax
+  const tiltX = view.tiltX, tiltY=view.tiltY;
+
+  let activeCount=0; let alphaAcc=0; meters.depthHist.fill(0);
+  for(const clip of sorted){ // draw procedural content
+    const proc = makeProcedural(clip.kind, clip.hue); // lightweight factory each loop? optimize: reuse
+  }
+  // Actually keep a small proc cache by id
+  // simple cache
+  if(!render.procCache){ render.procCache=new Map(); }
+  function procFor(clip){ let p=render.procCache.get(clip.id); if(!p){ p=makeProcedural(clip.kind, clip.hue); render.procCache.set(clip.id,p); } return p; }
+
+  for(const clip of sorted){ const proc=procFor(clip); const phase = (wheel.theta/TAU + clip.phaseOffset)%1; proc.draw(t*1.0 + phase*4.0);
+    const px = clip.x + view.parallax*clip.z*200*tiltY;
+    const py = clip.y + view.parallax*clip.z*200*tiltX;
+    const dx=px-CX, dy=py-CY; const dist=Math.hypot(dx,dy);
+    // influenced by Fusion Core?
+    const inCore = dist < coreState.radius + clip.fogRadius*clip.scale*0.5;
+    if(inCore){ activeCount++; alphaAcc += clip.alpha; // simplistic
+      // composite to core buffer using selected blend
+      coreCtx.save(); coreCtx.globalCompositeOperation = meters.blend; coreCtx.globalAlpha = clip.alpha;
+      // mask with soft edge
+      const size = clip.fogRadius*2*clip.scale; const offX = (px - clip.fogRadius*clip.scale) - (CX - core.width/2);
+      const offY = (py - clip.fogRadius*clip.scale) - (CY - core.height/2);
+      // create radial feather mask via globalCompositeOperation trick
+      const tmp = getTempCanvas(Math.ceil(size), Math.ceil(size)); const tc=tmp.getContext('2d');
+      tc.clearRect(0,0,tmp.width,tmp.height);
+      // draw content into tmp
+      tc.save(); tc.beginPath(); tc.arc(tmp.width/2, tmp.height/2, tmp.width/2, 0, TAU); tc.clip(); tc.drawImage(proc.canvas, 0,0, tmp.width, tmp.height); tc.restore();
+      // feather mask
+      const g = tc.createRadialGradient(tmp.width/2,tmp.height/2, tmp.width*0.45, tmp.width/2,tmp.height/2, tmp.width*0.5);
+      g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(1,'rgba(255,255,255,0)');
+      tc.globalCompositeOperation='destination-in'; tc.fillStyle=g; tc.fillRect(0,0,tmp.width,tmp.height);
+      // depth-based alpha bias
+      const depthAlpha = clamp(1 - (clip.z*0.3 + document.getElementById('depthBias').value*1.0), 0.2, 1);
+      coreCtx.globalAlpha *= depthAlpha; 
+      coreCtx.drawImage(tmp, offX, offY);
+      coreCtx.restore();
+      // depth histogram bucket 0..7
+      const b = clamp(Math.floor((clip.z+1.5)/3*8),0,7); meters.depthHist[b]++;
+    }
+  }
+
+  // draw core back to scene with exposure/gamma
+  ctx.save(); ctx.translate(CX-core.width/2, CY-core.height/2);
+  ctx.globalAlpha = coreState.exposure; ctx.drawImage(core,0,0);
+  ctx.restore();
+
+  // core ring
+  ctx.beginPath(); ctx.arc(CX,CY, coreState.radius, 0, TAU); ctx.strokeStyle='rgba(66,245,197,0.18)'; ctx.lineWidth=2*dpr; ctx.stroke();
+
+  // meters
+  drawMeters(activeCount, alphaAcc);
+}
+
+function drawSnapGrid(){ ctx.save(); ctx.translate(CX,CY); ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1*dpr; for(let r=60; r<wheel.radius*1.2; r+=60){ ctx.beginPath(); ctx.arc(0,0,r,0,TAU); ctx.stroke(); }
+  ctx.restore(); }
+
+function drawMeters(activeCount, alphaAcc){ const box = document.getElementById('meters'); box.innerHTML='';
+  const mk=(label,val)=>{ const d=document.createElement('div'); d.className='meter'; d.innerHTML=`<b style="color:#cfe7ff">${label}</b> <span style="margin-left:6px;color:#9ab">${val}</span>`; return d; };
+  box.appendChild(mk('Active Clips', activeCount));
+  box.appendChild(mk('Alpha Load', (alphaAcc).toFixed(2)));
+  // depth histogram spark
+  let hist=''; for(const n of meters.depthHist){ hist+= '▁▂▃▄▅▆▇'[Math.min(6, n)]||'▁'; }
+  box.appendChild(mk('Depth', hist));
+  document.getElementById('rpmBadge').textContent = `RPM: ${meters.rpm.toFixed(1)}`;
+  document.getElementById('coreBadge').textContent = `Core R: ${Math.round(coreState.radius)}`;
+}
+
+// temp canvas pool
+const pool=[]; function getTempCanvas(w,h){ let c=pool.pop(); if(!c){ c=document.createElement('canvas'); } c.width=w; c.height=h; return c; }
+
+// UI buttons
+const tuner = document.getElementById('tuner');
+document.getElementById('gear').onclick=()=>{ tuner.classList.toggle('hidden'); };
+document.getElementById('closeTuner').onclick=()=> tuner.classList.add('hidden');
+document.getElementById('loadDemo').onclick=()=> loadDemo();
+document.getElementById('snapToggle').onclick=()=>{ toggles.snap=!toggles.snap; toast(toggles.snap?'Snap ON':'Snap OFF'); };
+
+// Tuner hooks
+const coreSens = document.getElementById('coreSens'); coreSens.oninput = ()=> coreState.sensitivity = +coreSens.value;
+const mistDensity = document.getElementById('mistDensity'); mistDensity.oninput = ()=> coreState.mistDensity = +mistDensity.value;
+const mistSwirl = document.getElementById('mistSwirl'); mistSwirl.oninput = ()=> coreState.mistSwirl = +mistSwirl.value;
+const featherPx = document.getElementById('featherPx'); featherPx.oninput = ()=> { for(const c of clips) c.feather= +featherPx.value; };
+const depthBias = document.getElementById('depthBias'); depthBias.oninput = ()=>{};
+const parallaxStr = document.getElementById('parallaxStr'); parallaxStr.oninput = ()=> view.parallax = +parallaxStr.value;
+const blendOrder = document.getElementById('blendOrder'); blendOrder.oninput = ()=> coreState.blendModes = blendOrder.value.split(',');
+const exposure = document.getElementById('exposure'); exposure.oninput = ()=> coreState.exposure = +exposure.value;
+const gamma = document.getElementById('gamma'); gamma.oninput = ()=> coreState.gamma = +gamma.value;
+
+// Motion enable
+document.getElementById('motion').onclick = async()=>{
+  try{
+    if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      const p = await DeviceOrientationEvent.requestPermission(); if(p!=='granted') return; }
+    window.addEventListener('deviceorientation', (e)=>{ const gx = (e.beta||0)/45; const gy=(e.gamma||0)/45; view.tiltX = clamp(gx,-1,1); view.tiltY=clamp(gy,-1,1); }, true);
+    toast('Motion ON');
+  }catch(err){ toast('Motion not available'); }
+}
+
+// Calibrate (simple): wait 2s with two fingers inside core; measure variance -> adjust sensitivity
+let calibrating=false;
+document.getElementById('calibrate').onpointerdown=()=>{ if(calibrating) return; calibrating=true; const start=now(); const samples=[]; const id=setInterval(()=>{ samples.push({x:view.tiltX, y:view.tiltY}); if(now()-start>2){ clearInterval(id); if(samples.length>4){ const vx=variance(samples.map(s=>s.x)); const vy=variance(samples.map(s=>s.y)); const jitter=Math.sqrt(vx+vy); coreState.sensitivity = clamp(1.2 - jitter*2, 0.5, 1.5); coreSens.value=coreState.sensitivity; toast('Calibrated'); } calibrating=false; } }, 120); };
+function variance(arr){ const m=arr.reduce((a,b)=>a+b,0)/arr.length; return arr.reduce((s,v)=>s+(v-m)*(v-m),0)/arr.length; }
+
+// Help
+document.getElementById('help').onclick=()=>{
+  toast('Gestures: Rim=spin; 1-finger drag clip=move; 2-finger on clip=scale+phase; 3-finger over clip=Z; 2-finger pinch center=Core size; Double-tap core=Blend; Triple-tap core=Mist; Two-finger hold+swipe left=Undo; Flick to rim=Snap');
+}
+
+// Record WebM
+let recorder=null; let chunks=[]; let recording=false;
+document.getElementById('rec').onclick=()=>{
+  if(!recording){ const stream = cvs.captureStream(30); recorder = new MediaRecorder(stream, {mimeType:'video/webm;codecs=vp9'}); chunks=[]; recorder.ondataavailable=(e)=>{ if(e.data.size>0) chunks.push(e.data); };
+    recorder.onstop=()=>{ const blob=new Blob(chunks,{type:'video/webm'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='fusion-core.webm'; a.click(); URL.revokeObjectURL(url); };
+    recorder.start(); recording=true; toast('REC start'); this.textContent='⏹ STOP'; } else { recorder.stop(); recording=false; toast('REC saved'); document.getElementById('rec').textContent='🎥 REC'; }
+}
+
+// Stamp to Wheel
+ document.getElementById('stamp').onclick=()=>{
+   // capture center region into image clip
+   const size = Math.min(core.width, core.height);
+   const tmp=getTempCanvas(size,size); const tctx=tmp.getContext('2d'); tctx.drawImage(cvs, CX-size/2, CY-size/2, size, size, 0,0,size,size);
+   // create a clip that uses this snapshot
+   const id = nextId++; const hue=Math.floor(Math.random()*360);
+   const off = document.createElement('canvas'); off.width=256; off.height=256; const oc=off.getContext('2d'); oc.drawImage(tmp,0,0,256,256);
+   const clip = {id, kind:'stamped', x:CX+ (Math.random()*80-40), y:CY+(Math.random()*80-40), z:0, r:wheel.radius*0.3, theta:0, scale:1, hue, alpha:0.9, blendMode:'source-over', fogRadius:140, fogNoise:0.5, feather:60, phaseOffset:Math.random()};
+   clips.push(clip); toast('Stamped');
+ };
+
+// Export Log
+ document.getElementById('exportLog').onclick=()=>{ const blob = new Blob([JSON.stringify(processLog,null,2)], {type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='process-log.json'; a.click(); URL.revokeObjectURL(url); toast('Log exported'); };
+
+// Toast
+const toastEl=document.getElementById('toast');
+function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'), 900); }
+
+// Start
+loop();
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Cinematic Data‑Wall Editor — Mobile v0.1</title>
+<style>
+  :root{
+    --bg:#0a0b0f; --ink:#e8e6e3; --muted:#9aa0a6; --edge:#1b1f27; --hi:#37a7ff; --ok:#3ecf8e; --warn:#ffb020; --bad:#ff615a;
+    --panel:#0f1117; --panel2:#0c0e13; --track:#151821; --tile:#0d0f14; --accent:#8ab4f8; --shadow:rgba(0,0,0,.55);
+    --time:#e8e6e3; --blue:#1c2a44; --grid:#121520; --vgrad: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,.45) 80%);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  button{background:var(--panel);color:var(--ink);border:1px solid var(--edge);border-radius:12px;padding:.7rem .9rem;font-size:16px}
+  button:active{transform:translateY(1px)}
+  .topbar{position:fixed;top:0;left:0;right:0;height:60px;display:flex;gap:.5rem;align-items:center;padding:.4rem .6rem;background:linear-gradient(180deg,rgba(14,16,22,.98),rgba(14,16,22,.82));backdrop-filter:saturate(1.2) blur(4px);border-bottom:1px solid var(--edge);z-index:20}
+  .topbar .group{display:flex;gap:.45rem}
+  .topbar .title{font-weight:700;letter-spacing:.3px;margin-right:auto}
+  .icon{font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
+  .main{position:fixed;top:60px;bottom:120px;left:0;right:0;display:flex;flex-direction:column}
+  /* Stage */
+  #stageWrap{position:relative;flex:1;background:repeating-linear-gradient(0deg,var(--grid),var(--grid) 2px,transparent 2px,transparent 24px),repeating-linear-gradient(90deg,var(--grid),var(--grid) 2px,transparent 2px,transparent 24px),linear-gradient(#0a0c13,#0a0c13);overflow:hidden}
+  #stageCamera{position:absolute;inset:0;perspective:1200px;transform-style:preserve-3d}
+  #stage{position:absolute;inset:0;transform-style:preserve-3d;will-change:transform}
+  .tile{position:absolute;width:120px;height:72px;background:var(--tile);border:1px solid #252a36;border-radius:10px;overflow:hidden;box-shadow:0 6px 18px var(--shadow)}
+  .tile video,.tile img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile .cap{position:absolute;left:6px;bottom:4px;font:11px/1.2 ui-monospace,monospace;background:rgba(0,0,0,.45);padding:2px 6px;border-radius:6px;color:#cdd7f7}
+  .tile.focus{outline:2px solid var(--hi);}
+  .hint{position:absolute;right:8px;bottom:8px;font:11px ui-monospace;color:var(--muted);opacity:.7}
+  /* Cinema */
+  #cinema{position:absolute;inset:0;background:#000;display:none}
+  #cinema.show{display:block}
+  #cinema video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+  #exitCinema{position:absolute;top:10px;left:10px;z-index:3}
+  /* Overlays */
+  .vignette{pointer-events:none;position:absolute;inset:0;background:var(--vgrad);mix-blend-mode:multiply;opacity:.35}
+  .haze{pointer-events:none;position:absolute;inset:-10% -10% 0 -10%;background:radial-gradient(ellipse at 50% 20%, rgba(120,160,255,.18),transparent 60%);filter:blur(2px);opacity:.0}
+  /* Controls drawer */
+  .drawer{position:fixed;bottom:120px;left:0;right:0;background:linear-gradient(180deg,rgba(15,17,23,.98),rgba(15,17,23,.92));border-top:1px solid var(--edge);padding:.6rem .7rem;display:none;z-index:21}
+  .drawer.show{display:block}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+  label{font:12px/1.2 ui-monospace;color:#b7c1d6}
+  input[type=range]{width:100%}
+  .row{display:flex;gap:.5rem;align-items:center}
+  select, input[type=number], input[type=text]{width:100%;background:#0b0e15;border:1px solid #2a3141;color:var(--ink);border-radius:10px;padding:.6rem .6rem;font-size:14px}
+  .small{font-size:12px;color:var(--muted)}
+  /* Timeline */
+  .timeline{position:fixed;bottom:0;left:0;right:0;height:120px;background:linear-gradient(0deg,rgba(10,12,18,.98),rgba(10,12,18,.9));border-top:1px solid var(--edge);padding:.5rem .6rem;z-index:22}
+  .tl-row{display:flex;gap:.5rem;align-items:center}
+  #playBtn{width:56px}
+  #timeLabel{font:12px ui-monospace;color:var(--muted)}
+  #tlTrack{position:relative;height:44px;background:var(--track);border:1px solid #22283a;border-radius:12px;margin-top:.5rem;overflow:hidden}
+  .seg{position:absolute;top:0;bottom:0;background:#1b2740;border-right:1px solid #2a3a5e;display:flex;align-items:center;justify-content:center;font:12px ui-monospace;color:#cfe3ff}
+  .seg:nth-child(odd){background:#192235}
+  .playhead{position:absolute;top:0;bottom:0;width:2px;background:var(--ok);box-shadow:0 0 0 2px rgba(62,207,142,.2)}
+  .controls-row{display:flex;gap:.4rem;margin-top:.5rem}
+  /* Floating mini buttons for one-hand use */
+  .fab{position:fixed;right:10px;bottom:140px;display:flex;flex-direction:column;gap:.5rem;z-index:25}
+  .fab button{width:54px;height:54px;border-radius:14px}
+  /* Utilities */
+  .hidden{display:none}
+  .pill{display:inline-flex;gap:.5rem;align-items:center;background:#0b0e15;border:1px solid #2a3141;border-radius:999px;padding:.4rem .6rem}
+  .w100{width:100%}
+  .tcenter{text-align:center}
+  .mono{font-family:ui-monospace,monospace}
+  /* Mobile safe hit areas */
+  .hit{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="title">Cinematic Data‑Wall Editor</div>
+    <div class="group">
+      <button id="importBtn" class="hit" title="Import videos/images">＋</button>
+      <button id="voBtn" class="hit" title="Load voiceover">⌂</button>
+      <button id="bgmBtn" class="hit" title="Load music bg">♬</button>
+    </div>
+    <div class="group">
+      <button id="layoutGrid" class="hit" title="Grid">▦</button>
+      <button id="layoutSpiral" class="hit" title="Spiral">⟲</button>
+      <button id="layoutCorr" class="hit" title="Corridor">⇶</button>
+      <button id="layoutStack" class="hit" title="Stack">▤</button>
+    </div>
+    <div class="group">
+      <button id="drawerBtn" class="hit" title="Show controls">⚙</button>
+      <button id="fsBtn" class="hit" title="Fullscreen">⛶</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div id="stageWrap">
+      <div id="stageCamera">
+        <div id="stage"></div>
+        <div class="vignette" id="vignette"></div>
+        <div class="haze" id="haze"></div>
+        <div class="hint mono">Tap a tile to focus → long‑press to mark ⭐</div>
+      </div>
+      <div id="cinema">
+        <button id="exitCinema" class="hit">⟲</button>
+        <video id="cinemaVideo" playsinline controls></video>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawer" id="drawer">
+    <div class="grid2">
+      <div>
+        <label>Scene duration (s)</label>
+        <input type="number" id="sceneDur" min="1" value="6" />
+      </div>
+      <div>
+        <label>Camera path</label>
+        <select id="camMode">
+          <option value="orbit">orbit</option>
+          <option value="dolly">dolly</option>
+          <option value="zoom">zoom</option>
+        </select>
+      </div>
+      <div>
+        <label>Zoom</label>
+        <input type="range" id="zoom" min="-1200" max="400" value="-500" />
+      </div>
+      <div>
+        <label>Rotate Y (°)</label>
+        <input type="range" id="rotY" min="-180" max="180" value="0" />
+      </div>
+      <div>
+        <label>Filters (contrast / saturate)</label>
+        <div class="row">
+          <input type="range" id="fContrast" min="50" max="200" value="100" />
+          <input type="range" id="fSaturate" min="50" max="200" value="100" />
+        </div>
+      </div>
+      <div>
+        <label>Tone (hue) & vignette</label>
+        <div class="row">
+          <input type="range" id="fHue" min="-180" max="180" value="0" />
+          <input type="range" id="vignetteAmt" min="0" max="100" value="35" />
+        </div>
+      </div>
+      <div>
+        <label>Haze</label>
+        <input type="range" id="hazeAmt" min="0" max="100" value="0" />
+      </div>
+      <div>
+        <label>Focus keyword cues (mm:ss keyword)</label>
+        <textarea id="cueText" rows="3" placeholder="00:05 iran\n00:12 sugar\n00:20 factory" style="width:100%;background:#0b0e15;border:1px solid #2a3141;color:var(--ink);border-radius:10px;padding:.5rem"></textarea>
+      </div>
+    </div>
+    <div class="controls-row">
+      <button id="addScene">＋ scene</button>
+      <button id="saveScene">⟐ update</button>
+      <button id="exportBtn">⇪ export</button>
+      <button id="importProjBtn">⇩ import</button>
+      <span class="small">State auto‑saves locally.</span>
+    </div>
+    <div class="controls-row">
+      <label class="pill">VO vol <input id="voVol" type="range" min="0" max="1" step=".01" value="1"></label>
+      <label class="pill">BGM vol <input id="bgmVol" type="range" min="0" max="1" step=".01" value=".4"></label>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="tl-row">
+      <button id="playBtn" class="hit">▶</button>
+      <button id="addSegBtn" class="hit">＋✚</button>
+      <div id="timeLabel" class="mono">0:00 / 0:00</div>
+      <div class="pill"><span class="small">tap segment to jump · drag playhead</span></div>
+    </div>
+    <div id="tlTrack">
+      <div id="playhead" class="playhead" style="left:0"></div>
+    </div>
+  </div>
+
+  <div class="fab">
+    <button id="focusBtn" title="Focus selected">◎</button>
+    <button id="cinemaBtn" title="Enter cinema">▣</button>
+  </div>
+
+  <input id="fileInput" type="file" multiple accept="video/*,image/*" class="hidden"/>
+  <input id="voInput" type="file" accept="audio/*" class="hidden"/>
+  <input id="bgmInput" type="file" accept="audio/*" class="hidden"/>
+
+  <textarea id="projIO" class="hidden"></textarea>
+
+  <script>
+  ;(()=>{
+    const $ = sel => document.querySelector(sel);
+    const stageWrap = $('#stageWrap');
+    const camera = $('#stageCamera');
+    const stage = $('#stage');
+    const dlg = $('#drawer');
+    const cinema = $('#cinema');
+    const cinemaVideo = $('#cinemaVideo');
+    const playBtn = $('#playBtn');
+    const timeLabel = $('#timeLabel');
+    const tlTrack = $('#tlTrack');
+    const playhead = $('#playhead');
+    const vignette = $('#vignette');
+    const haze = $('#haze');
+
+    const state = {
+      assets: [], // {id,type,url,el,tags:[],name}
+      scenes: [], // {id,layout,dur,camMode,zoom,rotY,filters:{contrast,saturate,hue},vignette,haze,cuesText}
+      segs: [],   // {id,sceneId,start,dur}
+      playing:false,
+      startT:0,
+      t:0,
+      duration:0,
+      selectedTileId:null,
+      vo:null,bgm:null,
+    };
+
+    // Restore
+    try{
+      const saved = localStorage.getItem('cdwe_project_v01');
+      if(saved){ Object.assign(state, JSON.parse(saved)); }
+    }catch(e){ console.warn(e); }
+
+    function persist(){
+      const minimal = {assets: state.assets.map(a=>({id:a.id,type:a.type,url:a.url,tags:a.tags||[],name:a.name})), scenes: state.scenes, segs: state.segs};
+      localStorage.setItem('cdwe_project_v01', JSON.stringify(minimal));
+    }
+
+    // Asset import
+    $('#importBtn').onclick = ()=> $('#fileInput').click();
+    $('#fileInput').onchange = e => {
+      const files = [...e.target.files];
+      files.forEach(f=> addAsset(f));
+      layoutCurrent();
+      e.target.value = '';
+      persist();
+    };
+
+    function addAsset(file){
+      const url = URL.createObjectURL(file);
+      const id = 'a'+Math.random().toString(36).slice(2,8);
+      const type = file.type.startsWith('image')? 'image' : 'video';
+      const name = file.name||'';
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.dataset.id = id;
+      const cap = document.createElement('div'); cap.className='cap'; cap.textContent = name.slice(0,22);
+      let media;
+      if(type==='video'){
+        media = document.createElement('video');
+        media.src = url; media.muted = true; media.playsInline = true; media.preload = 'metadata'; media.disablePictureInPicture = true;
+        // draw first frame for poster-like appearance
+        media.addEventListener('loadeddata', ()=>{ media.currentTime = 0; });
+      } else { media = document.createElement('img'); media.src = url; }
+      tile.appendChild(media); tile.appendChild(cap);
+      tile.addEventListener('click', ()=> focusTile(id));
+      tile.addEventListener('contextmenu', ev=>{ ev.preventDefault(); tile.classList.toggle('focus'); state.selectedTileId = id; });
+      stage.appendChild(tile);
+      state.assets.push({id,type,url,el:tile,tags:[],name});
+      return id;
+    }
+
+    function focusTile(id){
+      state.selectedTileId = id;
+      stage.querySelectorAll('.tile').forEach(t=> t.classList.toggle('focus', t.dataset.id===id));
+    }
+
+    // Layouts
+    let currentLayout = 'grid';
+    function layoutCurrent(){
+      const scene = currentScene();
+      const layout = scene? scene.layout : currentLayout;
+      if(layout==='grid') layoutGrid();
+      else if(layout==='spiral') layoutSpiral();
+      else if(layout==='corridor') layoutCorridor();
+      else if(layout==='stack') layoutStack();
+      applyFilters(scene||{});
+      applyOverlays(scene||{});
+    }
+
+    function layoutGrid(){
+      currentLayout='grid';
+      const N = state.assets.length || 1;
+      const cols = Math.ceil(Math.sqrt(N));
+      const gap = 14, w=120, h=72;
+      const rows = Math.ceil(N/cols);
+      const totalW = cols*w + (cols-1)*gap;
+      const totalH = rows*h + (rows-1)*gap;
+      const ox = (stageWrap.clientWidth - totalW)/2;
+      const oy = (stageWrap.clientHeight - totalH)/2;
+      state.assets.forEach((a,i)=>{
+        const x = (i%cols)*(w+gap) + ox;
+        const y = Math.floor(i/cols)*(h+gap) + oy;
+        a.el.style.transform = `translate3d(${x}px, ${y}px, 0px)`;
+        a.el.style.width = w+'px'; a.el.style.height = h+'px';
+      });
+    }
+
+    function layoutSpiral(){
+      currentLayout='spiral';
+      const cx = stageWrap.clientWidth/2, cy = stageWrap.clientHeight/2;
+      const baseR = 30, stepR = 16, stepZ = -40;
+      state.assets.forEach((a,i)=>{
+        const ang = i * 24 * Math.PI/180;
+        const r = baseR + i*stepR;
+        const x = cx + r*Math.cos(ang) - 60;
+        const y = cy + r*Math.sin(ang) - 36;
+        const z = i*stepZ;
+        a.el.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${ang}rad)`;
+        a.el.style.width='120px'; a.el.style.height='72px';
+      });
+    }
+
+    function layoutCorridor(){
+      currentLayout='corridor';
+      const cx = stageWrap.clientWidth/2, cy = stageWrap.clientHeight/2;
+      state.assets.forEach((a,i)=>{
+        const lane = (i%5)-2; // -2..2
+        const depth = -i*120;
+        const x = cx + lane*150 - 60;
+        const y = cy + ((i%2)? -40:40) - 36;
+        a.el.style.transform = `translate3d(${x}px, ${y}px, ${depth}px)`;
+        a.el.style.width='120px'; a.el.style.height='72px';
+      });
+    }
+
+    function layoutStack(){
+      currentLayout='stack';
+      const cx = stageWrap.clientWidth/2 - 60, cy = stageWrap.clientHeight/2 - 36;
+      state.assets.forEach((a,i)=>{
+        const z = -i*60;
+        a.el.style.transform = `translate3d(${cx}px, ${cy}px, ${z}px)`;
+        a.el.style.width='120px'; a.el.style.height='72px';
+      });
+    }
+
+    // Camera
+    const cam = {z:-500, ry:0};
+    function applyCamera(){
+      camera.style.perspective = Math.max(600, 1200 + cam.z) + 'px';
+      stage.style.transform = `translateZ(${cam.z}px) rotateY(${cam.ry}deg)`;
+    }
+
+    // Filters & overlays
+    function applyFilters(scene){
+      const fc = (scene.filters?.contrast)||100;
+      const fs = (scene.filters?.saturate)||100;
+      const fh = (scene.filters?.hue)||0;
+      stage.style.filter = `contrast(${fc}%) saturate(${fs}%) hue-rotate(${fh}deg)`;
+    }
+    function applyOverlays(scene){
+      vignette.style.opacity = (scene.vignette??35)/100;
+      haze.style.opacity = (scene.haze??0)/100;
+    }
+
+    // Scenes & timeline
+    function currentScene(){
+      if(state.segs.length===0) return null;
+      const t = state.t;
+      for(const s of state.segs){
+        if(t>=s.start && t < s.start+s.dur){
+          return state.scenes.find(sc=> sc.id===s.sceneId) || null;
+        }
+      }
+      return null;
+    }
+
+    function recomputeDuration(){
+      const last = state.segs[state.segs.length-1];
+      state.duration = last? (last.start + last.dur) : 0;
+      renderTimeline();
+    }
+
+    function addSceneFromUI(){
+      const sc = {
+        id:'sc'+Math.random().toString(36).slice(2,8),
+        layout: currentLayout,
+        dur: parseFloat($('#sceneDur').value)||6,
+        camMode: $('#camMode').value,
+        zoom: parseInt($('#zoom').value,10),
+        rotY: parseInt($('#rotY').value,10),
+        filters:{contrast: parseInt($('#fContrast').value,10), saturate: parseInt($('#fSaturate').value,10), hue: parseInt($('#fHue').value,10)},
+        vignette: parseInt($('#vignetteAmt').value,10),
+        haze: parseInt($('#hazeAmt').value,10),
+        cuesText: $('#cueText').value||''
+      };
+      state.scenes.push(sc);
+      const start = state.segs.length? (state.segs[state.segs.length-1].start + state.segs[state.segs.length-1].dur) : 0;
+      state.segs.push({id:'sg'+Math.random().toString(36).slice(2,8), sceneId: sc.id, start, dur: sc.dur});
+      recomputeDuration();
+      applyScene(sc);
+      persist();
+    }
+
+    function applyScene(sc){
+      // layout
+      if(sc.layout==='grid') layoutGrid();
+      else if(sc.layout==='spiral') layoutSpiral();
+      else if(sc.layout==='corridor') layoutCorridor();
+      else layoutStack();
+      cam.z = sc.zoom ?? -500; cam.ry = sc.rotY ?? 0; applyCamera();
+      applyFilters(sc); applyOverlays(sc);
+    }
+
+    function saveSceneFromUI(){
+      const sc = currentScene(); if(!sc) return;
+      sc.layout = currentLayout;
+      sc.dur = parseFloat($('#sceneDur').value)||sc.dur;
+      sc.camMode = $('#camMode').value; sc.zoom = parseInt($('#zoom').value,10); sc.rotY = parseInt($('#rotY').value,10);
+      sc.filters = {contrast: parseInt($('#fContrast').value,10), saturate: parseInt($('#fSaturate').value,10), hue: parseInt($('#fHue').value,10)};
+      sc.vignette = parseInt($('#vignetteAmt').value,10); sc.haze = parseInt($('#hazeAmt').value,10);
+      sc.cuesText = $('#cueText').value||'';
+      // update seg duration if needed
+      const seg = state.segs.find(s=> s.sceneId===sc.id);
+      if(seg){ seg.dur = sc.dur; recomputeDuration(); }
+      applyScene(sc); persist();
+    }
+
+    function renderTimeline(){
+      tlTrack.querySelectorAll('.seg').forEach(n=>n.remove());
+      const W = tlTrack.clientWidth; const T = Math.max(state.duration, 1);
+      state.segs.forEach((s,idx)=>{
+        const left = (s.start/T)*W; const width = (s.dur/T)*W;
+        const d = document.createElement('div'); d.className='seg'; d.style.left=left+'px'; d.style.width=width+'px'; d.textContent = (idx+1);
+        d.onclick = ()=> { state.t = s.start; applyScene(state.scenes.find(sc=>sc.id===s.sceneId)); updateTimeUI(); };
+        tlTrack.appendChild(d);
+      });
+      updateTimeUI();
+    }
+
+    function updateTimeUI(){
+      const mm = n=> (n<10? '0'+n: ''+n);
+      const cur = Math.floor(state.t);
+      const tot = Math.floor(state.duration);
+      timeLabel.textContent = `${Math.floor(cur/60)}:${mm(cur%60)} / ${Math.floor(tot/60)}:${mm(tot%60)}`;
+      const W = tlTrack.clientWidth; const T = Math.max(state.duration,1);
+      playhead.style.left = Math.min(W, (state.t/T)*W) + 'px';
+    }
+
+    // Playback
+    function play(){
+      if(state.duration<=0){ return; }
+      if(state.vo){ state.vo.play().catch(()=>{}); }
+      if(state.bgm){ state.bgm.play().catch(()=>{}); }
+      state.playing = true;
+      state.startT = performance.now() - state.t*1000;
+      playBtn.textContent = '⏸';
+      reqAF();
+    }
+    function pause(){
+      state.playing = false; playBtn.textContent = '▶';
+      if(state.vo){ state.vo.pause(); }
+      if(state.bgm){ state.bgm.pause(); }
+    }
+    playBtn.onclick = ()=> state.playing? pause(): play();
+
+    let rafId = 0; function reqAF(){ cancelAnimationFrame(rafId); rafId = requestAnimationFrame(tick); }
+    function tick(ts){
+      if(!state.playing) return;
+      state.t = Math.min(state.duration, (ts - state.startT)/1000);
+      // sync audio
+      if(state.vo && Math.abs(state.vo.currentTime - state.t) > .2){ try{ state.vo.currentTime = state.t; }catch{} }
+      if(state.bgm && Math.abs(state.bgm.currentTime - state.t) > .2){ try{ state.bgm.currentTime = state.t; }catch{} }
+      // scene switching & camera anim
+      const sc = currentScene();
+      if(sc){
+        animateCamera(sc);
+        handleCues(sc);
+      }
+      if(state.t>=state.duration){ pause(); }
+      updateTimeUI();
+      reqAF();
+    }
+
+    function animateCamera(sc){
+      const seg = state.segs.find(s=> s.sceneId===sc.id); if(!seg) return;
+      const localT = state.t - seg.start; const p = Math.max(0, Math.min(1, localT/Math.max(0.0001, sc.dur)));
+      if(sc.camMode==='orbit'){
+        cam.ry = (sc.rotY||0) + Math.sin(p*Math.PI*2)*25;
+        cam.z = (sc.zoom||-500) + Math.cos(p*Math.PI*2)*120;
+      } else if(sc.camMode==='dolly'){
+        cam.z = (sc.zoom||-500) + p*400 - 200;
+      } else if(sc.camMode==='zoom'){
+        cam.z = (sc.zoom||-500) + p*300;
+      }
+      applyCamera();
+    }
+
+    // Metadata-driven focus (simple keyword matcher)
+    function parseCues(text){
+      const lines = (text||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
+      return lines.map(line=>{
+        const m = line.match(/(\d\d?):(\d\d)\s+(.+)/);
+        if(!m) return null; const t = parseInt(m[1],10)*60+parseInt(m[2],10); const kw = m[3].toLowerCase();
+        return {t,kw};
+      }).filter(Boolean);
+    }
+
+    function handleCues(sc){
+      if(!state.vo || !sc.cuesText) return;
+      const cues = parseCues(sc.cuesText); if(!cues.length) return;
+      // find cue within 0.3s
+      const ct = Math.floor(state.t);
+      const cue = cues.find(c=> Math.abs(c.t - ct) <= 0);
+      if(!cue) return;
+      // find asset containing keyword
+      const hit = state.assets.find(a=> (a.name||'').toLowerCase().includes(cue.kw));
+      if(hit){ focusTile(hit.id); }
+    }
+
+    // Buttons
+    $('#layoutGrid').onclick = ()=>{ layoutGrid(); saveSceneFromUI(); };
+    $('#layoutSpiral').onclick = ()=>{ layoutSpiral(); saveSceneFromUI(); };
+    $('#layoutCorr').onclick = ()=>{ layoutCorridor(); saveSceneFromUI(); };
+    $('#layoutStack').onclick = ()=>{ layoutStack(); saveSceneFromUI(); };
+
+    $('#drawerBtn').onclick = ()=> dlg.classList.toggle('show');
+    $('#fsBtn').onclick = ()=>{ const el = document.documentElement; if(!document.fullscreenElement){ el.requestFullscreen?.(); } else { document.exitFullscreen?.(); } };
+
+    $('#addScene').onclick = addSceneFromUI;
+    $('#saveScene').onclick = saveSceneFromUI;
+
+    // add timeline segment alias
+    $('#addSegBtn').onclick = addSceneFromUI;
+
+    // Scrub
+    let scrubbing=false; tlTrack.addEventListener('pointerdown',e=>{ scrubbing=true; tlTrack.setPointerCapture(e.pointerId); seekFromEvent(e); pause();});
+    tlTrack.addEventListener('pointermove',e=>{ if(scrubbing) seekFromEvent(e); });
+    tlTrack.addEventListener('pointerup',e=>{ scrubbing=false; tlTrack.releasePointerCapture(e.pointerId); });
+
+    function seekFromEvent(e){
+      const rect = tlTrack.getBoundingClientRect();
+      const p = Math.max(0, Math.min(1, (e.clientX - rect.left)/rect.width));
+      state.t = p*state.duration; syncAudioToT(); updateTimeUI(); const sc = currentScene(); if(sc) applyScene(sc);
+    }
+
+    function syncAudioToT(){
+      if(state.vo){ try{ state.vo.currentTime = state.t; }catch{} }
+      if(state.bgm){ try{ state.bgm.currentTime = state.t; }catch{} }
+    }
+
+    // Cinema view
+    $('#cinemaBtn').onclick = ()=>{
+      const id = state.selectedTileId; if(!id) return; const a = state.assets.find(x=>x.id===id); if(!a) return;
+      cinema.classList.add('show');
+      if(a.type==='video'){ cinemaVideo.src = a.url; cinemaVideo.play().catch(()=>{}); }
+      else { // show image for 5s loop as still
+        const v = document.createElement('video'); v.loop=true; v.muted=true; v.playsInline=true; v.autoplay=true; const src = document.createElement('source');
+        // create tiny video from image? fallback: just show image via <video poster>
+        cinemaVideo.setAttribute('poster', a.url); cinemaVideo.removeAttribute('src'); cinemaVideo.load();
+      }
+    };
+    $('#exitCinema').onclick = ()=>{ cinema.classList.remove('show'); cinemaVideo.pause(); };
+
+    // Focus button centers camera to tile (zoom)
+    $('#focusBtn').onclick = ()=>{
+      const id = state.selectedTileId; if(!id) return; const el = stage.querySelector(`.tile[data-id="${id}"]`); if(!el) return;
+      // compute element center relative to stage
+      const rect = el.getBoundingClientRect(); const sw = stageWrap.clientWidth, sh = stageWrap.clientHeight;
+      const dx = (rect.left + rect.width/2) - sw/2; const dy = (rect.top + rect.height/2) - sh/2;
+      // translate stage to bring tile to center (approximate by moving rotateY small)
+      cam.ry += dx * -0.02; cam.z = -120; applyCamera();
+    };
+
+    // Audio loading & volume
+    function loadAudio(which){
+      const inp = which==='vo'? $('#voInput') : $('#bgmInput');
+      inp.onchange = e=>{
+        const file = e.target.files[0]; if(!file) return; const url = URL.createObjectURL(file);
+        const el = new Audio(url); el.preload = 'auto'; el.crossOrigin='anonymous'; el.addEventListener('loadedmetadata',()=>{ /* ok */});
+        if(which==='vo'){ state.vo = el; el.volume = parseFloat($('#voVol').value); }
+        else { state.bgm = el; el.volume = parseFloat($('#bgmVol').value); }
+        e.target.value='';
+      };
+      inp.click();
+    }
+    $('#voBtn').onclick = ()=> loadAudio('vo');
+    $('#bgmBtn').onclick = ()=> loadAudio('bgm');
+    $('#voVol').oninput = e=>{ if(state.vo) state.vo.volume = parseFloat(e.target.value); };
+    $('#bgmVol').oninput = e=>{ if(state.bgm) state.bgm.volume = parseFloat(e.target.value); };
+
+    // IO
+    $('#exportBtn').onclick = ()=>{
+      const data = localStorage.getItem('cdwe_project_v01')||'{}';
+      navigator.clipboard?.writeText(data);
+      alert('Project JSON copied to clipboard');
+    };
+    $('#importProjBtn').onclick = ()=>{
+      const txt = prompt('Paste project JSON');
+      if(!txt) return; try{ const obj = JSON.parse(txt);
+        // reset
+        state.assets = []; stage.innerHTML='';
+        (obj.assets||[]).forEach(a=>{
+          // rehydrate assets
+          const fake = {name:a.name};
+          fetch(a.url).catch(()=>{}); // might not be resolvable across sessions but we try
+          const id = a.id; const tile = document.createElement('div'); tile.className='tile'; tile.dataset.id=id;
+          const cap = document.createElement('div'); cap.className='cap'; cap.textContent=a.name?.slice(0,22)||''; let media;
+          if(a.type==='video'){ media = document.createElement('video'); media.src=a.url; media.muted=true; media.playsInline=true; media.preload='metadata'; }
+          else { media = document.createElement('img'); media.src=a.url; }
+          tile.appendChild(media); tile.appendChild(cap); tile.addEventListener('click',()=>focusTile(id)); stage.appendChild(tile);
+          state.assets.push({id:id,type:a.type,url:a.url,el:tile,tags:a.tags||[],name:a.name});
+        });
+        state.scenes = obj.scenes||[]; state.segs = obj.segs||[]; recomputeDuration(); layoutCurrent(); persist();
+      }catch(e){ alert('Invalid JSON'); }
+    };
+
+    // Wire UI inputs to scene preview
+    $('#zoom').oninput = e=>{ cam.z = parseInt(e.target.value,10); applyCamera(); };
+    $('#rotY').oninput = e=>{ cam.ry = parseInt(e.target.value,10); applyCamera(); };
+    $('#fContrast').oninput = ()=> layoutCurrent();
+    $('#fSaturate').oninput = ()=> layoutCurrent();
+    $('#fHue').oninput = ()=> layoutCurrent();
+    $('#vignetteAmt').oninput = ()=> applyOverlays({vignette: parseInt($('#vignetteAmt').value,10), haze: parseInt($('#hazeAmt').value,10)});
+    $('#hazeAmt').oninput = ()=> applyOverlays({vignette: parseInt($('#vignetteAmt').value,10), haze: parseInt($('#hazeAmt').value,10)});
+
+    // Init
+    window.addEventListener('resize', ()=> layoutCurrent());
+    layoutCurrent(); renderTimeline(); applyCamera();
+
+  })();
+  </script>
+</body>
+</html>

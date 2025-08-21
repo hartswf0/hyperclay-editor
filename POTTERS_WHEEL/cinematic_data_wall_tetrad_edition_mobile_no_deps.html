@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Cinematic Data‑Wall — Tetrad Edition</title>
+<style>
+  :root{
+    --bg:#0b0c0f; --ink:#eae9e4; --muted:#9aa0a6; --accent:#13bfa8; --hot:#ff5a3c; --edge:#202734; --card:#11151b;
+    --yaw:0deg; --pitch:0deg; --zoom:900px; --gap:8vmin;
+    --f-bright:1; --f-contrast:1; --f-sat:1; --f-hue:0deg; --f-sepia:0; --f-blur:0px; --f-vign:.25;
+    --tap:64px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,sans-serif}
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0b0c0fee,#0b0c0fcc 60%,#0b0c0f00);backdrop-filter:blur(8px);display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--edge)}
+  .title{font-weight:600;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .grow{flex:1}
+  .btn{appearance:none;border:1px solid var(--edge);background:var(--card);color:var(--ink);height:var(--tap);min-width:var(--tap);padding:0 12px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:18px}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{background:transparent}
+  .btn.small{height:40px;min-width:40px;border-radius:10px;font-size:16px}
+  .tools{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{padding:8px 12px;border:1px solid var(--edge);border-radius:999px;background:#0e1218;color:var(--muted);font-size:13px}
+
+  /* Stage */
+  #stageWrap{position:relative;width:100%;height:58vh;min-height:380px;border-bottom:1px solid var(--edge)}
+  #hud{position:absolute;z-index:5;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
+  #hud .pill{background:#10151b99;border:1px solid #1c232f;color:#cbd5e1;border-radius:100px;padding:6px 10px;font-size:12px}
+  .world{position:absolute;inset:0;perspective:1200px;overflow:hidden}
+  .camera{position:absolute;left:50%;top:50%;transform-style:preserve-3d;transition:transform .25s ease;transform:translate3d(-50%,-50%,0) rotateX(var(--pitch)) rotateY(var(--yaw)) translateZ(calc(-1 * var(--zoom)))}
+  .space{position:relative;transform-style:preserve-3d}
+  .vignette{pointer-events:none;position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,var(--f-vign)) 100%)}
+  .tile{position:absolute;width:32vmin;height:18vmin;background:#0f141a;border:1px solid #1f2634;border-radius:10px;overflow:hidden;box-shadow:0 5px 15px rgba(0,0,0,.4);transform-style:preserve-3d;will-change:transform}
+  .tile video, .tile img{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(var(--f-bright)) contrast(var(--f-contrast)) saturate(var(--f-sat)) hue-rotate(var(--f-hue)) sepia(var(--f-sepia)) blur(var(--f-blur))}
+  .tile .badge{position:absolute;left:6px;top:6px;background:#0b0f1490;color:#d1d5db;border:1px solid #1f2634;padding:2px 6px;border-radius:6px;font-size:10px}
+  .tile.focus{outline:2px solid var(--accent);transform:translateZ(120px) scale(1.15)}
+  #patterns{position:absolute;left:8px;bottom:8px;display:flex;gap:8px;z-index:6}
+  .toggle{height:42px;min-width:42px;border-radius:12px;border:1px solid var(--edge);background:#0f141a;color:#d8dee9;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .toggle.active{border-color:var(--accent);box-shadow:0 0 0 2px #0c1512}
+
+  /* Timeline */
+  #timeline{position:sticky;bottom:0;background:linear-gradient(180deg,#0b0c0fcc,#0b0c0fee);backdrop-filter:blur(8px);border-top:1px solid var(--edge);padding:10px 8px;z-index:21}
+  #lane{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
+  .seg{flex:0 0 auto;scroll-snap-align:center;min-width:160px;height:60px;border:1px solid var(--edge);border-radius:12px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#0e141b}
+  .seg.active{outline:2px solid var(--accent)}
+  .seg .meta{font-size:12px;color:#9aa0a6}
+  .playbar{position:relative;height:6px;border:1px solid var(--edge);border-radius:6px;background:#0e141b;margin-top:8px}
+  .cursor{position:absolute;left:0;top:-4px;width:2px;height:14px;background:var(--hot)}
+
+  /* Filter panel */
+  #panel{position:fixed;right:8px;bottom:80px;z-index:22;background:#0b0f1495;border:1px solid #1c232f;border-radius:16px;padding:10px;backdrop-filter:blur(6px);display:none;min-width:240px}
+  #panel.show{display:block}
+  #panel label{display:flex;justify-content:space-between;font-size:12px;color:#cdd6e3;margin:6px 0}
+  #panel input[type=range]{width:140px}
+  .hint{font-size:12px;color:#8b919c}
+
+  /* Tetrad overlay */
+  #tetrad{position:fixed;inset:0;z-index:30;display:none;background:#0b0c0fe6;backdrop-filter:blur(8px)}
+  #tetrad.show{display:block}
+  #tetrad .wrap{position:absolute;inset:0;display:flex;flex-direction:column}
+  #tetrad header{position:relative;background:transparent;border:0;padding:12px}
+  #tetGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:12px;overflow:auto}
+  .card{border:1px solid var(--edge);background:#0f141a;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px}
+  .card h4{margin:0;font-size:14px}
+  .row{display:flex;gap:8px;align-items:center}
+  .row .btn{flex:1}
+  .meta-mini{font-size:11px;color:var(--muted)}
+
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+  <header>
+    <div class="title">Cinematic Data‑Wall — Tetrad Edition</div>
+    <div class="grow"></div>
+    <div class="tools">
+      <button id="addClipsBtn" class="btn" title="Add clips">＋ Clips</button>
+      <button id="addVOBtn" class="btn ghost" title="Add voiceover">🎙</button>
+      <button id="addBGBtn" class="btn ghost" title="Add background audio">♪</button>
+      <button id="filtersBtn" class="btn ghost" title="Look & Atmosphere">◫</button>
+      <button id="tetradBtn" class="btn ghost" title="Tetradic space (units of 4)">▣</button>
+      <button id="exportBtn" class="btn ghost" title="Export project JSON">⇪</button>
+      <button id="importBtn" class="btn ghost" title="Import project JSON">⇲</button>
+      <button id="resetBtn" class="btn ghost" title="New">⟲</button>
+    </div>
+    <input id="clipInput" type="file" multiple accept="video/*,image/*" />
+    <input id="voInput" type="file" accept="audio/*" />
+    <input id="bgInput" type="file" accept="audio/*" />
+    <input id="jsonInput" type="file" accept="application/json" />
+  </header>
+
+  <section id="stageWrap">
+    <div id="hud"></div>
+    <div class="world" id="world">
+      <div class="camera" id="camera">
+        <div class="space" id="space"></div>
+      </div>
+      <div class="vignette"></div>
+    </div>
+    <div id="patterns">
+      <button class="toggle active" data-pattern="wall" title="Wall">▦</button>
+      <button class="toggle" data-pattern="tunnel" title="Tunnel">◎</button>
+      <button class="toggle" data-pattern="stack" title="Stack">▤</button>
+    </div>
+  </section>
+
+  <!-- Tetrad overlay -->
+  <section id="tetrad">
+    <div class="wrap">
+      <header style="display:flex;align-items:center;gap:8px">
+        <div class="title">Tetradic Space</div>
+        <div class="grow"></div>
+        <button id="tetClose" class="btn small ghost">✕</button>
+      </header>
+      <div class="row" style="padding:0 12px 8px">
+        <button id="tetSeed" class="btn">Seed from current</button>
+        <button class="btn ghost small" data-tetcount="4">4</button>
+        <button class="btn ghost small" data-tetcount="8">8</button>
+        <button class="btn ghost small" data-tetcount="12">12</button>
+        <button class="btn ghost small" data-tetcount="16">16</button>
+        <button class="btn ghost small" data-tetcount="24">24</button>
+        <button class="btn ghost small" data-tetcount="32">32</button>
+        <button class="btn ghost small" data-tetcount="48">48</button>
+      </div>
+      <div id="tetGrid"></div>
+    </div>
+  </section>
+
+  <section id="timeline">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <button id="playBtn" class="btn">⏵ Play</button>
+      <button id="stopBtn" class="btn ghost small">■</button>
+      <button id="addSegBtn" class="btn ghost small" title="Capture scene from current stage">＋ Scene</button>
+      <span class="chip">Tap tile: focus · Long‑press tile: capture style · Pinch: zoom · Drag: orbit · Circle over tile: scrub</span>
+    </div>
+    <div id="lane"></div>
+    <div class="playbar"><div class="cursor" id="cursor"></div></div>
+  </section>
+
+  <aside id="panel">
+    <label>Brightness <input id="rBright" type="range" min="0.5" max="1.8" step="0.01" value="1"></label>
+    <label>Contrast <input id="rContrast" type="range" min="0.5" max="1.8" step="0.01" value="1"></label>
+    <label>Saturation <input id="rSat" type="range" min="0" max="2.5" step="0.01" value="1"></label>
+    <label>Hue <input id="rHue" type="range" min="0" max="360" step="1" value="0"></label>
+    <label>Sepia <input id="rSepia" type="range" min="0" max="1" step="0.01" value="0"></label>
+    <label>Blur <input id="rBlur" type="range" min="0" max="4" step="0.1" value="0"></label>
+    <label>Vignette <input id="rVign" type="range" min="0" max="0.8" step="0.01" value="0.25"></label>
+    <hr style="border-color:#1c232f">
+    <label>Tile Gap <input id="rGap" type="range" min="2" max="22" step="1" value="8"></label>
+    <div class="hint">Presets: <button class="btn small ghost" data-preset="cine">Cine</button> <button class="btn small ghost" data-preset="noir">Noir</button> <button class="btn small ghost" data-preset="warm">Warm</button></div>
+  </aside>
+
+<script>
+(function(){
+  'use strict';
+  const el = s=>document.querySelector(s); const els = s=>Array.from(document.querySelectorAll(s));
+
+  // Audio (beeps + VO/BG)
+  let AC, beepGain; function ensureAC(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); beepGain=AC.createGain(); beepGain.gain.value=0.03; beepGain.connect(AC.destination);} }
+  function beep(f=660,d=.08){ try{ ensureAC(); const o=AC.createOscillator(), g=AC.createGain(); o.type='sine'; o.frequency.value=f; o.connect(g); g.gain.value=.001; g.connect(beepGain); o.start(); g.gain.linearRampToValueAtTime(.08,AC.currentTime+.01); g.gain.linearRampToValueAtTime(.0001,AC.currentTime+d); o.stop(AC.currentTime+d+.02);}catch(e){} }
+  function haptic(ms=20){ if(navigator.vibrate) navigator.vibrate(ms); }
+
+  // State
+  let idCounter=1;
+  const state={
+    pattern:'wall', clips:[], tiles:[], scenes:[], camera:{yaw:0,pitch:0,zoom:900},
+    playing:false, playStart:0, playIndex:0, playT:0,
+    filters:{bright:1,contrast:1,sat:1,hue:0,sepia:0,blur:0,vign:.25}, gap:8, resonance:null,
+    audio:{vo:null,bg:null,analyser:null}, variants:[]
+  };
+  const world=el('#world'), camera=el('#camera'), space=el('#space'), hud=el('#hud'), lane=el('#lane'), cursor=el('#cursor');
+
+  // UI
+  el('#addClipsBtn').addEventListener('click',()=>el('#clipInput').click());
+  el('#clipInput').addEventListener('change', e=> addClips(e.target.files));
+  el('#addVOBtn').addEventListener('click', ()=> el('#voInput').click());
+  el('#voInput').addEventListener('change', e=> loadAudioFile(e.target.files?.[0], 'vo'));
+  el('#addBGBtn').addEventListener('click', ()=> el('#bgInput').click());
+  el('#bgInput').addEventListener('change', e=> loadAudioFile(e.target.files?.[0], 'bg'));
+  el('#filtersBtn').addEventListener('click', ()=> el('#panel').classList.toggle('show'));
+  el('#exportBtn').addEventListener('click', exportProject);
+  el('#importBtn').addEventListener('click', ()=> el('#jsonInput').click());
+  el('#jsonInput').addEventListener('change', importProject);
+  el('#resetBtn').addEventListener('click', ()=>{ if(confirm('Start a new project?')) resetProject(); });
+  el('#tetradBtn').addEventListener('click', ()=> el('#tetrad').classList.add('show'));
+  el('#tetClose').addEventListener('click', ()=> el('#tetrad').classList.remove('show'));
+  el('#tetSeed').addEventListener('click', seedVariantFromCurrent);
+  els('#tetrad [data-tetcount]').forEach(b=> b.addEventListener('click', ()=> setVariantCount(+b.dataset.tetcount)));
+
+  els('#panel input[type=range]').forEach(r=> r.addEventListener('input', onFilterChange));
+  els('#panel .btn[data-preset]').forEach(b=> b.addEventListener('click', ()=> applyPreset(b.dataset.preset)));
+  el('#rGap').addEventListener('input', e=>{ state.gap = +e.target.value; document.documentElement.style.setProperty('--gap', state.gap+'vmin'); layout(); save(); });
+  els('#patterns .toggle').forEach(btn=> btn.addEventListener('click', ()=> setPattern(btn.dataset.pattern)));
+  el('#addSegBtn').addEventListener('click', captureSceneFromStage);
+  el('#playBtn').addEventListener('click', play);
+  el('#stopBtn').addEventListener('click', stop);
+
+  function applyCamera(){ document.documentElement.style.setProperty('--yaw', state.camera.yaw+'deg'); document.documentElement.style.setProperty('--pitch', state.camera.pitch+'deg'); document.documentElement.style.setProperty('--zoom', state.camera.zoom+'px'); }
+  function applyFilters(){ const f=state.filters; document.documentElement.style.setProperty('--f-bright',f.bright);document.documentElement.style.setProperty('--f-contrast',f.contrast);document.documentElement.style.setProperty('--f-sat',f.sat);document.documentElement.style.setProperty('--f-hue',f.hue+'deg');document.documentElement.style.setProperty('--f-sepia',f.sepia);document.documentElement.style.setProperty('--f-blur',f.blur+'px');document.documentElement.style.setProperty('--f-vign',f.vign); }
+  function onFilterChange(){ state.filters={bright:+el('#rBright').value, contrast:+el('#rContrast').value, sat:+el('#rSat').value, hue:+el('#rHue').value, sepia:+el('#rSepia').value, blur:+el('#rBlur').value, vign:+el('#rVign').value}; applyFilters(); haptic(10); beep(520,.05); save(); }
+  function applyPreset(name){ const P={cine:{bright:1.05,contrast:1.2,sat:1.1,hue:0,sepia:.05,blur:0,vign:.35}, noir:{bright:1,contrast:1.6,sat:0,hue:0,sepia:.1,blur:.2,vign:.5}, warm:{bright:1.1,contrast:1.1,sat:1.25,hue:20,sepia:.12,blur:0,vign:.3}}; state.filters=P[name]||state.filters; syncFilterUI(); applyFilters(); beep(700,.08); haptic(15); save(); }
+  function syncFilterUI(){ const f=state.filters; el('#rBright').value=f.bright; el('#rContrast').value=f.contrast; el('#rSat').value=f.sat; el('#rHue').value=f.hue; el('#rSepia').value=f.sepia; el('#rBlur').value=f.blur; el('#rVign').value=f.vign; }
+
+  function addClips(fileList){ if(!fileList||!fileList.length) return; ensureAC(); Array.from(fileList).slice(0,48).forEach(file=>{ const url=URL.createObjectURL(file); const isVideo=file.type.startsWith('video'); const isImage=file.type.startsWith('image'); const id=idCounter++; const tile=document.createElement('div'); tile.className='tile'; tile.dataset.id=id; const badge=document.createElement('div'); badge.className='badge'; badge.textContent=file.name.slice(0,16); tile.appendChild(badge); let media; if(isVideo){ media=document.createElement('video'); media.src=url; media.muted=true; media.playsInline=true; media.loop=true; media.autoplay=true; media.controls=false; media.addEventListener('canplay',()=>{try{media.play();}catch(e){}}); } else if(isImage){ media=document.createElement('img'); media.src=url; } else { return; } tile.appendChild(media); tile.addEventListener('touchstart', onTileTouchStart, {passive:false}); tile.addEventListener('touchmove', onTileTouchMove, {passive:false}); tile.addEventListener('touchend', onTileTouchEnd); tile.addEventListener('click', ()=> focusTile(tile)); space.appendChild(tile); state.tiles.push(tile); state.clips.push({id, type:isVideo?'video':'image', url, el:media}); }); layout(); save(); beep(880,.06); haptic(20); }
+  function focusTile(tile){ els('.tile').forEach(t=>t.classList.remove('focus')); if(tile) tile.classList.add('focus'); }
+
+  function setPattern(p){ state.pattern=p; els('#patterns .toggle').forEach(b=> b.classList.toggle('active', b.dataset.pattern===p)); layout(); save(); beep(600,.06); haptic(15); }
+  function layout(){ const tiles=state.tiles; if(!tiles.length) return; const gap=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')); const N=tiles.length; const cols=Math.max(2, Math.ceil(Math.sqrt(N))); const rows=Math.ceil(N/cols); tiles.forEach((tile,i)=>{ tile.style.transition='transform .45s cubic-bezier(.2,.7,.2,1)'; let x=0,y=0,z=0, rx=0, ry=0; if(state.pattern==='wall'){ const col=i%cols; const row=Math.floor(i/cols); x=(col-(cols-1)/2)*(24+gap); y=(row-(rows-1)/2)*(14+gap); z=(Math.sin(i*.7)*20); } if(state.pattern==='tunnel'){ const ring=Math.max(6, Math.ceil(Math.sqrt(N))*2); const theta=(i%ring)*(360/ring); const lane=Math.floor(i/ring); const R=90+lane*(22+gap*.6); x=Math.cos(theta*Math.PI/180)*R; z=Math.sin(theta*Math.PI/180)*R; y=(lane-1)*(18+gap*.6); ry=-theta; } if(state.pattern==='stack'){ const layer=i; x=((i%3)-1)*(24+gap*.5); y=((Math.floor(i/3)%3)-1)*(14+gap*.5); z=-layer*(12+gap*.8); ry=(i%2?-8:8); } tile.style.transform=`translate3d(${x}vmin, ${y}vmin, ${z}vmin) rotateX(${rx}deg) rotateY(${ry}deg)`; }); }
+
+  // Stage gestures
+  let tStart={x:0,y:0,d:0,t:0,touches:0};
+  world.addEventListener('touchstart', e=>{ if(e.target.closest('.tile')) return; if(e.touches.length===1){tStart.x=e.touches[0].clientX; tStart.y=e.touches[0].clientY;} if(e.touches.length===2){ tStart.d=dist(e.touches[0], e.touches[1]); } tStart.touches=e.touches.length; tStart.t=performance.now(); }, {passive:true});
+  world.addEventListener('touchmove', e=>{ if(e.target.closest('.tile')) return; if(e.touches.length===1 && tStart.touches===1){ const dx=e.touches[0].clientX-tStart.x; const dy=e.touches[0].clientY-tStart.y; state.camera.yaw += dx*.08; state.camera.pitch += -dy*.06; state.camera.pitch=Math.max(-60,Math.min(60,state.camera.pitch)); tStart.x=e.touches[0].clientX; tStart.y=e.touches[0].clientY; applyCamera(); } if(e.touches.length===2){ const d=dist(e.touches[0], e.touches[1]); const dd=d - tStart.d; state.camera.zoom -= dd*1.2; state.camera.zoom=Math.max(300,Math.min(2000,state.camera.zoom)); tStart.d=d; applyCamera(); } }, {passive:true});
+
+  // Tile gestures: long‑press capture, circular scrub
+  let longPressTimer=null, pressTile=null, pressCenter=null, angleAccum=0;
+  function onTileTouchStart(e){ e.preventDefault(); const tile=e.currentTarget; pressTile=tile; focusTile(tile); const r=tile.getBoundingClientRect(); pressCenter={x:r.left + r.width/2, y:r.top + r.height/2}; angleAccum=0; longPressTimer=setTimeout(()=>{ captureResonanceFrom(tile); },600); }
+  function onTileTouchMove(e){ if(!pressTile) return; const p=e.touches[0]; const a=Math.atan2(p.clientY-pressCenter.y, p.clientX-pressCenter.x); if(pressTile._lastA!=null){ let da=a-pressTile._lastA; if(da>Math.PI) da-=Math.PI*2; if(da<-Math.PI) da+=Math.PI*2; angleAccum+=da; onTileCircle(pressTile, angleAccum); } pressTile._lastA=a; }
+  function onTileTouchEnd(){ clearTimeout(longPressTimer); pressTile=null; pressCenter=null; angleAccum=0; }
+  function onTileCircle(tile,accum){ const media=state.clips.find(c=> c.id==tile.dataset.id)?.el; if(media && media.tagName==='VIDEO'){ const seek=media.currentTime + accum*0.5; media.currentTime=Math.max(0, Math.min(media.duration||1000, seek)); if(media.paused) media.play().catch(()=>{}); beep(400 + (media.currentTime%1)*200, .02); } }
+  function captureResonanceFrom(){ state.filters={...state.filters, hue:(state.filters.hue+22)%360}; syncFilterUI(); applyFilters(); hudFlash('Resonance captured'); haptic(30); beep(820,.08); save(); }
+
+  function hudFlash(txt){ const p=document.createElement('div'); p.className='pill'; p.textContent=txt; hud.appendChild(p); setTimeout(()=>p.remove(),1500); }
+  function dist(a,b){ const dx=a.clientX-b.clientX, dy=a.clientY-b.clientY; return Math.hypot(dx,dy); }
+
+  // Timeline
+  function captureSceneFromStage(){ const id= idCounter++; const focusEl=el('.tile.focus'); const scene={ id, name:`Scene ${state.scenes.length+1}`, pattern:state.pattern, focus: focusEl ? +focusEl.dataset.id : null, duration:4.0, yaw:state.camera.yaw, pitch:state.camera.pitch, zoom:state.camera.zoom, filters:{...state.filters}, gap:state.gap }; state.scenes.push(scene); addSeg(scene); save(); hudFlash('Scene captured'); haptic(30); beep(560,.06); }
+  function addSeg(sc){ const seg=document.createElement('div'); seg.className='seg'; seg.dataset.id=sc.id; seg.innerHTML=`<div>${sc.name}</div><div class="meta">${sc.pattern} · ${sc.duration}s</div>`; seg.addEventListener('click', ()=> cueScene(sc.id)); lane.appendChild(seg); }
+  function cueScene(id){ const sc=state.scenes.find(s=> s.id===id); if(!sc) return; setPattern(sc.pattern); state.camera.yaw=sc.yaw; state.camera.pitch=sc.pitch; state.camera.zoom=sc.zoom; applyCamera(); state.filters={...sc.filters}; syncFilterUI(); applyFilters(); state.gap=sc.gap; document.documentElement.style.setProperty('--gap', state.gap+'vmin'); layout(); els('.tile').forEach(t=> t.classList.remove('focus')); if(sc.focus){ const t=els('.tile').find(t=> +t.dataset.id===sc.focus); if(t) t.classList.add('focus'); } els('.seg').forEach(e=> e.classList.toggle('active', +e.dataset.id===id)); save(); }
+  function play(){ if(!state.scenes.length){ hudFlash('Capture a scene first'); beep(300,.1); return; } ensureAC(); state.playing=true; state.playStart=performance.now(); state.playIndex=0; state.playT=0; el('#playBtn').textContent='⏸ Pause'; requestAnimationFrame(tick); }
+  function stop(){ state.playing=false; el('#playBtn').textContent='⏵ Play'; cursor.style.left='0%'; }
+  function tick(now){ if(!state.playing) return; const sc=state.scenes[state.playIndex]; if(!sc){ stop(); return; } const segStart=state.scenes.slice(0,state.playIndex).reduce((a,s)=>a+s.duration,0); const total=state.scenes.reduce((a,s)=>a+s.duration,0); const t=(now - state.playStart)/1000; const local=t - segStart; if(local<0.02){ cueScene(sc.id); } const prog=Math.min(1, Math.max(0, local / sc.duration)); state.camera.yaw = sc.yaw + Math.sin(prog * Math.PI*2) * 6; applyCamera(); const pct=(t/total)*100; cursor.style.left=Math.min(100,Math.max(0,pct))+'%'; if(local>=sc.duration){ state.playIndex++; if(state.playIndex>=state.scenes.length){ stop(); return; } } state.playT=t; requestAnimationFrame(tick); }
+
+  // Audio
+  function loadAudioFile(file, which){ if(!file) return; ensureAC(); const url=URL.createObjectURL(file); const audio=new Audio(); audio.src=url; audio.loop=(which==='bg'); audio.preload='auto'; audio.crossOrigin='anonymous'; audio.onplay=()=>{ try{AC.resume();}catch(e){} }; const track={el:audio}; state.audio[which]=track; audio.controls=true; audio.style.display='none'; document.body.appendChild(audio); if(which==='bg'){ const src=AC.createMediaElementSource(audio); const an=AC.createAnalyser(); an.fftSize=512; state.audio.analyser=an; src.connect(an); an.connect(AC.destination); const buf=new Uint8Array(an.frequencyBinCount); (function sway(){ if(state.audio.analyser){ an.getByteFrequencyData(buf); let avg=0; for(let i=0;i<buf.length;i++) avg+=buf[i]; avg/=buf.length; const e=(avg/255); state.camera.pitch += (e-0.5)*0.2; state.camera.pitch=Math.max(-60,Math.min(60,state.camera.pitch)); applyCamera(); } requestAnimationFrame(sway); })(); } else { const src=AC.createMediaElementSource(audio); src.connect(AC.destination); } audio.play().catch(()=>{}); beep(480,.05); haptic(20); }
+
+  // Variants (Tetradic Space)
+  function currentConfig(){ return { pattern:state.pattern, filters:{...state.filters}, gap:state.gap, camera:{...state.camera} }; }
+  function applyConfig(cfg){ if(!cfg) return; setPattern(cfg.pattern||'wall'); state.filters={...state.filters, ...(cfg.filters||{})}; syncFilterUI(); applyFilters(); state.gap = (cfg.gap??state.gap); document.documentElement.style.setProperty('--gap', state.gap+'vmin'); state.camera={...state.camera, ...(cfg.camera||{})}; applyCamera(); layout(); save(); }
+  function seedVariantFromCurrent(){ state.variants.push({ id:Date.now()+Math.random(), name:`V${state.variants.length+1}`, cfg:currentConfig()}); renderVariants(); save(); haptic(20); beep(760,.06); }
+  function setVariantCount(n){ const target=Math.max(4,Math.min(48,n)); while(state.variants.length<target){ seedVariantFromCurrent(); } if(state.variants.length>target){ state.variants.length=target; } renderVariants(); save(); }
+  function renderVariants(){ const grid=el('#tetGrid'); if(!grid) return; grid.innerHTML=''; grid.style.gridTemplateColumns='repeat(4,1fr)'; state.variants.forEach((v,idx)=>{ const card=document.createElement('div'); card.className='card'; card.innerHTML=`<h4>${v.name||('V'+(idx+1))}</h4>
+      <div class="meta-mini">${v.cfg.pattern} · gap ${v.cfg.gap}</div>
+      <div class="row">
+        <button class="btn small" data-act="load">Edit</button>
+        <button class="btn small ghost" data-act="apply">Apply→Scene</button>
+        <button class="btn small ghost" data-act="dup">⎘</button>
+        <button class="btn small ghost" data-act="del">✕</button>
+      </div>`; card.querySelector('[data-act="load"]').addEventListener('click',()=>{ applyConfig(v.cfg); el('#tetrad').classList.remove('show'); }); card.querySelector('[data-act="apply"]').addEventListener('click',()=>{ applyConfig(v.cfg); captureSceneFromStage(); }); card.querySelector('[data-act"dup"]')?.addEventListener('click',()=>{}); card.querySelector('[data-act="dup"]').addEventListener('click',()=>{ state.variants.splice(idx+1,0,{ id:Date.now()+Math.random(), name:(v.name||('V'+(idx+1)))+'*', cfg: JSON.parse(JSON.stringify(v.cfg))}); renderVariants(); save(); }); card.querySelector('[data-act="del"]').addEventListener('click',()=>{ state.variants.splice(idx,1); renderVariants(); save(); }); let tmr=null; card.addEventListener('touchstart', ()=>{ tmr=setTimeout(()=>{ const nm=prompt('Rename variant', v.name||('V'+(idx+1))); if(nm){ v.name=nm; renderVariants(); save(); } },500); }); card.addEventListener('touchend', ()=> clearTimeout(tmr)); grid.appendChild(card); }); }
+
+  // Persistence
+  function exportProject(){ const data={ pattern:state.pattern, tiles:state.clips.map(c=>({id:c.id,type:c.type,url:c.url})), scenes:state.scenes, filters:state.filters, gap:state.gap, variants:state.variants }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cinewall-project.json'; a.click(); }
+  function importProject(e){ const file=e.target.files?.[0]; if(!file) return; const fr=new FileReader(); fr.onload=()=>{ try{ const data=JSON.parse(fr.result); state.pattern=data.pattern||'wall'; setPattern(state.pattern); state.filters=data.filters||state.filters; syncFilterUI(); applyFilters(); state.gap=data.gap||8; document.documentElement.style.setProperty('--gap', state.gap+'vmin'); state.scenes=[]; lane.innerHTML=''; (data.scenes||[]).forEach(addSeg); state.variants=data.variants||[]; renderVariants(); hudFlash('Project imported (media must be reloaded)'); }catch(err){ alert('Invalid project JSON'); } }; fr.readAsText(file); }
+  function save(){ const data={pattern:state.pattern,scenes:state.scenes,filters:state.filters,gap:state.gap,camera:state.camera,variants:state.variants}; try{ localStorage.setItem('cinewall_auto', JSON.stringify(data)); }catch(e){} }
+  function restore(){ try{ const s=JSON.parse(localStorage.getItem('cinewall_auto')||'null'); if(!s) return; state.pattern=s.pattern||'wall'; setPattern(state.pattern); state.filters=s.filters||state.filters; syncFilterUI(); applyFilters(); state.gap=s.gap||8; document.documentElement.style.setProperty('--gap', state.gap+'vmin'); state.camera=s.camera||state.camera; applyCamera(); state.scenes=s.scenes||[]; lane.innerHTML=''; state.scenes.forEach(addSeg); state.variants=s.variants||[]; renderVariants(); hudFlash('Restored session (reload clips)'); }catch(e){} }
+  function resetProject(){ stop(); state.pattern='wall'; els('#patterns .toggle').forEach(b=> b.classList.remove('active')); els('#patterns .toggle')[0].classList.add('active'); state.clips=[]; state.tiles=[]; space.innerHTML=''; state.scenes=[]; lane.innerHTML=''; state.filters={bright:1,contrast:1,sat:1,hue:0,sepia:0,blur:0,vign:.25}; syncFilterUI(); applyFilters(); state.gap=8; document.documentElement.style.setProperty('--gap','8vmin'); state.camera={yaw:0,pitch:0,zoom:900}; applyCamera(); state.variants=[]; renderVariants(); save(); }
+
+  // Init
+  restore(); applyCamera(); applyFilters(); document.documentElement.style.setProperty('--gap', state.gap+'vmin');
+  document.addEventListener('dragover', e=> e.preventDefault()); document.addEventListener('drop', e=>{ e.preventDefault(); addClips(e.dataTransfer.files); });
+  setTimeout(()=> hudFlash('＋ Clips · then ▣ Tetrad → Seed → 48'), 600);
+})();
+</script>
+</body>
+</html>

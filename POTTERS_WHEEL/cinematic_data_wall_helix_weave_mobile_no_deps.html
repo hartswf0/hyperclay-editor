@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Helix Weave — Cinematic Data‑Wall (Mobile)</title>
+<style>
+  :root{
+    --bg:#0b0c0f; --ink:#eae9e4; --muted:#9aa0a6; --accent:#13bfa8; --edge:#202734; --card:#11151b; --hot:#ff5a3c;
+    --yaw:0deg; --pitch:0deg; --zoom:980px; --gap:8vmin;
+    --f-bright:1; --f-contrast:1; --f-sat:1; --f-hue:0deg; --f-sepia:0; --f-blur:0px; --f-vign:.3;
+    --tap:64px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,sans-serif}
+
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0b0c0fee,#0b0c0fcc 60%,#0b0c0f00);backdrop-filter:blur(8px);display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--edge)}
+  .title{font-weight:600;letter-spacing:.2px}
+  .grow{flex:1}
+  .btn{appearance:none;border:1px solid var(--edge);background:var(--card);color:var(--ink);height:var(--tap);min-width:var(--tap);padding:0 12px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:18px}
+  .btn.small{height:40px;min-width:40px;border-radius:10px;font-size:16px}
+  .btn.ghost{background:transparent}
+  .tools{display:flex;gap:8px;flex-wrap:wrap}
+
+  #stageWrap{position:relative;width:100%;height:62vh;min-height:420px;border-bottom:1px solid var(--edge)}
+  .world{position:absolute;inset:0;perspective:1200px;overflow:hidden}
+  .camera{position:absolute;left:50%;top:50%;transform-style:preserve-3d;transition:transform .2s ease;transform:translate3d(-50%,-50%,0) rotateX(var(--pitch)) rotateY(var(--yaw)) translateZ(calc(-1 * var(--zoom)))}
+  .space{position:relative;transform-style:preserve-3d}
+  .vignette{pointer-events:none;position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,var(--f-vign)) 100%)}
+
+  .tile{position:absolute;width:30vmin;height:17vmin;background:#0f141a;border:1px solid #1f2634;border-radius:10px;overflow:hidden;box-shadow:0 5px 15px rgba(0,0,0,.45);transform-style:preserve-3d;will-change:transform,opacity}
+  .tile video, .tile img{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(var(--f-bright)) contrast(var(--f-contrast)) saturate(var(--f-sat)) hue-rotate(var(--f-hue)) sepia(var(--f-sepia)) blur(var(--f-blur))}
+  .tile .badge{position:absolute;left:6px;top:6px;background:#0b0f1490;color:#d1d5db;border:1px solid #1f2634;padding:2px 6px;border-radius:6px;font-size:10px}
+  .tile.focus{outline:2px solid var(--accent)}
+
+  #timeline{position:sticky;bottom:0;background:linear-gradient(180deg,#0b0c0fcc,#0b0c0fee);backdrop-filter:blur(8px);border-top:1px solid var(--edge);padding:10px 8px;z-index:21}
+  #lane{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
+  .seg{flex:0 0 auto;scroll-snap-align:center;min-width:160px;height:60px;border:1px solid var(--edge);border-radius:12px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#0e141b}
+  .seg.active{outline:2px solid var(--accent)}
+  .seg .meta{font-size:12px;color:#9aa0a6}
+  .playbar{position:relative;height:6px;border:1px solid var(--edge);border-radius:6px;background:#0e141b;margin-top:8px}
+  .cursor{position:absolute;left:0;top:-4px;width:2px;height:14px;background:var(--hot)}
+
+  #panel{position:fixed;right:8px;bottom:88px;z-index:22;background:#0b0f1495;border:1px solid #1c232f;border-radius:16px;padding:10px;backdrop-filter:blur(6px);display:none;min-width:240px}
+  #panel.show{display:block}
+  #panel label{display:flex;justify-content:space-between;font-size:12px;color:#cdd6e3;margin:6px 0}
+  #panel input[type=range]{width:140px}
+
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+  <header>
+    <div class="title">Helix Weave — Cinematic Data‑Wall</div>
+    <div class="grow"></div>
+    <div class="tools">
+      <button id="addClipsBtn" class="btn" title="Add clips">＋ Clips</button>
+      <button id="filtersBtn" class="btn ghost" title="Look">◫</button>
+      <button id="weaveBtn" class="btn ghost" title="Weave / Unweave">≈</button>
+      <button id="exportBtn" class="btn ghost" title="Export JSON">⇪</button>
+      <button id="importBtn" class="btn ghost" title="Import JSON">⇲</button>
+      <button id="resetBtn" class="btn ghost" title="New">⟲</button>
+    </div>
+    <input id="clipInput" type="file" multiple accept="video/*,image/*" />
+    <input id="jsonInput" type="file" accept="application/json" />
+  </header>
+
+  <section id="stageWrap">
+    <div class="world" id="world">
+      <div class="camera" id="camera">
+        <div class="space" id="space"></div>
+      </div>
+      <div class="vignette"></div>
+    </div>
+  </section>
+
+  <section id="timeline">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <button id="playBtn" class="btn">⏵ Play</button>
+      <button id="stopBtn" class="btn ghost small">■</button>
+      <button id="addSegBtn" class="btn ghost small" title="Capture scene">＋ Scene</button>
+      <span style="font-size:12px;color:#9aa0a6">Drag: orbit · Pinch: zoom · Tap: focus · Long‑press tile: capture style · Circle on tile: scrub</span>
+    </div>
+    <div id="lane"></div>
+    <div class="playbar"><div class="cursor" id="cursor"></div></div>
+  </section>
+
+  <aside id="panel">
+    <label>Radius <input id="rRad" type="range" min="30" max="120" step="1" value="70"></label>
+    <label>Pitch <input id="rPitch" type="range" min="8" max="38" step="1" value="18"></label>
+    <label>Turns <input id="rTurns" type="range" min="2" max="12" step="1" value="6"></label>
+    <hr style="border-color:#1c232f">
+    <label>Brightness <input id="rBright" type="range" min="0.6" max="1.8" step="0.01" value="1"></label>
+    <label>Contrast <input id="rContrast" type="range" min="0.6" max="1.8" step="0.01" value="1.2"></label>
+    <label>Saturation <input id="rSat" type="range" min="0" max="2.5" step="0.01" value="1.1"></label>
+    <label>Hue <input id="rHue" type="range" min="0" max="360" step="1" value="0"></label>
+    <label>Vignette <input id="rVign" type="range" min="0" max="0.8" step="0.01" value="0.3"></label>
+  </aside>
+
+<script>
+(function(){
+  'use strict';
+  const el = s=>document.querySelector(s); const els = s=>Array.from(document.querySelectorAll(s));
+  let idCounter=1, rafId=null;
+
+  const state={
+    clips:[], tiles:[], scenes:[],
+    camera:{yaw:0,pitch:0,zoom:980},
+    helix:{radius:70, pitch:18, turns:6, t:0, weaving:true, speed:0.02},
+    filters:{bright:1,contrast:1.2,sat:1.1,hue:0,vign:.3},
+    playing:false, playStart:0, playIndex:0
+  };
+
+  // Elements
+  const world=el('#world'), camera=el('#camera'), space=el('#space'), lane=el('#lane'), cursor=el('#cursor');
+
+  // UI
+  el('#addClipsBtn').addEventListener('click',()=>el('#clipInput').click());
+  el('#clipInput').addEventListener('change',e=> addClips(e.target.files));
+  el('#filtersBtn').addEventListener('click',()=> el('#panel').classList.toggle('show'));
+  el('#weaveBtn').addEventListener('click', ()=>{ state.helix.weaving=!state.helix.weaving; el('#weaveBtn').textContent = state.helix.weaving? '≈≈':'≈'; });
+  el('#exportBtn').addEventListener('click', exportProject);
+  el('#importBtn').addEventListener('click', ()=> el('#jsonInput').click());
+  el('#jsonInput').addEventListener('change', importProject);
+  el('#resetBtn').addEventListener('click', ()=>{ if(confirm('New project?')) resetProject(); });
+
+  // Controls
+  el('#rRad').addEventListener('input', e=>{ state.helix.radius=+e.target.value; });
+  el('#rPitch').addEventListener('input', e=>{ state.helix.pitch=+e.target.value; });
+  el('#rTurns').addEventListener('input', e=>{ state.helix.turns=+e.target.value; });
+  el('#rBright').addEventListener('input', e=>{ state.filters.bright=+e.target.value; applyFilters(); });
+  el('#rContrast').addEventListener('input', e=>{ state.filters.contrast=+e.target.value; applyFilters(); });
+  el('#rSat').addEventListener('input', e=>{ state.filters.sat=+e.target.value; applyFilters(); });
+  el('#rHue').addEventListener('input', e=>{ state.filters.hue=+e.target.value; applyFilters(); });
+  el('#rVign').addEventListener('input', e=>{ state.filters.vign=+e.target.value; applyFilters(); });
+
+  function applyFilters(){ const f=state.filters; document.documentElement.style.setProperty('--f-bright',f.bright); document.documentElement.style.setProperty('--f-contrast',f.contrast); document.documentElement.style.setProperty('--f-sat',f.sat); document.documentElement.style.setProperty('--f-hue',f.hue+'deg'); document.documentElement.style.setProperty('--f-vign',f.vign); }
+
+  function applyCamera(){ document.documentElement.style.setProperty('--yaw', state.camera.yaw+'deg'); document.documentElement.style.setProperty('--pitch', state.camera.pitch+'deg'); document.documentElement.style.setProperty('--zoom', state.camera.zoom+'px'); }
+
+  // Gestures: orbit & pinch
+  let tStart={x:0,y:0,d:0,touches:0};
+  world.addEventListener('touchstart', e=>{ if(e.target.closest('.tile')) return; if(e.touches.length===1){tStart.x=e.touches[0].clientX; tStart.y=e.touches[0].clientY;} if(e.touches.length===2){ const a=e.touches; tStart.d = Math.hypot(a[0].clientX-a[1].clientX, a[0].clientY-a[1].clientY);} tStart.touches=e.touches.length; }, {passive:true});
+  world.addEventListener('touchmove', e=>{ if(e.target.closest('.tile')) return; if(e.touches.length===1 && tStart.touches===1){ const dx=e.touches[0].clientX-tStart.x; const dy=e.touches[0].clientY-tStart.y; state.camera.yaw += dx*.08; state.camera.pitch += -dy*.06; state.camera.pitch=Math.max(-60,Math.min(60,state.camera.pitch)); tStart.x=e.touches[0].clientX; tStart.y=e.touches[0].clientY; applyCamera(); } if(e.touches.length===2){ const a=e.touches; const d=Math.hypot(a[0].clientX-a[1].clientX, a[0].clientY-a[1].clientY); const dd=d - tStart.d; state.camera.zoom -= dd*1.2; state.camera.zoom=Math.max(300,Math.min(2200,state.camera.zoom)); tStart.d=d; applyCamera(); } }, {passive:true});
+
+  // Tile interactions
+  let longPressTimer=null, pressTile=null, pressCenter=null, angleAccum=0;
+  function onTileTouchStart(e){ e.preventDefault(); const tile=e.currentTarget; pressTile=tile; focusTile(tile); const r=tile.getBoundingClientRect(); pressCenter={x:r.left+r.width/2, y:r.top+r.height/2}; angleAccum=0; longPressTimer=setTimeout(()=>{ // capture style: hue rotate
+      state.filters.hue = (state.filters.hue + 24) % 360; applyFilters(); flash('Resonance captured');
+    },600); }
+  function onTileTouchMove(e){ if(!pressTile) return; const p=e.touches[0]; const a=Math.atan2(p.clientY-pressCenter.y, p.clientX-pressCenter.x); if(pressTile._lastA!=null){ let da=a-pressTile._lastA; if(da>Math.PI) da-=Math.PI*2; if(da<-Math.PI) da+=Math.PI*2; angleAccum+=da; const media=state.clips.find(c=> c.id==pressTile.dataset.id)?.el; if(media && media.tagName==='VIDEO'){ const seek=media.currentTime + da*0.6; media.currentTime=Math.max(0, Math.min(media.duration||1000, seek)); if(media.paused) media.play().catch(()=>{}); } } pressTile._lastA=a; }
+  function onTileTouchEnd(){ clearTimeout(longPressTimer); pressTile=null; pressCenter=null; angleAccum=0; }
+  function focusTile(tile){ els('.tile').forEach(t=>t.classList.remove('focus')); if(tile) tile.classList.add('focus'); }
+
+  function addClips(fileList){ if(!fileList||!fileList.length) return; Array.from(fileList).slice(0,48).forEach(file=>{ const url=URL.createObjectURL(file); const isVideo=file.type.startsWith('video'); const isImage=file.type.startsWith('image'); const id=idCounter++; const tile=document.createElement('div'); tile.className='tile'; tile.dataset.id=id; const badge=document.createElement('div'); badge.className='badge'; badge.textContent=file.name.slice(0,16); tile.appendChild(badge); let media; if(isVideo){ media=document.createElement('video'); media.src=url; media.muted=true; media.playsInline=true; media.loop=true; media.autoplay=true; media.controls=false; media.addEventListener('canplay',()=>{try{media.play();}catch(e){}});} else if(isImage){ media=document.createElement('img'); media.src=url; } else { return; } tile.appendChild(media); tile.addEventListener('touchstart', onTileTouchStart, {passive:false}); tile.addEventListener('touchmove', onTileTouchMove, {passive:false}); tile.addEventListener('touchend', onTileTouchEnd); tile.addEventListener('click', ()=> focusTile(tile)); space.appendChild(tile); state.tiles.push(tile); state.clips.push({id, type:isVideo?'video':'image', url, el:media}); }); }
+
+  // Helix layout + weave animation
+  function layoutHelix(){ const N=state.tiles.length; if(!N) return; const R=state.helix.radius; const pitch=state.helix.pitch; const turns=state.helix.turns; const t=state.helix.t; state.tiles.forEach((tile,i)=>{ const strand=i%2; const idx=Math.floor(i/2); const theta = (idx/(Math.max(1,(N/2)))) * (turns*2*Math.PI); const phase = theta + (strand?Math.PI:0) + t; const x = Math.cos(phase)*R; const y = Math.sin(phase)*R*0.42; const z = (idx - (N/4)) * (pitch*0.8); const breath = 0.52 + 0.48*Math.sin(phase*1.25); const sc = 0.9 + 0.15*breath; tile.style.opacity = 0.6 + 0.4*breath; tile.style.transform = `translate3d(${x}vmin, ${y}vmin, ${z}vmin) rotateY(${(-phase*180/Math.PI)%360}deg) scale(${sc})`; }); }
+
+  function animate(){ state.helix.t += state.helix.weaving ? state.helix.speed : 0; layoutHelix(); rafId=requestAnimationFrame(animate); }
+
+  // Timeline (kept minimal; still functional)
+  function captureScene(){ const id=idCounter++; const focusEl=el('.tile.focus'); const sc={id,name:`Scene ${state.scenes.length+1}`, duration:4.0, yaw:state.camera.yaw, pitch:state.camera.pitch, zoom:state.camera.zoom, helix:{...state.helix}, filters:{...state.filters}, focus: focusEl? +focusEl.dataset.id:null}; state.scenes.push(sc); const seg=document.createElement('div'); seg.className='seg'; seg.dataset.id=sc.id; seg.innerHTML=`<div>${sc.name}</div><div class="meta">helix · ${sc.duration}s</div>`; seg.addEventListener('click',()=> loadScene(sc.id)); lane.appendChild(seg); }
+  function loadScene(id){ const sc=state.scenes.find(s=>s.id===id); if(!sc) return; state.camera.yaw=sc.yaw; state.camera.pitch=sc.pitch; state.camera.zoom=sc.zoom; applyCamera(); state.helix={...state.helix,...sc.helix}; state.filters={...state.filters,...sc.filters}; applyFilters(); }
+  function play(){ if(!state.scenes.length) { flash('＋ Scene to play'); return; } state.playing=true; state.playIndex=0; state.playStart=performance.now(); requestAnimationFrame(tick); }
+  function stop(){ state.playing=false; cursor.style.left='0%'; }
+  function tick(now){ if(!state.playing) return; const sc=state.scenes[state.playIndex]; if(!sc){ stop(); return; } const segStart=state.scenes.slice(0,state.playIndex).reduce((a,s)=>a+s.duration,0); const total=state.scenes.reduce((a,s)=>a+s.duration,0); const t=(now - state.playStart)/1000; const local=t - segStart; if(local<0.02){ loadScene(sc.id); } const pct=(t/total)*100; cursor.style.left=Math.min(100,Math.max(0,pct))+'%'; if(local>=sc.duration){ state.playIndex++; if(state.playIndex>=state.scenes.length){ stop(); return; } } requestAnimationFrame(tick); }
+
+  // Export/Import/Persist
+  function exportProject(){ const data={ clips:state.clips.map(c=>({id:c.id,type:c.type,url:c.url})), scenes:state.scenes, helix:state.helix, filters:state.filters }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='helixwall-project.json'; a.click(); }
+  function importProject(e){ const file=e.target.files?.[0]; if(!file) return; const fr=new FileReader(); fr.onload=()=>{ try{ const data=JSON.parse(fr.result); state.helix=data.helix||state.helix; state.filters=data.filters||state.filters; // scenes list
+        (data.scenes||[]).forEach(sc=>{ const seg=document.createElement('div'); seg.className='seg'; seg.dataset.id=sc.id; seg.innerHTML=`<div>${sc.name}</div><div class=\"meta\">helix · ${sc.duration}s</div>`; seg.addEventListener('click',()=> loadScene(sc.id)); lane.appendChild(seg); state.scenes.push(sc); }); flash('Project imported (re‑add media)'); }catch(err){ alert('Invalid project JSON'); } }; fr.readAsText(file); }
+  function resetProject(){ stop(); state.clips=[]; state.tiles=[]; space.innerHTML=''; state.scenes=[]; lane.innerHTML=''; state.helix={radius:70,pitch:18,turns:6,t:0,weaving:true,speed:0.02}; state.filters={bright:1,contrast:1.2,sat:1.1,hue:0,vign:.3}; applyFilters(); }
+
+  // Helpers
+  function flash(msg){ const b=document.createElement('div'); b.textContent=msg; b.style.position='fixed'; b.style.right='8px'; b.style.top='8px'; b.style.background='#10151b99'; b.style.border='1px solid #1c232f'; b.style.color='#cbd5e1'; b.style.padding='6px 10px'; b.style.borderRadius='999px'; b.style.fontSize='12px'; b.style.zIndex=50; document.body.appendChild(b); setTimeout(()=> b.remove(), 1400); }
+
+  // Buttons
+  el('#addSegBtn').addEventListener('click', captureScene);
+  el('#playBtn').addEventListener('click', play);
+  el('#stopBtn').addEventListener('click', stop);
+
+  // Init
+  applyCamera(); applyFilters();
+  animate();
+})();
+</script>
+</body>
+</html>

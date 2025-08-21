@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Centered Gear Experience</title>
+<style>
+  :root{ --bg0:#05070b; --bg1:#0a0f15; --ink:#e8e6df; --muted:#94a3b8; --accent:#00d0b4; }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 50% -10%, var(--bg1), var(--bg0));color:var(--ink);font:14px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto}
+  /* CENTER EXPERIENCE */
+  #c{position:fixed;inset:0;display:block;width:100vw;height:100vh;touch-action:none;background:transparent;z-index:2}
+  .hud{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:.5rem;padding:.4rem .5rem;background:#0b1118cc;border:1px solid #13202b;border-radius:12px;backdrop-filter:blur(6px);z-index:5}
+  .btn{appearance:none;border:1px solid #1e2a36;background:#0e141c;color:var(--ink);padding:.45rem .7rem;border-radius:10px;cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .tiny{position:fixed;left:12px;top:10px;color:#b9c6d2;font-size:12px;opacity:.75;z-index:4}
+  .toast{position:fixed;left:50%;top:10%;transform:translate(-50%, -50%);padding:.4rem .6rem;border-radius:8px;background:#0f1a24cc;border:1px solid #1a2a38;font-size:12px;color:#cfe3ff;pointer-events:none;opacity:0;transition:opacity .18s ease-out;z-index:4}
+  .toast.show{opacity:1}
+  /* TIMELINE PANEL */
+  .timeline{position:fixed;left:50%;transform:translateX(-50%);bottom:110px;width:min(960px,92vw);background:#0b1118cc;border:1px solid #13202b;border-radius:14px;padding:8px 10px;backdrop-filter:blur(6px);z-index:4}
+  .row{display:grid;grid-template-columns:70px 1fr;align-items:center;gap:8px;margin:6px 0}
+  .label{font-size:12px;color:#9fb1c3;letter-spacing:.2px}
+  .cells{--cols:24;display:grid;grid-auto-rows:54px;grid-template-columns:repeat(var(--cols),1fr);gap:4px}
+  .cell{position:relative;background:#0e161f;border:1px solid #1c2732;border-radius:8px;overflow:hidden;display:grid;place-items:center;color:#9fb1c3;font-size:11px}
+  .cell.on{outline:2px solid var(--accent);box-shadow:0 0 0 2px #012b26 inset}
+  .cell img{width:100%;height:100%;object-fit:cover;display:block}
+  .cell .num{position:absolute;bottom:4px;right:6px;font-size:10px;background:#0b1118aa;padding:1px 4px;border-radius:6px}
+</style>
+</head>
+<body>
+  <div class="stack" style="position:fixed;inset:0;overflow:hidden">
+    <!-- ALWAYS-ON SVG FALLBACK (shows even if Canvas fails) -->
+    <svg id="fallback" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet" style="position:absolute;inset:0;width:100%;height:100%;background:radial-gradient(60vmax 60vmax at 50% 50%, #0b1118 0%, #070b10 70%, #05070b 100%);z-index:1">
+      <defs>
+        <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0f1a24"/><stop offset="100%" stop-color="#0a1218"/>
+        </linearGradient>
+      </defs>
+      <!-- Main gear -->
+      <g id="gearMain" transform="translate(500 500)">
+        <circle r="210" fill="url(#g1)" stroke="#00d0b4" stroke-width="6"/>
+        <!-- teeth -->
+        <g id="teethM">
+          <g>
+            <polygon points="210,-6 240,-6 240,6 210,6" fill="#13202b"/>
+          </g>
+          <use href="#teethM g" transform="rotate(15)"/>
+        </g>
+        <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="10s" repeatCount="indefinite"/>
+      </g>
+      <!-- Outer gear -->
+      <g id="gearOuter" transform="translate(820 500)">
+        <circle r="140" fill="#0e161f" stroke="#5fb3ff" stroke-width="6"/>
+        <g id="teethO">
+          <g>
+            <polygon points="140,-6 165,-6 165,6 140,6" fill="#13202b"/>
+          </g>
+          <use href="#teethO g" transform="rotate(20)"/>
+        </g>
+        <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="-360 0 0" dur="7s" repeatCount="indefinite"/>
+      </g>
+      <text x="20" y="40" fill="#cfe3ff" font-size="18" font-family="ui-monospace,monospace">SVG FALLBACK ACTIVE — You should see two rotating gears.</text>
+    </svg>
+
+    <!-- Canvas layer on top; if it draws, it will cover the SVG. If not, SVG remains visible. -->
+    <canvas id="c"></canvas>
+  </div>
+
+  <!-- Minimal HUD on top -->
+  <div class="hud" id="hud">
+    <button class="btn" id="play">Play</button>
+    <button class="btn" id="pause">Pause</button>
+    <button class="btn" id="addArc">Add Arc</button>
+    <button class="btn" id="clearArc">Clear Arcs</button>
+    <button class="btn" id="toggleTL">Timeline</button>
+    <button class="btn" id="loadMain">Load Main Clip</button>
+    <button class="btn" id="loadOuter">Load Outer Clip</button>
+    <input type="file" id="fileMain" accept="video/*" hidden />
+    <input type="file" id="fileOuter" accept="video/*" hidden />
+  </div>
+  <div class="timeline" id="timeline">
+    <div class="row">
+      <div class="label">MAIN</div>
+      <div class="cells" id="cellsMain" style="--cols:24"></div>
+    </div>
+    <div class="row">
+      <div class="label">OUTER</div>
+      <div class="cells" id="cellsOuter" style="--cols:18"></div>
+    </div>
+  </div>
+      <div class="cells" id="cellsMain" style="--cols:24"></div>
+    </div>
+    <div class="row">
+      <div class="label">OUTER</div>
+      <div class="cells" id="cellsOuter" style="--cols:18"></div>
+    </div>
+  </div>
+  <div class="tiny" id="hint">Drag = spin · Pinch = zoom · Double‑tap = toggle HUD · Tap cells = toggle arc</div>
+  <div class="toast" id="toast">contact</div>
+<script>
+// QUICK VISIBILITY FLAG — if JS runs, add class to body
+try{ document.body.classList.add('js-running'); }catch(_){ }
+</script>
+<script>
+// ===== ULTRA-ROBUST CENTER GEAR — ALWAYS VISIBLE + BOTTOM TIMELINE =====
+(function(){
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const hud = document.getElementById('hud');
+  const toast = document.getElementById('toast');
+  const cellsMain = document.getElementById('cellsMain');
+  const cellsOuter = document.getElementById('cellsOuter');
+  const fileMain = document.getElementById('fileMain');
+  const fileOuter = document.getElementById('fileOuter');
+
+  function forceSize(){
+    const w = Math.max(320, window.innerWidth || document.documentElement.clientWidth || 800);
+    const h = Math.max(240, window.innerHeight|| document.documentElement.clientHeight|| 600);
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+    canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+    if(canvas.width !== Math.floor(w*dpr) || canvas.height !== Math.floor(h*dpr)){
+      canvas.width = Math.floor(w*dpr); canvas.height = Math.floor(h*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    return {W:w, H:h, dpr};
+  }
+
+  function vibe(ms=18){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(_){} }
+  function ping(freq=660, dur=0.04, type='square'){
+    try{ S.ac||(S.ac=new (window.AudioContext||window.webkitAudioContext)());
+         const ac=S.ac, o=ac.createOscillator(), g=ac.createGain(); o.type=type; o.frequency.value=freq; g.gain.value=0.05; o.connect(g); g.connect(ac.destination); o.start(); setTimeout(()=>o.stop(), dur*1000);
+    }catch(_){}
+  }
+  function flash(msg){ toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),160); }
+
+  const S = {
+    playing:true, zoom:1, last:performance.now(), t:0,
+    main:{r:140, teeth:24, angle:0, arcs:[{start:0, end:Math.PI/6}], frames:[]},
+    outer:{r:90, teeth:18, angle:0, arcs:[{start:0, end:Math.PI/6}], frames:[]},
+    rec:{active:false, mr:null, chunks:[]},
+    timeline:{ mainCells:[], outerCells:[], lastMain:-1, lastOuter:-1, open:true }
+  };
+
+  function drawGear(cx, cy, r, teeth, angle, edge){
+    const root = r*0.82, tip = r, toothW = (Math.PI*2)/teeth;
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
+    ctx.fillStyle = '#0f1a24'; ctx.beginPath(); ctx.arc(0,0,root,0,Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    for(let i=0;i<teeth;i++){
+      const a=i*toothW, w=toothW*0.44; const a1=a-w/2, a2=a+w/2;
+      ctx.moveTo(Math.cos(a1)*root, Math.sin(a1)*root);
+      ctx.lineTo(Math.cos(a1)*tip,  Math.sin(a1)*tip);
+      ctx.lineTo(Math.cos(a2)*tip,  Math.sin(a2)*tip);
+      ctx.lineTo(Math.cos(a2)*root, Math.sin(a2)*root);
+      ctx.closePath();
+    }
+    ctx.fillStyle = '#13202b'; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle=edge; ctx.beginPath(); ctx.arc(0,0,tip,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
+  }
+  function drawArcs(cx, cy, r, arcs, color){
+    ctx.save(); ctx.translate(cx,cy); ctx.lineWidth=7; ctx.lineCap='round'; ctx.strokeStyle=color;
+    for(const a of arcs){ ctx.beginPath(); ctx.arc(0,0,r, a.start, a.end); ctx.stroke(); }
+    ctx.restore();
+  }
+  // Map frames around rim: one wedge per tooth; if no frame, draw tick
+  function drawFrameRing(cx, cy, r, teeth, angle, frames){
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
+    const step = (Math.PI*2)/teeth;
+    for(let i=0;i<teeth;i++){
+      ctx.save(); ctx.rotate(i*step);
+      ctx.beginPath(); ctx.moveTo(r-18, -r*step*0.18); ctx.lineTo(r+2, -r*step*0.18); ctx.lineTo(r+2, r*step*0.18); ctx.lineTo(r-18, r*step*0.18); ctx.closePath();
+      ctx.clip();
+      if(frames && frames[i]){ const img = getImage(frames[i]); if(img && img.complete){ ctx.drawImage(img, r-18, -r*step*0.18, 24, r*step*0.36); } else { ctx.fillStyle='#15222c'; ctx.fillRect(r-18, -r*0.18*step, 24, r*0.36*step); } }
+      else { ctx.fillStyle = '#0f151c'; ctx.fillRect(r-18, -r*0.18*step, 24, r*0.36*step); ctx.strokeStyle='#1f2a35'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(r-16,0); ctx.lineTo(r+2,0); ctx.stroke(); }
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  const _imgCache = new Map(); function getImage(src){ if(!_imgCache.has(src)){ const im=new Image(); im.src=src; _imgCache.set(src,im);} return _imgCache.get(src); }
+
+  function paint(){
+    const {W,H} = forceSize();
+    ctx.clearRect(0,0,W,H);
+    const cx=W/2, cy=H/2;
+    const meshGap = 2; const ox = cx + (S.main.r + S.outer.r + meshGap)*S.zoom, oy = cy;
+    const tx = cx + S.main.r*S.zoom; const ty = cy;
+    ctx.strokeStyle="#1dd3be"; ctx.lineWidth=1.5; ctx.setLineDash([6,6]); ctx.beginPath(); ctx.moveTo(tx, ty-40); ctx.lineTo(tx, ty+40); ctx.stroke(); ctx.setLineDash([]);
+    drawGear(cx, cy, S.main.r*S.zoom,  S.main.teeth,  S.main.angle,  '#00d0b4');
+    drawGear(ox, oy, S.outer.r*S.zoom, S.outer.teeth, S.outer.angle, '#5fb3ff');
+    drawFrameRing(cx, cy, S.main.r*S.zoom*1.02, S.main.teeth, S.main.angle, S.main.frames);
+    drawFrameRing(ox, oy, S.outer.r*S.zoom*1.02, S.outer.teeth, S.outer.angle, S.outer.frames);
+    drawArcs(cx, cy, S.main.r*S.zoom,  S.main.arcs,  '#00ffd9');
+    drawArcs(ox, oy, S.outer.r*S.zoom, S.outer.arcs, '#9ad0ff');
+  } = forceSize();
+    ctx.clearRect(0,0,W,H);
+    const cx=W/2, cy=H/2;
+    const meshGap = 6; const ox = cx + (S.main.r + S.outer.r - meshGap)*S.zoom, oy = cy;
+    drawGear(cx, cy, S.main.r*S.zoom,  S.main.teeth,  S.main.angle,  '#00d0b4');
+    drawGear(ox, oy, S.outer.r*S.zoom, S.outer.teeth, S.outer.angle, '#5fb3ff');
+    drawArcs(cx, cy, S.main.r*S.zoom,  S.main.arcs,  '#00ffd9');
+    drawArcs(ox, oy, S.outer.r*S.zoom, S.outer.arcs, '#9ad0ff');
+  }
+
+  function angleInArcs(angle, arcs){
+    const a=((angle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+    for(const seg of arcs){
+      const s=((seg.start%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+      const e=((seg.end%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+      if(s<=e){ if(a>=s && a<=e) return true; } else { if(a>=s || a<=e) return true; }
+    } return false;
+  }
+
+  function idxMain(){ return Math.round((S.main.angle%(2*Math.PI))/(2*Math.PI)*S.main.teeth) % S.main.teeth; }
+  function idxOuter(){ return Math.round(((-S.outer.angle)%(2*Math.PI))/(2*Math.PI)*S.outer.teeth) % S.outer.teeth; }
+
+  function updateTimelineHighlight(){
+    const mi = idxMain(), oi = idxOuter();
+    if(mi!==S.timeline.lastMain){ if(S.timeline.mainCells[S.timeline.lastMain]) S.timeline.mainCells[S.timeline.lastMain].classList.remove('on'); if(S.timeline.mainCells[mi]) S.timeline.mainCells[mi].classList.add('on'); S.timeline.lastMain=mi; }
+    if(oi!==S.timeline.lastOuter){ if(S.timeline.outerCells[S.timeline.lastOuter]) S.timeline.outerCells[S.timeline.lastOuter].classList.remove('on'); if(S.timeline.outerCells[oi]) S.timeline.outerCells[oi].classList.add('on'); S.timeline.lastOuter=oi; }
+  }
+
+  function step(now){
+    const dt = Math.min(50, now - S.last); S.last = now; if(S.playing) S.t += dt;
+    const base = 0.002; if(S.playing){ S.main.angle += base*dt; S.outer.angle -= base*dt * (S.main.teeth/S.outer.teeth); }
+    const mIdx = idxMain(), oIdx = idxOuter();
+    if(mIdx===oIdx && angleInArcs(S.main.angle,S.main.arcs) && angleInArcs(-S.outer.angle,S.outer.arcs)){
+      if(!S._lastContact || now - S._lastContact > 80){ S._lastContact = now; vibe(12); ping(980,.03,'square'); flash('contact'); }
+    }
+    paint(); updateTimelineHighlight(); requestAnimationFrame(step);
+  }
+
+  // ===== Timeline construction =====
+  function buildCells(container, n, palette){
+    container.style.setProperty('--cols', n);
+    container.innerHTML='';
+    const arr=[]; for(let i=0;i<n;i++){
+      const d=document.createElement('div'); d.className='cell'; d.style.background=palette? palette(i,n):'#0e161f';
+      const tag=document.createElement('div'); tag.className='num'; tag.textContent=i; d.appendChild(tag);
+      container.appendChild(d); arr.push(d);
+    }
+    return arr;
+  }
+  const pal = (i,n)=>`linear-gradient(180deg,#0e161f,#0b1218), conic-gradient(from 0deg, rgba(0,208,180,0.15) ${(i/n)*100}%, rgba(95,179,255,0.15) ${(i/n)*100}%)`;
+
+  function buildTimeline(){
+    S.timeline.mainCells = buildCells(cellsMain, S.main.teeth, pal);
+    S.timeline.outerCells = buildCells(cellsOuter, S.outer.teeth, pal);
+    S.timeline.mainCells.forEach((cell,i)=> cell.addEventListener('click', ()=> toggleArc('main', i)) );
+    S.timeline.outerCells.forEach((cell,i)=> cell.addEventListener('click', ()=> toggleArc('outer', i)) );
+  }
+
+  function toggleArc(which, toothIndex){
+    const g = which==='main'? S.main : S.outer; const span = (2*Math.PI/g.teeth)*0.6; // 60% of tooth width
+    const center = (toothIndex/g.teeth)*2*Math.PI;
+    const hit = g.arcs.findIndex(seg=> angleIn(seg, center));
+    if(hit>=0) g.arcs.splice(hit,1); else g.arcs.push({start:center-span/2, end:center+span/2});
+    vibe(10); ping(620,.035,'triangle');
+    function angleIn(seg, a){
+      const norm = x=>((x%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+      let s=norm(seg.start), e=norm(seg.end), aa=norm(a);
+      return s<=e? (aa>=s && aa<=e) : (aa>=s || aa<=e);
+    }
+  }
+
+  // ===== Load clips and extract frames =====
+  document.getElementById('loadMain').onclick=()=> fileMain.click();
+  document.getElementById('loadOuter').onclick=()=> fileOuter.click();
+  fileMain.addEventListener('change', e=>{ const f=e.target.files?.[0]; if(f) handleFile('main', f); });
+  fileOuter.addEventListener('change', e=>{ const f=e.target.files?.[0]; if(f) handleFile('outer', f); });
+
+  async function handleFile(which, file){
+    const g = which==='main'? S.main : S.outer; const cells = which==='main'? S.timeline.mainCells : S.timeline.outerCells;
+    flash('loading clip…'); const url = URL.createObjectURL(file);
+    const video = document.createElement('video'); video.muted=true; video.playsInline=true; video.src=url; await videoLoaded(video);
+    const frames = await extractFrames(video, g.teeth); g.frames = frames;
+    frames.forEach((src,i)=>{ const cell=cells[i]; if(!cell) return; cell.innerHTML=''; const img=new Image(); img.src=src; cell.appendChild(img); });
+    flash('clip mapped to teeth'); vibe(12); ping(900,.05,'sawtooth');
+  }
+  function videoLoaded(v){ return new Promise(res=>{ if(v.readyState>=1) return res(); v.addEventListener('loadedmetadata', ()=>res(), {once:true}); }); }
+  function seekTo(v,t){ return new Promise(res=>{ const on=()=>{ v.removeEventListener('seeked',on); res(); }; v.addEventListener('seeked',on,{once:true}); v.currentTime=Math.max(0, Math.min(t, (v.duration||t)-0.05)); }); }
+  async function extractFrames(video, N){
+    const off=document.createElement('canvas'); off.width=160; off.height=90; const octx=off.getContext('2d');
+    const out=[]; for(let i=0;i<N;i++){ const t=(i+0.5)/N * (video.duration||1); await seekTo(video,t); octx.drawImage(video,0,0,off.width,off.height); out.push(off.toDataURL('image/jpeg',0.7)); }
+    return out;
+  }
+
+  // Interactions (canvas)
+  let dragging=false, lastX=0; canvas.addEventListener('pointerdown', e=>{ canvas.setPointerCapture(e.pointerId); dragging=true; lastX=e.clientX; });
+  canvas.addEventListener('pointermove', e=>{ if(dragging){ const dx=e.clientX-lastX; lastX=e.clientX; S.main.angle += dx*0.01; }});
+  canvas.addEventListener('pointerup', ()=> dragging=false);
+  canvas.addEventListener('wheel', e=>{ e.preventDefault(); S.zoom = Math.max(0.5, Math.min(2.5, S.zoom + (e.deltaY<0?0.05:-0.05))); paint(); }, {passive:false});
+  canvas.addEventListener('dblclick', ()=> hud.style.display = (hud.style.display==='none'?'flex':'none'));
+
+  // HUD buttons
+  document.getElementById('play').onclick=()=>{ S.playing=true; vibe(10); ping(660,.04,'square'); };
+  document.getElementById('pause').onclick=()=>{ S.playing=false; vibe(8); ping(440,.04,'square'); };
+  document.getElementById('addArc').onclick=()=>{ const span=Math.PI/10; S.main.arcs.push({start:S.main.angle-span,end:S.main.angle+span}); S.outer.arcs.push({start:-S.outer.angle-span,end:-S.outer.angle+span}); vibe(12); ping(720,.04,'triangle'); };
+  document.getElementById('clearArc').onclick=()=>{ S.main.arcs.length=0; S.outer.arcs.length=0; vibe(8); ping(320,.04,'sine'); };
+  document.getElementById('toggleTL').onclick=()=>{ S.timeline.open = !S.timeline.open; document.getElementById('timeline').style.display = S.timeline.open ? 'block':'none'; };
+
+  // Boot
+  buildTimeline(); paint(); requestAnimationFrame(step);
+})();
+</script>
+</body>
+</html>

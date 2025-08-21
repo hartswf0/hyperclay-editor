@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>Gear Narrative Engine — Arc Sequencer (Normal Output 16:9)</title>
+<style>
+  :root{ --bg:#06080d; --ink:#e8e6df; --muted:#9aa0a6; --accent:#00d0b4; --panel:#0d1117ee; --glass:#0b0f14cc; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink)}
+  #app{position:fixed;inset:0;overflow:hidden}
+  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .tb,.hud{font:600 12px/1.2 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto}
+  .tb{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.5rem .6rem;background:linear-gradient(180deg,var(--glass),transparent);pointer-events:none}
+  .tb .g{pointer-events:auto;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .badge{padding:.24rem .5rem;border:1px solid #27313b;border-radius:12px;background:#0c1118;color:#cfd3d8}
+  .note{font-size:11px;color:var(--muted)}
+  .bar{width:72px;height:8px;background:#0e131a;border:1px solid #24303a;border-radius:6px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2e9fff,#00d0b4)}
+  .hud{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;gap:.5rem;padding:.6rem;align-items:center;justify-content:center;flex-wrap:wrap;background:linear-gradient(180deg,transparent,var(--glass));backdrop-filter:blur(8px)}
+  button,label.btn,a.btn{border:1px solid #2a313a;border-radius:14px;padding:.6rem .8rem;background:#11161e;color:var(--ink);display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;user-select:none;text-decoration:none}
+  button:active,label.btn:active{transform:translateY(1px)}
+  button.on{outline:1px solid var(--accent);box-shadow:0 0 0 2px #00d0b422 inset}
+  #vidFile,#imgFile,#audFile,#jsonFile{display:none}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:82px;z-index:20;background:#0f141b;border:1px solid #2a313a;border-radius:12px;padding:.5rem .75rem;color:#cfd3d8;opacity:0;transition:opacity .25s}
+  .toast.show{opacity:1}
+  .inspector{position:fixed;z-index:10;min-width:300px;max-width:420px;background:var(--panel);border:1px solid #29323c;border-radius:16px;padding:.75rem;box-shadow:0 6px 28px rgba(0,0,0,.6)}
+  .inspector h3{margin:.1rem 0 .35rem;font-size:14px}
+  .row{display:grid;grid-template-columns:120px 1fr auto;align-items:center;gap:.5rem;margin:.35rem 0}
+  .row>label{color:var(--muted);font-weight:600}
+  .row input[type=range],.row select{width:100%}
+  .inspector .mini{display:flex;gap:.35rem;justify-content:flex-end;margin-top:.35rem}
+  .seg{display:grid;grid-template-columns:1fr 60px 60px auto;gap:.35rem;align-items:center;margin:.25rem 0;padding:.35rem;border:1px solid #2a313a;border-radius:10px;background:#0b1017}
+  .seg small{opacity:.7}
+  .seg .k{opacity:.8}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+  <div class="tb">
+    <div class="g">
+      <span class="badge">Arc Sequencer — Normal Output</span>
+      <span class="note" id="fps">fps —</span>
+      <span class="note" id="gearCount">gears 0</span>
+      <span class="badge" id="driveBadge">Drive: —</span>
+      <span class="badge" id="stageBadge">Stage: Exclusive</span>
+      <span class="badge" id="cutsBadge">Cuts: Contact+Majors</span>
+      <span class="badge on" id="arcsBadge">ARCS</span>
+      <span class="badge" id="outputBadge" title="Recording output mode">Output: Normal</span>
+      <div class="bar"><i id="inertia"></i></div>
+    </div>
+    <div class="g">
+      <span class="badge">Time = Circumference • Sequences = Arcs • Contacts = Cuts</span>
+    </div>
+  </div>
+  <div class="hud">
+    <label class="btn" for="vidFile">Add Video</label><input id="vidFile" type="file" accept="video/*" multiple>
+    <label class="btn" for="imgFile">Add Image</label><input id="imgFile" type="file" accept="image/*" multiple>
+    <label class="btn" for="audFile">Add Audio</label><input id="audFile" type="file" accept="audio/*" multiple>
+    <button id="addText">Add Text</button>
+    <button id="playBtn" class="on">Play</button>
+    <button id="hapticBtn" class="on">HAPTIC</button>
+    <button id="routeBtn" title="Route selected gears to Stage">Route</button>
+    <button id="recordBtn">● Record</button>
+    <a id="dl" class="btn" style="display:none" download="gear_nle_normal.webm">Download</a>
+    <label class="btn" for="jsonFile">Load JSON</label><input id="jsonFile" type="file" accept="application/json">
+    <button id="saveBtn">Save JSON</button>
+    <button id="clearBtn">Clear</button>
+  </div>
+  <div id="toast" class="toast">Saved</div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let DPR = 1; function computeDPR(){ DPR = Math.max(1, Math.min(2, (window.devicePixelRatio||1))); }
+  function resize(){ computeDPR(); const w = canvas.clientWidth, h = canvas.clientHeight; canvas.width = Math.floor(w*DPR); canvas.height = Math.floor(h*DPR); }
+  new ResizeObserver(resize).observe(canvas); resize();
+
+  const fpsEl = document.getElementById('fps');
+  const gearCountEl = document.getElementById('gearCount');
+  const inertiaEl = document.getElementById('inertia');
+  const driveBadge = document.getElementById('driveBadge');
+  const stageBadge = document.getElementById('stageBadge');
+  const cutsBadge = document.getElementById('cutsBadge');
+  const arcsBadge = document.getElementById('arcsBadge');
+  const outputBadge = document.getElementById('outputBadge');
+  const vidFile = document.getElementById('vidFile');
+  const imgFile = document.getElementById('imgFile');
+  const audFile = document.getElementById('audFile');
+  const jsonFile = document.getElementById('jsonFile');
+  const addTextBtn = document.getElementById('addText');
+  const playBtn = document.getElementById('playBtn');
+  const hapticBtn = document.getElementById('hapticBtn');
+  const routeBtn = document.getElementById('routeBtn');
+  const recordBtn = document.getElementById('recordBtn');
+  const dlLink = document.getElementById('dl');
+  const saveBtn = document.getElementById('saveBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const toastEl = document.getElementById('toast');
+  function showToast(msg, ms=900){ toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'), ms); }
+
+  // Haptics
+  let AC=null; let clickCooldown=0; let pulseAlpha=0; let hapticsOn=true;
+  hapticBtn.addEventListener('click', ()=>{ hapticsOn=!hapticsOn; hapticBtn.classList.toggle('on', hapticsOn); showToast(hapticsOn?'Haptics on':'Haptics off'); });
+  function ensureAC(){ if (!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(_){} } return AC; }
+  function vibrate(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(_){} }
+  function playClick(type='minor'){
+    const ac=ensureAC(); if(!ac) return; const t=ac.currentTime; const osc=ac.createOscillator(); const g=ac.createGain();
+    const f = type==='major'? 210 : (type==='perfect'? 120 : 170);
+    const d = type==='major'? 0.03 : (type==='perfect'? 0.06 : 0.015);
+    const a = type==='perfect'? 0.32 : (type==='major'? 0.2 : 0.14);
+    osc.type='sine'; osc.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(a,t+0.001); g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    osc.connect(g).connect(ac.destination); osc.start(t); osc.stop(t+d+0.02);
+  }
+  function haptic(type='minor'){
+    if (!hapticsOn) return; const now=performance.now(); if (type!=='perfect' && (now-clickCooldown)<10) return; clickCooldown=now;
+    if (type==='minor') vibrate(6); else if (type==='major') vibrate([1,12]); else vibrate([1,18,1,28]);
+    playClick(type); pulseAlpha = Math.min(1, pulseAlpha + (type==='perfect'? .8 : type==='major'? .5 : .3));
+  }
+
+  // Engine state
+  const R_PER_SEC = 5 * DPR; const TOOTH_PITCH = 8 * DPR; const gears=[]; const contacts=new Map();
+  let driveId=null; let playing=true; playBtn.addEventListener('click', ()=>{ playing=!playing; playBtn.classList.toggle('on', playing); playBtn.textContent=playing?'Play':'Pause'; });
+  let exclusiveStage=true; stageBadge.addEventListener('click', ()=>{ exclusiveStage=!exclusiveStage; stageBadge.textContent='Stage: '+(exclusiveStage?'Exclusive':'Mix'); });
+  let cutsOnMajors=true; cutsBadge.addEventListener('click', ()=>{ cutsOnMajors=!cutsOnMajors; cutsBadge.textContent='Cuts: '+(cutsOnMajors?'Contact+Majors':'Contact'); });
+  let arcsOnly=true; arcsBadge.addEventListener('click', ()=>{ arcsOnly=!arcsOnly; arcsBadge.classList.toggle('on', arcsOnly); showToast(arcsOnly?'Arc-only rendering':'Content rendering'); });
+  let outputNormalized=true; outputBadge.addEventListener('click',()=>{ outputNormalized=!outputNormalized; outputBadge.textContent='Output: '+(outputNormalized?'Normal':'Canvas'); showToast(outputNormalized?'Output → Normal (Stage only)':'Output → Canvas'); });
+
+  let nextId=1; let selected=new Set();
+  function makeGearBase(x,y,duration){ const r=Math.max(22*DPR,R_PER_SEC*Math.max(1,duration)); const teeth=Math.max(8,Math.round((2*Math.PI*r)/TOOTH_PITCH)); return { id:nextId++, x,y,r,teeth, angle:Math.random()*Math.PI*2, omega:0, duration:Math.max(1,duration), type:'empty', kind:'placeholder', media:null, label:'', volume:1, vScale:0.95, lines:[], lastTooth:-1, lastMajor:-1, routed:false, seq:[] }; }
+  function ensureDefaultSeq(g){ if(g.seq && g.seq.length) return; if(g.kind==='video'||g.kind==='img') g.seq=[{type:g.kind,label:g.label||g.type,w:1,media:g.media}]; else if(g.kind==='audio') g.seq=[{type:'audio',label:g.label||'audio',w:1,media:g.media}]; else if(g.kind==='text') g.seq=[{type:'text',label:'text',w:1,lines:g.lines.slice()}]; else g.seq=[{type:'placeholder',label:'slot',w:1}]; }
+
+  function addVideo(file){ const url=URL.createObjectURL(file); const v=document.createElement('video'); v.src=url; v.preload='auto'; v.loop=true; v.muted=true; v.playsInline=true; v.addEventListener('loadedmetadata',()=>{ const dur=isFinite(v.duration)?v.duration:8; const g=makeGearBase(canvas.width*0.5+(Math.random()*140-70), canvas.height*0.5+(Math.random()*140-70), dur); g.type='video'; g.kind='video'; g.media=v; g.label=file.name; ensureDefaultSeq(g); gears.push(g); if(driveId==null) setDrive(g.id); updateBadges(); }); v.play().catch(()=>{}); v.pause(); }
+  function addImage(file){ const url=URL.createObjectURL(file); const img=new Image(); img.onload=()=>{ const dur=8; const g=makeGearBase(canvas.width*0.5+(Math.random()*140-70), canvas.height*0.5+(Math.random()*140-70), dur); g.type='image'; g.kind='img'; g.media=img; g.label=file.name; ensureDefaultSeq(g); gears.push(g); if(driveId==null) setDrive(g.id); updateBadges(); }; img.src=url; }
+  function addAudio(file){ const url=URL.createObjectURL(file); const a=new Audio(url); a.loop=true; a.preload='auto'; a.volume=1; a.crossOrigin=''; a.addEventListener('loadedmetadata',()=>{ const dur=isFinite(a.duration)?a.duration:12; const g=makeGearBase(canvas.width*0.5+(Math.random()*140-70), canvas.height*0.5+(Math.random()*140-70), dur); g.type='audio'; g.kind='audio'; g.media=a; g.label=file.name; ensureDefaultSeq(g); gears.push(g); if(driveId==null) setDrive(g.id); updateBadges(); }); a.load(); }
+  function addTextBlock(text){ const lines=text.split(/\n+/).map(s=>s.trim()).filter(Boolean); const dur=Math.max(6,lines.length*2); const g=makeGearBase(canvas.width*0.5+(Math.random()*140-70), canvas.height*0.5+(Math.random()*140-70), dur); g.type='text'; g.kind='text'; g.lines=lines; g.label=`Text ×${lines.length}`; ensureDefaultSeq(g); gears.push(g); if(driveId==null) setDrive(g.id); updateBadges(); }
+  vidFile.addEventListener('change', e=>{ for (const f of e.target.files) addVideo(f); vidFile.value=''; });
+  imgFile.addEventListener('change', e=>{ for (const f of e.target.files) addImage(f); imgFile.value=''; });
+  audFile.addEventListener('change', e=>{ for (const f of e.target.files) addAudio(f); audFile.value=''; });
+  addTextBtn.addEventListener('click', ()=>{ const t=prompt('Enter poetry/lines (one per line):','We return to water\nAtlantis breathes in gears\nCulture is a clock'); if(t!=null) addTextBlock(t); });
+
+  function setDrive(id){ driveId=id; driveBadge.textContent='Drive: #'+id; }
+  function updateBadges(){ gearCountEl.textContent=`gears ${gears.length}`; }
+  routeBtn.addEventListener('click', ()=>{ for(const g of gears){ if(selected.has(g.id)) g.routed=!g.routed; } showToast('Routed: '+[...selected].join(',')); });
+
+  // Interactions
+  let dragging=false, dragId=null, dx=0, dy=0, longTimer=null, moved=false;
+  canvas.addEventListener('mousedown', pointerDown); canvas.addEventListener('touchstart', pointerDown, {passive:false});
+  function gearAt(x,y){ for(let i=gears.length-1;i>=0;i--){ const g=gears[i]; const d2=(x-g.x)*(x-g.x)+(y-g.y)*(y-g.y); if(d2<=g.r*g.r) return g; } return null; }
+  function pointerXY(e){ const r=canvas.getBoundingClientRect(); const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left; const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top; return {x:cx*DPR,y:cy*DPR,sx:(e.touches?e.touches[0].clientX:e.clientX),sy:(e.touches?e.touches[0].clientY:e.clientY)} }
+  function pointerDown(e){ e.preventDefault(); moved=false; if(longTimer){ clearTimeout(longTimer); longTimer=null; } const p=pointerXY(e); const g=gearAt(p.x,p.y); if(!g){ selected.clear(); return; } dragging=true; dragId=g.id; dx=p.x-g.x; dy=p.y-g.y; if(!e.shiftKey){ selected.clear(); } selected.add(g.id); longTimer=setTimeout(()=>{ if(!moved) openInspector(g, p.sx, p.sy); }, 420); }
+  window.addEventListener('mousemove', pointerMove); window.addEventListener('touchmove', pointerMove, {passive:false});
+  function pointerMove(e){ if(!dragging) return; e.preventDefault(); moved=true; if(longTimer){ clearTimeout(longTimer); longTimer=null; } const p=pointerXY(e); const g=gears.find(k=>k.id===dragId); if(!g) return; g.x=p.x-dx; g.y=p.y-dy; snapToTangency(g); }
+  window.addEventListener('mouseup', pointerUp); window.addEventListener('touchend', pointerUp); function pointerUp(){ dragging=false; dragId=null; if(longTimer){ clearTimeout(longTimer); longTimer=null; } }
+  function snapToTangency(g){ for(const h of gears){ if(h===g) continue; const dx=h.x-g.x, dy=h.y-g.y; const d=Math.hypot(dx,dy); const target=g.r+h.r; if(Math.abs(d-target)<10*DPR){ const a=Math.atan2(dy,dx); g.x=h.x-Math.cos(a)*(h.r+g.r); g.y=h.y-Math.sin(a)*(h.r+g.r); haptic('perfect'); return; } } }
+
+  // Inspector with sequence
+  let inspector=null; function openInspector(g, sx, sy){ closeInspector(); const el=document.createElement('div'); el.className='inspector'; el.style.left=Math.max(8,Math.min(window.innerWidth-460, sx-190))+'px'; el.style.top=Math.max(8,Math.min(window.innerHeight-320, sy-140))+'px'; ensureDefaultSeq(g); el.innerHTML=`
+      <h3>Gear #${g.id} <span style=\"opacity:.6\">(${g.type})</span></h3>
+      <div class=\"row\"><label>Label</label><input id=\"i_label\" type=\"text\" value=\"${g.label}\"><span></span></div>
+      <div class=\"row\"><label>Duration</label><input id=\"i_dur\" type=\"range\" min=\"2\" max=\"240\" step=\"1\" value=\"${g.duration}\"><span>${g.duration|0}s</span></div>
+      <div class=\"row\"><label>Route to Stage</label><select id=\"i_route\"><option value=\"off\">off</option><option value=\"on\" ${g.routed?'selected':''}>on</option></select><span></span></div>
+      <div class=\"row\"><label>Sequence</label><div id=\"seqWrap\"></div><button id=\"seqAddText\">+Text</button></div>
+      ${(g.type==='video'||g.type==='image')? '<div class=\"row\"><label>Adopt Media→Segment</label><button id=\"seqAdopt\">Use current media</button><span></span></div>': ''}
+      <div class=\"mini\"><button id=\"i_drive\">Set as Drive</button><button id=\"i_close\">Close</button></div>`; document.body.appendChild(el); inspector={el,id:g.id};
+    const lbl=el.querySelector('#i_label'); lbl&&lbl.addEventListener('input',()=>{ g.label=lbl.value; });
+    const d=el.querySelector('#i_dur'); const ds=d.nextElementSibling; d&&d.addEventListener('input',()=>{ const v=Number(d.value); g.duration=v; g.r=Math.max(22*DPR,R_PER_SEC*v); g.teeth=Math.max(8,Math.round((2*Math.PI*g.r)/TOOTH_PITCH)); ds.textContent=v+'s'; });
+    const routeSel=el.querySelector('#i_route'); routeSel&&routeSel.addEventListener('change',()=>{ g.routed=routeSel.value==='on'; });
+    el.querySelector('#i_drive').addEventListener('click',()=>{ setDrive(g.id); showToast('Drive set: #'+g.id); });
+    el.querySelector('#i_close').addEventListener('click', closeInspector);
+    function renderSeq(){ const wrap=el.querySelector('#seqWrap'); wrap.innerHTML=''; g.seq.forEach((s,idx)=>{ const seg=document.createElement('div'); seg.className='seg'; seg.innerHTML=`<div><b class=\"k\">${s.type}</b> <small>${s.label||''}</small></div><input type=\"range\" min=\"0.05\" max=\"3\" step=\"0.05\" value=\"${s.w||1}\" /><button title=\"▲\" data-k=\"up\">▲</button><button title=\"✕\" data-k=\"del\">✕</button>`; const rng=seg.querySelector('input'); rng.addEventListener('input',()=>{ s.w=Number(rng.value); }); seg.querySelector('[data-k=\"del\"]').addEventListener('click',()=>{ g.seq.splice(idx,1); renderSeq(); }); seg.querySelector('[data-k=\"up\"]').addEventListener('click',()=>{ if(idx>0){ const tmp=g.seq[idx-1]; g.seq[idx-1]=g.seq[idx]; g.seq[idx]=tmp; renderSeq(); }}); wrap.appendChild(seg); }); if(!g.seq.length){ const em=document.createElement('div'); em.style.opacity='.7'; em.textContent='(no segments)'; wrap.appendChild(em); } }
+    renderSeq(); el.querySelector('#seqAddText').addEventListener('click',()=>{ const t=prompt('Text for segment:','Atlantis answers in concentric echoes'); if(t!=null){ g.seq.push({type:'text',label:t.slice(0,24),w:1,lines:t.split(/\n+/)}); renderSeq(); }}); const adopt=el.querySelector('#seqAdopt'); adopt&&adopt.addEventListener('click',()=>{ if(g.kind==='video'||g.kind==='img'){ g.seq.push({type:g.kind,label:g.label||'media',w:1,media:g.media}); renderSeq(); }}); }
+  function closeInspector(){ if(inspector){ inspector.el.remove(); inspector=null; }}
+
+  function neighborsOf(g){ const arr=[]; for(const h of gears){ if(h===g) continue; const d=Math.hypot(h.x-g.x,h.y-g.y); if(Math.abs(d-(g.r+h.r))<2.5*DPR) arr.push(h);} return arr; }
+  function computeOmegas(){ if(driveId==null) return; const drive=gears.find(k=>k.id===driveId); if(!drive) return; const omegaDrive=(2*Math.PI)/drive.duration*(playing?1:0); const visited=new Set(); drive.omega=omegaDrive; visited.add(drive.id); const q=[drive]; while(q.length){ const g=q.shift(); const nbrs=neighborsOf(g); for(const h of nbrs){ if(visited.has(h.id)) continue; h.omega=-g.omega*(g.r/h.r); visited.add(h.id); q.push(h); } } }
+
+  let activeGearId=null; function contactKey(a,b){ return a.id<b.id? `${a.id}-${b.id}`:`${b.id}-${a.id}`; }
+  function updateContacts(dt){ for(const g of gears){ for(const h of neighborsOf(g)){ if(g.id>=h.id) continue; const key=contactKey(g,h); let c=contacts.get(key); if(!c){ c={tooth:-1,major:-1,ttl:0}; contacts.set(key,c);} const idx=Math.floor((((g.angle/(2*Math.PI))%1+1)%1)*g.teeth); const midx=Math.floor((((g.angle/(2*Math.PI))%1+1)%1)*12); if(idx!==c.tooth){ haptic('minor'); c.tooth=idx; c.ttl=0.12; if(!cutsOnMajors) chooseActiveFromPair(g,h);} if(midx!==c.major){ haptic('major'); c.major=midx; if(cutsOnMajors) chooseActiveFromPair(g,h);} c.ttl=Math.max(c.ttl,0.12); } } for(const [k,c] of contacts){ c.ttl-=dt; if(c.ttl<=-0.2) contacts.delete(k); } }
+  function chooseActiveFromPair(a,b){ const cand=a.r<b.r? a:b; if(!exclusiveStage) return; if(cand.routed){ activeGearId=cand.id; } else if(a.routed){ activeGearId=a.id; } else if(b.routed){ activeGearId=b.id; } }
+
+  // Stage compositor (16:9 normal orientation)
+  const stageOff=document.createElement('canvas'); let so=stageOff.getContext('2d');
+  function ensureStage(w,h){ if(stageOff.width!==w||stageOff.height!==h){ stageOff.width=w; stageOff.height=h; so=stageOff.getContext('2d'); } }
+  function drawStage(){ let w=Math.floor(canvas.width*0.62); let h=Math.floor(w*9/16); if(h>canvas.height*0.62){ h=Math.floor(canvas.height*0.62); w=Math.floor(h*16/9);} ensureStage(w,h); so.clearRect(0,0,w,h); so.fillStyle='#0a0f14'; so.fillRect(0,0,w,h); const routed=gears.filter(g=>g.routed); if(!routed.length){ ctx.save(); ctx.globalAlpha=0.95; ctx.drawImage(stageOff,(canvas.width-w)/2,(canvas.height-h)/2,w,h); ctx.restore(); return; } if(exclusiveStage){ const g=activeGearId? routed.find(x=>x.id===activeGearId):routed[0]; if(g) drawSegmentToStage(g, so, w, h); } else { so.globalCompositeOperation='screen'; for(const g of routed){ drawSegmentToStage(g, so, w, h, 0.7);} } ctx.save(); ctx.globalAlpha=0.95; ctx.drawImage(stageOff,(canvas.width-w)/2,(canvas.height-h)/2,w,h); ctx.restore(); }
+  function currentSegment(g){ ensureDefaultSeq(g); const seq=g.seq; const total=seq.reduce((a,s)=>a+Math.max(0.01,s.w||0.01),0); const phase=((g.angle/(2*Math.PI))%1+1)%1; let t=phase*total; for(let i=0;i<seq.length;i++){ const w=Math.max(0.01,seq[i].w||0.01); if(t<w) return {seg:seq[i], idx:i, local:t/w}; t-=w; } return {seg:seq[seq.length-1], idx:seq.length-1, local:1}; }
+  function drawSegmentToStage(g,dst,w,h,alpha=1){ const cur=currentSegment(g); const s=cur.seg; dst.save(); dst.globalAlpha=alpha; dst.globalCompositeOperation='screen'; if(s.type==='video'&&s.media){ const vw=s.media.videoWidth||320, vh=s.media.videoHeight||180; if(vw&&vh){ const sc=Math.min(w/vw,h/vh); const W=vw*sc, H=vh*sc; s.media.currentTime = cur.local * (g.duration * (s.w||1) / (g.seq.reduce((a,ss)=>a+(ss.w||1),0))); dst.drawImage(s.media,(w-W)/2,(h-H)/2,W,H);} } else if(s.type==='img'&&s.media){ const vw=s.media.naturalWidth||s.media.width||320, vh=s.media.naturalHeight||s.media.height||180; const sc=Math.min(w/vw,h/vh); const W=vw*sc, H=vh*sc; dst.drawImage(s.media,(w-W)/2,(h-H)/2,W,H);} else if(s.type==='text'){ dst.fillStyle='#e8e6df'; dst.textAlign='center'; dst.textBaseline='middle'; const fs=Math.max(16,Math.min(w,h)*0.08); dst.font=fs+'px ui-sans-serif'; wrapText(dst,(s.lines||[s.label||'text']).join(' '), w/2,h/2,w*0.9,fs*1.05);} else if(s.type==='audio'){ const bars=64; const R=Math.min(w,h)*0.42; for(let i=0;i<bars;i++){ const a=i/bars*2*Math.PI; const amp=0.6+0.4*Math.sin((cur.local*2*Math.PI*3)+i*0.6); const r0=R, r1=R-amp*18; dst.strokeStyle='rgba(0,208,180,0.9)'; dst.lineWidth=2; dst.beginPath(); dst.moveTo(w/2+Math.cos(a)*r0,h/2+Math.sin(a)*r0); dst.lineTo(w/2+Math.cos(a)*r1,h/2+Math.sin(a)*r1); dst.stroke(); } } dst.restore(); }
+
+  function draw(){ ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); const grad=ctx.createRadialGradient(canvas.width/2,canvas.height/2,0,canvas.width/2,canvas.height/2,Math.max(canvas.width,canvas.height)*0.6); grad.addColorStop(0,'#081018'); grad.addColorStop(1,'#05070b'); ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height); for(const g of gears){ const nbrs=neighborsOf(g); for(const h of nbrs){ if(g.id<h.id){ ctx.save(); const key=contactKey(g,h); const c=contacts.get(key); ctx.strokeStyle=c?`rgba(0,208,180,${Math.max(0,Math.min(1,(c.ttl||0)) )})`:'rgba(0,208,180,0.15)'; ctx.lineWidth=1*DPR; ctx.beginPath(); ctx.moveTo(g.x,g.y); ctx.lineTo(h.x,h.y); ctx.stroke(); ctx.restore(); } } } for(const g of gears){ drawGear(g); if(!arcsOnly) drawContentPreview(g); drawArcSegments(g); drawLabels(g); } drawStage(); if(pulseAlpha>0.01){ ctx.save(); ctx.globalAlpha=Math.min(0.25,pulseAlpha*0.25); ctx.fillStyle='#00d0b4'; ctx.beginPath(); ctx.arc(canvas.width*0.5,canvas.height*0.5,40*DPR,0,Math.PI*2); ctx.fill(); ctx.restore(); pulseAlpha*=0.86; } }
+  function drawGear(g){ ctx.save(); ctx.translate(g.x,g.y); ctx.rotate(g.angle); if(selected.has(g.id)){ ctx.save(); ctx.globalAlpha=0.25; ctx.fillStyle='#00d0b4'; ctx.beginPath(); ctx.arc(0,0,g.r+10*DPR,0,Math.PI*2); ctx.fill(); ctx.restore(); } ctx.fillStyle='#0f141b'; ctx.strokeStyle='#1f2731'; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.arc(0,0,g.r-6*DPR,0,Math.PI*2); ctx.fill(); ctx.stroke(); const t=g.teeth; const toothDepth=8*DPR; const toothW=(2*Math.PI*g.r)/t*0.5; for(let i=0;i<t;i++){ const a=(i/t)*2*Math.PI; const x=Math.cos(a)*(g.r-6*DPR), y=Math.sin(a)*(g.r-6*DPR); ctx.save(); ctx.translate(x,y); ctx.rotate(a); ctx.fillStyle='#111821'; ctx.strokeStyle='#29323c'; ctx.lineWidth=1*DPR; ctx.beginPath(); ctx.rect(-toothW*0.5,-toothDepth,toothW,toothDepth); ctx.fill(); ctx.stroke(); ctx.restore(); } ctx.restore(); }
+  function drawArcSegments(g){ ensureDefaultSeq(g); const seq=g.seq; const total=seq.reduce((a,s)=>a+Math.max(0.01,s.w||0.01),0); const cx=g.x, cy=g.y, R=g.r-12*DPR; let a0=0; ctx.save(); ctx.translate(cx,cy); ctx.rotate(g.angle); for(const s of seq){ const w=Math.max(0.01,s.w||1); const a1=a0+(w/total)*Math.PI*2; ctx.beginPath(); ctx.strokeStyle=segColor(s); ctx.lineWidth=8*DPR; ctx.arc(0,0,R,a0,a1); ctx.stroke(); ctx.beginPath(); ctx.strokeStyle='#2a313a'; ctx.lineWidth=2*DPR; ctx.moveTo(Math.cos(a1)*R,Math.sin(a1)*R); ctx.lineTo(Math.cos(a1)*(R+8*DPR),Math.sin(a1)*(R+8*DPR)); ctx.stroke(); a0=a1; } ctx.restore(); }
+  function segColor(s){ const map={video:'#5fb3ff', img:'#b0f1ff', text:'#e8e6df', audio:'#00d0b4', placeholder:'#8892a6'}; return map[s.type]||'#9aa0a6'; }
+  function drawContentPreview(g){ const cur=currentSegment(g).seg; ctx.save(); ctx.globalAlpha=0.25; ctx.beginPath(); ctx.arc(g.x,g.y,g.r-18*DPR,0,Math.PI*2); ctx.clip(); if(cur.type==='video'&&cur.media){ const vw=cur.media.videoWidth||320, vh=cur.media.videoHeight||180; if(vw>0&&vh>0){ const s=0.9*Math.min((g.r*1.8)/vw,(g.r*1.8)/vh); const w=vw*s, h=vh*s; ctx.drawImage(cur.media, g.x-w/2, g.y-h/2, w, h);} } else if(cur.type==='img'&&cur.media){ const vw=cur.media.naturalWidth||cur.media.width||320, vh=cur.media.naturalHeight||cur.media.height||180; const s=0.9*Math.min((g.r*1.8)/vw,(g.r*1.8)/vh); const w=vw*s, h=vh*s; ctx.drawImage(cur.media, g.x-w/2, g.y-h/2, w, h);} else if(cur.type==='text'){ ctx.fillStyle='#e8e6df'; ctx.font=`${Math.max(12*DPR,g.r*0.18)}px ui-sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; wrapText(ctx,(cur.lines||[cur.label||'']).join(' '), g.x, g.y, g.r*1.5, Math.max(14*DPR,g.r*0.18)); } ctx.restore(); }
+  function drawLabels(g){ ctx.save(); ctx.fillStyle='#9aa0a6'; ctx.font=`${11*DPR}px ui-sans-serif`; ctx.textAlign='center'; ctx.fillText(`#${g.id} ${g.label}${g.routed?' • routed':''}`, g.x, g.y+g.r+14*DPR); ctx.restore(); }
+  function wrapText(ctx,text,x,y,maxWidth,lineHeight){ const words=text.split(' '); let line=''; const lines=[]; for(const w of words){ const test=line? line+' '+w : w; if(ctx.measureText(test).width>maxWidth){ lines.push(line); line=w; } else line=test; } lines.push(line); const total=lines.length*lineHeight; let yy=y-total/2+lineHeight/2; for(const l of lines){ ctx.fillText(l,x,yy); yy+=lineHeight; } }
+
+  // Recording — Stage-only when Output: Normal
+  let mediaRecorder=null, recChunks=[], recording=false; recordBtn.addEventListener('click', ()=>{ if(!recording) startRec(); else stopRec(); });
+  function startRec(){ if(recording) return; let stream; if(outputNormalized){ let w=Math.floor(canvas.width*0.62); let h=Math.floor(w*9/16); if(h>canvas.height*0.62){ h=Math.floor(canvas.height*0.62); w=Math.floor(h*16/9);} ensureStage(w,h); if(!('captureStream' in stageOff)){ alert('Recording not supported for Stage'); return; } stream=stageOff.captureStream(30); } else { if(!('captureStream' in canvas)){ alert('Recording not supported'); return; } stream=canvas.captureStream(30); } if(!('MediaRecorder' in window)){ alert('MediaRecorder not supported'); return; } mediaRecorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'}); recChunks=[]; mediaRecorder.ondataavailable=e=>{ if(e.data.size) recChunks.push(e.data); }; mediaRecorder.onstop=()=>{ const blob=new Blob(recChunks,{type:'video/webm'}); const url=URL.createObjectURL(blob); dlLink.href=url; dlLink.style.display=''; }; mediaRecorder.start(); recording=true; showToast(outputNormalized?'Recording Stage (normal video)…':'Recording Canvas…'); }
+  function stopRec(){ if(!recording) return; mediaRecorder.stop(); recording=false; showToast('Recording complete — Download'); }
+
+  // Save/Load
+  saveBtn.addEventListener('click', ()=>{ const payload={version:1,driveId,exclusiveStage,cutsOnMajors,arcsOnly,gears:gears.map(g=>({id:g.id,x:g.x,y:g.y,r:g.r,teeth:g.teeth,angle:g.angle,duration:g.duration,type:g.type,label:g.label,volume:g.volume,vScale:g.vScale,lines:g.lines,routed:g.routed,seq:g.seq.map(s=>({type:s.type,label:s.label,w:s.w,hasMedia:!!s.media,lines:s.lines||null}))}))}; const blob=new Blob([JSON.stringify(payload)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='mechanical_nle_normal.json'; a.click(); showToast('Session saved'); });
+  jsonFile.addEventListener('change', async e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; try{ const obj=JSON.parse(await f.text()); gears.length=0; for(const g of obj.gears||[]){ const ng=makeGearBase(g.x,g.y,g.duration); Object.assign(ng,g); ng.seq=(g.seq||[]).map(s=>({type:s.type,label:s.label||'',w:s.w||1,media:null,lines:s.lines||null})); ng.lastTooth=-1; ng.lastMajor=-1; gears.push(ng);} driveId=obj.driveId||null; exclusiveStage=!!obj.exclusiveStage; cutsOnMajors=(obj.cutsOnMajors!==false); arcsOnly=!!obj.arcsOnly; stageBadge.textContent='Stage: '+(exclusiveStage?'Exclusive':'Mix'); cutsBadge.textContent='Cuts: '+(cutsOnMajors?'Contact+Majors':'Contact'); arcsBadge.classList.toggle('on',arcsOnly); updateBadges(); showToast('Session loaded'); }catch(_){ alert('Invalid JSON'); } jsonFile.value=''; });
+  clearBtn.addEventListener('click', ()=>{ gears.length=0; driveId=null; updateBadges(); });
+
+  // Loop
+  let last=performance.now(), fps=60; function loop(now){ const dt=(now-last)/1000; last=now; computeOmegas(); updateContacts(dt); for(const g of gears){ g.angle += g.omega*dt; syncMediaForSeg(g); } draw(); fps=fps*0.9+(1/dt)*0.1; fpsEl.textContent='fps '+Math.max(1,Math.round(fps)); inertiaEl.style.width=Math.min(100, Math.abs((gears.find(k=>k.id===driveId)?.omega||0))*120)+'%'; requestAnimationFrame(loop); } requestAnimationFrame(loop);
+  function syncMediaForSeg(g){ const cur=currentSegment(g); const s=cur.seg; if(s.type==='video'&&s.media){ const segDur=g.duration*(s.w||1)/(g.seq.reduce((a,ss)=>a+(ss.w||1),0)); const t=cur.local*segDur; try{ s.media.currentTime=t; }catch(_){} } if(s.type==='audio'&&s.media){ const segDur=g.duration*(s.w||1)/(g.seq.reduce((a,ss)=>a+(ss.w||1),0)); const t=cur.local*segDur; if(!isNaN(s.media.duration)){ try{ s.media.currentTime=Math.min(s.media.duration-0.05,t); }catch(_){} } } }
+
+  // Keys
+  window.addEventListener('keydown', e=>{ if(e.key===' '){ playing=!playing; playBtn.classList.toggle('on', playing);} if(e.key==='d'){ const lastSel=[...selected].pop(); if(lastSel) setDrive(lastSel);} if(e.key==='r'){ routeBtn.click(); } if(e.key==='h'){ hapticBtn.click(); } if(e.key==='o'){ outputBadge.click(); } });
+})();
+</script>
+</body>
+</html>

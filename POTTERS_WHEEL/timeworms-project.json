@@ -1,0 +1,13 @@
+{
+  "params": {
+    "segs": 8,
+    "fps": 21,
+    "radius": 40,
+    "pitch": 24,
+    "speed": 0.02,
+    "entangle": 0,
+    "weaving": true,
+    "t": 61.880000000004074
+  },
+  "scenes": []
+}

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Hyperclay Fusion Wheel — Option 2 (All-Out POC, Hi‑Q + Linear Export)</title>
+<style>
+  :root{
+    --bg:#0b0c10; --ink:#eae7df; --muted:#9aa0a6; --accent:#00d0b4; --rim:#1a1f26; --tick:#2b313a;
+    --glass:#0b0f14cc; --panel:#0f1319f2; --ok:#19c37d; --warn:#e6b800; --bad:#ff4d4f;
+    --btn:#11161e; --btnb:#2a313a; --ink2:#cfd3d8; --chip:#0c1118; --chipb:#2a313a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:var(--bg); color:var(--ink); height:100%; }
+  #app { position:fixed; inset:0; overflow:hidden; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+
+  .hud, .topbar { font: 600 12px/1.2 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue"; }
+  .topbar { position:fixed; top:0; left:0; right:0; display:flex; gap:.5rem; padding:.5rem .6rem; align-items:center; justify-content:space-between; background:linear-gradient(180deg, var(--glass), transparent); pointer-events:none; z-index:5; }
+  .topbar .group { pointer-events:auto; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+  .badge { padding:.25rem .5rem; border:1px solid var(--chipb); border-radius:12px; background:var(--chip); color:var(--ink2); }
+  .note  { font-size:11px; color:var(--muted); }
+  .meter { display:inline-flex; align-items:center; gap:.35rem; }
+  .bar { width:72px; height:8px; background:#0e131a; border:1px solid #24303a; border-radius:6px; overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:linear-gradient(90deg, #2e9fff, #00d0b4); }
+
+  .hud { position: fixed; left: 0; right: 0; bottom: 0; z-index:6; display:flex; gap:.5rem; padding:.6rem; align-items:center; justify-content:center; flex-wrap:wrap; background: linear-gradient(180deg, transparent, var(--glass)); backdrop-filter: blur(8px); }
+  button, label.btn, a.btn { border:1px solid var(--btnb); border-radius:14px; padding:.6rem .8rem; background:var(--btn); color:var(--ink); display:inline-flex; align-items:center; gap:.35rem; cursor:pointer; user-select:none; text-decoration:none; }
+  button:active, label.btn:active { transform: translateY(1px); }
+  button.on { outline: 1px solid var(--accent); box-shadow: 0 0 0 2px #00d0b422 inset; }
+  .pill { opacity:.85; }
+  #file, #jsonfile { display:none; }
+
+  .inspector { position: fixed; z-index:10; min-width: 250px; max-width: 340px; color:var(--ink); background: var(--panel); border:1px solid #29323c; border-radius:16px; padding:.75rem; box-shadow: 0 6px 28px rgba(0,0,0,.6); }
+  .inspector h3 { margin:.1rem 0 .35rem; font-size:14px; }
+  .row { display:grid; grid-template-columns: 90px 1fr auto; align-items:center; gap:.5rem; margin:.35rem 0; }
+  .row > label { color:var(--muted); font-weight:600; }
+  .row input[type="range"], .row select { width:100%; }
+  .inspector .mini { display:flex; gap:.35rem; justify-content:flex-end; margin-top:.35rem; }
+  .inspector .danger { color:#ffb3b3; border-color:#7a2a2a; background:#1a0e0e; }
+
+  .toast { position:fixed; left:50%; transform:translateX(-50%); bottom:80px; z-index:20; background:#0f141b; border:1px solid #2a313a; border-radius:12px; padding:.5rem .75rem; color:var(--ink2); opacity:0; transition:opacity .25s; }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+
+  <div class="topbar">
+    <div class="group">
+      <span class="badge" id="titleBadge">Hyperclay Fusion Wheel — Option 2</span>
+      <span class="note" id="phaseNote">phase 0.000</span>
+      <span class="note" id="fpsNote">fps —</span>
+      <div class="meter" title="Wheel inertia">
+        <span class="note">inertia</span>
+        <span class="bar"><i id="inertiaFill" style="width:0%"></i></span>
+      </div>
+      <span class="badge" id="resBadge" title="Render scale">RES 1.0×</span>
+      <span class="badge" id="wheelBadge" title="Wheel size factor">R 1.00×</span>
+    </div>
+    <div class="group">
+      <span class="badge pill">Ticks • Ghost arcs • Inspector • Pinch • STAMP • Record • JSON • Hi‑Q • Linear</span>
+    </div>
+  </div>
+
+  <div class="hud">
+    <button id="hiqBtn">Hi‑Q OFF</button>
+    <button id="hiqExportBtn">⭳ Export (Hi‑Q)</button>
+    <button id="linearExportBtn">Export Linear</button>
+
+    <label class="btn" for="file">Load Clips</label><input id="file" type="file" multiple accept="image/*,video/*" />
+    <button id="modeSpin" class="on" title="SPIN: fling/drag to scrub time">SPIN</button>
+    <button id="modeSculpt" title="SCULPT: drag clip anchors, long-press for inspector">SCULPT</button>
+    <button id="resBtn" title="Toggle render scale (for perf)">RES</button>
+    <button id="stampBtn" title="Stamp current composite as image clip">STAMP</button>
+    <button id="undoBtn" title="Undo last change">Undo</button>
+    <button id="recBtn" title="Start/Stop recording">● Record</button>
+    <a id="dl" class="btn" style="display:none" download="hyperclay.webm">Download</a>
+    <label class="btn" for="jsonfile" title="Import session JSON">Load JSON</label><input id="jsonfile" type="file" accept="application/json" />
+    <button id="saveBtn" title="Export session JSON">Save JSON</button>
+    <button id="clearBtn" title="Remove all clips">Clear</button>
+
+    <button id="playBtn">▶︎ Play</button>
+    <button id="stopBtn">■ Stop</button>
+    <button id="lenBtn">Len: 10s</button>
+  </div>
+
+  <div id="toast" class="toast">Saved</div>
+</div>
+
+<script>
+(() => {
+  // ==========================
+  // Canvas & Resolution Control
+  // ==========================
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let RES_SCALE = 1.0; // cycles 1.0 → 0.8 → 0.6
+  let DPR = 1;
+
+  function computeDPR(){
+    DPR = Math.max(1, Math.min(2, (window.devicePixelRatio || 1) * RES_SCALE));
+  }
+  function resize(){
+    computeDPR();
+    const {clientWidth:w, clientHeight:h} = canvas;
+    canvas.width = Math.floor(w * DPR);
+    canvas.height= Math.floor(h * DPR);
+  }
+  new ResizeObserver(resize).observe(canvas);
+  resize();
+
+  // ==========================
+  // App State
+  // ==========================
+  const state = {
+    cx: () => canvas.width  * 0.5,
+    cy: () => canvas.height * 0.5,
+    wheelScale: 1.0,
+    baseWheelR: () => Math.min(canvas.width, canvas.height) * 0.28 * state.wheelScale,
+    wheelAngle: 0,
+    wheelVel: 0,
+    friction: 0.985,
+    mode: 'SPIN', // 'SPIN' | 'SCULPT'
+    clips: [],
+    activeClipId: null,
+    history: [],
+  };
+  let nextId = 1;
+
+  // Clip schema: { id, type:'video'|'image'|'stamp'|'placeholder', el?, kind?, angle, radius, scale, edge, fog, blend, timeOffset, duration, label? }
+
+  // ==========================
+  // UI References
+  // ==========================
+  const fileInput   = document.getElementById('file');
+  const jsonInput   = document.getElementById('jsonfile');
+  const modeSpinBtn = document.getElementById('modeSpin');
+  const modeScptBtn = document.getElementById('modeSculpt');
+  const resBtn      = document.getElementById('resBtn');
+  const resBadge    = document.getElementById('resBadge');
+  const wheelBadge  = document.getElementById('wheelBadge');
+  const stampBtn    = document.getElementById('stampBtn');
+  const undoBtn     = document.getElementById('undoBtn');
+  const recBtn      = document.getElementById('recBtn');
+  const dlLink      = document.getElementById('dl');
+  const saveBtn     = document.getElementById('saveBtn');
+  const clearBtn    = document.getElementById('clearBtn');
+  const phaseNote   = document.getElementById('phaseNote');
+  const fpsNote     = document.getElementById('fpsNote');
+  const inertiaFill = document.getElementById('inertiaFill');
+  const toastEl     = document.getElementById('toast');
+  const titleBadge  = document.getElementById('titleBadge');
+
+  const hiqBtn      = document.getElementById('hiqBtn');
+  const hiqExportBtn= document.getElementById('hiqExportBtn');
+  const linearExportBtn=document.getElementById('linearExportBtn');
+  const playBtn     = document.getElementById('playBtn');
+  const stopBtn     = document.getElementById('stopBtn');
+  const lenBtn      = document.getElementById('lenBtn');
+
+  function showToast(msg, ms=900){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(()=> toastEl.classList.remove('show'), ms);
+  }
+
+  // ==========================
+  // History (what-if snapshots)
+  // ==========================
+  function snapshot(){
+    const snap = state.clips.map(c => ({ id:c.id, type:c.type, angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration, label:c.label||null }));
+    state.history.push(snap);
+    if (state.history.length > 40) state.history.shift();
+  }
+  function restoreSnapshot(snap){
+    for (const s of snap){
+      const c = state.clips.find(k => k.id === s.id);
+      if (!c) continue; Object.assign(c, s);
+    }
+  }
+  undoBtn.addEventListener('click', () => { const last = state.history.pop(); if (last){ restoreSnapshot(last); showToast('Undid'); } });
+
+  // ==========================
+  // Add Clips
+  // ==========================
+  function defaultClipBase(){
+    return { id: nextId++, angle: Math.random()*Math.PI*2, radius: 0, scale: 0.5, edge: 24, fog: 0.08, blend: 'source-over', timeOffset: 0, duration: 5 };
+  }
+  function addImageClip(img){ const clip={ ...defaultClipBase(), type:'image', el:img, kind:'img' }; state.clips.push(clip); snapshot(); }
+  function addStampClip(img){ const clip={ ...defaultClipBase(), type:'stamp', el:img, kind:'img' }; state.clips.push(clip); snapshot(); }
+  function addVideoClip(video, duration=5){ const clip={ ...defaultClipBase(), type:'video', el:video, kind:'video', duration: duration||5 }; state.clips.push(clip); snapshot(); wireVideoAudio(clip); }
+  function addPlaceholder(label){ state.clips.push({ ...defaultClipBase(), type:'placeholder', label, kind:'placeholder', duration:5, scale:0.6 }); }
+
+  fileInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    for (const f of files){
+      if (f.type.startsWith('image/')){
+        const url = URL.createObjectURL(f); const img = new Image(); await new Promise(res => { img.onload = res; img.src = url; }); addImageClip(img);
+      } else if (f.type.startsWith('video/')){
+        const url = URL.createObjectURL(f); const vid = document.createElement('video');
+        vid.src = url; vid.preload='auto'; vid.loop=true; vid.muted=true; vid.playsInline=true; await vid.play().catch(()=>{}); vid.pause();
+        const duration = isFinite(vid.duration) ? vid.duration : 5; addVideoClip(vid, duration);
+      }
+    }
+    fileInput.value = '';
+  });
+
+  // ==========================
+  // Modes
+  // ==========================
+  function setMode(m){ state.mode = m; modeSpinBtn.classList.toggle('on', m==='SPIN'); modeScptBtn.classList.toggle('on', m==='SCULPT'); }
+  modeSpinBtn.addEventListener('click', () => setMode('SPIN'));
+  modeScptBtn.addEventListener('click', () => setMode('SCULPT'));
+
+  // ==========================
+  // Resolution toggle
+  // ==========================
+  resBtn.addEventListener('click', () => { RES_SCALE = (RES_SCALE === 1.0) ? 0.8 : (RES_SCALE === 0.8 ? 0.6 : 1.0); resBadge.textContent = `RES ${RES_SCALE.toFixed(1)}×`; resize(); });
+
+  // ==========================
+  // STAMP & CLEAR
+  // ==========================
+  const stampBtnHandler = () => { const dataURL = canvas.toDataURL('image/png'); const img = new Image(); img.onload = () => addStampClip(img); img.src = dataURL; showToast('Stamped'); }
+  stampBtn.addEventListener('click', stampBtnHandler);
+  clearBtn.addEventListener('click', () => { stopRecording(true); state.clips = []; state.history = []; state.activeClipId=null; });
+
+  // ==========================
+  // Recording (canvas-only fallback)
+  // ==========================
+  let mediaRecorder = null, recChunks = [], recording = false;
+  recBtn.addEventListener('click', () => { if (!recording) startRecording(); else stopRecording(); });
+  function startRecording(){ if (recording) return; const stream = canvas.captureStream(30); if (!('MediaRecorder' in window)) { alert('MediaRecorder not supported.'); return; } mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' }); recChunks = []; mediaRecorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); }; mediaRecorder.onstop = () => { const blob = new Blob(recChunks, { type:'video/webm' }); const url = URL.createObjectURL(blob); dlLink.href = url; dlLink.style.display=''; }; mediaRecorder.start(); recording = true; recBtn.classList.add('on'); dlLink.style.display='none'; showToast('Recording…'); }
+  function stopRecording(silent=false){ if (!recording) return; mediaRecorder.stop(); recording=false; recBtn.classList.remove('on'); if(!silent) showToast('Recording complete — Download ready'); }
+
+  // ==========================
+  // JSON Save/Load (Session)
+  // ==========================
+  saveBtn.addEventListener('click', () => {
+    const payload = { version:1, wheelScale: state.wheelScale, clips: state.clips.map(c => ({ id:c.id, type:c.type, angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration, label:c.label||null, data:(c.type==='image'||c.type==='stamp')?tryImageToDataURL(c.el):null })) };
+    const blob = new Blob([JSON.stringify(payload)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='hyperclay_session.json'; a.click(); showToast('Session saved');
+  });
+  function tryImageToDataURL(img){ try{ const off = document.createElement('canvas'); off.width = img.naturalWidth||img.width; off.height = img.naturalHeight||img.height; const octx = off.getContext('2d'); octx.drawImage(img,0,0); return off.toDataURL('image/png'); }catch(_){ return null; } }
+  jsonInput.addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; if(!f) return;
+    try{
+      const text = await f.text(); const obj = JSON.parse(text);
+      state.wheelScale = obj.wheelScale || 1.0; wheelBadge.textContent = `R ${state.wheelScale.toFixed(2)}×`;
+      const rebuilt = [];
+      for (const c of obj.clips||[]){
+        if ((c.type==='image'||c.type==='stamp') && c.data){ const img = new Image(); await new Promise(res => { img.onload=res; img.src=c.data; }); rebuilt.push({ ...defaultClipBase(), id:c.id, type:c.type, el:img, kind:'img', angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration }); }
+        else if (c.type==='video') { rebuilt.push({ ...defaultClipBase(), id:c.id, type:'placeholder', kind:'placeholder', label:'Video (relink)', angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration }); }
+        else { rebuilt.push({ ...defaultClipBase(), id:c.id, type:c.type||'placeholder', kind:c.kind||'placeholder', label:c.label||'Clip', angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration }); }
+      }
+      state.clips = rebuilt; state.history=[]; showToast('Session loaded');
+    }catch(err){ alert('Invalid JSON'); }
+    jsonInput.value='';
+  });
+
+  // ==========================
+  // Interaction (SPIN / SCULPT) + Pinch Scale + Long-Press Inspector
+  // ==========================
+  let dragging=false, dragLastAngle=0; let draggingClip=null; let longPressTimer=null; let movedSinceDown=false;
+  let pinchStartDist=0, pinchStartScale=1.0; let activeTouches = new Map();
+
+  function pointAngle(x,y){ const dx=x-state.cx(), dy=y-state.cy(); return Math.atan2(dy,dx); }
+  function pointerPos(e){ if (e.touches && e.touches[0]){ const r=canvas.getBoundingClientRect(); return { x:(e.touches[0].clientX-r.left)*DPR, y:(e.touches[0].clientY-r.top)*DPR }; } else { const r=canvas.getBoundingClientRect(); return { x:(e.clientX-r.left)*DPR, y:(e.clientY-r.top)*DPR }; } }
+  function nearestClipHandle(px,py){ const R=state.baseWheelR(); const world=(a)=>a+state.wheelAngle; let best=null, bestD2=Infinity; for (const c of state.clips){ const a=world(c.angle), r=R+c.radius; const hx=state.cx()+r*Math.cos(a), hy=state.cy()+r*Math.sin(a); const dx=hx-px, dy=hy-py, d2=dx*dx+dy*dy; if (d2<bestD2){ bestD2=d2; best={clip:c,hx,hy,d2}; } } return best && best.d2 < (36*DPR)*(36*DPR) ? best.clip : null; }
+
+  function updateActiveTouches(e){ activeTouches.clear(); if (!e.touches) return; const r=canvas.getBoundingClientRect(); for (let i=0;i<e.touches.length;i++){ const t=e.touches[i]; activeTouches.set(t.identifier, { x:(t.clientX-r.left)*DPR, y:(t.clientY-r.top)*DPR }); } }
+  function distanceBetweenTouches(){ if (activeTouches.size<2) return 0; const arr=[...activeTouches.values()]; const dx=arr[0].x-arr[1].x, dy=arr[0].y-arr[1].y; return Math.hypot(dx,dy); }
+
+  let inspector = null; // {el, clip}
+  function openInspectorFor(clip, screenX, screenY){
+    closeInspector(); inspector = { clip, el: document.createElement('div') }; const el=inspector.el; el.className='inspector'; el.style.left = Math.max(8, Math.min(window.innerWidth-350, screenX-130))+'px'; el.style.top  = Math.max(8, Math.min(window.innerHeight-280, screenY-130))+'px';
+    el.innerHTML = `
+      <h3>Clip #${clip.id} <span style="opacity:.6">(${clip.type})</span></h3>
+      <div class="row"><label>Scale</label><input id="i_scale" type="range" min="0.1" max="2.0" step="0.01" value="${clip.scale}"><span>${clip.scale.toFixed(2)}</span></div>
+      <div class="row"><label>Edge</label><input id="i_edge" type="range" min="0" max="64" step="1" value="${clip.edge}"><span>${clip.edge|0}</span></div>
+      <div class="row"><label>Fog</label><input id="i_fog" type="range" min="0" max="0.6" step="0.01" value="${clip.fog}"><span>${clip.fog.toFixed(2)}</span></div>
+      <div class="row"><label>Time Off</label><input id="i_toff" type="range" min="0" max="${Math.max(0.01, clip.duration)}" step="0.01" value="${clip.timeOffset}"><span>${clip.timeOffset.toFixed(2)}</span></div>
+      <div class="row"><label>Blend</label>
+        <select id="i_blend">${['source-over','lighter','multiply','screen','overlay','hard-light','soft-light'].map(b=>`<option ${clip.blend===b?'selected':''}>${b}</option>`).join('')}</select>
+        <button id="i_cycle">Cycle</button>
+      </div>
+      <div class="mini">
+        <button id="i_edgep">EDGE+</button>
+        <button id="i_edgem">EDGE-</button>
+        <button id="i_fogp">FOG+</button>
+        <button id="i_fogm">FOG-</button>
+        <button id="i_remove" class="danger">Remove</button>
+        <button id="i_close">Close</button>
+      </div>`;
+    document.body.appendChild(el);
+
+    function bindRange(id, prop, fmt){ const r=el.querySelector(id); const s=r.nextElementSibling; r.addEventListener('input', ()=>{ clip[prop]=Number(r.value); s.textContent = (fmt?fmt(clip[prop]):clip[prop]); }); }
+    bindRange('#i_scale','scale', v=>v.toFixed(2)); bindRange('#i_edge','edge', v=>v|0); bindRange('#i_fog','fog', v=>v.toFixed(2)); bindRange('#i_toff','timeOffset', v=>v.toFixed(2));
+    el.querySelector('#i_blend').addEventListener('change', e => clip.blend = e.target.value);
+    el.querySelector('#i_cycle').addEventListener('click', ()=>{ clip.blend = nextBlend(clip.blend); el.querySelector('#i_blend').value = clip.blend; });
+    el.querySelector('#i_edgep').addEventListener('click', ()=> clip.edge = Math.min(64, clip.edge+4));
+    el.querySelector('#i_edgem').addEventListener('click', ()=> clip.edge = Math.max(0, clip.edge-4));
+    el.querySelector('#i_fogp').addEventListener('click', ()=> clip.fog = Math.min(0.6, (clip.fog+0.04)));
+    el.querySelector('#i_fogm').addEventListener('click', ()=> clip.fog = Math.max(0, (clip.fog-0.04)));
+    el.querySelector('#i_remove').addEventListener('click', ()=>{ state.clips = state.clips.filter(k=>k.id!==clip.id); closeInspector(); });
+    el.querySelector('#i_close').addEventListener('click', closeInspector);
+
+    // notify audio UI to mount
+    document.dispatchEvent(new CustomEvent('inspector:mounted', { detail:{ el, clip } }));
+  }
+  function closeInspector(){ if (inspector){ inspector.el.remove(); inspector=null; } }
+  function nextBlend(b){ const modes=['source-over','lighter','multiply','screen','overlay','hard-light','soft-light']; const i=modes.indexOf(b); return modes[(i+1)%modes.length]; }
+
+  canvas.addEventListener('touchstart', onDown, {passive:false}); canvas.addEventListener('mousedown', onDown);
+  function onDown(e){ e.preventDefault(); movedSinceDown=false; closeInspector(); if (e.touches && e.touches.length>=2){ updateActiveTouches(e); pinchStartDist = distanceBetweenTouches(); pinchStartScale = state.wheelScale; dragging=false; return; }
+    const {x,y} = pointerPos(e); const screen = { sx: (e.touches? e.touches[0].clientX : e.clientX), sy: (e.touches? e.touches[0].clientY : e.clientY) };
+    dragLastAngle = pointAngle(x,y); dragging=true; state.activeClipId=null; draggingClip=null;
+    if (state.mode==='SCULPT'){ draggingClip = nearestClipHandle(x,y); if (draggingClip){ state.activeClipId = draggingClip.id; longPressTimer = setTimeout(()=>{ if (!movedSinceDown) openInspectorFor(draggingClip, screen.sx, screen.sy); }, 420); } }
+  }
+
+  window.addEventListener('touchmove', onMove, {passive:false}); window.addEventListener('mousemove', onMove);
+  function onMove(e){ if (e.touches && e.touches.length>=2){ updateActiveTouches(e); const dist = distanceBetweenTouches(); if (pinchStartDist>0){ let scale = pinchStartScale * (dist/pinchStartDist); scale = Math.max(0.6, Math.min(1.8, scale)); state.wheelScale = scale; wheelBadge.textContent = `R ${state.wheelScale.toFixed(2)}×`; } return; }
+    if (!dragging) return; e.preventDefault(); movedSinceDown=true; if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }
+    const {x,y} = pointerPos(e); const a = pointAngle(x,y); const da = angDiff(a, dragLastAngle); dragLastAngle=a;
+    if (state.mode==='SCULPT' && draggingClip){ draggingClip.angle = normAngle(draggingClip.angle + da); const R = state.baseWheelR(); const dist = Math.hypot(x-state.cx(), y-state.cy()); draggingClip.radius = clamp(dist - R, -R*0.25, R*0.6);
+      // snap-assist near ticks + haptic nudge
+      const TWO_PI=Math.PI*2; const tickSize=TWO_PI/60; const worldAngle=normAngle(draggingClip.angle+state.wheelAngle); let rem=Math.abs((worldAngle%tickSize+tickSize)%tickSize); rem=Math.min(rem,tickSize-rem); if(rem<tickSize*0.06){ tactile.nudge(); const nearest=Math.round(worldAngle/tickSize)*tickSize; draggingClip.angle = normAngle(nearest - state.wheelAngle); }
+    } else { state.wheelAngle = normAngle(state.wheelAngle + da); state.wheelVel = da; }
+  }
+  window.addEventListener('touchend', onUp); window.addEventListener('mouseup', onUp);
+  function onUp(){ dragging=false; draggingClip=null; if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; } }
+
+  function angDiff(a,b){ let d=a-b; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return d; }
+  function normAngle(a){ while(a>Math.PI) a-=Math.PI*2; while(a<=-Math.PI) a+=Math.PI*2; return a; }
+  const clamp = (v,lo,hi)=> Math.max(lo,Math.min(hi,v));
+
+  // ==========================
+  // Drawing Helpers & Offscreens
+  // ==========================
+  const offA = document.createElement('canvas'); const offB = document.createElement('canvas');
+  let octxA = offA.getContext('2d'); let octxB = offB.getContext('2d');
+  function ensureOff(w,h){ if (offA.width!==w||offA.height!==h){ offA.width=w; offA.height=h; offB.width=w; offB.height=h; octxA=offA.getContext('2d'); octxB=offB.getContext('2d'); } }
+
+  function drawWheel(){ const cx=state.cx(), cy=state.cy(), R=state.baseWheelR(); ctx.save(); ctx.lineWidth = 3*DPR; ctx.strokeStyle = '#1f252d'; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke(); ctx.restore(); ctx.save(); ctx.translate(cx,cy); ctx.rotate(state.wheelAngle); for (let i=0;i<60;i++){ const major = i%5===0; const len=(major?10:6)*DPR; ctx.beginPath(); ctx.strokeStyle=major?'#39414c':'#2b313a'; ctx.lineWidth=major?2*DPR:1*DPR; ctx.moveTo(R-len, 0); ctx.lineTo(R+len, 0); ctx.stroke(); ctx.rotate((Math.PI*2)/60); } ctx.restore(); }
+
+  function drawGhostArcs(phase){ const cx=state.cx(), cy=state.cy(), R=state.baseWheelR(); for (const c of state.clips){ const aWorld=c.angle+state.wheelAngle; const anchorR=R+c.radius; const hx=cx+anchorR*Math.cos(aWorld), hy=cy+anchorR*Math.sin(aWorld); ctx.save(); ctx.fillStyle=(state.activeClipId===c.id)?'#00d0b4':'#eae7df'; ctx.beginPath(); ctx.arc(hx,hy,6*DPR,0,Math.PI*2); ctx.fill(); ctx.restore(); ctx.save(); ctx.strokeStyle='#00d0b4'; ctx.lineWidth=4*DPR; const start=aWorld-0.15, end=start + ( ( ( (phase + c.timeOffset/c.duration) % 1) * 0.35 + 0.05 ) ); ctx.beginPath(); ctx.arc(cx,cy,R-10*DPR,start,end); ctx.stroke(); ctx.restore(); ctx.save(); ctx.fillStyle='rgba(12,17,24,.8)'; ctx.strokeStyle='#2a313a'; ctx.lineWidth=1*DPR; const bx=hx+10*DPR, by=hy-18*DPR; const bw=64*DPR, bh=16*DPR; ctx.beginPath(); roundRect(ctx,bx,by,bw,bh,8*DPR); ctx.fill(); ctx.stroke(); ctx.fillStyle='#9aa0a6'; ctx.font=`${10*DPR}px ui-sans-serif`; ctx.textBaseline='middle'; ctx.fillText((c.blend||'src').replace('source-over','src'), bx+6*DPR, by+bh/2); ctx.restore(); } }
+  function roundRect(ctx,x,y,w,h,r){ ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); }
+
+  function drawFeatherMask(ctxMask,w,h,edgePx){ ctxMask.clearRect(0,0,w,h); if (edgePx<=1){ ctxMask.fillStyle='#fff'; ctxMask.fillRect(0,0,w,h); return; } ctxMask.fillStyle='#fff'; ctxMask.fillRect(edgePx,edgePx,w-2*edgePx,h-2*edgePx); const L=ctxMask.createLinearGradient(0,0,edgePx,0); L.addColorStop(0,'rgba(255,255,255,0)'); L.addColorStop(1,'#fff'); ctxMask.fillStyle=L; ctxMask.fillRect(0,edgePx,edgePx,h-2*edgePx); const Rg=ctxMask.createLinearGradient(w-edgePx,0,w,0); Rg.addColorStop(0,'#fff'); Rg.addColorStop(1,'rgba(255,255,255,0)'); ctxMask.fillStyle=Rg; ctxMask.fillRect(w-edgePx,edgePx,edgePx,h-2*edgePx); const T=ctxMask.createLinearGradient(0,0,0,edgePx); T.addColorStop(0,'rgba(255,255,255,0)'); T.addColorStop(1,'#fff'); ctxMask.fillStyle=T; ctxMask.fillRect(edgePx,0,w-2*edgePx,edgePx); const B=ctxMask.createLinearGradient(0,h-edgePx,0,h); B.addColorStop(0,'#fff'); B.addColorStop(1,'rgba(255,255,255,0)'); ctxMask.fillStyle=B; ctxMask.fillRect(edgePx,h-edgePx,w-2*edgePx,edgePx); function corner(xc,yc){ const rg=ctxMask.createRadialGradient(xc,yc,0, xc,yc,edgePx); rg.addColorStop(0,'#fff'); rg.addColorStop(1,'rgba(255,255,255,0)'); ctxMask.fillStyle=rg; ctxMask.beginPath(); ctxMask.arc(xc,yc,edgePx,0,Math.PI*2); ctxMask.fill(); } corner(edgePx,edgePx); corner(w-edgePx,edgePx); corner(edgePx,h-edgePx); corner(w-edgePx,h-edgePx); }
+
+  function drawClipLayer(mainCtx, clip, phase){ const cx=state.cx(), cy=state.cy(), R=state.baseWheelR(); let srcW=320, srcH=180; if (clip.kind==='video'){ srcW=clip.el.videoWidth||320; srcH=clip.el.videoHeight||180; } else if (clip.kind==='img'){ srcW=clip.el.naturalWidth||clip.el.width||320; srcH=clip.el.naturalHeight||clip.el.height||180; } else if (clip.kind==='placeholder'){ srcW=320; srcH=180; }
+    const targetW=Math.max(8, Math.floor(srcW*clip.scale)); const targetH=Math.max(8, Math.floor(srcH*clip.scale)); ensureOff(targetW,targetH);
+    if (clip.kind==='video'){ const t = ((phase * clip.duration) + clip.timeOffset) % clip.duration; if (!Number.isNaN(t) && isFinite(t)) { try { clip.el.currentTime = t; } catch(_){} } }
+    octxA.clearRect(0,0,targetW,targetH); if (clip.kind==='placeholder'){ octxA.fillStyle='#0c1118'; octxA.fillRect(0,0,targetW,targetH); octxA.strokeStyle='#2a313a'; octxA.strokeRect(1,1,targetW-2,targetH-2); octxA.fillStyle='#9aa0a6'; octxA.font='12px ui-sans-serif'; octxA.fillText(clip.label||'Video placeholder', 8, 18); } else { try { octxA.drawImage(clip.el, 0, 0, targetW, targetH); } catch(_) {} }
+    octxB.clearRect(0,0,targetW,targetH); drawFeatherMask(octxB, targetW, targetH, Math.min(clip.edge * DPR, Math.floor(Math.min(targetW,targetH)/3)) ); octxA.globalCompositeOperation='destination-in'; octxA.drawImage(offB,0,0); octxA.globalCompositeOperation='source-over'; if (clip.fog>0.001){ octxA.save(); octxA.globalAlpha=clip.fog; octxA.fillStyle='#fff'; octxA.fillRect(0,0,targetW,targetH); octxA.restore(); }
+    const aWorld=clip.angle+state.wheelAngle; const rWorld=R+clip.radius; const x = cx + rWorld*Math.cos(aWorld) - targetW/2; const y= cy + rWorld*Math.sin(aWorld) - targetH/2; mainCtx.save(); mainCtx.globalCompositeOperation = clip.blend; mainCtx.drawImage(offA, Math.floor(x), Math.floor(y)); mainCtx.restore(); }
+
+  // ==========================
+  // Main Loop + Transport
+  // ==========================
+  let lastT=performance.now(), fpsSm=60;
+  const transport = { playing:false, rate:1.0, lengthSec:10, t:0, _lastNow:null, reset(){ this.t=0; this._lastNow=null; }, start(){ this.playing=true; this._lastNow=performance.now(); }, pause(){ this.playing=false; this._lastNow=null; }, stop(){ this.playing=false; this.reset(); }, tick(now){ if (!this.playing){ this._lastNow=now; return; } if (this._lastNow==null) this._lastNow=now; const dt=(now-this._lastNow)/1000; this._lastNow=now; this.t += dt*this.rate; if (this.t>this.lengthSec){ this.t=this.lengthSec; this.playing=false; } }, phase(){ return this.lengthSec>0 ? (this.t/this.lengthSec)%1 : 0; } };
+
+  function tick(now){ const dt = now-lastT; lastT=now; const alpha = clamp(dt/16.6667, 0.25, 4);
+    if (!dragging || state.mode!=='SCULPT'){ state.wheelAngle = normAngle(state.wheelAngle + state.wheelVel*alpha); state.wheelVel *= Math.pow(state.friction, alpha); if (Math.abs(state.wheelVel)<1e-5) state.wheelVel=0; }
+    const rawPhase = ((state.wheelAngle/(Math.PI*2))%1 + 1) % 1;
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height);
+    const g=ctx.createRadialGradient(state.cx(),state.cy(),0, state.cx(),state.cy(), Math.max(canvas.width,canvas.height)*0.6); g.addColorStop(0,'#0b0c10'); g.addColorStop(1,'#07090d'); ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+    drawWheel(); for (const c of state.clips) drawClipLayer(ctx, c, rawPhase); drawGhostArcs(rawPhase);
+    phaseNote.textContent = `phase ${rawPhase.toFixed(3)}`; fpsSm = fpsSm*0.9 + (1000/dt)*0.1; fpsNote.textContent = `fps ${Math.max(1, Math.round(fpsSm))}`; const inertia = Math.min(1, Math.abs(state.wheelVel)*24); inertiaFill.style.width = `${Math.floor(inertia*100)}%`;
+    // tactile tick update
+    tactile.updateFromAngle(state.wheelAngle);
+    // audio scrub drive
+    driveAudioScrub(state.wheelVel);
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // Transport controls
+  playBtn.addEventListener('click', ()=>{ if (!transport.playing){ transport.start(); playBtn.textContent='⏸ Pause'; state.wheelVel=0; } else { transport.pause(); playBtn.textContent='▶︎ Play'; } });
+  stopBtn.addEventListener('click', ()=>{ transport.stop(); playBtn.textContent='▶︎ Play'; });
+  lenBtn.addEventListener('click', ()=>{ const v=prompt('Set export length in seconds', String(transport.lengthSec)); const n=Number(v); if (isFinite(n)&&n>0){ transport.lengthSec=Math.min(300,n); lenBtn.textContent=`Len: ${transport.lengthSec}s`; } });
+  titleBadge.addEventListener('dblclick', ()=> applyWatchablePreset());
+
+  // ==========================
+  // Tactile + Sonic Tick Grid
+  // ==========================
+  function createTactile() {
+    const T = { ctx:null, gain:null, enabled:true, prevTickIdx:null, vibeOk:'vibrate' in navigator, init(){ if (this.ctx) return; try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); this.gain=this.ctx.createGain(); this.gain.gain.value=0.0; this.gain.connect(this.ctx.destination);}catch(_){ this.enabled=false; } }, blip(freq=520, ms=24, amp=0.05){ if(!this.ctx) return; const now=this.ctx.currentTime; const o=this.ctx.createOscillator(); const g=this.ctx.createGain(); o.frequency.value=freq; o.type='triangle'; g.gain.setValueAtTime(0,now); g.gain.linearRampToValueAtTime(amp, now+0.002); g.gain.exponentialRampToValueAtTime(1e-4, now+ms/1000); o.connect(g); g.connect(this.gain); o.start(now); o.stop(now+ms/1000); }, vibe(ms=8){ if(this.vibeOk) try{ navigator.vibrate(ms);}catch(_){} }, tick(strength=1){ const f=strength>1?680:520; const a=strength>1?0.07:0.045; const d=strength>1?14:8; this.blip(f,d,a); this.vibe(d); }, updateFromAngle(angle){ const TWO_PI=Math.PI*2; const a=((angle%TWO_PI)+TWO_PI)%TWO_PI; const tick=Math.floor(a/(TWO_PI/60)); if(this.prevTickIdx===null) this.prevTickIdx=tick; if(tick!==this.prevTickIdx){ const major=(tick%5)===0; this.tick(major?2:1); this.prevTickIdx=tick; } }, nudge(){ this.blip(760,12,0.05); this.vibe(6); } };
+    const boot=()=>T.init(); window.addEventListener('pointerdown', boot, {once:true, passive:true}); window.addEventListener('touchstart', boot, {once:true, passive:true}); return T; }
+  const tactile = createTactile();
+
+  // ==========================
+  // Audio Scrub + Transient Haptics
+  // ==========================
+  function createAudioEngine(){ const A={ ctx:null, master:null, enabled:true, booted:false, boot(){ if(this.booted) return; try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); this.master=this.ctx.createGain(); this.master.gain.value=0.7; this.master.connect(this.ctx.destination); this.booted=true; }catch(_){ this.enabled=false; } } }; const boot=()=>A.boot(); window.addEventListener('pointerdown', boot, {once:true, passive:true}); window.addEventListener('touchstart', boot, {once:true, passive:true}); return A; }
+  window.AUDIO = createAudioEngine();
+
+  function wireVideoAudio(clip){ if (!AUDIO.enabled) return; const ctx=AUDIO.ctx; const src=ctx.createMediaElementSource(clip.el); const band=ctx.createBiquadFilter(); band.type='allpass'; const band2=ctx.createBiquadFilter(); band2.type='allpass'; const gain=ctx.createGain(); gain.gain.value=0.0; const analyser=ctx.createAnalyser(); analyser.fftSize=512; analyser.smoothingTimeConstant=0.85; const buf=new Uint8Array(analyser.frequencyBinCount); src.connect(band); band.connect(band2); band2.connect(gain); gain.connect(AUDIO.master); gain.connect(analyser); clip.audio={ enabled:true, src, band, band2, gain, analyser, buf, bandMode:'full', scrubIntensity:0.0, thresh:0.22, lastHit:0 }; clip.el.muted=true; clip.el.volume=0.0; }
+  function applyBand(clip){ if(!clip.audio) return; const {band,band2,bandMode}=clip.audio; band.type='allpass'; band.frequency.value=350; band.Q.value=0.0001; band2.type='allpass'; band2.frequency.value=1500; band2.Q.value=0.0001; if (bandMode==='low'){ band.type='lowpass'; band.frequency.value=180; band.Q.value=0.707; } else if (bandMode==='high'){ band.type='highpass'; band.frequency.value=1800; band.Q.value=0.707; } else if (bandMode==='mid'){ band.type='bandpass'; band.frequency.value=650; band.Q.value=1.2; band2.type='bandpass'; band2.frequency.value=1200; band2.Q.value=1.2; } }
+  function driveAudioScrub(absWheelVel){ if(!AUDIO.booted) return; const base=Math.min(1, Math.abs(absWheelVel)*10); const targetMaster=0.5*base; AUDIO.master.gain.value += (targetMaster - AUDIO.master.gain.value)*0.15; for (const c of state.clips){ if(!c.audio||!c.audio.enabled) continue; const R=state.baseWheelR(); const rel=Math.max(0, Math.min(1, (R + c.radius)/(R*1.6))); const gTarget=base*rel*0.18; c.audio.scrubIntensity=gTarget; const g=c.audio.gain.gain; g.value += (gTarget - g.value)*0.2; const a=c.audio.analyser, buf=c.audio.buf; a.getByteTimeDomainData(buf); let sum=0; for(let i=0;i<buf.length;i++){ const v=(buf[i]-128)/128; sum+=v*v; } const rms=Math.sqrt(sum/buf.length); const now=performance.now(); if (rms>c.audio.thresh && (now-c.audio.lastHit)>90){ try{ navigator.vibrate?.(6);}catch(_){} c.audio.lastHit=now; } } }
+
+  document.addEventListener('inspector:mounted', (ev)=>{ const {el,clip}=ev.detail; if(!clip || clip.kind!=='video') return; const rows=document.createElement('div'); rows.innerHTML = `
+      <div class="row"><label>Audio</label>
+        <select id="a_enable"><option value="on">on</option><option value="off">off</option></select>
+        <span id="a_meter" title="RMS meter">—</span></div>
+      <div class="row"><label>Band</label>
+        <select id="a_band"><option value="full">full</option><option value="low">low</option><option value="mid">mid</option><option value="high">high</option></select>
+        <span>&nbsp;</span></div>
+      <div class="row"><label>Thresh</label>
+        <input id="a_thresh" type="range" min="0.05" max="0.6" step="0.01" value="${(clip.audio?.thresh ?? 0.22).toFixed(2)}">
+        <span id="a_thresh_val">${(clip.audio?.thresh ?? 0.22).toFixed(2)}</span></div>`;
+    el.insertBefore(rows, el.querySelector('.mini'));
+    const selOnOff=rows.querySelector('#a_enable'); const selBand=rows.querySelector('#a_band'); const rngTh=rows.querySelector('#a_thresh'); const spTh=rows.querySelector('#a_thresh_val'); const meter=rows.querySelector('#a_meter');
+    if(!clip.audio){ wireVideoAudio(clip); applyBand(clip); } selOnOff.value=(clip.audio?.enabled!==false)?'on':'off'; selBand.value=clip.audio?.bandMode||'full';
+    selOnOff.addEventListener('change', ()=>{ if(!clip.audio){ wireVideoAudio(clip); applyBand(clip);} clip.audio.enabled=(selOnOff.value==='on'); if(clip.audio && !clip.audio.enabled) clip.audio.gain.gain.value=0.0; });
+    selBand.addEventListener('change', ()=>{ if(!clip.audio){ wireVideoAudio(clip);} clip.audio.bandMode=selBand.value; applyBand(clip); });
+    rngTh.addEventListener('input', ()=>{ if(clip.audio){ clip.audio.thresh=Number(rngTh.value); spTh.textContent=rngTh.value; } });
+    let alive=true; (function tickMeter(){ if(!alive) return; requestAnimationFrame(tickMeter); if(!clip.audio) return; const a=clip.audio.analyser, buf=clip.audio.buf; a.getByteTimeDomainData(buf); let sum=0; for(let i=0;i<buf.length;i++){ const v=(buf[i]-128)/128; sum+=v*v; } const rms=Math.sqrt(sum/buf.length); const pct=Math.min(100, Math.round(rms*200)); meter.textContent = `${pct}%`; })(); el.querySelector('#i_close').addEventListener('click', ()=>{ alive=false; }, {once:true}); el.querySelector('#i_remove').addEventListener('click', ()=>{ alive=false; }, {once:true});
+  });
+
+  // ==========================
+  // Watchable Preset + Hi‑Q Exporter
+  // ==========================
+  function applyWatchablePreset(){ const N=state.clips.length||0; if(!N) return; const R=state.baseWheelR(); for (let i=0;i<N;i++){ const c=state.clips[i]; c.angle=(i/N)*Math.PI*2; c.radius=(i%2===0?0.0:R*0.18); c.scale=Math.min(0.66, Math.max(0.4, c.scale||0.5)); c.edge=Math.min(36, Math.max(12, c.edge||24)); c.fog=Math.min(0.18, Math.max(0.02, c.fog||0.08)); c.blend=(i%3===0?'screen':(i%3===1?'multiply':'soft-light')); c.timeOffset=(i/N)*(c.duration||5); } showToast('Preset applied: watchable composite'); }
+
+  const Render = { hiq:false, width:1920, height:1080, fps:30, ssaa:2, grade:{ exposure:1.05, contrast:1.06, curveMid:0.55, bloom:0.12, vignette:0.15, grain:0.06 }, off:document.createElement('canvas'), tmp:document.createElement('canvas'), beginHiQ(){ this.hiq=true; const W=this.width*this.ssaa, H=this.height*this.ssaa; this.off.width=W; this.off.height=H; this.tmp.width=W; this.tmp.height=H; }, endHiQ(){ this.hiq=false; }, applyEffects(){ const src=this.off, dst=this.tmp; const sctx=src.getContext('2d'), dctx=dst.getContext('2d'); const img=sctx.getImageData(0,0,src.width,src.height); const d=img.data, exp=this.grade.exposure, con=this.grade.contrast, mid=this.grade.curveMid; for (let i=0;i<d.length;i+=4){ let r=Math.pow(d[i]/255,2.2)*exp, g=Math.pow(d[i+1]/255,2.2)*exp, b=Math.pow(d[i+2]/255,2.2)*exp; const curve=(x)=>{ x=Math.max(0,x); const a=con,m=mid; return x < m ? (x*(1+a*(x-m))) : (1 - (1-x)*(1+a*(m-x))); }; r=curve(r); g=curve(g); b=curve(b); d[i]=Math.max(0,Math.min(255,Math.pow(r,1/2.2)*255)); d[i+1]=Math.max(0,Math.min(255,Math.pow(g,1/2.2)*255)); d[i+2]=Math.max(0,Math.min(255,Math.pow(b,1/2.2)*255)); } sctx.putImageData(img,0,0); dctx.clearRect(0,0,dst.width,dst.height); dctx.filter='blur('+ (1.5*this.ssaa) +'px) brightness(1.6) saturate(1.05)'; dctx.globalAlpha=this.grade.bloom; dctx.drawImage(src,0,0); dctx.filter='none'; dctx.globalAlpha=1; sctx.globalCompositeOperation='screen'; sctx.drawImage(dst,0,0); sctx.globalCompositeOperation='source-over'; const g=sctx.createRadialGradient(src.width/2,src.height/2,0, src.width/2,src.height/2, Math.hypot(src.width,src.height)/2); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,'+this.grade.vignette+')'); sctx.fillStyle=g; sctx.fillRect(0,0,src.width,src.height); const noise=dctx.createImageData(256,256); const nd=noise.data; for (let i=0;i<nd.length;i+=4){ const n=(Math.random()*255)|0; nd[i]=nd[i+1]=nd[i+2]=n; nd[i+3]=255; } dctx.putImageData(noise,0,0); dctx.globalCompositeOperation='overlay'; dctx.globalAlpha=this.grade.grain*0.35; dctx.imageSmoothingEnabled=false; for (let y=0;y<dst.height;y+=256) for (let x=0;x<dst.width;x+=256) dctx.drawImage(dst,0,0,256,256,x,y,256,256); dctx.globalAlpha=1; dctx.globalCompositeOperation='source-over'; sctx.drawImage(dst,0,0); } };
+
+  function exportHiQ(seconds=12){ Render.beginHiQ(); const sctx=Render.off.getContext('2d'); const mctx=canvas.getContext('2d'); const stream=canvas.captureStream(Render.fps); const chunks=[]; let rec; try{ rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9,opus', bitsPerSecond:5_000_000}); }catch(_){ rec=new MediaRecorder(stream); } rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); }; rec.onstop=()=>{ const blob=new Blob(chunks,{type:'video/webm'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.className='btn'; a.textContent='Download (Hi‑Q)'; a.href=url; a.download='hyperclay_hiq.webm'; document.querySelector('.hud').appendChild(a); showToast('Export ready'); };
+    rec.start(); (async function loop(){ const totalFrames=Math.round(seconds*Render.fps); for (let f=0; f<totalFrames; f++){ const phase=f/totalFrames; state.wheelVel=0; state.wheelAngle=phase*Math.PI*2; sctx.setTransform(1,0,0,1,0,0); sctx.clearRect(0,0,Render.off.width,Render.off.height); const g=sctx.createRadialGradient(Render.off.width/2,Render.off.height/2,0, Render.off.width/2,Render.off.height/2, Math.max(Render.off.width,Render.off.height)*0.6); g.addColorStop(0,'#0b0c10'); g.addColorStop(1,'#07090d'); sctx.fillStyle=g; sctx.fillRect(0,0,Render.off.width,Render.off.height); for (const cl of state.clips) drawClipLayer(sctx, cl, phase); Render.applyEffects(); mctx.setTransform(1,0,0,1,0,0); mctx.clearRect(0,0,canvas.width,canvas.height); mctx.imageSmoothingQuality='high'; mctx.drawImage(Render.off,0,0,Render.off.width,Render.off.height, 0,0, canvas.width, canvas.height); await new Promise(requestAnimationFrame); } rec.stop(); Render.endHiQ(); })(); }
+
+  function cinematicArrange(){ const N=state.clips.length; if(!N) return; const R=state.baseWheelR(); for (let i=0;i<N;i++){ const c=state.clips[i]; c.angle=(i/N)*Math.PI*2; c.radius=(Math.sin(i*2.399)*0.3+0.15)*R; c.scale=Math.max(0.42, Math.min(0.70, 0.58 + Math.sin(i*0.9)*0.08)); c.edge=28; c.fog=0.10; c.blend=(i%4===0?'screen':i%4===1?'soft-light':i%4===2?'overlay':'multiply'); c.timeOffset=(i/N)*(c.duration||5); } }
+
+  hiqBtn.addEventListener('click', ()=>{ Render.hiq=!Render.hiq; hiqBtn.textContent = Render.hiq ? 'Hi‑Q ON' : 'Hi‑Q OFF'; if (Render.hiq) cinematicArrange(); });
+  hiqExportBtn.addEventListener('click', async ()=>{ if (!Render.hiq){ Render.hiq=true; hiqBtn.textContent='Hi‑Q ON'; } const secs=Number(prompt('Export length (seconds):','12'))||12; exportHiQ(secs); });
+
+  // ==========================
+  // Linear Clip Sequencer Export (keeps chaotic layout, plays clips one-by-one)
+  // ==========================
+  function drawClipWithPhase(ctx2, clip, forcedPhase){ const phase = forcedPhase<0 ? 0 : forcedPhase; const R=state.baseWheelR(); const aWorld=clip.angle+state.wheelAngle; const rWorld=R+clip.radius; let srcW=320, srcH=180; if (clip.kind==='video'){ srcW=clip.el.videoWidth||320; srcH=clip.el.videoHeight||180; } else if (clip.kind==='img'){ srcW=clip.el.naturalWidth||clip.el.width||320; srcH=clip.el.naturalHeight||clip.el.height||180; }
+    const targetW=Math.max(8, Math.floor(srcW*clip.scale)); const targetH=Math.max(8, Math.floor(srcH*clip.scale)); ensureOff(targetW,targetH); octxA.clearRect(0,0,targetW,targetH); if (clip.kind==='video' && forcedPhase>=0){ const t=(phase*(clip.duration||5))%(clip.duration||5); try{ clip.el.currentTime=t; }catch(_){} }
+    if (clip.kind==='placeholder'){ octxA.fillStyle='#0c1118'; octxA.fillRect(0,0,targetW,targetH); } else { try{ octxA.drawImage(clip.el,0,0,targetW,targetH);}catch(_){} }
+    octxB.clearRect(0,0,targetW,targetH); drawFeatherMask(octxB, targetW, targetH, Math.min(clip.edge * DPR, Math.floor(Math.min(targetW,targetH)/3)) ); octxA.globalCompositeOperation='destination-in'; octxA.drawImage(offB,0,0); octxA.globalCompositeOperation='source-over'; if (clip.fog>0.001){ octxA.save(); octxA.globalAlpha=clip.fog; octxA.fillStyle='#fff'; octxA.fillRect(0,0,targetW,targetH); octxA.restore(); }
+    const x = state.cx() + rWorld*Math.cos(aWorld) - targetW/2; const y = state.cy() + rWorld*Math.sin(aWorld) - targetH/2; ctx2.save(); ctx2.globalCompositeOperation=clip.blend; ctx2.drawImage(offA, Math.floor(x), Math.floor(y)); ctx2.restore(); }
+
+  function exportLinearHiQ(secondsPerClip=3){ Render.beginHiQ(); const sctx=Render.off.getContext('2d'); const mctx=canvas.getContext('2d'); const clips=state.clips.slice(); const totalClips=clips.length; const totalSecs=secondsPerClip*totalClips; const fps=Render.fps; const totalFrames=Math.round(totalSecs*fps); const stream=canvas.captureStream(fps); const chunks=[]; let rec; try{ rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9,opus', bitsPerSecond:5_000_000}); }catch(_){ rec=new MediaRecorder(stream); } rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); }; rec.onstop=()=>{ const blob=new Blob(chunks,{type:'video/webm'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.className='btn'; a.textContent='Download Linear'; a.href=url; a.download='hyperclay_linear.webm'; document.querySelector('.hud').appendChild(a); showToast('Linear export ready'); }; rec.start(); (async function renderLoop(){ for (let f=0; f<totalFrames; f++){ const tSec=f/fps; const clipIndex=Math.floor(tSec/secondsPerClip); const clipPhase=(tSec % secondsPerClip)/secondsPerClip; sctx.setTransform(1,0,0,1,0,0); sctx.clearRect(0,0,Render.off.width,Render.off.height); const g=sctx.createRadialGradient(Render.off.width/2,Render.off.height/2,0, Render.off.width/2,Render.off.height/2, Math.max(Render.off.width,Render.off.height)*0.6); g.addColorStop(0,'#0b0c10'); g.addColorStop(1,'#07090d'); sctx.fillStyle=g; sctx.fillRect(0,0,Render.off.width,Render.off.height); clips.forEach((cl,i)=>{ const localPhase = (i===clipIndex)? clipPhase : -1; drawClipWithPhase(sctx, cl, localPhase); }); Render.applyEffects(); mctx.setTransform(1,0,0,1,0,0); mctx.clearRect(0,0,canvas.width,canvas.height); mctx.imageSmoothingQuality='high'; mctx.drawImage(Render.off,0,0,Render.off.width,Render.off.height, 0,0, canvas.width, canvas.height); await new Promise(requestAnimationFrame); } rec.stop(); Render.endHiQ(); })(); }
+
+  linearExportBtn.addEventListener('click', ()=>{ if (!Render.hiq){ Render.hiq=true; hiqBtn.textContent='Hi‑Q ON'; } const secs=Number(prompt('Seconds per clip','3'))||3; exportLinearHiQ(secs); });
+
+  // ==========================
+  // Keyboard shortcuts
+  // ==========================
+  window.addEventListener('keydown', e => { if (e.key===' ') setMode(state.mode==='SPIN'?'SCULPT':'SPIN'); if (e.key==='s') stampBtn.click(); if (e.key==='r') recBtn.click(); if (e.key==='u') undoBtn.click(); if (e.key==='b'){ const c = state.clips[state.clips.length-1]; if (c){ c.blend = nextBlend(c.blend); showToast(`Blend → ${c.blend}`); } } });
+
+  // ==========================
+  // Lightweight persistence
+  // ==========================
+  setInterval(()=>{ try{ const payload={ wheelScale: state.wheelScale, clips: state.clips.map(c=>({id:c.id,type:c.type,angle:c.angle,radius:c.radius,scale:c.scale,edge:c.edge,fog:c.fog,blend:c.blend,timeOffset:c.timeOffset,duration:c.duration,label:c.label||null,data:(c.type==='image'||c.type==='stamp')?tryImageToDataURL(c.el):null})) }; sessionStorage.setItem('hyperclay_auto', JSON.stringify(payload)); }catch(_){ } }, 2000);
+
+})();
+</script>
+</body>
+</html>

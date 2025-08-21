@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Prime Inception Medium — POML Runner</title>
+<style>
+  :root{
+    /* Style tokens from the POML */
+    --bg0:#05070b; --bg1:#081018; --ink:#e8e6df; --muted:#9aa0a6; --accent:#00d0b4; --blue:#5fb3ff;
+    --panel:#0c1118f2; --glass:#0c1118cc; --ok:#18c38f; --warn:#e6b800; --bad:#ff4d4f; --card:#0e141c;
+    --tick:#263140; --rim:#1b2530; --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; background:radial-gradient(1200px 800px at 50% 0%, var(--bg1), var(--bg0)); color:var(--ink); font:13px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;}
+  body{margin:0; display:flex; flex-direction:column; overflow:hidden}
+
+  /* Top toolbar */
+  header{display:flex; align-items:center; gap:.6rem; padding:.6rem .8rem; background:linear-gradient(180deg, #0b1118, #0a0f15); border-bottom:1px solid #0f1620; position:relative;}
+  .badge{padding:.28rem .5rem; border:1px solid #202a36; border-radius:999px; background:#0d141d; color:var(--muted); box-shadow:inset 0 0 0 1px #101723;}
+  .badge b{color:var(--ink)}
+  .spacer{flex:1}
+  .btn{appearance:none; border:1px solid #2a3442; background:#0f1722; color:var(--ink); padding:.45rem .7rem; border-radius:10px; cursor:pointer; box-shadow:var(--shadow)}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:linear-gradient(180deg,#0f2423,#0d181c); border-color:#214b48}
+  .btn.rec{background:#1a0f12; border-color:#4a1d25}
+  .dot{display:inline-block; width:.5rem; height:.5rem; border-radius:50%; background:#3a4758; margin-right:.35rem}
+  .dot.play{background:#18c38f}
+  .dot.pause{background:#e6b800}
+  .dot.standby{background:#3a4758}
+  .dot.rec{background:#ff3b3b}
+
+  /* Main layout */
+  .wrap{display:grid; grid-template-columns: 300px 1fr; grid-template-rows:auto 1fr; height:calc(100% - 54px)}
+  aside{
+    grid-row:1/3; background:var(--panel); border-right:1px solid #0f1620; overflow:auto;
+  }
+  main{display:grid; grid-template-rows: 1fr 1fr; grid-template-columns: 1fr 1fr; gap:10px; padding:10px}
+  .card{background:var(--card); border:1px solid #13202b; border-radius:14px; overflow:hidden; box-shadow:var(--shadow)}
+  .card h3{margin:0; padding:.6rem .7rem; font-weight:600; border-bottom:1px solid #13202b; color:#d8d6cf; background:linear-gradient(180deg,#0e161f,#0d141c)}
+  .card .body{padding:.6rem}
+
+  /* Canvases */
+  .view{position:relative}
+  canvas{display:block; width:100%; height:100%; min-height:140px; background:linear-gradient(180deg,#0a0f15,#0a0d11)}
+
+  /* Stage: sacred 16:9 output, no UI overlay inside */
+  .stageBox{position:relative; width:100%; height:100%; background:#000}
+  .stageKeep{position:absolute; inset:0; display:grid; place-items:center}
+  .stageAspect{position:relative; width:92%; max-width:1600px; aspect-ratio:16/9; background:#000; border:1px solid #141414; box-shadow:0 0 0 1px #101010}
+  #stage{position:absolute; inset:0}
+
+  /* Inspector, Console */
+  .group{padding:.8rem .9rem; border-bottom:1px solid #0f1620}
+  label{display:block; font-size:11px; color:var(--muted); margin:.2rem 0}
+  input[type="text"], input[type="number"], select, textarea{
+    width:100%; background:#0b1219; color:var(--ink); border:1px solid #202a36; border-radius:10px; padding:.5rem .6rem; outline:none;
+  }
+  textarea{min-height:80px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+  .row{display:flex; gap:.5rem}
+  .row > *{flex:1}
+  .pill{display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .55rem; background:#0d151e; border:1px solid #1c2732; border-radius:999px; font-size:11px; color:var(--muted)}
+  .console{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px;}
+  .console .entry{padding:.35rem .5rem; border-bottom:1px dashed #1a2430; color:#cfd3d8}
+  .console .entry small{color:#8e98a3}
+  .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+
+  .footerbar{position:sticky; bottom:0; padding:.5rem .6rem; background:#0a0f15; border-top:1px solid #0f1620; display:flex; gap:.5rem; align-items:center}
+  .check{display:flex; align-items:center; gap:.5rem; color:var(--muted); font-size:12px}
+  .check .box{width:.8rem; height:.8rem; border-radius:2px; border:1px solid #2a3442; background:#0f1722}
+  .check.ok .box{background:#0f2a22; border-color:#144438; box-shadow:inset 0 0 0 2px #18c38f}
+
+  .tiny{font-size:11px; color:#91a0ad}
+  .ghost{opacity:.65}
+</style>
+</head>
+<body>
+  <header>
+    <span class="badge"><b>Drive</b>: <span id="driveId">#main</span></span>
+    <span class="badge"><b>BPM</b>: <span id="bpmBadge">Free</span></span>
+    <span class="badge"><b>Quant</b>: <span id="quantBadge">Off</span></span>
+    <span class="badge"><b>Mix</b>: <span id="mixBadge">Screen</span></span>
+    <span class="badge"><b>Output</b>: 16:9, <span id="fpsBadge">30</span> fps</span>
+    <div class="spacer"></div>
+    <button class="btn" id="playBtn"><span class="dot play"></span>Play</button>
+    <button class="btn" id="pauseBtn"><span class="dot pause"></span>Pause</button>
+    <button class="btn rec" id="recBtn"><span class="dot rec"></span>Record</button>
+    <button class="btn" id="snapBtn">Snapshot</button>
+    <button class="btn" id="branchBtn">Branch to Snapshot</button>
+    <button class="btn" id="saveBtn">Save Session</button>
+    <button class="btn" id="loadBtn">Load Session</button>
+    <input type="file" id="loadFile" accept="application/json" hidden />
+  </header>
+
+  <div class="wrap">
+    <aside>
+      <div class="group">
+        <div class="row">
+          <div class="pill"><span style="width:.6rem;height:.6rem;border-radius:50%;background:var(--accent);"></span> Inspector</div>
+          <div class="pill">v1.0</div>
+        </div>
+      </div>
+      <div class="group">
+        <label>Component name</label>
+        <input id="inName" type="text" placeholder="e.g., Gear Film Engine" />
+        <label>Current behavior</label>
+        <textarea id="inBehavior" placeholder="Describe the static or limited state"></textarea>
+        <label>Target outcome</label>
+        <textarea id="inOutcome" placeholder="Describe the new cognitive power"></textarea>
+      </div>
+      <div class="group">
+        <div class="row">
+          <div>
+            <label>BPM (null = Free)</label>
+            <input id="inBpm" type="number" step="1" min="0" placeholder="null" />
+          </div>
+          <div>
+            <label>Quantize</label>
+            <select id="inQuant">
+              <option value="off">Off</option>
+              <option value="1/60">1/60</option>
+              <option value="1/12">1/12</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Mix Mode</label>
+            <select id="inMix">
+              <option>Screen</option>
+              <option>Multiply</option>
+              <option>Overlay</option>
+              <option>Lighten</option>
+            </select>
+          </div>
+          <div>
+            <label>Output FPS</label>
+            <input id="inFps" type="number" step="1" min="1" value="30" />
+          </div>
+        </div>
+      </div>
+      <div class="group">
+        <div class="row">
+          <button class="btn" id="addArcBtn">Add Arc</button>
+          <button class="btn" id="clearArcsBtn">Clear Arcs</button>
+        </div>
+        <p class="tiny ghost">Arcs = meaningful segments on gears. Contacts between arcs log cause→effect and flip Stage content.</p>
+      </div>
+      <div class="group">
+        <h4 style="margin:.2rem 0 .6rem">Snapshots</h4>
+        <div id="snapList" class="console"></div>
+      </div>
+      <div class="group">
+        <h4 style="margin:.2rem 0 .6rem">Provenance Console</h4>
+        <div id="prov" class="console"></div>
+      </div>
+      <div class="footerbar">
+        <div id="chkViews" class="check"><span class="box"></span> 3+ Views</div>
+        <div id="chkPlayback" class="check"><span class="box"></span> Play/Pause/Record</div>
+        <div id="chkTactile" class="check"><span class="box"></span> Haptics/Audio</div>
+        <div id="chkSession" class="check"><span class="box"></span> Save/Load JSON</div>
+      </div>
+    </aside>
+
+    <main>
+      <section class="card view" id="fieldCard">
+        <h3>Working Field — Structure</h3>
+        <div class="body" style="padding:0; height:calc(100% - 42px)">
+          <canvas id="field"></canvas>
+        </div>
+      </section>
+
+      <section class="card view" id="lensCard">
+        <h3>Analytical Lens — Ratios & Contacts</h3>
+        <div class="body" style="padding:0; height:calc(100% - 42px)">
+          <canvas id="lens"></canvas>
+        </div>
+      </section>
+
+      <section class="card view" id="stageCard" style="grid-column:1/3">
+        <h3>Output Stage — Clean 16:9 (no UI chrome in export)</h3>
+        <div class="body stageBox">
+          <div class="stageKeep">
+            <div class="stageAspect"><canvas id="stage"></canvas></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script>
+// ===== State & Schema =====
+const state = {
+  meta: { component_name:"", current_behavior:"", target_outcome:"" },
+  params: { playing:true, bpm:null, quant:'off', mix:'Screen', outputFPS:30 },
+  time:   { t:0, dt:0, last:performance.now(), speed:1 },
+  model:  {
+    mainGear:{ id:'main', teeth:12, angle:0, arcs:[] },
+    outerGear:{ id:'outer', teeth:8, angle:0, ratio:2/3, arcs:[] },
+    stage:{ index:0, palette:["#111318","#16212a","#0e383f","#0b4e47","#0c6a58","#0f8467","#1aa085","#24bfa3"], lastFlip:0 }
+  },
+  snapshots:[],
+  provenance:[],
+  recorder:{ active:false, mr:null, chunks:[], stream:null },
+  audio:{ ctx:null }
+};
+
+// ===== Elements =====
+const el = {
+  field: document.getElementById('field'),
+  lens: document.getElementById('lens'),
+  stage: document.getElementById('stage'),
+  prov: document.getElementById('prov'),
+  snapList: document.getElementById('snapList'),
+  // toolbar
+  playBtn: document.getElementById('playBtn'),
+  pauseBtn: document.getElementById('pauseBtn'),
+  recBtn: document.getElementById('recBtn'),
+  snapBtn: document.getElementById('snapBtn'),
+  branchBtn: document.getElementById('branchBtn'),
+  saveBtn: document.getElementById('saveBtn'),
+  loadBtn: document.getElementById('loadBtn'),
+  loadFile: document.getElementById('loadFile'),
+  // badges
+  driveId: document.getElementById('driveId'),
+  bpmBadge: document.getElementById('bpmBadge'),
+  quantBadge: document.getElementById('quantBadge'),
+  mixBadge: document.getElementById('mixBadge'),
+  fpsBadge: document.getElementById('fpsBadge'),
+  // inspector inputs
+  inName: document.getElementById('inName'),
+  inBehavior: document.getElementById('inBehavior'),
+  inOutcome: document.getElementById('inOutcome'),
+  inBpm: document.getElementById('inBpm'),
+  inQuant: document.getElementById('inQuant'),
+  inMix: document.getElementById('inMix'),
+  inFps: document.getElementById('inFps'),
+  addArcBtn: document.getElementById('addArcBtn'),
+  clearArcsBtn: document.getElementById('clearArcsBtn'),
+  // checklist
+  chkViews: document.getElementById('chkViews'),
+  chkPlayback: document.getElementById('chkPlayback'),
+  chkTactile: document.getElementById('chkTactile'),
+  chkSession: document.getElementById('chkSession')
+};
+
+// ===== Utilities =====
+function haptic(ms=20){ if(navigator.vibrate) navigator.vibrate(ms); }
+function ping(freq=880, dur=0.04, type='square'){
+  try{
+    if(!state.audio.ctx){ state.audio.ctx = new (window.AudioContext||window.webkitAudioContext)(); }
+    const ctx = state.audio.ctx; const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = type; o.frequency.value = freq; g.gain.value = 0.05; o.connect(g); g.connect(ctx.destination);
+    o.start(); setTimeout(()=>{ o.stop(); }, dur*1000);
+  }catch(e){}
+}
+function recordProvenance(evt){
+  const row = { t:Date.now(), ...evt };
+  state.provenance.unshift(row); state.provenance = state.provenance.slice(0,10);
+  renderProvenance();
+}
+function snapshot(note=''){
+  const snap = {
+    id: 'S'+(state.snapshots.length+1),
+    note,
+    t: Date.now(),
+    data: {
+      meta: structuredClone(state.meta),
+      params: structuredClone(state.params),
+      model: {
+        mainGear: {teeth:state.model.mainGear.teeth, angle:state.model.mainGear.angle, arcs:structuredClone(state.model.mainGear.arcs)},
+        outerGear: {teeth:state.model.outerGear.teeth, angle:state.model.outerGear.angle, ratio:state.model.outerGear.ratio, arcs:structuredClone(state.model.outerGear.arcs)},
+        stage: { index:state.model.stage.index, palette:structuredClone(state.model.stage.palette) }
+      }
+    }
+  };
+  state.snapshots.push(snap); renderSnapshots();
+  recordProvenance({type:'snapshot', detail:note||'(no note)'});
+  haptic(25); ping(940, .05, 'triangle');
+}
+function branchToLast(){
+  const last = state.snapshots[state.snapshots.length-1];
+  if(!last){ recordProvenance({type:'warn', detail:'No snapshot to branch from'}); ping(220,.06,'sawtooth'); return; }
+  Object.assign(state.meta, last.data.meta);
+  Object.assign(state.params, last.data.params);
+  state.model.mainGear = structuredClone(last.data.model.mainGear);
+  state.model.outerGear = structuredClone(last.data.model.outerGear);
+  state.model.stage.index = last.data.model.stage.index;
+  syncInspector();
+  recordProvenance({type:'branch', detail:last.id}); haptic(30); ping(660,.05,'square');
+}
+
+function saveSession(){
+  const clean = {
+    meta: state.meta,
+    params: state.params,
+    model: {
+      mainGear: {teeth:state.model.mainGear.teeth, arcs:state.model.mainGear.arcs},
+      outerGear: {teeth:state.model.outerGear.teeth, ratio:state.model.outerGear.ratio, arcs:state.model.outerGear.arcs},
+      stage: { index:state.model.stage.index, palette:state.model.stage.palette }
+    },
+    snapshots: state.snapshots.map(s=>({id:s.id,note:s.note,t:s.t, data:s.data}))
+  };
+  const blob = new Blob([JSON.stringify(clean,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'prime-inception-session.json'; a.click();
+  recordProvenance({type:'save', detail:'Session saved'}); haptic(20); ping(880,.04,'square');
+}
+function loadSessionFromFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      state.meta = data.meta || state.meta;
+      state.params = Object.assign(state.params, data.params||{});
+      state.model.mainGear = Object.assign(state.model.mainGear, data.model?.mainGear||{});
+      state.model.outerGear = Object.assign(state.model.outerGear, data.model?.outerGear||{});
+      state.model.stage = Object.assign(state.model.stage, data.model?.stage||{});
+      state.snapshots = data.snapshots || [];
+      syncInspector(); renderSnapshots();
+      recordProvenance({type:'load', detail:'Session loaded'}); haptic(25); ping(520,.05,'triangle');
+    }catch(e){ recordProvenance({type:'error', detail:'Load failed: '+e.message}); }
+  };
+  reader.readAsText(file);
+}
+
+function setChecklist(){
+  ok(el.chkViews, true);
+  ok(el.chkPlayback, true);
+  ok(el.chkTactile, true);
+  ok(el.chkSession, true);
+}
+function ok(node, on){ node.classList.toggle('ok', !!on); }
+
+// ===== Rendering =====
+function fitCanvas(c){
+  const r = c.getBoundingClientRect();
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  const w = Math.max(10, r.width);
+  const h = Math.max(10, r.height);
+  if(c.width!==w*dpr||c.height!==h*dpr){ c.width=w*dpr; c.height=h*dpr; }
+  const ctx=c.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {w,h,dpr,ctx};
+} }
+
+function drawField(){
+  const {w:W,h:H,ctx} = fitCanvas(el.field);
+  ctx.clearRect(0,0,W,H);
+  // backdrop
+  const grad = ctx.createLinearGradient(0,0,0,H); grad.addColorStop(0,'#0b1219'); grad.addColorStop(1,'#091017'); ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+  const cx=W/2, cy=H/2;
+  drawGear(ctx, cx, cy, 110, state.model.mainGear.teeth, state.model.mainGear.angle, '#2f9e8c');
+  drawGear(ctx, cx+210, cy, 70, state.model.outerGear.teeth, state.model.outerGear.angle, '#5fb3ff');
+  drawArcs(ctx, cx, cy, 110, state.model.mainGear.arcs, '#00d0b4');
+  drawArcs(ctx, cx+210, cy, 70, state.model.outerGear.arcs, '#5fb3ff');
+  // crosshair + label for visibility
+  ctx.strokeStyle='#324255'; ctx.beginPath(); ctx.moveTo(cx-8,cy); ctx.lineTo(cx+8,cy); ctx.moveTo(cx,cy-8); ctx.lineTo(cx,cy+8); ctx.stroke();
+  ctx.fillStyle='#cfe3ff'; ctx.fillText('FIELD', 10, 16);
+}
+function drawGear(ctx, cx, cy, r, teeth, angle, stroke){
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(angle);
+  // rim
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.strokeStyle=stroke; ctx.lineWidth=2; ctx.stroke();
+  // tick marks (teeth markers)
+  ctx.strokeStyle="#2a3a48"; ctx.lineWidth=1; for(let i=0;i<teeth;i++){ const a=i*(2*Math.PI/teeth); const x1=r-8, x2=r+8; ctx.beginPath(); ctx.moveTo(Math.cos(a)*x1, Math.sin(a)*x1); ctx.lineTo(Math.cos(a)*x2, Math.sin(a)*x2); ctx.stroke(); }
+  // hub
+  ctx.fillStyle="#0c1218"; ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.fill(); ctx.strokeStyle="#263444"; ctx.stroke();
+  ctx.restore();
+}
+function drawArcs(ctx, cx, cy, r, arcs, color){
+  ctx.save(); ctx.translate(cx,cy);
+  ctx.lineWidth=6; ctx.lineCap='round'; ctx.strokeStyle=color;
+  for(const a of arcs){ ctx.beginPath(); ctx.arc(0,0,r, a.start, a.end); ctx.stroke(); }
+  ctx.restore();
+}
+
+function drawLens(){
+  const {w:W,h:H,ctx} = fitCanvas(el.lens);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0b1219'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#274058'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(20,H-30); ctx.lineTo(W-20,H-30); ctx.stroke();
+  const ratio = state.model.outerGear.ratio; ctx.fillStyle='#11202a'; ctx.fillRect(20,20, W-40, H-70);
+  ctx.strokeStyle= state.params.bpm? '#5fb3ff':'#00d0b4'; ctx.lineWidth=2; ctx.beginPath();
+  for(let x=20;x<=W-20;x++){
+    const t = (x-20)/(W-40)*6.283;
+    const y = 20 + (H-70)/2 + Math.sin(t*ratio*4)*((H-70)/2-6);
+    if(x===20) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  const now = state.time.t; const contacts = recentContacts(3000);
+  for(const c of contacts){ const age = (now - c.time)/3000; const x = W-20 - age*(W-40); ctx.strokeStyle = '#ffd06b'; ctx.beginPath(); ctx.moveTo(x, H-30); ctx.lineTo(x, H-60); ctx.stroke(); }
+  ctx.fillStyle='#cfe3ff'; ctx.fillText(`LENS  ratio:${ratio.toFixed(3)}  contacts:${contacts.length}`, 24, 16);
+}
+  ctx.stroke();
+  // recent contacts as spikes
+  const now = state.time.t; const contacts = recentContacts(3000);
+  for(const c of contacts){ const age = (now - c.time)/3000; const x = W-20 - age*(W-40); ctx.strokeStyle = '#ffd06b'; ctx.beginPath(); ctx.moveTo(x, H-30); ctx.lineTo(x, H-60); ctx.stroke(); }
+  // labels
+  ctx.fillStyle="#8ba0b3"; ctx.fillText(`Ratio: ${ratio.toFixed(3)}  | Contacts (last 3s): ${contacts.length}`, 24, 16);
+}
+
+function recentContacts(windowMs){ return state.provenance.filter(p=>p.type==='contact' && (Date.now()-p.t)<=windowMs); }
+
+function drawStage(){
+  const {w:W,h:H,ctx} = fitCanvas(el.stage);
+  ctx.clearRect(0,0,W,H);
+  const palette = state.model.stage.palette; const idx = Math.abs(state.model.stage.index % palette.length); const next = Math.abs((idx+1)%palette.length);
+  const blend = Math.min(1, (state.time.t - state.model.stage.lastFlip)/400);
+  const c1 = hexToRgb(palette[idx]); const c2 = hexToRgb(palette[next]);
+  const mix = lerpColor(c1,c2, blend*0.35);
+  ctx.fillStyle = `rgb(${mix.r},${mix.g},${mix.b})`;
+  ctx.fillRect(0,0,W,H);
+  ctx.save();
+  ctx.globalCompositeOperation = toComposite(state.params.mix);
+  ctx.translate(W/2,H/2); ctx.rotate(state.time.t*0.0004);
+  const w = Math.min(W,H)*0.8; ctx.fillStyle = '#ffffff18'; roundedRect(ctx, -w/2,-w/4,w,w/2, 20); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle='#cfe3ff'; ctx.fillText('STAGE 16:9', 10, 18);
+},${mix.g},${mix.b})`;
+  ctx.fillRect(0,0,W,H);
+  // A simple rotating mask to suggest composition change — UI-free
+  ctx.save();
+  ctx.globalCompositeOperation = toComposite(state.params.mix);
+  ctx.translate(W/2,H/2); ctx.rotate(state.time.t*0.0004);
+  const w = Math.min(W,H)*0.8; ctx.fillStyle = '#ffffff14'; roundedRect(ctx, -w/2,-w/4,w,w/2, 20); ctx.fill();
+  ctx.restore();
+}
+
+function toComposite(m){
+  switch(m){
+    case 'Multiply': return 'multiply';
+    case 'Overlay': return 'overlay';
+    case 'Lighten': return 'lighten';
+    default: return 'screen';
+  }
+}
+function roundedRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); }
+function hexToRgb(h){ const m = h.replace('#',''); const n = parseInt(m,16); if(m.length===6){ return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; } return {r:0,g:0,b:0}; }
+function lerp(a,b,t){ return a+(b-a)*t; }
+function lerpColor(a,b,t){ return {r:Math.round(lerp(a.r,b.r,t)), g:Math.round(lerp(a.g,b.g,t)), b:Math.round(lerp(a.b,b.b,t))}; }
+
+// ===== Compute & Contacts =====
+function compute(now){
+  const dt = Math.min(50, now - state.time.last); state.time.last = now; state.time.dt = dt; if(state.params.playing){ state.time.t += dt; }
+  // Update angles (if playing)
+  if(state.params.playing){
+    // base angular speed
+    const base = 0.0015 * state.time.speed * (state.params.bpm? state.params.bpm/60 : 1);
+    state.model.mainGear.angle += base*dt;
+    state.model.outerGear.angle -= base*dt*state.model.outerGear.ratio; // opposite direction, scaled by ratio
+    // Normalize
+    state.model.mainGear.angle %= (Math.PI*2); state.model.outerGear.angle %= (Math.PI*2);
+    // Contact detection based on teeth alignment + arc overlap + quantization
+    detectContacts(now);
+  }
+}
+
+function detectContacts(now){
+  const mg = state.model.mainGear, og = state.model.outerGear;
+  // When a tooth index matches (approx), we consider a contact
+  const mTeeth = mg.teeth, oTeeth = og.teeth;
+  const mIndex = Math.round((mg.angle%(2*Math.PI)) / (2*Math.PI) * mTeeth);
+  const oIndex = Math.round(((-og.angle)%(2*Math.PI)) / (2*Math.PI) * oTeeth);
+  const align = (mIndex % mTeeth) === (oIndex % oTeeth);
+  if(align){
+    // Check arcs overlap at those angles
+    const aM = angleInArcs(mg.angle, mg.arcs);
+    const aO = angleInArcs(-og.angle, og.arcs); // inverse rotation perspective
+    // Quantization: throttle by quant unit
+    const q = state.params.quant;
+    const unit = q==='1/60' ? (1000/60) : q==='1/12' ? (1000/12) : 40; // minimum spacing
+    if((now - state.model.stage.lastFlip) > unit){
+      if(aM && aO){ onContact(now, {mIndex, oIndex}); }
+    }
+  }
+}
+function angleInArcs(angle, arcs){
+  const a = (angle%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+  for(const seg of arcs){
+    const s = (seg.start%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+    const e = (seg.end%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+    if(s<=e){ if(a>=s && a<=e) return true; }
+    else{ if(a>=s || a<=e) return true; }
+  }
+  return false;
+}
+function onContact(now, detail){
+  state.model.stage.index = (state.model.stage.index+1) % state.model.stage.palette.length;
+  state.model.stage.lastFlip = now;
+  recordProvenance({type:'contact', detail:`tooth m:${detail.mIndex} ↔ o:${detail.oIndex}`, time: now});
+  // Tactile/audio microfeedback
+  haptic(12); ping(1000,.03,'square');
+}
+
+// ===== UI Wiring =====
+function syncBadges(){
+  el.bpmBadge.textContent = state.params.bpm==null||state.params.bpm===""? 'Free' : String(state.params.bpm);
+  el.quantBadge.textContent = state.params.quant==='off'? 'Off' : state.params.quant.replace('1/','1/');
+  el.mixBadge.textContent = state.params.mix; el.fpsBadge.textContent = state.params.outputFPS;
+}
+function syncInspector(){
+  el.inName.value = state.meta.component_name;
+  el.inBehavior.value = state.meta.current_behavior;
+  el.inOutcome.value = state.meta.target_outcome;
+  el.inBpm.value = state.params.bpm??'';
+  el.inQuant.value = state.params.quant;
+  el.inMix.value = state.params.mix;
+  el.inFps.value = state.params.outputFPS;
+  syncBadges();
+}
+function renderProvenance(){
+  el.prov.innerHTML = state.provenance.map(p=>{
+    const time = new Date(p.t).toLocaleTimeString();
+    const cls = p.type==='error'?'bad': p.type==='warn'?'warn':'ok';
+    return `<div class="entry ${cls}"><b>[${p.type}]</b> ${p.detail||''} <small>${time}</small></div>`;
+  }).join('');
+}
+function renderSnapshots(){
+  el.snapList.innerHTML = state.snapshots.map(s=>{
+    const time = new Date(s.t).toLocaleTimeString();
+    return `<div class="entry">${s.id} — ${s.note||'(no note)'} <small>${time}</small></div>`;
+  }).join('');
+}
+
+// Inspector events
+el.inName.addEventListener('input', e=>{ state.meta.component_name = e.target.value; recordProvenance({type:'set', detail:`name → ${state.meta.component_name}`}); });
+el.inBehavior.addEventListener('input', e=>{ state.meta.current_behavior = e.target.value; });
+el.inOutcome.addEventListener('input', e=>{ state.meta.target_outcome = e.target.value; });
+el.inBpm.addEventListener('input', e=>{ const v = e.target.value; state.params.bpm = v===''? null : Number(v); syncBadges(); recordProvenance({type:'set', detail:`bpm → ${v===''?'Free':v}`}); haptic(8); });
+el.inQuant.addEventListener('change', e=>{ state.params.quant = e.target.value; syncBadges(); recordProvenance({type:'set', detail:`quant → ${state.params.quant}`}); haptic(8); });
+el.inMix.addEventListener('change', e=>{ state.params.mix = e.target.value; syncBadges(); recordProvenance({type:'set', detail:`mix → ${state.params.mix}`}); haptic(8); });
+el.inFps.addEventListener('input', e=>{ state.params.outputFPS = Math.max(1, Number(e.target.value||30)); syncBadges(); });
+
+// Arc controls
+el.addArcBtn.addEventListener('click', ()=>{
+  // Add short arcs at current angles
+  const span = Math.PI/12;
+  state.model.mainGear.arcs.push({start:state.model.mainGear.angle-span, end:state.model.mainGear.angle+span});
+  state.model.outerGear.arcs.push({start:-state.model.outerGear.angle-span, end:-state.model.outerGear.angle+span});
+  recordProvenance({type:'edit', detail:'Added arcs on both gears'});
+  haptic(12); ping(740,.04,'triangle');
+});
+el.clearArcsBtn.addEventListener('click', ()=>{
+  state.model.mainGear.arcs.length=0; state.model.outerGear.arcs.length=0;
+  recordProvenance({type:'edit', detail:'Cleared all arcs'}); haptic(10); ping(320,.04,'sine');
+});
+
+// Playback
+el.playBtn.addEventListener('click', ()=>{ state.params.playing = true; recordProvenance({type:'transport', detail:'play'}); haptic(10); ping(660,.04,'square'); });
+el.pauseBtn.addEventListener('click', ()=>{ state.params.playing = false; recordProvenance({type:'transport', detail:'pause'}); haptic(8); ping(440,.04,'square'); });
+
+// Snapshot & branch
+el.snapBtn.addEventListener('click', ()=>snapshot(prompt('Snapshot note (optional):')||''));
+el.branchBtn.addEventListener('click', branchToLast);
+
+// Session save/load
+el.saveBtn.addEventListener('click', saveSession);
+el.loadBtn.addEventListener('click', ()=> el.loadFile.click());
+el.loadFile.addEventListener('change', e=>{ const f = e.target.files?.[0]; if(f) loadSessionFromFile(f); });
+
+// Recording (Stage only, clean)
+el.recBtn.addEventListener('click', async ()=>{
+  if(state.recorder.active){ stopRecording(); } else { await startRecording(); }
+});
+async function startRecording(){
+  try{
+    const fps = state.params.outputFPS||30; const stream = el.stage.captureStream(fps);
+    const mr = new MediaRecorder(stream, {mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 4_000_000});
+    state.recorder = {active:true, mr, chunks:[], stream};
+    mr.ondataavailable = (e)=>{ if(e.data.size>0) state.recorder.chunks.push(e.data); };
+    mr.onstop = ()=>{
+      const blob = new Blob(state.recorder.chunks, {type:'video/webm'});
+      const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='stage-export.webm'; a.click();
+      recordProvenance({type:'export', detail:`Saved stage-export.webm (${Math.round(blob.size/1024)} KB)`});
+      state.recorder.active=false; state.recorder.chunks=[]; state.recorder.stream=null; haptic(18); ping(900,.06,'sawtooth');
+    };
+    mr.start(); recordProvenance({type:'export', detail:'Recording started (Stage)'}); haptic(12); ping(1040,.04,'square');
+  }catch(e){ recordProvenance({type:'error', detail:'Recording not supported: '+e.message}); }
+}
+function stopRecording(){ try{ state.recorder.mr.stop(); }catch(e){ recordProvenance({type:'error', detail:'Stop failed: '+e.message}); } }
+
+// ===== Interaction (Field drag to tweak ratio/teeth) =====
+let drag=null;
+el.field.addEventListener('pointerdown', (e)=>{
+  const rect = el.field.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top; const W=el.field.clientWidth, H=el.field.clientHeight; const cx=W/2, cy=H/2;
+  const dx = x - (cx+210), dy = y - cy; const r = Math.hypot(dx,dy);
+  if(r<90 && r>50){ drag={kind:'outer', startX:x, startY:y, baseRatio:state.model.outerGear.ratio}; e.target.setPointerCapture(e.pointerId); }
+});
+el.field.addEventListener('pointermove', (e)=>{
+  if(!drag) return; const rect = el.field.getBoundingClientRect(); const x=e.clientX-rect.left, y=e.clientY-rect.top; const dy = y - drag.startY; const newRatio = Math.max(0.1, Math.min(4, drag.baseRatio + dy*0.005)); state.model.outerGear.ratio = newRatio; recordProvenance({type:'set', detail:`ratio → ${newRatio.toFixed(3)}`}); haptic(2);
+});
+el.field.addEventListener('pointerup', (e)=>{ if(!drag) return; drag=null; ping(520,.04,'triangle'); });
+
+// ===== Main Loop =====
+function tick(now){
+  compute(now);
+  drawField();
+  drawLens();
+  drawStage();
+  requestAnimationFrame(tick);
+}
+
+// ===== Init =====
+function init(){
+  // seed some demo arcs for immediate visibility
+  const span = Math.PI/8; state.model.mainGear.arcs.push({start:0, end:span}); state.model.outerGear.arcs.push({start:0, end:span});
+  setChecklist();
+  syncInspector(); renderProvenance(); renderSnapshots();
+  recordProvenance({type:'boot', detail:'Prime Inception Medium ready'});
+  // draw once before RAF in case play is paused
+  drawField(); drawLens(); drawStage();
+  requestAnimationFrame(tick);
+});
+  requestAnimationFrame(tick);
+}
+window.addEventListener('resize', ()=>{ /* canvases auto-fit in draw funcs */ });
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Main Gear Film Engine — V2</title>
+<style>
+  :root{
+    --bg:#0b0c10;--ink:#eae7df;--muted:#9aa0a6;--accent:#00d0b4;--gold:#c8a552;--rose:#ff4d6d;--ok:#19c37d;--warn:#e6b800;--bad:#ff4d4f;
+    --rim:#161a20;--tick:#252c33;--panel:#0f1319f2;--glass:#0b0f14cc;--btn:#131922;--btnb:#29303a;--blue:#5aa9e6;--purple:#8a5cf6;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  #c{position:fixed;inset:0;display:block;touch-action:none}
+  #toolbar{position:fixed;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));display:flex;gap:8px;flex-wrap:wrap;align-items:center;z-index:5}
+  .badge{background:var(--glass);border:1px solid #1e2530;border-radius:999px;padding:6px 10px;font-size:12px;line-height:1;user-select:none}
+  .badge .k{opacity:.7;margin-right:6px}
+  .badge.toggle{cursor:pointer}
+  #hud{position:fixed;left:calc(0px + env(safe-area-inset-left));right:calc(0px + env(safe-area-inset-right));bottom:calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:8px;z-index:6}
+  button{font:600 12px/1 system-ui;border-radius:12px;border:1px solid var(--btnb);background:var(--btn);color:var(--ink);padding:10px 12px;cursor:pointer}
+  button.primary{border-color:#1d3c35;background:#0e2724}
+  button.rec{background:#2d1212;border-color:#5a1f1f;color:#ff9a9a}
+  a#dl{display:none;margin-left:8px;text-decoration:none}
+  .panel{position:fixed;right:12px;top:56px;bottom:56px;width:min(420px,92vw);background:var(--panel);border:1px solid #1e2530;border-radius:16px;box-shadow:0 20px 50px #0008;overflow:auto;padding:14px 14px 90px;z-index:10;display:none}
+  .panel.open{display:block}
+  .panel h3{margin:6px 0 8px;font-size:14px;color:#cfd3d8}
+  .row{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .row label{flex:0 0 120px;font-size:12px;color:#c0c6cf}
+  .row input[type=range]{flex:1}
+  .seg{border:1px solid #28303a;border-radius:10px;padding:8px;margin:8px 0;background:#0c1218}
+  .seg .row label{flex-basis:90px}
+  .seg header{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#bac2cc;margin-bottom:6px}
+  .seg header .ops button{margin-left:6px}
+  .pill{display:inline-block;padding:3px 8px;border:1px solid #2a313b;border-radius:999px;font-size:11px;color:#c9d0d9}
+  .kbd{font-family:ui-monospace,Consolas,monospace;background:#10161f;border:1px solid #26303c;border-radius:6px;padding:2px 6px}
+  .ghost{opacity:.65}
+  .hint{opacity:.8;font-size:12px;margin:8px 0 0}
+  /* Big centered play overlay */
+  #bigplay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:7;background:linear-gradient(180deg,#00000080,#00000040);backdrop-filter:blur(2px)}
+  #bigplay.hidden{display:none}
+  #bigplay button{background:var(--accent);color:#001a18;border:1px solid #0b3b3a;border-radius:999px;padding:14px 22px;font-size:16px;font-weight:800}
+</style>
+</head>
+<body>
+  <div id="toolbar">
+    <div class="badge" id="driveBadge"><span class="k">Drive:</span><span id="driveVal">MAIN</span></div>
+    <div class="badge toggle" id="bpmBadge"><span class="k">BPM:</span><span id="bpmVal">Free</span></div>
+    <div class="badge toggle" id="quantBadge"><span class="k">Quant:</span><span id="quantVal">Off</span></div>
+    <div class="badge toggle" id="mixBadge"><span class="k">Mix:</span><span id="mixVal">source-over</span></div>
+    <div class="badge toggle" id="outBadge"><span class="k">Output:</span><span id="outVal">Normal</span></div>
+    <div class="badge toggle" id="arcsBadge"><span class="k">ARCS</span><span id="arcsVal">on</span></div>
+  </div>
+  <canvas id="c"></canvas>
+  <div id="bigplay"><button>▶︎ Play</button></div>
+  <div id="hud">
+    <input id="fileVideo" type="file" accept="video/*" multiple hidden />
+    <input id="fileImage" type="file" accept="image/*" multiple hidden />
+    <input id="fileAudio" type="file" accept="audio/*" multiple hidden />
+    <button id="btnVideo">+ Video</button>
+    <button id="btnImage">+ Image</button>
+    <button id="btnAudio">+ Audio</button>
+    <button id="addText">+ Text</button>
+    <button id="btnViewer">+ Viewer</button>
+    <button id="setDrive" title="Set selected as Drive">Set Drive</button>
+    <button id="playPause" class="primary">Pause</button>
+    <button id="hapticT" title="Haptics on/off">HAPTIC</button>
+    <button id="route">Route</button>
+    <button id="record" class="rec">● Record</button>
+    <a id="dl" download>Download</a>
+    <button id="settingsBtn">Settings: Center Ring</button>
+  </div>
+  <aside id="inspector" class="panel" aria-label="Inspector" tabindex="-1"></aside>
+  <aside id="settings" class="panel" aria-label="Settings" tabindex="-1"></aside>
+<script>
+(() => {
+  const DPR = Math.max(1, window.devicePixelRatio || 1);
+  const TOOTH_PITCH = 16; const PX_PER_SEC = 5; const TWO_PI = Math.PI * 2;
+  const MINOR_DIV = 60; const MAJOR_DIV = 12; const STAGE_SCALE = 0.62;
+  const canvas = document.getElementById('c'); const ctx = canvas.getContext('2d');
+  const toolbar = {
+    drive: document.getElementById('driveVal'),
+    bpmBadge: document.getElementById('bpmBadge'), bpmVal: document.getElementById('bpmVal'),
+    quantBadge: document.getElementById('quantBadge'), quantVal: document.getElementById('quantVal'),
+    mixBadge: document.getElementById('mixBadge'), mixVal: document.getElementById('mixVal'),
+    outBadge: document.getElementById('outBadge'), outVal: document.getElementById('outVal'),
+    arcsBadge: document.getElementById('arcsBadge'), arcsVal: document.getElementById('arcsVal') };
+  const hud = {
+    fileVideo: document.getElementById('fileVideo'), fileImage: document.getElementById('fileImage'), fileAudio: document.getElementById('fileAudio'),
+    btnVideo: document.getElementById('btnVideo'), btnImage: document.getElementById('btnImage'), btnAudio: document.getElementById('btnAudio'),
+    btnViewer: document.getElementById('btnViewer'),
+    addText: document.getElementById('addText'), setDrive: document.getElementById('setDrive'), playPause: document.getElementById('playPause'),
+    hapticT: document.getElementById('hapticT'), route: document.getElementById('route'), record: document.getElementById('record'),
+    dl: document.getElementById('dl'), settingsBtn: document.getElementById('settingsBtn') };
+  const inspectorEl = document.getElementById('inspector'); const settingsEl = document.getElementById('settings');
+  const stage = { cv: document.createElement('canvas'), ctx: null, rect:{x:0,y:0,w:0,h:0}, mix:'source-over' };
+  stage.ctx = stage.cv.getContext('2d', {alpha:true, desynchronized:true});
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  let sfxGain = audioCtx.createGain(); sfxGain.gain.value = 0.3; sfxGain.connect(audioCtx.destination);
+  const haptics = { on:true, bpm:null, minorMs:8, majorMs:16, perfectPattern:[12,24,12], volMinor:0.08, volMajor:0.12, volPerfect:0.2 };
+  let gears = []; let selectedId=null; let driveIndex=0; let playing=false; let showArcs=true; let outputMode='Normal'; let quantMode='Off';
+  let rec = {recorder:null, chunks:[], stream:null};
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v)); const mod=(n,m)=>((n%m)+m)%m; const now=()=>performance.now(); const dist=(x1,y1,x2,y2)=>Math.hypot(x2-x1,y2-y1);
+  const hasViewerSeg = (g)=> g?.seq?.some(s=>s.type==='viewer');
+  function id(){return 'g'+Math.random().toString(36).slice(2,8)}
+  function secToRadius(sec){return Math.max(30, sec*PX_PER_SEC)} function radiusToSec(r){return r/PX_PER_SEC}
+  function teethForR(r){return Math.max(6, Math.round((TWO_PI*r)/TOOTH_PITCH))}
+  function dbToGain(db){return Math.pow(10, db/20)}
+  function tone(freq=440, ms=20, vol=0.1){ try{ const o=audioCtx.createOscillator(); const g=audioCtx.createGain(); g.gain.value=vol; o.frequency.value=freq; o.connect(g); g.connect(sfxGain); o.start(); g.gain.setValueAtTime(vol, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime+ms/1000); o.stop(audioCtx.currentTime+ms/1000);}catch(e){} }
+  function vibrate(pattern){ if(haptics.on && navigator.vibrate) navigator.vibrate(pattern); }
+  function sizeAll(){ const w=Math.floor(window.innerWidth*DPR), h=Math.floor(window.innerHeight*DPR); canvas.width=w; canvas.height=h; canvas.style.width=window.innerWidth+'px'; canvas.style.height=window.innerHeight+'px'; const vw=window.innerWidth, vh=window.innerHeight; let TW=vw*STAGE_SCALE, TH=TW*9/16; if(TH>vh*STAGE_SCALE){ TH=vh*STAGE_SCALE; TW=TH*16/9; } stage.rect.w=Math.floor(TW); stage.rect.h=Math.floor(TH); stage.rect.x=Math.floor((vw-TW)/2); stage.rect.y=Math.floor((vh-TH)/2); stage.cv.width=Math.floor(stage.rect.w*DPR); stage.cv.height=Math.floor(stage.rect.h*DPR); }
+  sizeAll(); new ResizeObserver(sizeAll).observe(document.body);
+  function ensureSeq(seq){ if(!seq||!seq.length) return [{type:'placeholder',label:'Empty',w:1,offset:0,stretch:1,opacity:1,gain:0,fin:0,fout:0,blend:'source-over'}]; return seq.map(s=>({type:s.type||'placeholder',label:s.label||s.type||'seg',w:(s.w??1),offset:(s.offset??0),stretch:(s.stretch??1),opacity:(s.opacity??1),gain:(s.gain??0),fin:(s.fin??0),fout:(s.fout??0),blend:(s.blend||'source-over'),lines:s.lines,media:s.media})) }
+  function makeGear({kind='group', label='GEAR', duration=8, x, y, routed=false, throttle=1, ease='linear', seq=[]}={}){ const r=secToRadius(duration); return { id:id(), x:x??(canvas.width/(2*DPR)), y:y??(canvas.height/(2*DPR)), r, teeth:teethForR(r), angle:0, omega:0, duration, label, kind, routed, throttle, ease, seq:ensureSeq(seq), eligible:true, meshed:false, meshedWith:null, phase:0, upright:true, quant:'Off', lastMinorStep:0, lastMajorStep:0 } }
+  const MAIN = makeGear({label:'MAIN', duration:12, routed:true}); MAIN.kind='group'; gears.push(MAIN);
+  function placeOuter(g){ const ang=Math.random()*TWO_PI; const cx=canvas.width/(2*DPR), cy=canvas.height/(2*DPR); const R=MAIN.r+g.r+6; g.x=cx+Math.cos(ang)*R; g.y=cy+Math.sin(ang)*R; }
+  function select(id){ selectedId=id; renderInspector(); updateToolbar(); }
+  function selected(){ return gears.find(g=>g.id===selectedId) || MAIN }
+  function renderInspector(){ const g=selected(); const qOpts=['Off','60th','12th']; const easeOpts=['linear','ease-in','ease-out','ease-in-out']; const blends=['source-over','multiply','screen','overlay','lighten']; const isViewer=hasViewerSeg(g); inspectorEl.innerHTML = `
+      <h3>Inspector — <span class="pill">${g.label}</span> <span class="ghost">#${g.id}</span></h3>
+      <div class="row"><label>Duration (s)</label><input id="dur" type="range" min="2" max="60" step="1" value="${g.duration}"><span class="pill">${g.duration}</span></div>
+      <div class="row"><label>Ease</label><select id="ease">${easeOpts.map(o=>`<option ${o===g.ease?'selected':''}>${o}</option>`).join('')}</select></div>
+      <div class="row"><label>Route to Stage</label><input id="routeChk" type="checkbox" ${g.routed?'checked':''} ${isViewer?'disabled':''}></div>
+      <div class="row"><label>Keep media upright</label><input id="uprightChk" type="checkbox" ${g.upright?'checked':''}></div>
+      <div class="row"><label>Drive throttle</label><input id="throttle" type="range" min="0" max="2" step="0.01" value="${g.throttle}"><span class="pill">${g.throttle.toFixed(2)}</span></div>
+      <div class="row"><label>Quantize arcs</label><select id="quantSel">${qOpts.map(o=>`<option ${o===g.quant?'selected':''}>${o}</option>`).join('')}</select></div>
+      <h3>Segments</h3>
+      ${g.seq.map((s,idx)=>`<div class="seg" data-i="${idx}"><header><span>${idx+1}. ${s.label} <span class="ghost">(${s.type})</span></span><span class="ops"><button class="del">Delete</button><button class="up">↑</button><button class="down">↓</button></span></header>
+        <div class="row"><label>w (weight)</label><input class="w" type="range" min="0.01" max="1" step="0.01" value="${s.w}"><span class="pill">${s.w.toFixed(2)}</span></div>
+        <div class="row"><label>offset (s)</label><input class="offset" type="number" step="0.01" value="${s.offset}"></div>
+        <div class="row"><label>stretch</label><input class="stretch" type="number" step="0.01" value="${s.stretch}"></div>
+        <div class="row"><label>opacity</label><input class="opacity" type="range" min="0" max="1" step="0.01" value="${s.opacity}"><span class="pill">${Math.round(s.opacity*100)}%</span></div>
+        <div class="row"><label>gain (dB)</label><input class="gain" type="number" step="0.5" value="${s.gain}"></div>
+        <div class="row"><label>fade in (s)</label><input class="fin" type="number" step="0.01" value="${s.fin}"></div>
+        <div class="row"><label>fade out (s)</label><input class="fout" type="number" step="0.01" value="${s.fout}"></div>
+        <div class="row"><label>blend</label><select class="blend">${blends.map(b=>`<option ${b===s.blend?'selected':''}>${b}</option>`).join('')}</select></div>
+      </div>`).join('')}
+      <div class="row"><button id="addTextSeg">+Text</button><span class="hint">Weights normalize to 1; Quant rounds to ${quantMode==='60th'?'1/60th':quantMode==='12th'?'1/12th':'off'}.</span></div>`; inspectorEl.classList.add('open'); }
+  inspectorEl.addEventListener('input',(e)=>{ const g=selected(); if(e.target.id==='dur'){ g.duration=parseFloat(e.target.value); g.r=secToRadius(g.duration); g.teeth=teethForR(g.r);} if(e.target.id==='ease'){ g.ease=e.target.value;} if(e.target.id==='routeChk'){ if(!hasViewerSeg(g)) g.routed=e.target.checked; } if(e.target.id==='uprightChk'){ g.upright=e.target.checked;} if(e.target.id==='throttle'){ g.throttle=parseFloat(e.target.value);} if(e.target.id==='quantSel'){ g.quant=e.target.value;} const segEl=e.target.closest('.seg'); if(segEl){ const i=+segEl.dataset.i; const s=g.seq[i]; if(e.target.classList.contains('w')) s.w=parseFloat(e.target.value); if(e.target.classList.contains('offset')) s.offset=parseFloat(e.target.value); if(e.target.classList.contains('stretch')) s.stretch=parseFloat(e.target.value); if(e.target.classList.contains('opacity')) s.opacity=parseFloat(e.target.value); if(e.target.classList.contains('gain')) s.gain=parseFloat(e.target.value); if(e.target.classList.contains('fin')) s.fin=parseFloat(e.target.value); if(e.target.classList.contains('fout')) s.fout=parseFloat(e.target.value); if(e.target.classList.contains('blend')) s.blend=e.target.value; } });
+  inspectorEl.addEventListener('click',(e)=>{ const g=selected(); if(e.target.id==='addTextSeg'){ const t=prompt('Text lines (\\n separated)'); if(!t) return; const seg={type:'text',label:'Text',lines:t.split(/\\n+/),w:.5,offset:0,stretch:1,opacity:1,gain:0,fin:.1,fout:.1,blend:'source-over'}; g.seq.push(seg); renderInspector(); } const segEl=e.target.closest('.seg'); if(!segEl) return; const i=+segEl.dataset.i; if(e.target.classList.contains('del')){ g.seq.splice(i,1); renderInspector(); } if(e.target.classList.contains('up')){ if(i>0){ [g.seq[i-1],g.seq[i]]=[g.seq[i],g.seq[i-1]]; renderInspector(); } } if(e.target.classList.contains('down')){ if(i<g.seq.length-1){ [g.seq[i+1],g.seq[i]]=[g.seq[i],g.seq[i+1]]; renderInspector(); } } });
+  function renderSettings(){ settingsEl.innerHTML = `<h3>Center Ring — Haptics & Tempo</h3>
+      <div class='row'><label>BPM (empty = Free)</label><input id='bpmInput' type='number' step='1' min='1' value='${haptics.bpm??''}'></div>
+      <div class='row'><label>Minor vib (ms)</label><input id='vMinor' type='number' value='${haptics.minorMs}'></div>
+      <div class='row'><label>Major vib (ms)</label><input id='vMajor' type='number' value='${haptics.majorMs}'></div>
+      <div class='row'><label>Perfect pattern</label><input id='vPerfect' type='text' value='${haptics.perfectPattern.join(',')}'></div>
+      <div class='row'><label>Vol minor</label><input id='volMinor' type='number' step='0.01' value='${haptics.volMinor}'></div>
+      <div class='row'><label>Vol major</label><input id='volMajor' type='number' step='0.01' value='${haptics.volMajor}'></div>
+      <div class='row'><label>Vol perfect</label><input id='volPerfect' type='number' step='0.01' value='${haptics.volPerfect}'></div>
+      <p class='hint'>ESC or click outside to close.</p>`; settingsEl.classList.add('open'); }
+  settingsEl.addEventListener('input',(e)=>{ if(e.target.id==='bpmInput'){ const val=e.target.value.trim(); haptics.bpm = val===''?null:parseFloat(val)||null; } if(e.target.id==='vMinor') haptics.minorMs=parseInt(e.target.value)||8; if(e.target.id==='vMajor') haptics.majorMs=parseInt(e.target.value)||16; if(e.target.id==='vPerfect') haptics.perfectPattern=e.target.value.split(',').map(s=>parseInt(s)||0).filter(Boolean); if(e.target.id==='volMinor') haptics.volMinor=parseFloat(e.target.value)||0.08; if(e.target.id==='volMajor') haptics.volMajor=parseFloat(e.target.value)||0.12; if(e.target.id==='volPerfect') haptics.volPerfect=parseFloat(e.target.value)||0.2; });
+  toolbar.bpmBadge.addEventListener('click', ()=>{ const inp=prompt('BPM (empty for Free)', haptics.bpm??''); haptics.bpm=(inp===''||inp===null)?null:parseFloat(inp)||null; updateToolbar(); });
+  const quantModes=['Off','60th','12th']; toolbar.quantBadge.addEventListener('click', ()=>{ const i=(quantModes.indexOf(quantMode)+1)%quantModes.length; quantMode=quantModes[i]; updateToolbar(); });
+  const mixes=['source-over','screen','multiply','overlay','lighten']; toolbar.mixBadge.addEventListener('click', ()=>{ const i=(mixes.indexOf(stage.mix)+1)%mixes.length; stage.mix=mixes[i]; updateToolbar(); });
+  toolbar.outBadge.addEventListener('click', ()=>{ outputMode=outputMode==='Normal'?'Canvas':'Normal'; updateToolbar(); });
+  toolbar.arcsBadge.addEventListener('click', ()=>{ showArcs=!showArcs; updateToolbar(); });
+  hud.btnVideo.addEventListener('click', ()=> hud.fileVideo.click()); hud.btnImage.addEventListener('click', ()=> hud.fileImage.click()); hud.btnAudio.addEventListener('click', ()=> hud.fileAudio.click());
+  // Add a connectable Viewer gear that previews the current stage composite
+  hud.btnViewer.addEventListener('click', ()=>{
+    const g=makeGear({kind:'viewer', label:'VIEW', duration:8, routed:false});
+    // Single segment that displays the stage; never routed to stage to avoid feedback
+    g.seq=[{type:'viewer', label:'Viewer', w:1, offset:0, stretch:1, opacity:1, gain:0, fin:.1, fout:.1, blend:'source-over'}];
+    placeOuter(g); gears.push(g); select(g.id);
+  });
+  hud.fileVideo.addEventListener('change', e=>handleFiles(e.target.files,'video')); hud.fileImage.addEventListener('change', e=>handleFiles(e.target.files,'img')); hud.fileAudio.addEventListener('change', e=>handleFiles(e.target.files,'audio'));
+  hud.addText.addEventListener('click', ()=>{ const t=prompt('Enter text (\\n makes new line)'); if(!t) return; const lines=t.split(/\\n+/).map(s=>s.trim()).filter(Boolean); const g=makeGear({kind:'text',label:'TEXT',duration:Math.max(4,lines.length*2),routed:false}); g.seq=[{type:'text',label:'Text',w:1,offset:0,stretch:1,opacity:1,gain:0,fin:.2,fout:.2,blend:'source-over',lines}]; placeOuter(g); gears.push(g); select(g.id); });
+  hud.playPause.addEventListener('click', ()=>{ playing=!playing; hud.playPause.textContent=playing?'Pause':'Play'; bigPlay.classList.toggle('hidden', playing); }); hud.hapticT.addEventListener('click', ()=>{ haptics.on=!haptics.on; hud.hapticT.classList.toggle('primary', haptics.on); }); hud.route.addEventListener('click', ()=>{ const g=selected(); if(!g) return; if(hasViewerSeg(g)) return; g.routed=!g.routed; renderInspector(); });
+  hud.setDrive.addEventListener('click', ()=>{ const g=selected(); if(!g) return; const idx=gears.findIndex(x=>x.id===g.id); if(idx>=0){ driveIndex=idx; } updateToolbar(); }); hud.settingsBtn.addEventListener('click', renderSettings);
+  hud.record.addEventListener('click', ()=>{ if(rec.recorder){ stopRecording(); } else { startRecording(); } });
+  function updateToolbar(){ const driver=gears[driveIndex]||MAIN; toolbar.drive.textContent = driver.label || 'MAIN'; toolbar.bpmVal.textContent = haptics.bpm?String(haptics.bpm):'Free'; toolbar.quantVal.textContent=quantMode; toolbar.mixVal.textContent=stage.mix; toolbar.outVal.textContent=outputMode; toolbar.arcsVal.textContent=showArcs?'on':'off'; const g=selected(); if(g){ hud.route.textContent = g.routed ? 'Unroute' : 'Route'; hud.route.disabled = !!hasViewerSeg(g); } }
+  updateToolbar();
+  // reflect initial paused state
+  hud.playPause.textContent = playing ? 'Pause' : 'Play';
+  const bigPlay = document.getElementById('bigplay');
+  let pointer={down:false,id:null,x:0,y:0,lastA:0,mode:null,timer:null};
+  canvas.addEventListener('pointerdown',(e)=>{ audioCtx.resume?.(); const x=e.clientX,y=e.clientY; pointer.down=true; pointer.id=e.pointerId; pointer.x=x; pointer.y=y; const g=pickGear(x,y); if(g){ select(g.id); const dx=x-g.x, dy=y-g.y; const d=Math.hypot(dx,dy); pointer.mode=(d>g.r*0.7)?'rotate':'move'; pointer.lastA=Math.atan2(dy,dx); clearTimeout(pointer.timer); pointer.timer=setTimeout(()=>{ if(pointer.down) renderInspector(); }, 420);} else { pointer.mode=null; selectedId=MAIN.id; } updateToolbar(); });
+  window.addEventListener('pointermove',(e)=>{ if(!pointer.down) return; const g=selected(); if(!g) return; const x=e.clientX,y=e.clientY; const dx=x-g.x, dy=y-g.y; const ang=Math.atan2(dy,dx); if(pointer.mode==='move'){ g.x=x; g.y=y; // try snap-mesh to any other gear
+      let snapped=false; let best=null; let bestErr=1e9; for(const h of gears){ if(h.id===g.id) continue; const d=dist(g.x,g.y,h.x,h.y); const ideal=h.r+g.r; const err=Math.abs(d-ideal); if(err<12 && err<bestErr){ best=h; bestErr=err; } }
+      if(best){ const a=Math.atan2(g.y-best.y, g.x-best.x); const ideal=best.r+g.r; g.x=best.x+Math.cos(a)*ideal; g.y=best.y+Math.sin(a)*ideal; if(!g.meshed||g.meshedWith!==best.id){ perfectHaptic(); }
+        g.meshed=true; g.meshedWith=best.id; // store phase offset at contact
+        g.phase = mod(g.angle + best.angle, TWO_PI);
+        snapped=true; }
+      if(!snapped){ g.meshed=false; g.meshedWith=null; }
+    } else if(pointer.mode==='rotate'){ const delta=ang-pointer.lastA; g.angle+=delta; pointer.lastA=ang; const mate=gears.find(h=>h.id===g.meshedWith); if(mate){ // propagate opposite rotation when dragging a meshed gear
+        mate.angle -= delta * (g.r/mate.r);
+      } }
+  });
+  window.addEventListener('pointerup',()=>{ pointer.down=false; pointer.mode=null; clearTimeout(pointer.timer); });
+  function pickGear(x,y){ let best=null, bestD=1e9; for(const g of gears){ const d=Math.hypot(x-g.x,y-g.y); if(d<g.r+20 && d<bestD){ best=g; bestD=d; } } return best; }
+  function perfectHaptic(){ vibrate(haptics.perfectPattern); tone(220,50,haptics.volPerfect); tone(110,70,haptics.volPerfect*0.7); }
+  function seqWeights(g){ let wsum=g.seq.reduce((a,s)=>a+(s.w||0),0); if(wsum<=0) wsum=1; const qm=(g.quant!=='Off')?g.quant:quantMode; if(qm!=='Off'){ const div=(qm==='60th')?60:12; const total=g.seq.length>0?g.seq.reduce((a,s)=>a+s.w,0):1; const scaled=g.seq.map(s=>s.w/total); let rounded=scaled.map(x=>Math.max(1/div, Math.round(x*div)/div)); let sum=rounded.reduce((a,b)=>a+b,0); rounded=rounded.map(x=>x/sum); return rounded; } else { return g.seq.map(s=>(s.w||0)/wsum); } }
+  function currentSeg(g){ const w=seqWeights(g); const p=g.angle/TWO_PI; let acc=0; for(let i=0;i<g.seq.length;i++){ const span=w[i]; if(p>=acc && p<acc+span){ const within=(p-acc)/span; return {i,within,span}; } acc+=span; } const i=g.seq.length-1; return {i,within:0,span:w[i]||1}; }
+  function syncMedia(g){ const seg=currentSeg(g); const s=g.seq[seg.i]; const gearDur=g.duration; const segDur=seg.span*gearDur; const localT=seg.within*segDur; const tMedia=(s.offset+localT*(s.stretch||1)); if(s.type==='video' && s.media && s.media.readyState>=2){ try{ s.media.currentTime = tMedia % Math.max(0.001,(s.media.duration||1e6)); if(playing && s.media.paused){ s.media.play().catch(()=>{}); } }catch(e){} } if(s.type==='audio' && s.media){ try{ s.media.currentTime = tMedia % Math.max(0.001,(s.media.duration||1e6)); s.media.volume = clamp(dbToGain(s.gain),0,1); if(playing && s.media.paused){ s.media.play().catch(()=>{}); } }catch(e){} } }
+  function drawMediaCover(sctx, media, w, h){ const mw=media.videoWidth||media.naturalWidth||w; const mh=media.videoHeight||media.naturalHeight||h; if(!mw||!mh) return; const r=Math.max(w/mw,h/mh); const dw=Math.floor(mw*r), dh=Math.floor(mh*r); const dx=Math.floor((w-dw)/2), dy=Math.floor((h-dh)/2); sctx.drawImage(media, dx, dy, dw, dh); }
+  function drawTextBlock(sctx, lines, w, h){ sctx.fillStyle='#0b0c10'; sctx.fillRect(0,0,w,h); sctx.fillStyle='#eae7df'; sctx.textAlign='center'; sctx.textBaseline='middle'; let size=Math.max(16, Math.floor(h*0.05)); sctx.font=`${size}px system-ui, sans-serif`; const y0=h*0.35; const lh=size*1.2; lines.forEach((ln,i)=>{ sctx.fillText(ln, w/2, y0+i*lh); }); }
+  function drawAudioPulse(sctx,t,w,h){ sctx.fillStyle='#0b0c10'; sctx.fillRect(0,0,w,h); const cx=w/2, cy=h/2; const R=Math.min(w,h)*0.3; const k=0.5+0.5*Math.sin(t*6.283*0.5); sctx.beginPath(); sctx.arc(cx,cy, R*(0.8+k*0.2), 0, TWO_PI); sctx.fillStyle='#1aa7a1'; sctx.fill(); }
+  function drawStage(){
+    const sctx=stage.ctx; const {w,h}=stage.cv;
+    sctx.save();
+    sctx.clearRect(0,0,w,h);
+    // Always start with black background
+    sctx.globalCompositeOperation='source-over';
+    sctx.globalAlpha=1;
+    sctx.fillStyle='#000';
+    sctx.fillRect(0,0,w,h);
+
+    // Collect routed gears (exclude viewers to prevent feedback). If none, preview selected only if not a viewer.
+    let routed = gears.filter(g=>g.routed && !hasViewerSeg(g));
+    if(routed.length===0){ const g=selected(); if(g && !hasViewerSeg(g)) routed=[g]; }
+    // Back-to-front: draw smaller radius later so it appears on top
+    routed.sort((a,b)=>a.r-b.r);
+
+    for(const g of routed){
+      const seg=currentSeg(g);
+      const S=g.seq[seg.i];
+      const gearDur=g.duration; const segDur=seg.span*gearDur; const localT=seg.within*segDur;
+      const tMedia=(S.offset+localT*(S.stretch||1));
+      const alphaEnv=(t)=>{ let a=1; if(S.fin>0) a*= clamp(t/S.fin,0,1); if(S.fout>0) a*= clamp((segDur - t)/S.fout,0,1); return a; };
+      const alpha=clamp((S.opacity||1)*alphaEnv(localT),0,1);
+      sctx.globalAlpha=alpha;
+      // Global Mix overrides per-segment blend when not 'source-over'
+      sctx.globalCompositeOperation = (stage.mix && stage.mix!=='source-over') ? stage.mix : (S.blend || 'source-over');
+      // Skip viewer segments in stage compositing to avoid recursion/feedback
+      if(S.type==='viewer') { continue; }
+      if(S.type==='video'&&S.media){ drawMediaCover(sctx,S.media,w,h); }
+      else if(S.type==='img'&&S.media){ drawMediaCover(sctx,S.media,w,h); }
+      else if(S.type==='text'&&S.lines){ drawTextBlock(sctx,S.lines,w,h); }
+      else if(S.type==='audio'){ drawAudioPulse(sctx,tMedia,w,h); }
+    }
+    // reset
+    sctx.globalAlpha=1; sctx.globalCompositeOperation='source-over';
+    sctx.restore();
+  }
+  function draw(){ const W=canvas.width, H=canvas.height; ctx.save(); ctx.clearRect(0,0,W,H);
+    // Background
+    ctx.fillStyle='#0b0c10'; ctx.fillRect(0,0,W,H);
+    // Stage underlays content
+    drawStage(); ctx.save(); ctx.globalCompositeOperation=stage.mix; ctx.imageSmoothingEnabled=true; ctx.drawImage(stage.cv, stage.rect.x*DPR, stage.rect.y*DPR, stage.rect.w*DPR, stage.rect.h*DPR); ctx.restore();
+    // Grid overlay
+    ctx.strokeStyle='#0f1319'; ctx.lineWidth=1*DPR; for(let x=0;x<W;x+=32*DPR){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); } for(let y=0;y<H;y+=32*DPR){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+    // Connection lines
+    const cx=W/2/DPR, cy=H/2/DPR; for(const g of gears){ if(g!==MAIN){ const d=dist(g.x,g.y,cx,cy); const ideal=MAIN.r+g.r; const at=Math.abs(d-ideal)<0.5; ctx.save(); ctx.strokeStyle=at?'#19c37d':'#3a424e'; ctx.lineWidth=(at?2.5:1.5)*DPR; ctx.beginPath(); ctx.moveTo(cx*DPR,cy*DPR); ctx.lineTo(g.x*DPR,g.y*DPR); ctx.stroke(); ctx.restore(); } }
+    // Gears on top
+    for(const g of gears){ drawGear(g); }
+    ctx.restore(); }
+  function drawGear(g){ const X=g.x*DPR, Y=g.y*DPR; const r=g.r*DPR; ctx.save(); ctx.translate(X,Y); ctx.rotate(g.angle); ctx.fillStyle=g===MAIN?'#0d141c':'#0c1218'; ctx.strokeStyle='#1f2630'; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.arc(0,0,r,0,TWO_PI); ctx.fill(); ctx.stroke(); ctx.strokeStyle='#2a323d'; ctx.lineWidth=2*DPR; const teeth=g.teeth; const step=TWO_PI/teeth; for(let i=0;i<teeth;i++){ ctx.beginPath(); ctx.moveTo(r,0); ctx.lineTo(r+8*DPR,0); ctx.stroke(); ctx.rotate(step); }
+    if(showArcs){ const w=seqWeights(g); let a0=0; for(let i=0;i<g.seq.length;i++){ const a1=a0+w[i]*TWO_PI; ctx.beginPath(); ctx.strokeStyle=['#00d0b4','#c8a552','#5aa9e6','#8a5cf6','#ff4d6d'][i%5]; ctx.lineWidth=8*DPR; ctx.arc(0,0,r-10*DPR, a0, a1); ctx.stroke(); a0=a1; } }
+    // inner ticks
+    ctx.save(); ctx.strokeStyle='#2b313a'; for(let i=0;i<MAJOR_DIV;i++){ ctx.beginPath(); ctx.moveTo(r-16*DPR,0); ctx.lineTo(r,0); ctx.stroke(); for(let j=1;j<MINOR_DIV/MAJOR_DIV;j++){ ctx.rotate(TWO_PI/MINOR_DIV); ctx.beginPath(); ctx.moveTo(r-10*DPR,0); ctx.lineTo(r,0); ctx.stroke(); } ctx.rotate(TWO_PI/MINOR_DIV); } ctx.restore();
+    // Preview content inside gear
+    const seg=currentSeg(g); const S=g.seq[seg.i]; const gearDur=g.duration; const segDur=seg.span*gearDur; const localT=seg.within*segDur; const tMedia=(S.offset+localT*(S.stretch||1));
+    const innerR=r-18*DPR; ctx.save(); ctx.beginPath(); ctx.arc(0,0,innerR,0,TWO_PI); ctx.clip();
+    if(g.upright){ ctx.save(); ctx.rotate(-g.angle); }
+    if(S.type==='video'&&S.media){ const mw=S.media.videoWidth||S.media.naturalWidth||1; const mh=S.media.videoHeight||S.media.naturalHeight||1; const w=innerR*2, h=innerR*2; const rfit=Math.max(w/mw,h/mh); const dw=Math.floor(mw*rfit), dh=Math.floor(mh*rfit); const dx=-dw/2, dy=-dh/2; try{ ctx.drawImage(S.media, dx, dy, dw, dh);}catch(_){} }
+    else if(S.type==='img'&&S.media){ const mw=S.media.naturalWidth||1; const mh=S.media.naturalHeight||1; const w=innerR*2, h=innerR*2; const rfit=Math.max(w/mw,h/mh); const dw=Math.floor(mw*rfit), dh=Math.floor(mh*rfit); const dx=-dw/2, dy=-dh/2; try{ ctx.drawImage(S.media, dx, dy, dw, dh);}catch(_){} }
+    else if(S.type==='text'&&S.lines){ ctx.fillStyle='#0b0c10'; ctx.fillRect(-innerR,-innerR,innerR*2,innerR*2); ctx.fillStyle='#eae7df'; ctx.textAlign='center'; ctx.textBaseline='middle'; let size=Math.max(10, Math.floor(innerR*0.22)); ctx.font=`${size}px system-ui, sans-serif`; const lh=size*1.1; S.lines.slice(0,3).forEach((ln,i)=>{ ctx.fillText(ln, 0, -lh + i*lh); }); }
+    else if(S.type==='audio'){ const k=0.5+0.5*Math.sin(tMedia*6.283*0.5); ctx.fillStyle='#102022'; ctx.fillRect(-innerR,-innerR,innerR*2,innerR*2); ctx.fillStyle='#1aa7a1'; ctx.beginPath(); ctx.arc(0,0, innerR*(0.8+k*0.2), 0, TWO_PI); ctx.fill(); }
+    else if(S.type==='viewer'){
+      // Draw the current stage output inside the gear circle
+      const w=innerR*2, h=innerR*2;
+      // Fit-cover stage.cv into the inner circle bounds
+      const mw=stage.cv.width, mh=stage.cv.height;
+      const rfit=Math.max(w/mw, h/mh);
+      const dw=Math.floor(mw*rfit), dh=Math.floor(mh*rfit);
+      const dx=-dw/2, dy=-dh/2;
+      try{ ctx.drawImage(stage.cv, dx, dy, dw, dh);}catch(_){}
+    }
+    if(g.upright){ ctx.restore(); }
+    ctx.restore();
+    // selection ring & optional label fallback
+    ctx.rotate(-g.angle); if(selectedId===g.id){ ctx.beginPath(); ctx.strokeStyle='#19c37d'; ctx.lineWidth=2*DPR; ctx.arc(0,0,r+10*DPR,0,TWO_PI); ctx.stroke(); }
+    ctx.restore(); }
+  function startRecording(){ try{ const fps=30; const target=(outputMode==='Canvas')?canvas:stage.cv; const stream=target.captureStream(fps); const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm;codecs=vp8'; const recoder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:6_000_000}); recoder.ondataavailable=(e)=>{ if(e.data && e.data.size>0) rec.chunks.push(e.data); }; recoder.onstop=()=>{ const blob=new Blob(rec.chunks,{type:mime}); const url=URL.createObjectURL(blob); hud.dl.href=url; const ts=new Date().toISOString().replace(/[:.]/g,'-'); hud.dl.download=`gear-film-${outputMode.toLowerCase()}-${ts}.webm`; hud.dl.style.display='inline-block'; hud.record.textContent='● Record'; rec.recorder=null; rec.chunks=[]; rec.stream=null; }; rec.chunks=[]; rec.recorder=recoder; rec.stream=stream; recoder.start(); hud.record.textContent='■ Stop'; hud.dl.style.display='none'; }catch(err){ alert('MediaRecorder unsupported in this browser.'); }}
+  function stopRecording(){ if(rec.recorder){ rec.recorder.stop(); rec.stream?.getTracks().forEach(t=>t.stop()); } }
+  window.addEventListener('keydown',(e)=>{ if(e.key===' '){ e.preventDefault(); playing=!playing; hud.playPause.textContent=playing?'Pause':'Play'; bigPlay.classList.toggle('hidden', playing); } if(e.key==='['){ driveIndex=(driveIndex-1+gears.length)%gears.length; select(gears[driveIndex].id);} if(e.key===']'){ driveIndex=(driveIndex+1)%gears.length; select(gears[driveIndex].id);} if(e.key==='O'||e.key==='o'){ outputMode=outputMode==='Normal'?'Canvas':'Normal'; updateToolbar(); } if(e.key==='P'||e.key==='p'){ if(!inspectorEl.classList.contains('open')) renderInspector(); else inspectorEl.classList.remove('open'); } if(e.key==='Escape'){ inspectorEl.classList.remove('open'); settingsEl.classList.remove('open'); } });
+  // Big play overlay click
+  document.getElementById('bigplay').addEventListener('click', (e) => {
+    e.stopPropagation();
+    playing = true;
+    hud.playPause.textContent = 'Pause';
+    bigPlay.classList.add('hidden');
+    // Try to start all media on first user gesture
+    for (const g of gears) {
+      for (const s of g.seq) {
+        if (s.media) {
+          try {
+            if (s.type === 'video') {
+              s.media.muted = true;
+              s.media.play().catch(() => {});
+            } else if (s.type === 'audio') {
+              s.media.play().catch(() => {});
+            }
+          } catch (_) {}
+        }
+      }
+    }
+  });
+  // Drag & drop load onto canvas
+  const dropTargets=[document.getElementById('c')];
+  dropTargets.forEach(t=>{
+    ['dragenter','dragover'].forEach(ev=> t.addEventListener(ev,(e)=>{ e.preventDefault(); e.dataTransfer.dropEffect='copy'; t.style.outline='2px dashed #00d0b4'; }));
+    ['dragleave','drop'].forEach(ev=> t.addEventListener(ev,(e)=>{ e.preventDefault(); t.style.outline='none'; }));
+    t.addEventListener('drop',(e)=>{ const vids=[...e.dataTransfer.files].filter(f=>f.type.startsWith('video/')); const imgs=[...e.dataTransfer.files].filter(f=>f.type.startsWith('image/')); const auds=[...e.dataTransfer.files].filter(f=>f.type.startsWith('audio/')); if(vids.length) handleFiles(vids,'video'); if(imgs.length) handleFiles(imgs,'img'); if(auds.length) handleFiles(auds,'audio'); });
+  });
+  document.addEventListener('click',(e)=>{ if(inspectorEl.classList.contains('open') && !inspectorEl.contains(e.target) && e.target!==canvas){ inspectorEl.classList.remove('open'); } if(settingsEl.classList.contains('open') && !settingsEl.contains(e.target) && e.target!==hud.settingsBtn){ settingsEl.classList.remove('open'); } });
+  function handleFiles(files, kind){ [...files].forEach(file=>{ const url=URL.createObjectURL(file); if(kind==='video'){ const v=document.createElement('video'); v.src=url; v.loop=true; v.muted=true; v.playsInline=true; v.preload='auto'; v.addEventListener('loadedmetadata',()=>{ v.currentTime=0; }); const g=makeGear({kind:'video',label:file.name,duration:Math.max(6, Math.min(24,(v.duration||8))),routed:false}); g.seq=[{type:'video',label:file.name,w:1,offset:0,stretch:1,opacity:1,gain:0,fin:.15,fout:.15,blend:'source-over',media:v}]; placeOuter(g); gears.push(g); select(g.id); } else if(kind==='img'){ const im=new Image(); im.src=url; im.decoding='async'; const g=makeGear({kind:'img',label:file.name,duration:8,routed:false}); g.seq=[{type:'img',label:file.name,w:1,offset:0,stretch:1,opacity:1,gain:0,fin:.15,fout:.15,blend:'source-over',media:im}]; placeOuter(g); gears.push(g); select(g.id); } else if(kind==='audio'){ const a=document.createElement('audio'); a.src=url; a.loop=true; a.preload='auto'; a.crossOrigin='anonymous'; a.addEventListener('loadedmetadata',()=>{ a.currentTime=0; }); const g=makeGear({kind:'audio',label:file.name,duration:12,routed:false}); g.seq=[{type:'audio',label:file.name,w:1,offset:0,stretch:1,opacity:1,gain:0,fin:.15,fout:.15,blend:'source-over',media:a}]; placeOuter(g); gears.push(g); select(g.id); } }); hud.fileVideo.value=''; hud.fileImage.value=''; hud.fileAudio.value=''; }
+  function fireHaptics(g){ const minorStep=Math.floor((g.angle/(TWO_PI))*MINOR_DIV); const majorStep=Math.floor((g.angle/(TWO_PI))*MAJOR_DIV); if(minorStep!==g.lastMinorStep){ g.lastMinorStep=minorStep; vibrate(haptics.minorMs); tone(880,8,haptics.volMinor);} if(majorStep!==g.lastMajorStep){ g.lastMajorStep=majorStep; vibrate(haptics.majorMs); tone(440,14,haptics.volMajor);} }
+  let lastT=now(); function step(){ const t=now(); const dt=Math.min(50,t-lastT)/1000; lastT=t; const driver=gears[driveIndex]||MAIN; // base omega
+    if(haptics.bpm){ driver.omega=TWO_PI/((60/haptics.bpm)*4);} else { driver.omega=TWO_PI/driver.duration; }
+    // propagate omegas in two passes
+    for(let pass=0; pass<2; pass++){
+      for(const g of gears){ if(g.id===driver.id){ continue; }
+        if(g.meshed && g.meshedWith){ const h=gears.find(x=>x.id===g.meshedWith); if(h){ g.omega = -(h.omega||0) * (h.r/g.r) * g.throttle; }
+        } else {
+          // free-running slight decay
+          g.omega = g.omega*0.98;
+        }
+      }
+    }
+    // advance angles
+    for(const g of gears){ if(playing){ if(g.id===driver.id){ g.angle += g.omega*dt; } else { g.angle += (g.omega||0)*dt; } g.angle = mod(g.angle, TWO_PI); }
+      fireHaptics(g); syncMedia(g); }
+    draw(); requestAnimationFrame(step); }
+  requestAnimationFrame(step);
+  MAIN.x = canvas.width/(2*DPR); MAIN.y = canvas.height/(2*DPR); MAIN.meshed=false; select(MAIN.id); updateToolbar();
+})();
+</script>
+</body>
+</html>

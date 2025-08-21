@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Hyperclay Fusion Wheel — Option 2 (All-Out POC)</title>
+<style>
+  :root{
+    --bg:#0b0c10; --ink:#eae7df; --muted:#9aa0a6; --accent:#00d0b4; --rim:#1a1f26; --tick:#2b313a;
+    --glass:#0b0f14cc; --panel:#0f1319f2; --ok:#19c37d; --warn:#e6b800; --bad:#ff4d4f;
+    --btn:#11161e; --btnb:#2a313a; --ink2:#cfd3d8; --chip:#0c1118; --chipb:#2a313a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:var(--bg); color:var(--ink); height:100%; }
+  #app { position:fixed; inset:0; overflow:hidden; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+
+  .hud, .topbar { font: 600 12px/1.2 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue"; }
+  .topbar {
+    position:fixed; top:0; left:0; right:0; display:flex; gap:.5rem; padding:.5rem .6rem; align-items:center;
+    justify-content:space-between; background:linear-gradient(180deg, var(--glass), transparent);
+    pointer-events:none; z-index:5;
+  }
+  .topbar .group { pointer-events:auto; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+  .badge { padding:.25rem .5rem; border:1px solid var(--chipb); border-radius:12px; background:var(--chip); color:var(--ink2); }
+  .note  { font-size:11px; color:var(--muted); }
+  .meter { display:inline-flex; align-items:center; gap:.35rem; }
+  .bar { width:72px; height:8px; background:#0e131a; border:1px solid #24303a; border-radius:6px; overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:linear-gradient(90deg, #2e9fff, #00d0b4); }
+
+  .hud {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index:6;
+    display:flex; gap:.5rem; padding:.6rem; align-items:center; justify-content:center; flex-wrap:wrap;
+    background: linear-gradient(180deg, transparent, var(--glass)); backdrop-filter: blur(8px);
+  }
+  button, label.btn, a.btn {
+    border:1px solid var(--btnb); border-radius:14px; padding:.6rem .8rem; background:var(--btn); color:var(--ink);
+    display:inline-flex; align-items:center; gap:.35rem; cursor:pointer; user-select:none; text-decoration:none;
+  }
+  button:active, label.btn:active { transform: translateY(1px); }
+  button.on { outline: 1px solid var(--accent); box-shadow: 0 0 0 2px #00d0b422 inset; }
+  .pill { opacity:.85; }
+  #file, #jsonfile { display:none; }
+
+  /* Floating inspector */
+  .inspector {
+    position: fixed; z-index:10; min-width: 250px; max-width: 320px; color:var(--ink);
+    background: var(--panel); border:1px solid #29323c; border-radius:16px; padding:.75rem; box-shadow: 0 6px 28px rgba(0,0,0,.6);
+  }
+  .inspector h3 { margin:.1rem 0 .35rem; font-size:14px; }
+  .row { display:grid; grid-template-columns: 90px 1fr auto; align-items:center; gap:.5rem; margin:.35rem 0; }
+  .row > label { color:var(--muted); font-weight:600; }
+  .row input[type="range"], .row select { width:100%; }
+  .inspector .mini { display:flex; gap:.35rem; justify-content:flex-end; margin-top:.35rem; }
+  .inspector .danger { color:#ffb3b3; border-color:#7a2a2a; background:#1a0e0e; }
+
+  .toast {
+    position:fixed; left:50%; transform:translateX(-50%); bottom:80px; z-index:20; background:#0f141b;
+    border:1px solid #2a313a; border-radius:12px; padding:.5rem .75rem; color:var(--ink2); opacity:0; transition:opacity .25s;
+  }
+  .toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+
+  <div class="topbar">
+    <div class="group">
+      <span class="badge">Hyperclay Fusion Wheel — Option 2</span>
+      <span class="note" id="phaseNote">phase 0.000</span>
+      <span class="note" id="fpsNote">fps —</span>
+      <div class="meter" title="Wheel inertia">
+        <span class="note">inertia</span>
+        <span class="bar"><i id="inertiaFill" style="width:0%"></i></span>
+      </div>
+      <span class="badge" id="resBadge" title="Render scale">RES 1.0×</span>
+      <span class="badge" id="wheelBadge" title="Wheel size factor">R 1.00×</span>
+    </div>
+    <div class="group">
+      <span class="badge pill">Ticks • Ghost arcs • Inspector • Pinch scale • STAMP • Record • JSON</span>
+    </div>
+  </div>
+
+  <div class="hud">
+    <label class="btn" for="file">Load Clips</label><input id="file" type="file" multiple accept="image/*,video/*" />
+    <button id="modeSpin" class="on" title="SPIN: fling/drag to scrub time">SPIN</button>
+    <button id="modeSculpt" title="SCULPT: drag clip anchors, long-press for inspector">SCULPT</button>
+    <button id="resBtn" title="Toggle render scale (for perf)">RES</button>
+    <button id="stampBtn" title="Stamp current composite as image clip">STAMP</button>
+    <button id="undoBtn" title="Undo last change">Undo</button>
+    <button id="recBtn" title="Start/Stop recording">● Record</button>
+    <a id="dl" class="btn" style="display:none" download="hyperclay.webm">Download</a>
+    <label class="btn" for="jsonfile" title="Import session JSON">Load JSON</label><input id="jsonfile" type="file" accept="application/json" />
+    <button id="saveBtn" title="Export session JSON">Save JSON</button>
+    <button id="clearBtn" title="Remove all clips">Clear</button>
+  </div>
+
+  <div id="toast" class="toast">Saved</div>
+</div>
+
+<script>
+(() => {
+  // ==========================
+  // Canvas & Resolution Control
+  // ==========================
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let RES_SCALE = 1.0; // cycles 1.0 → 0.8 → 0.6
+  let DPR = 1;
+
+  function computeDPR(){
+    DPR = Math.max(1, Math.min(2, (window.devicePixelRatio || 1) * RES_SCALE));
+  }
+  function resize(){
+    computeDPR();
+    const {clientWidth:w, clientHeight:h} = canvas;
+    canvas.width = Math.floor(w * DPR);
+    canvas.height= Math.floor(h * DPR);
+  }
+  new ResizeObserver(resize).observe(canvas);
+  resize();
+
+  // ==========================
+  // App State
+  // ==========================
+  const state = {
+    cx: () => canvas.width  * 0.5,
+    cy: () => canvas.height * 0.5,
+    wheelScale: 1.0,                 // pinch to scale wheel size
+    baseWheelR: () => Math.min(canvas.width, canvas.height) * 0.28 * state.wheelScale,
+    wheelAngle: 0,                   // radians
+    wheelVel: 0,                     // radians per frame
+    friction: 0.985,
+    mode: 'SPIN',                    // 'SPIN' | 'SCULPT'
+    clips: [],                       // array of clips
+    activeClipId: null,
+    history: [],                     // stack of snapshots (clip props only)
+  };
+  let nextId = 1;
+
+  // Clip schema (unified)
+  // { id, type: 'video'|'image'|'stamp'|'placeholder', el?, kind?, angle, radius, scale, edge, fog, blend, timeOffset, duration, label? }
+
+  // ==========================
+  // UI References
+  // ==========================
+  const fileInput   = document.getElementById('file');
+  const jsonInput   = document.getElementById('jsonfile');
+  const modeSpinBtn = document.getElementById('modeSpin');
+  const modeScptBtn = document.getElementById('modeSculpt');
+  const resBtn      = document.getElementById('resBtn');
+  const resBadge    = document.getElementById('resBadge');
+  const wheelBadge  = document.getElementById('wheelBadge');
+  const stampBtn    = document.getElementById('stampBtn');
+  const undoBtn     = document.getElementById('undoBtn');
+  const recBtn      = document.getElementById('recBtn');
+  const dlLink      = document.getElementById('dl');
+  const saveBtn     = document.getElementById('saveBtn');
+  const clearBtn    = document.getElementById('clearBtn');
+  const phaseNote   = document.getElementById('phaseNote');
+  const fpsNote     = document.getElementById('fpsNote');
+  const inertiaFill = document.getElementById('inertiaFill');
+  const toastEl     = document.getElementById('toast');
+
+  function showToast(msg, ms=900){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(()=> toastEl.classList.remove('show'), ms);
+  }
+
+  // ==========================
+  // History (what-if snapshots)
+  // ==========================
+  function snapshot(){
+    // Store a lightweight snapshot of clip properties
+    const snap = state.clips.map(c => ({
+      id:c.id, type:c.type, angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge,
+      fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration, label:c.label || null
+    }));
+    state.history.push(snap);
+    if (state.history.length > 40) state.history.shift();
+  }
+  function restoreSnapshot(snap){
+    for (const s of snap){
+      const c = state.clips.find(k => k.id === s.id);
+      if (!c) continue;
+      Object.assign(c, s);
+    }
+  }
+  undoBtn.addEventListener('click', () => {
+    const last = state.history.pop();
+    if (last){ restoreSnapshot(last); showToast('Undid'); }
+  });
+
+  // ==========================
+  // Add Clips
+  // ==========================
+  function defaultClipBase(){
+    return {
+      id: nextId++, angle: Math.random()*Math.PI*2, radius: 0, scale: 0.5,
+      edge: 24, fog: 0.08, blend: 'source-over', timeOffset: 0, duration: 5
+    };
+  }
+  function addImageClip(img){
+    state.clips.push({ ...defaultClipBase(), type:'image', el:img, kind:'img' });
+    snapshot();
+  }
+  function addStampClip(img){
+    state.clips.push({ ...defaultClipBase(), type:'stamp', el:img, kind:'img' });
+    snapshot();
+  }
+  function addVideoClip(video, duration=5){
+    state.clips.push({ ...defaultClipBase(), type:'video', el:video, kind:'video', duration: duration||5 });
+    snapshot();
+  }
+  function addPlaceholder(label){
+    state.clips.push({ ...defaultClipBase(), type:'placeholder', label, kind:'placeholder', duration:5, scale:0.6 });
+  }
+
+  fileInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    for (const f of files){
+      if (f.type.startsWith('image/')){
+        const url = URL.createObjectURL(f); const img = new Image();
+        await new Promise(res => { img.onload = res; img.src = url; });
+        addImageClip(img);
+      } else if (f.type.startsWith('video/')){
+        const url = URL.createObjectURL(f); const vid = document.createElement('video');
+        vid.src = url; vid.preload='auto'; vid.loop=true; vid.muted=true; vid.playsInline=true;
+        await vid.play().catch(()=>{}); vid.pause();
+        const duration = isFinite(vid.duration) ? vid.duration : 5;
+        addVideoClip(vid, duration);
+      }
+    }
+    fileInput.value = '';
+  });
+
+  // ==========================
+  // Modes
+  // ==========================
+  function setMode(m){
+    state.mode = m;
+    modeSpinBtn.classList.toggle('on', m==='SPIN');
+    modeScptBtn.classList.toggle('on', m==='SCULPT');
+  }
+  modeSpinBtn.addEventListener('click', () => setMode('SPIN'));
+  modeScptBtn.addEventListener('click', () => setMode('SCULPT'));
+
+  // ==========================
+  // Resolution toggle
+  // ==========================
+  resBtn.addEventListener('click', () => {
+    RES_SCALE = (RES_SCALE === 1.0) ? 0.8 : (RES_SCALE === 0.8 ? 0.6 : 1.0);
+    resBadge.textContent = `RES ${RES_SCALE.toFixed(1)}×`;
+    resize();
+  });
+
+  // ==========================
+  // STAMP & CLEAR
+  // ==========================
+  const stampBtnHandler = () => {
+    const dataURL = canvas.toDataURL('image/png');
+    const img = new Image(); img.onload = () => addStampClip(img); img.src = dataURL;
+    showToast('Stamped');
+  }
+  stampBtn.addEventListener('click', stampBtnHandler);
+
+  clearBtn.addEventListener('click', () => { stopRecording(true); state.clips = []; state.history = []; state.activeClipId=null; });
+
+  // ==========================
+  // Recording
+  // ==========================
+  let mediaRecorder = null, recChunks = [], recording = false;
+  recBtn.addEventListener('click', () => { if (!recording) startRecording(); else stopRecording(); });
+
+  function startRecording(){
+    if (recording) return;
+    const stream = canvas.captureStream(30);
+    if (!('MediaRecorder' in window)) { alert('MediaRecorder not supported.'); return; }
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+    recChunks = [];
+    mediaRecorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+    mediaRecorder.onstop = () => { const blob = new Blob(recChunks, { type:'video/webm' }); const url = URL.createObjectURL(blob); dlLink.href = url; dlLink.style.display=''; };
+    mediaRecorder.start(); recording = true; recBtn.classList.add('on'); dlLink.style.display='none'; showToast('Recording…');
+  }
+  function stopRecording(silent=false){
+    if (!recording) return; mediaRecorder.stop(); recording=false; recBtn.classList.remove('on'); if(!silent) showToast('Recording complete — Download ready');
+  }
+
+  // ==========================
+  // JSON Save/Load (Session)
+  // ==========================
+  saveBtn.addEventListener('click', () => {
+    const payload = {
+      version:1,
+      wheelScale: state.wheelScale,
+      clips: state.clips.map(c => ({
+        id:c.id, type:c.type, angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog,
+        blend:c.blend, timeOffset:c.timeOffset, duration:c.duration, label:c.label||null,
+        // inline images/stamps as data URLs where possible
+        data: (c.type==='image'||c.type==='stamp') ? tryImageToDataURL(c.el) : null
+      }))
+    };
+    const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download='hyperclay_session.json'; a.click();
+    showToast('Session saved');
+  });
+  function tryImageToDataURL(img){
+    try{
+      const off = document.createElement('canvas'); off.width = img.naturalWidth||img.width; off.height = img.naturalHeight||img.height;
+      const octx = off.getContext('2d'); octx.drawImage(img,0,0); return off.toDataURL('image/png');
+    }catch(_){ return null; }
+  }
+  jsonInput.addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0]; if(!f) return;
+    try{
+      const text = await f.text(); const obj = JSON.parse(text);
+      state.wheelScale = obj.wheelScale || 1.0; wheelBadge.textContent = `R ${state.wheelScale.toFixed(2)}×`;
+      // rebuild clip list
+      const rebuilt = [];
+      for (const c of obj.clips||[]){
+        if ((c.type==='image'||c.type==='stamp') && c.data){
+          const img = new Image(); await new Promise(res => { img.onload=res; img.src=c.data; });
+          rebuilt.push({ ...defaultClipBase(), id:c.id, type:c.type, el:img, kind:'img', angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration });
+        } else if (c.type==='video') {
+          rebuilt.push({ ...defaultClipBase(), id:c.id, type:'placeholder', kind:'placeholder', label:'Video (relink)', angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration });
+        } else {
+          rebuilt.push({ ...defaultClipBase(), id:c.id, type:c.type||'placeholder', kind:c.kind||'placeholder', label:c.label||'Clip', angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration });
+        }
+      }
+      state.clips = rebuilt; state.history=[]; showToast('Session loaded');
+    }catch(err){ alert('Invalid JSON'); }
+    jsonInput.value='';
+  });
+
+  // ==========================
+  // Interaction (SPIN / SCULPT) + Pinch Scale + Long-Press Inspector
+  // ==========================
+  let dragging=false, dragLastAngle=0; let draggingClip=null; let longPressTimer=null; let movedSinceDown=false;
+  let pinchStartDist=0, pinchStartScale=1.0; let activeTouches = new Map();
+
+  function pointAngle(x,y){ const dx=x-state.cx(), dy=y-state.cy(); return Math.atan2(dy,dx); }
+  function pointerPos(e){
+    if (e.touches && e.touches[0]){ const r=canvas.getBoundingClientRect(); return { x:(e.touches[0].clientX-r.left)*DPR, y:(e.touches[0].clientY-r.top)*DPR };
+    } else { const r=canvas.getBoundingClientRect(); return { x:(e.clientX-r.left)*DPR, y:(e.clientY-r.top)*DPR }; }
+  }
+  function nearestClipHandle(px,py){
+    const R=state.baseWheelR(); const world=(a)=>a+state.wheelAngle; let best=null, bestD2=Infinity;
+    for (const c of state.clips){ const a=world(c.angle), r=R+c.radius; const hx=state.cx()+r*Math.cos(a), hy=state.cy()+r*Math.sin(a);
+      const dx=hx-px, dy=hy-py, d2=dx*dx+dy*dy; if (d2<bestD2){ bestD2=d2; best={clip:c,hx,hy,d2}; } }
+    return best && best.d2 < (36*DPR)*(36*DPR) ? best.clip : null;
+  }
+
+  // Touch helpers for pinch
+  function updateActiveTouches(e){
+    activeTouches.clear();
+    if (!e.touches) return;
+    const r=canvas.getBoundingClientRect();
+    for (let i=0;i<e.touches.length;i++){
+      const t=e.touches[i]; activeTouches.set(t.identifier, { x:(t.clientX-r.left)*DPR, y:(t.clientY-r.top)*DPR });
+    }
+  }
+  function distanceBetweenTouches(){
+    if (activeTouches.size<2) return 0;
+    const arr=[...activeTouches.values()]; const dx=arr[0].x-arr[1].x, dy=arr[0].y-arr[1].y; return Math.hypot(dx,dy);
+  }
+
+  // Long-press inspector
+  let inspector = null; // {el, clip}
+  function openInspectorFor(clip, screenX, screenY){
+    closeInspector();
+    inspector = { clip, el: document.createElement('div') };
+    const el=inspector.el; el.className='inspector';
+    el.style.left = Math.max(8, Math.min(window.innerWidth-330, screenX-130))+'px';
+    el.style.top  = Math.max(8, Math.min(window.innerHeight-260, screenY-130))+'px';
+    el.innerHTML = `
+      <h3>Clip #${clip.id} <span style="opacity:.6">(${clip.type})</span></h3>
+      <div class="row"><label>Scale</label><input id="i_scale" type="range" min="0.1" max="2.0" step="0.01" value="${clip.scale}"><span>${clip.scale.toFixed(2)}</span></div>
+      <div class="row"><label>Edge</label><input id="i_edge" type="range" min="0" max="64" step="1" value="${clip.edge}"><span>${clip.edge|0}</span></div>
+      <div class="row"><label>Fog</label><input id="i_fog" type="range" min="0" max="0.6" step="0.01" value="${clip.fog}"><span>${clip.fog.toFixed(2)}</span></div>
+      <div class="row"><label>Time Off</label><input id="i_toff" type="range" min="0" max="${Math.max(0.01, clip.duration)}" step="0.01" value="${clip.timeOffset}"><span>${clip.timeOffset.toFixed(2)}</span></div>
+      <div class="row"><label>Blend</label>
+        <select id="i_blend">
+          ${['source-over','lighter','multiply','screen','overlay','hard-light','soft-light'].map(b=>`<option ${clip.blend===b?'selected':''}>${b}</option>`).join('')}
+        </select>
+        <button id="i_cycle">Cycle</button>
+      </div>
+      <div class="mini">
+        <button id="i_edgep">EDGE+</button>
+        <button id="i_edgem">EDGE-</button>
+        <button id="i_fogp">FOG+</button>
+        <button id="i_fogm">FOG-</button>
+        <button id="i_remove" class="danger">Remove</button>
+        <button id="i_close">Close</button>
+      </div>`;
+    document.body.appendChild(el);
+
+    function bindRange(id, prop, fmt){
+      const r=el.querySelector(id); const s=r.nextElementSibling; r.addEventListener('input', ()=>{ clip[prop]=Number(r.value); s.textContent = (fmt?fmt(clip[prop]):clip[prop]); });
+    }
+    bindRange('#i_scale','scale', v=>v.toFixed(2));
+    bindRange('#i_edge','edge', v=>v|0);
+    bindRange('#i_fog','fog', v=>v.toFixed(2));
+    bindRange('#i_toff','timeOffset', v=>v.toFixed(2));
+    el.querySelector('#i_blend').addEventListener('change', e => clip.blend = e.target.value);
+    el.querySelector('#i_cycle').addEventListener('click', ()=>{ clip.blend = nextBlend(clip.blend); el.querySelector('#i_blend').value = clip.blend; });
+    el.querySelector('#i_edgep').addEventListener('click', ()=> clip.edge = Math.min(64, clip.edge+4));
+    el.querySelector('#i_edgem').addEventListener('click', ()=> clip.edge = Math.max(0, clip.edge-4));
+    el.querySelector('#i_fogp').addEventListener('click', ()=> clip.fog = Math.min(0.6, (clip.fog+0.04)));
+    el.querySelector('#i_fogm').addEventListener('click', ()=> clip.fog = Math.max(0, (clip.fog-0.04)));
+    el.querySelector('#i_remove').addEventListener('click', ()=>{ state.clips = state.clips.filter(k=>k.id!==clip.id); closeInspector(); });
+    el.querySelector('#i_close').addEventListener('click', closeInspector);
+  }
+  function closeInspector(){ if (inspector){ inspector.el.remove(); inspector=null; } }
+  function nextBlend(b){
+    const modes=['source-over','lighter','multiply','screen','overlay','hard-light','soft-light'];
+    const i=modes.indexOf(b); return modes[(i+1)%modes.length];
+  }
+
+  // Pointer down
+  canvas.addEventListener('touchstart', onDown, {passive:false}); canvas.addEventListener('mousedown', onDown);
+  function onDown(e){
+    e.preventDefault(); movedSinceDown=false; closeInspector();
+    if (e.touches && e.touches.length>=2){ // pinch start
+      updateActiveTouches(e); pinchStartDist = distanceBetweenTouches(); pinchStartScale = state.wheelScale; dragging=false; return;
+    }
+    const {x,y} = pointerPos(e);
+    const screen = { sx: (e.touches? e.touches[0].clientX : e.clientX), sy: (e.touches? e.touches[0].clientY : e.clientY) };
+    dragLastAngle = pointAngle(x,y); dragging=true; state.activeClipId=null; draggingClip=null;
+
+    if (state.mode==='SCULPT'){
+      draggingClip = nearestClipHandle(x,y);
+      if (draggingClip){ state.activeClipId = draggingClip.id; // prepare long-press
+        longPressTimer = setTimeout(()=>{ if (!movedSinceDown) openInspectorFor(draggingClip, screen.sx, screen.sy); }, 420);
+      }
+    }
+  }
+
+  // Move
+  window.addEventListener('touchmove', onMove, {passive:false}); window.addEventListener('mousemove', onMove);
+  function onMove(e){
+    if (e.touches && e.touches.length>=2){ // pinch scaling
+      updateActiveTouches(e); const dist = distanceBetweenTouches(); if (pinchStartDist>0){
+        let scale = pinchStartScale * (dist/pinchStartDist); scale = Math.max(0.6, Math.min(1.8, scale));
+        state.wheelScale = scale; wheelBadge.textContent = `R ${state.wheelScale.toFixed(2)}×`;
+      }
+      return;
+    }
+    if (!dragging) return; e.preventDefault(); movedSinceDown=true; if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }
+    const {x,y} = pointerPos(e); const a = pointAngle(x,y); const da = angDiff(a, dragLastAngle); dragLastAngle=a;
+
+    if (state.mode==='SCULPT' && draggingClip){
+      draggingClip.angle = normAngle(draggingClip.angle + da);
+      const R = state.baseWheelR(); const dist = Math.hypot(x-state.cx(), y-state.cy()); draggingClip.radius = clamp(dist - R, -R*0.25, R*0.6);
+    } else { // SPIN
+      state.wheelAngle = normAngle(state.wheelAngle + da); state.wheelVel = da;
+    }
+  }
+
+  // Up
+  window.addEventListener('touchend', onUp); window.addEventListener('mouseup', onUp);
+  function onUp(){ dragging=false; draggingClip=null; if (longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; } }
+
+  function angDiff(a,b){ let d=a-b; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return d; }
+  function normAngle(a){ while(a>Math.PI) a-=Math.PI*2; while(a<=-Math.PI) a+=Math.PI*2; return a; }
+  const clamp = (v,lo,hi)=> Math.max(lo,Math.min(hi,v));
+
+  // ==========================
+  // Drawing Helpers & Offscreens
+  // ==========================
+  const offA = document.createElement('canvas'); const offB = document.createElement('canvas');
+  let octxA = offA.getContext('2d'); let octxB = offB.getContext('2d');
+  function ensureOff(w,h){ if (offA.width!==w||offA.height!==h){ offA.width=w; offA.height=h; offB.width=w; offB.height=h; octxA=offA.getContext('2d'); octxB=offB.getContext('2d'); } }
+
+  function drawWheel(){
+    const cx=state.cx(), cy=state.cy(), R=state.baseWheelR();
+    // rim
+    ctx.save(); ctx.lineWidth = 3*DPR; ctx.strokeStyle = '#1f252d'; ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke(); ctx.restore();
+
+    // ticks (60 minor / 12 major) rotate with wheelAngle
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(state.wheelAngle);
+    for (let i=0;i<60;i++){
+      const major = i%5===0; const len=(major?10:6)*DPR; ctx.beginPath(); ctx.strokeStyle=major?'#39414c':'#2b313a'; ctx.lineWidth=major?2*DPR:1*DPR; ctx.moveTo(R-len, 0); ctx.lineTo(R+len, 0); ctx.stroke(); ctx.rotate((Math.PI*2)/60);
+    }
+    ctx.restore();
+  }
+
+  function drawGhostArcs(phase){
+    const cx=state.cx(), cy=state.cy(), R=state.baseWheelR();
+    for (const c of state.clips){
+      const aWorld=c.angle+state.wheelAngle; const anchorR=R+c.radius; const hx=cx+anchorR*Math.cos(aWorld), hy=cy+anchorR*Math.sin(aWorld);
+      // handle
+      ctx.save(); ctx.fillStyle=(state.activeClipId===c.id)?'#00d0b4':'#eae7df'; ctx.beginPath(); ctx.arc(hx,hy,6*DPR,0,Math.PI*2); ctx.fill(); ctx.restore();
+      // progress arc
+      ctx.save(); ctx.strokeStyle='#00d0b4'; ctx.lineWidth=4*DPR; const start=aWorld-0.15, end=start + ( ( (phase + c.timeOffset/c.duration) % 1) * 0.35 + 0.05 ); ctx.beginPath(); ctx.arc(cx,cy,R-10*DPR,start,end); ctx.stroke(); ctx.restore();
+      // blend badge
+      ctx.save(); ctx.fillStyle='rgba(12,17,24,.8)'; ctx.strokeStyle='#2a313a'; ctx.lineWidth=1*DPR; const bx=hx+10*DPR, by=hy-18*DPR; const bw=64*DPR, bh=16*DPR; ctx.beginPath(); roundRect(ctx,bx,by,bw,bh,8*DPR); ctx.fill(); ctx.stroke();
+      ctx.fillStyle='#9aa0a6'; ctx.font=`${10*DPR}px ui-sans-serif`; ctx.textBaseline='middle'; ctx.fillText((c.blend||'src').replace('source-over','src'), bx+6*DPR, by+bh/2);
+      ctx.restore();
+    }
+  }
+  function roundRect(ctx,x,y,w,h,r){ ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); }
+
+  function drawFeatherMask(ctxMask,w,h,edgePx){
+    ctxMask.clearRect(0,0,w,h);
+    if (edgePx<=1){ ctxMask.fillStyle='#fff'; ctxMask.fillRect(0,0,w,h); return; }
+    ctxMask.fillStyle='#fff'; ctxMask.fillRect(edgePx,edgePx,w-2*edgePx,h-2*edgePx);
+    const L=ctxMask.createLinearGradient(0,0,edgePx,0); L.addColorStop(0,'rgba(255,255,255,0)'); L.addColorStop(1,'#fff'); ctxMask.fillStyle=L; ctxMask.fillRect(0,edgePx,edgePx,h-2*edgePx);
+    const Rg=ctxMask.createLinearGradient(w-edgePx,0,w,0); Rg.addColorStop(0,'#fff'); Rg.addColorStop(1,'rgba(255,255,255,0)'); ctxMask.fillStyle=Rg; ctxMask.fillRect(w-edgePx,edgePx,edgePx,h-2*edgePx);
+    const T=ctxMask.createLinearGradient(0,0,0,edgePx); T.addColorStop(0,'rgba(255,255,255,0)'); T.addColorStop(1,'#fff'); ctxMask.fillStyle=T; ctxMask.fillRect(edgePx,0,w-2*edgePx,edgePx);
+    const B=ctxMask.createLinearGradient(0,h-edgePx,0,h); B.addColorStop(0,'#fff'); B.addColorStop(1,'rgba(255,255,255,0)'); ctxMask.fillStyle=B; ctxMask.fillRect(edgePx,h-edgePx,w-2*edgePx,edgePx);
+    function corner(xc,yc){ const rg=ctxMask.createRadialGradient(xc,yc,0, xc,yc,edgePx); rg.addColorStop(0,'#fff'); rg.addColorStop(1,'rgba(255,255,255,0)'); ctxMask.fillStyle=rg; ctxMask.beginPath(); ctxMask.arc(xc,yc,edgePx,0,Math.PI*2); ctxMask.fill(); }
+    corner(edgePx,edgePx); corner(w-edgePx,edgePx); corner(edgePx,h-edgePx); corner(w-edgePx,h-edgePx);
+  }
+
+  function drawClipLayer(mainCtx, clip, phase){
+    const cx=state.cx(), cy=state.cy(), R=state.baseWheelR();
+    // resolve source dims
+    let srcW=320, srcH=180;
+    if (clip.kind==='video'){ srcW=clip.el.videoWidth||320; srcH=clip.el.videoHeight||180; }
+    else if (clip.kind==='img'){ srcW=clip.el.naturalWidth||clip.el.width||320; srcH=clip.el.naturalHeight||clip.el.height||180; }
+    else if (clip.kind==='placeholder'){ srcW=320; srcH=180; }
+
+    const targetW=Math.max(8, Math.floor(srcW*clip.scale));
+    const targetH=Math.max(8, Math.floor(srcH*clip.scale));
+    ensureOff(targetW,targetH);
+
+    // Seek video time
+    if (clip.kind==='video'){
+      const t = ((phase * clip.duration) + clip.timeOffset) % clip.duration;
+      if (!Number.isNaN(t) && isFinite(t)) { try { clip.el.currentTime = t; } catch(_){} }
+    }
+
+    // Draw content into offA
+    octxA.clearRect(0,0,targetW,targetH);
+    if (clip.kind==='placeholder'){
+      // simple placeholder card
+      octxA.fillStyle='#0c1118'; octxA.fillRect(0,0,targetW,targetH);
+      octxA.strokeStyle='#2a313a'; octxA.strokeRect(1,1,targetW-2,targetH-2);
+      octxA.fillStyle='#9aa0a6'; octxA.font='12px ui-sans-serif'; octxA.fillText(clip.label||'Video placeholder', 8, 18);
+    } else {
+      try { octxA.drawImage(clip.el, 0, 0, targetW, targetH); } catch(_) {}
+    }
+
+    // Mask
+    octxB.clearRect(0,0,targetW,targetH);
+    drawFeatherMask(octxB, targetW, targetH, Math.min(clip.edge * DPR, Math.floor(Math.min(targetW,targetH)/3)) );
+    octxA.globalCompositeOperation='destination-in'; octxA.drawImage(offB,0,0); octxA.globalCompositeOperation='source-over';
+
+    // Fog overlay
+    if (clip.fog>0.001){ octxA.save(); octxA.globalAlpha=clip.fog; octxA.fillStyle='#fff'; octxA.fillRect(0,0,targetW,targetH); octxA.restore(); }
+
+    // Position
+    const aWorld=clip.angle+state.wheelAngle; const rWorld=R+clip.radius; const x = cx + rWorld*Math.cos(aWorld) - targetW/2; const y= cy + rWorld*Math.sin(aWorld) - targetH/2;
+
+    // Composite
+    mainCtx.save(); mainCtx.globalCompositeOperation = clip.blend;
+    mainCtx.drawImage(offA, Math.floor(x), Math.floor(y));
+    mainCtx.restore();
+  }
+
+  // ==========================
+  // Main Loop
+  // ==========================
+  let lastT=performance.now(), fpsSm=60;
+  function tick(now){
+    const dt = now-lastT; lastT=now; const alpha = clamp(dt/16.6667, 0.25, 4);
+    // inertia
+    if (!dragging || state.mode!=='SCULPT'){ state.wheelAngle = normAngle(state.wheelAngle + state.wheelVel*alpha); state.wheelVel *= Math.pow(state.friction, alpha); if (Math.abs(state.wheelVel)<1e-5) state.wheelVel=0; }
+
+    // phase [0..1]
+    const rawPhase = ((state.wheelAngle/(Math.PI*2))%1 + 1) % 1;
+
+    // clear bg
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height);
+    const g=ctx.createRadialGradient(state.cx(),state.cy(),0, state.cx(),state.cy(), Math.max(canvas.width,canvas.height)*0.6);
+    g.addColorStop(0,'#0b0c10'); g.addColorStop(1,'#07090d'); ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    drawWheel();
+
+    // layers
+    for (const c of state.clips) drawClipLayer(ctx, c, rawPhase);
+
+    // overlays
+    drawGhostArcs(rawPhase);
+
+    // HUD metrics
+    phaseNote.textContent = `phase ${rawPhase.toFixed(3)}`;
+    fpsSm = fpsSm*0.9 + (1000/dt)*0.1; fpsNote.textContent = `fps ${Math.max(1, Math.round(fpsSm))}`;
+    const inertia = Math.min(1, Math.abs(state.wheelVel)*24); inertiaFill.style.width = `${Math.floor(inertia*100)}%`;
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // ==========================
+  // Keyboard (desktop convenience)
+  // ==========================
+  window.addEventListener('keydown', e => {
+    if (e.key===' ') setMode(state.mode==='SPIN'?'SCULPT':'SPIN');
+    if (e.key==='s') stampBtn.click();
+    if (e.key==='r') recBtn.click();
+    if (e.key==='u') undoBtn.click();
+    if (e.key==='b'){ const c = state.clips[state.clips.length-1]; if (c){ c.blend = nextBlend(c.blend); showToast(`Blend → ${c.blend}`); } }
+  });
+
+  // ==========================
+  // Utility: Export last session to sessionStorage automatically (optional, lightweight persistence)
+  // ==========================
+  setInterval(()=>{
+    try{
+      const payload={ wheelScale: state.wheelScale, clips: state.clips.map(c=>({id:c.id,type:c.type,angle:c.angle,radius:c.radius,scale:c.scale,edge:c.edge,fog:c.fog,blend:c.blend,timeOffset:c.timeOffset,duration:c.duration,label:c.label||null,data:(c.type==='image'||c.type==='stamp')?tryImageToDataURL(c.el):null})) };
+      sessionStorage.setItem('hyperclay_auto', JSON.stringify(payload));
+    }catch(_){/* ignore */}
+  }, 2000);
+
+  // ==========================
+  // Wire up RECORD download visibility
+  // ==========================
+  dlLink.addEventListener('click', ()=> showToast('Downloaded'));
+
+})();
+</script>
+</body>
+</html>

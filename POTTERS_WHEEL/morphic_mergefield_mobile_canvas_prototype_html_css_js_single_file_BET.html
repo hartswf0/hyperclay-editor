@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Morphic Mergefield — Mobile</title>
+<style>
+  :root{
+    --bg:#0a0b0f; --ink:#e9e6df; --muted:#a2a7b0; --accent:#56d6c5; --hot:#ff6a3d; --gold:#d4b86a;
+    --glow: 0 0 12px rgba(86,214,197,.65), 0 0 24px rgba(86,214,197,.3);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";}
+  canvas{position:fixed;inset:0;touch-action:none;}
+  .hud{position:fixed;inset:auto 0 0 0;display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem .8rem;background:linear-gradient(180deg, transparent, rgba(6,7,10,.75));backdrop-filter: blur(6px);}
+  .btnrow{display:flex;gap:.5rem;align-items:center;}
+  .btn{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:var(--ink);padding:.55rem .7rem;border-radius:14px;font-size:18px;line-height:1;min-width:2.25rem;text-align:center;box-shadow:0 2px 0 rgba(0,0,0,.35);}
+  .btn:active{transform:translateY(1px);}
+  .btn.active{outline:2px solid rgba(86,214,197,.6);box-shadow:var(--glow);}
+  .brand{font-weight:700;letter-spacing:.02em;font-size:.9rem;color:var(--muted)}
+  input[type=file]{display:none}
+  .tooltip{position:fixed;left:50%;transform:translateX(-50%);bottom:64px;color:#cfe9e3;font-size:.8rem;opacity:.95;background:rgba(0,0,0,.45);padding:.35rem .6rem;border-radius:10px;border:1px solid rgba(255,255,255,.12)}
+  .help{position:fixed;inset:12% 8% auto 8%;max-height:70%;overflow:auto;background:rgba(8,10,14,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 14px;display:none}
+  .help h3{margin:.2rem 0 .6rem 0}
+  .help p, .help li{color:#d8dfeb}
+  .help ul{padding-left:1rem}
+  .pill{display:inline-flex;gap:.4rem;align-items:center;padding:.12rem .5rem;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);font-size:.8rem;color:#cbd6e2}
+  @media (min-width:700px){ .hud{inset:auto auto 1rem 1rem;border-radius:14px;width:fit-content} }
+</style>
+</head>
+<body>
+<canvas id="field"></canvas>
+<input id="file" type="file" accept="video/*" multiple />
+<div class="hud" role="toolbar" aria-label="controls">
+  <div class="brand">MORPHIC MERGEFIELD</div>
+  <div class="btnrow">
+    <button class="btn" id="load" title="Load clips">⧉</button>
+    <button class="btn" id="overlay" title="Resonance overlay">⌁</button>
+    <button class="btn" id="gyro" title="Tilt navigation">◎</button>
+    <button class="btn" id="mute" title="Mute/Unmute audio">🔇</button>
+    <button class="btn" id="help" title="Help">?</button>
+  </div>
+</div>
+<div class="tooltip" id="tip"></div>
+<div class="help" id="helpPanel">
+  <h3>Gesture Guide</h3>
+  <ul>
+    <li><span class="pill">Pinch</span> converge two streams → merge</li>
+    <li><span class="pill">Spread</span> separate → unbraid</li>
+    <li><span class="pill">Long‑press</span> capture resonance → drag &amp; inflect another stream</li>
+    <li><span class="pill">Circle</span> clockwise → speed up · counter → rewind drift</li>
+    <li><span class="pill">Tilt</span> (enable ◎) → glide across the field</li>
+    <li><span class="pill">Tap glow</span> (edge pulse) → auto‑fuse neighbors</li>
+  </ul>
+  <p>Use the ⧉ button to load 2–4 short clips (muted by default). This prototype runs fully on‑device.</p>
+</div>
+<script>
+(function(){
+  const canvas = document.getElementById('field');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const fileInput = document.getElementById('file');
+  const tipEl = document.getElementById('tip');
+  const helpBtn = document.getElementById('help');
+  const helpPanel = document.getElementById('helpPanel');
+  const overlayBtn = document.getElementById('overlay');
+  const gyroBtn = document.getElementById('gyro');
+  const loadBtn = document.getElementById('load');
+  const muteBtn = document.getElementById('mute');
+
+  let W = 0, H = 0; let t = 0;
+  let overlayOn = true; let gyroOn = false; let muted = true;
+
+  // Camera for panning via tilt or drag
+  const camera = { x:0, y:0, zoom:1, vx:0, vy:0 };
+
+  // Web Audio for sonification
+  let audioCtx = null; let masterGain = null; let padOsc = null; let padFilter = null; let noise = null; let noiseGain = null; let rewindTimer = null;
+  function initAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    masterGain = audioCtx.createGain(); masterGain.gain.value = 0.25; masterGain.connect(audioCtx.destination);
+    // Ambient pad
+    padOsc = audioCtx.createOscillator(); padOsc.type = 'sawtooth';
+    padFilter = audioCtx.createBiquadFilter(); padFilter.type = 'lowpass'; padFilter.frequency.value = 600;
+    const padGain = audioCtx.createGain(); padGain.gain.value = 0.15;
+    padOsc.connect(padFilter); padFilter.connect(padGain); padGain.connect(masterGain); padOsc.start();
+    // Gentle noise
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*2, audioCtx.sampleRate);
+    const data = buf.getChannelData(0); for(let i=0;i<data.length;i++){ data[i] = (Math.random()*2-1)*0.12; }
+    noise = audioCtx.createBufferSource(); noise.buffer = buf; noise.loop = true;
+    noiseGain = audioCtx.createGain(); noiseGain.gain.value = 0.05; noise.connect(noiseGain); noiseGain.connect(masterGain); noise.start();
+  }
+
+  function setTip(txt){ tipEl.textContent = txt; tipEl.style.opacity = 1; clearTimeout(setTip._t); setTip._t = setTimeout(()=> tipEl.style.opacity = .0, 1600); }
+  function vibrate(msOrPattern){ if(navigator.vibrate) try{ navigator.vibrate(msOrPattern);}catch(e){} }
+
+  // Stream model
+  const streams = []; // {video, x,y, r, hue, tint, mergeAlpha, vx,vy, id, selected}
+  const links = []; // {a,b, w}
+  let nextId = 1;
+
+  function resize(){
+    W = Math.floor(window.innerWidth * dpr); H = Math.floor(window.innerHeight * dpr);
+    canvas.width = W; canvas.height = H; canvas.style.width = (W/dpr)+'px'; canvas.style.height = (H/dpr)+'px';
+  }
+  window.addEventListener('resize', resize, {passive:true}); resize();
+
+  // Helpers
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+  function lerp(a,b,t){ return a + (b-a)*t; }
+  function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
+
+  // Average color sampler (tiny offscreen)
+  const sampleCV = document.createElement('canvas'); const sctx = sampleCV.getContext('2d'); sampleCV.width = 32; sampleCV.height = 18;
+  function avgHue(video){
+    try{
+      sctx.drawImage(video,0,0,sampleCV.width,sampleCV.height);
+      const d = sctx.getImageData(0,0,sampleCV.width,sampleCV.height).data; let r=0,g=0,b=0;
+      for(let i=0;i<d.length;i+=4){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; }
+      r/= (d.length/4); g/= (d.length/4); b/= (d.length/4);
+      const h = rgb2h(r,g,b)[0]; return h;
+    }catch(e){ return rnd(0,360); }
+  }
+  function rgb2h(r,g,b){ r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b); let h,s,v=max; const d=max-min; s=max===0?0:d/max; if(max===min){h=0;} else { switch(max){ case r: h=(g-b)/d + (g<b?6:0); break; case g: h=(b-r)/d + 2; break; case b: h=(r-g)/d + 4; break; } h/=6; } return [h*360,s,v]; }
+
+  function addStreamFromFile(file, idx, total){
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.src = url; v.muted = true; v.loop = true; v.playsInline = true; v.crossOrigin = 'anonymous';
+    v.addEventListener('canplay', ()=>{ v.play().catch(()=>{}); });
+    v.addEventListener('loadeddata', ()=>{
+      const h = avgHue(v);
+      const s = {
+        id: nextId++, video: v,
+        x: rnd(-W, W)+camera.x, y: rnd(-H, H)+camera.y,
+        r: Math.max(60*dpr, Math.min(W,H) * .18),
+        hue: h, tint: 0, mergeAlpha: 0.0, vx:rnd(-.2,.2), vy:rnd(-.2,.2), selected:false,
+        targetRate:1, rewind:false, pressure:0.5
+      };
+      streams.push(s);
+      // gentle layout grid
+      layoutStreams();
+      if(audioCtx) setTip('Loaded '+ total +' clip'+(total>1?'s':''));
+    });
+  }
+
+  function layoutStreams(){
+    // Pack new streams into a loose grid in view
+    const n = streams.length; if(n===0) return;
+    const cols = Math.ceil(Math.sqrt(n)); const rows = Math.ceil(n/cols);
+    const pad = Math.min(W,H) * 0.08; const cellW = (W - pad*2)/cols; const cellH = (H - pad*2)/rows;
+    streams.forEach((s,i)=>{
+      const c = i % cols; const r = Math.floor(i/cols);
+      s.x = camera.x + (-W/2 + pad + cellW*(c+.5));
+      s.y = camera.y + (-H/2 + pad + cellH*(r+.5));
+      s.r = Math.min(cellW, cellH) * .42;
+    });
+  }
+
+  // Gestures
+  const touches = new Map(); // id -> {x,y, t, stream, startDist, lastAngle, path:[], longPress, mode}
+  let resonance = null; // {hue}
+
+  function screenToWorld(x,y){ return { x: (x*dpr)/camera.zoom + camera.x - W/2/camera.zoom, y: (y*dpr)/camera.zoom + camera.y - H/2/camera.zoom } }
+  function worldToScreen(x,y){ return { x: ( (x - camera.x + W/2/camera.zoom) * camera.zoom)/dpr, y: ( (y - camera.y + H/2/camera.zoom) * camera.zoom)/dpr } }
+
+  function pickStream(p){
+    let best=null, bd=1e9; for(const s of streams){ const d = Math.hypot(p.x - s.x, p.y - s.y); if(d < s.r*1.1 && d<bd){ bd=d; best=s; } }
+    return best;
+  }
+
+  function onPointerDown(e){
+    initAudio(); if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume(); }
+    const p = { x:e.clientX, y:e.clientY };
+    const w = screenToWorld(p.x,p.y);
+    const s = pickStream(w);
+    const id = e.pointerId || ('m'+Math.random());
+    const tp = { id, x:p.x, y:p.y, t:performance.now(), stream:s, path:[p], longPress:true, mode:'none', startDist:0, lastAngle:null };
+    touches.set(id, tp);
+    if(s){ s.selected=true; vibrate(12); }
+    // Long press → capture resonance
+    tp.lpTimer = setTimeout(()=>{
+      if(tp.longPress && s){ resonance = { hue: s.hue }; tp.mode='resonance'; setTip('Resonance captured'); vibrate([10,40,10]); }
+    }, 520);
+  }
+
+  function onPointerMove(e){
+    const id = e.pointerId || [...touches.keys()][0]; if(!touches.has(id)) return;
+    const tp = touches.get(id); tp.x = e.clientX; tp.y = e.clientY; tp.path.push({x:tp.x,y:tp.y}); if(tp.path.length>16) tp.path.shift();
+    tp.longPress = false; clearTimeout(tp.lpTimer);
+
+    // Multi-touch: pinch/zoom between two streams
+    if(touches.size===2){
+      const [a,b] = [...touches.values()];
+      const aw = screenToWorld(a.x,a.y), bw = screenToWorld(b.x,b.y);
+      const sa = pickStream(aw), sb = pickStream(bw);
+      if(sa && sb && sa!==sb){
+        const d = Math.hypot(aw.x-bw.x, aw.y-bw.y);
+        if(!a.startDist){ a.startDist=d; b.startDist=d; }
+        const delta = d - (a.startDist);
+        const strength = clamp( (-delta) / (Math.max(sa.r,sb.r)*1.2), 0, 1 ); // pinch → larger strength
+        // create or update link
+        let link = links.find(L=> (L.a===sa&&L.b===sb)||(L.a===sb&&L.b===sa));
+        if(!link){ link = {a:sa,b:sb, w:0}; links.push(link); }
+        link.w = lerp(link.w, strength, .35);
+        sa.mergeAlpha = Math.max(sa.mergeAlpha, link.w);
+        sb.mergeAlpha = Math.max(sb.mergeAlpha, link.w);
+        // move them slightly toward each other
+        const ux = (bw.x-aw.x)/Math.max(1,d); const uy=(bw.y-aw.y)/Math.max(1,d);
+        sa.x += ux * strength * .6; sa.y += uy * strength * .6;
+        sb.x -= ux * strength * .6; sb.y -= uy * strength * .6;
+        // audio + haptics
+        if(audioCtx){ padFilter.frequency.value = 400 + 900*link.w; masterGain.gain.value = .18 + .18*link.w; }
+        if(link.w>.88 && !link.notified){ setTip('Merge stabilized'); vibrate([8,60,8,60,8]); link.notified=true; }
+      }
+      return; // don't pan camera while pinching
+    }
+
+    // Drag resonance onto another stream to inflect
+    if(tp.mode==='resonance' && resonance){
+      const w = screenToWorld(tp.x, tp.y); const s = pickStream(w);
+      if(s){ s.tint = lerp(s.tint || 0, 1.0, .4); s.hue = lerpAngle(s.hue, resonance.hue, .2); }
+      return;
+    }
+
+    // Single-finger circular swipe → temporal morph
+    if(tp.stream){
+      const pth = tp.path; if(pth.length>=4){
+        const c = centroid(pth); const a1 = Math.atan2(pth[0].y-c.y, pth[0].x-c.x);
+        const a2 = Math.atan2(pth[pth.length-1].y-c.y, pth[pth.length-1].x-c.x);
+        let da = normAngle(a2 - a1);
+        if(Math.abs(da) > Math.PI/3){ // detected circular intent
+          if(da>0){ // clockwise → speed up
+            tp.stream.targetRate = clamp(tp.stream.targetRate + 0.02, 0.25, 2.0);
+            tp.stream.rewind = false; clearInterval(rewindTimer); rewindTimer=null;
+            setTip('↻ faster'); if(audioCtx) padOsc.frequency.value = 110 + 120*tp.stream.targetRate; vibrate(8);
+          }else{ // counter → rewind drift
+            tp.stream.rewind = true; tp.stream.targetRate = 0.001;
+            if(!rewindTimer){ rewindTimer = setInterval(()=>{ for(const s of streams){ if(s.rewind){ s.video.currentTime = Math.max(0, s.video.currentTime - 0.06); } } }, 60); }
+            setTip('↺ rewind'); if(audioCtx) padOsc.frequency.value = 90; vibrate(6);
+          }
+        }
+      }
+    } else {
+      // Pan camera by dragging empty space
+      const last = tp.path[tp.path.length-2]; if(last){
+        camera.x -= (tp.x - last.x) * dpr / camera.zoom; camera.y -= (tp.y - last.y) * dpr / camera.zoom;
+      }
+    }
+  }
+
+  function onPointerUp(e){
+    const id = e.pointerId || [...touches.keys()][0]; const tp = touches.get(id); if(!tp) return;
+    if(tp.stream){ tp.stream.selected=false; }
+    if(tp.mode==='resonance' && resonance){ setTip('Resonance applied'); vibrate([6,30,6]); resonance=null; }
+    touches.delete(id); clearTimeout(tp.lpTimer);
+  }
+
+  function centroid(pts){ let x=0,y=0; for(const p of pts){ x+=p.x; y+=p.y; } return {x:x/pts.length, y:y/pts.length}; }
+  function normAngle(a){ while(a>Math.PI) a-=2*Math.PI; while(a<-Math.PI) a+=2*Math.PI; return a; }
+  function lerpAngle(a,b,f){ let d = ((b - a + 540) % 360) - 180; return a + d*f; }
+
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointercancel', onPointerUp);
+
+  // Tilt navigation
+  async function enableGyro(){
+    function onOri(e){ const gx = e.gamma||0, gy=e.beta||0; camera.vx = lerp(camera.vx, gx*0.6, .08); camera.vy = lerp(camera.vy, gy*0.6, .08); }
+    if(typeof DeviceOrientationEvent!== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      try{
+        const p = await DeviceOrientationEvent.requestPermission(); if(p==='granted'){ window.addEventListener('deviceorientation', onOri); gyroOn=true; gyroBtn.classList.add('active'); setTip('Tilt on'); }
+      }catch(e){ setTip('Tilt not permitted'); }
+    }else{ window.addEventListener('deviceorientation', onOri); gyroOn=true; gyroBtn.classList.add('active'); setTip('Tilt on'); }
+  }
+
+  gyroBtn.addEventListener('click', ()=>{ if(!gyroOn) enableGyro(); else { gyroOn=false; window.removeEventListener('deviceorientation',()=>{}); gyroBtn.classList.remove('active'); setTip('Tilt off'); } });
+  overlayBtn.addEventListener('click', ()=>{ overlayOn=!overlayOn; overlayBtn.classList.toggle('active', overlayOn); setTip(overlayOn?'Overlay on':'Overlay off'); });
+  helpBtn.addEventListener('click', ()=>{ helpPanel.style.display = helpPanel.style.display==='block'?'none':'block'; helpBtn.classList.toggle('active', helpPanel.style.display==='block'); });
+
+  loadBtn.addEventListener('click', ()=>{ fileInput.click(); });
+  fileInput.addEventListener('change', (e)=>{
+    const files = [...e.target.files].filter(f=> f.type.startsWith('video/')).slice(0,8);
+    if(files.length===0){ setTip('No video files selected'); return; }
+    files.forEach((f,i)=> addStreamFromFile(f, i, files.length));
+  });
+
+  muteBtn.addEventListener('click', ()=>{
+    muted = !muted; for(const s of streams){ s.video.muted = muted; }
+    muteBtn.textContent = muted ? '🔇' : '🔊'; setTip(muted?'Muted':'Audio passthrough');
+  });
+
+  // Tap edge glow to auto-fuse
+  canvas.addEventListener('click', (e)=>{
+    const p = screenToWorld(e.clientX, e.clientY);
+    // check if near midpoint of any strong potential (visualized later)
+    let target=null, best=18*dpr; for(const L of potentialPairs()){
+      const m = { x:(L.a.x+L.b.x)/2, y:(L.a.y+L.b.y)/2 };
+      const ds = Math.hypot(p.x-m.x, p.y-m.y);
+      if(ds < best){ best=ds; target=L; }
+    }
+    if(target){
+      let link = links.find(L=> (L.a===target.a&&L.b===target.b)||(L.a===target.b&&L.b===target.a));
+      if(!link){ link = {a:target.a,b:target.b,w:0}; links.push(link); }
+      link.w = Math.max(link.w, .95); target.a.mergeAlpha = Math.max(target.a.mergeAlpha, .95); target.b.mergeAlpha = Math.max(target.b.mergeAlpha, .95);
+      vibrate([10,60,10]); setTip('Auto‑fused'); if(audioCtx){ padFilter.frequency.value = 1200; masterGain.gain.value = .35; setTimeout(()=>{ masterGain.gain.value=.22;}, 320);}    
+    }
+  });
+
+  // Render
+  function draw(){
+    t += 1/60;
+    // camera drift from tilt
+    camera.x += camera.vx; camera.y += camera.vy; camera.vx *= .94; camera.vy *= .94;
+
+    // backdrop
+    ctx.fillStyle = '#0a0b0f'; ctx.fillRect(0,0,W,H);
+    // subtle grid field
+    const g = 38*dpr; ctx.globalAlpha=.18; ctx.strokeStyle='rgba(255,255,255,.08)';
+    ctx.beginPath(); for(let y=(((-camera.y)%g)+g)%g; y<H; y+=g){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
+    for(let x=(((-camera.x)%g)+g)%g; x<W; x+=g){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
+    ctx.stroke(); ctx.globalAlpha=1;
+
+    // draw resonance links behind
+    if(overlayOn){
+      for(const L of links){ if(L.w<0.05) continue; const a=worldToScreen(L.a.x, L.a.y), b=worldToScreen(L.b.x, L.b.y); const mw = 2 + 10*L.w; const hue = Math.round((L.a.hue+L.b.hue)/2);
+        ctx.strokeStyle = `hsla(${hue},80%,60%,${0.25 + 0.45*L.w})`;
+        ctx.lineWidth = mw; ctx.beginPath();
+        const cx = (a.x+b.x)/2 + Math.sin(t*0.8 + L.a.id)*18; const cy=(a.y+b.y)/2 + Math.cos(t*0.8 + L.b.id)*18;
+        ctx.moveTo(a.x,a.y); ctx.quadraticCurveTo(cx,cy,b.x,b.y); ctx.stroke();
+      }
+    }
+
+    // draw streams (videos) as soft-circle crops
+    for(const s of streams){
+      const p = worldToScreen(s.x, s.y); const r = s.r * camera.zoom / dpr;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.clip();
+      // draw video frame
+      const vw = s.video.videoWidth || 320, vh = s.video.videoHeight || 180; if(vw>0 && vh>0){
+        const scale = Math.max((r*2)/vw, (r*2)/vh);
+        const dw = vw*scale, dh = vh*scale;
+        ctx.globalAlpha = 0.95; ctx.drawImage(s.video, p.x - dw/2, p.y - dh/2, dw, dh);
+      }
+      // tint by resonance
+      if(s.tint>0){ ctx.globalAlpha = clamp(s.tint,0,0.6); ctx.fillStyle = `hsla(${s.hue}, 70%, 55%, 1)`; ctx.fillRect(p.x - r, p.y - r, r*2, r*2); s.tint *= .95; }
+      ctx.restore();
+
+      // edge glow indicator (merge potential)
+      const pot = mergePotential(s);
+      if(pot>0.35){ ctx.shadowBlur = 28; ctx.shadowColor = `hsla(${s.hue},80%,60%,.6)`; ctx.strokeStyle = `hsla(${s.hue},80%,60%,.8)`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x, p.y, r+3, 0, Math.PI*2); ctx.stroke(); ctx.shadowBlur=0; }
+
+      // ring UI
+      ctx.lineWidth = 2; ctx.strokeStyle = s.selected ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.22)';
+      ctx.beginPath(); ctx.arc(p.x, p.y, r+ (s.selected?4:1), 0, Math.PI*2); ctx.stroke();
+    }
+
+    // potential pair glow (tap midpoint to auto‑fuse)
+    if(overlayOn){
+      for(const P of potentialPairs()){
+        const a=worldToScreen(P.a.x,P.a.y), b=worldToScreen(P.b.x,P.b.y);
+        const mx=(a.x+b.x)/2, my=(a.y+b.y)/2; const pulse = 0.5+0.5*Math.sin(t*3);
+        ctx.fillStyle = `rgba(86,214,197,${0.2+0.5*pulse})`; ctx.beginPath(); ctx.arc(mx, my, 10+8*pulse, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    // update playback rates and merge decay
+    for(const s of streams){ s.video.playbackRate = s.targetRate; if(!s.rewind) s.targetRate = lerp(s.targetRate, 1.0, .02); }
+    for(const L of links){ L.w *= .992; }
+
+    requestAnimationFrame(draw);
+  }
+
+  function mergePotential(s){ // derived from nearest neighbor distance
+    let m = 0; for(const o of streams){ if(o===s) continue; const d = Math.hypot(s.x-o.x, s.y-o.y); const p = Math.max(0, 1 - d/((s.r+o.r)*2.2)); m = Math.max(m, p); } return m; }
+  function potentialPairs(){
+    const res=[]; for(let i=0;i<streams.length;i++){ for(let j=i+1;j<streams.length;j++){ const a=streams[i], b=streams[j]; const d = Math.hypot(a.x-b.x, a.y-b.y); const p = Math.max(0, 1 - d/((a.r+b.r)*2.2)); if(p>.45) res.push({a,b,p}); } }
+    return res;
+  }
+
+  // Kickoff with a hint backdrop
+  setTip('⧉ load a few short clips · pinch to merge');
+  draw();
+})();
+</script>
+</body>
+</html>

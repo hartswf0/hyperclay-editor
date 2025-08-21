@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Hyperclay Fusion Wheel — 3D Mobile Editor</title>
+<style>
+  :root{
+    --bg:#07080c; --ink:#ecf0f1; --muted:#a8b0bd; --accent:#62e0d0; --hot:#ff6a3d; --gold:#e3c46b;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"}
+  canvas{position:fixed;inset:0;touch-action:none;}
+  .hud{position:fixed;left:0;right:0;bottom:0;display:flex;gap:.45rem;align-items:center;justify-content:space-between;padding:.55rem .75rem;background:linear-gradient(180deg, transparent, rgba(6,7,10,.78));backdrop-filter: blur(8px);}
+  .btnrow{display:flex;gap:.45rem;align-items:center;}
+  .btn{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--ink);padding:.5rem .65rem;border-radius:14px;font-size:18px;line-height:1;min-width:2.25rem;text-align:center;box-shadow:0 2px 0 rgba(0,0,0,.35);}
+  .btn:active{transform:translateY(1px);} .btn.active{outline:2px solid rgba(98,224,208,.6); box-shadow:0 0 0 3px rgba(98,224,208,.25);}
+  input[type=file]{display:none}
+  .brand{font-weight:800; letter-spacing:.02em; font-size:.9rem; color:var(--muted)}
+  .tooltip{position:fixed;left:50%;transform:translateX(-50%);bottom:64px;color:#d7f6f0;font-size:.8rem;opacity:.95;background:rgba(0,0,0,.45);padding:.35rem .6rem;border-radius:10px;border:1px solid rgba(255,255,255,.12)}
+  .panel{position:fixed;left:50%;transform:translateX(-50%);bottom:3.6rem;width:min(760px,96%);background:rgba(10,12,16,.92);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:.55rem .75rem;display:none;color:#dbe6f1}
+  .grid{display:grid;grid-template-columns:1fr 120px;gap:.35rem .6rem; align-items:center}
+  .grid label{opacity:.9}
+  .grid input[type=range]{width:100%}
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<input id="file" type="file" accept="video/*" multiple />
+<div class="hud">
+  <div class="brand">HYPERCLAY FUSION WHEEL</div>
+  <div class="btnrow">
+    <button class="btn" id="load" title="Load clips">⧉</button>
+    <button class="btn" id="tests" title="Load test patterns">✚</button>
+    <button class="btn" id="blend" title="Toggle blend mode">✸</button>
+    <button class="btn" id="tuner" title="Open tuner">⚙</button>
+    <button class="btn" id="gyro" title="Tilt camera">◎</button>
+    <button class="btn" id="export" title="Record core">⬤</button>
+    <button class="btn" id="help" title="Help">?</button>
+  </div>
+</div>
+<div class="tooltip" id="tip"></div>
+
+<!-- TUNER PANEL -->
+<div class="panel" id="tunerPanel">
+  <div class="grid">
+    <label>Wheel Radius</label> <input id="rngWheelR" type="range" min="80" max="420" step="2" value="240" />
+    <label>Core Radius</label>  <input id="rngCoreR"  type="range" min="80" max="360" step="2" value="200" />
+    <label>Friction</label>     <input id="rngFric"   type="range" min="0.90" max="0.995" step="0.001" value="0.970" />
+    <label>Fog Density</label>  <input id="rngMist"   type="range" min="0.02" max="0.22" step="0.01" value="0.08" />
+    <label>Fog Feather</label>  <input id="rngFeath"  type="range" min="0.15" max="0.85" step="0.01" value="0.45" />
+    <label>Depth Bias</label>   <input id="rngDepth"  type="range" min="0.00" max="0.60" step="0.01" value="0.20" />
+    <label>Parallax</label>     <input id="rngPara"   type="range" min="0.0" max="1.0" step="0.05" value="0.4" />
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('view');
+  const ctx = canvas.getContext('2d', {alpha:false});
+  const dpr = Math.min(2, window.devicePixelRatio||1);
+  let W=0,H=0, t=0; function resize(){ W=Math.floor(innerWidth*dpr); H=Math.floor(innerHeight*dpr); canvas.width=W; canvas.height=H; canvas.style.width=(W/dpr)+'px'; canvas.style.height=(H/dpr)+'px'; } window.addEventListener('resize', resize, {passive:true}); resize();
+
+  // UI
+  const tip = document.getElementById('tip');
+  const fileInput = document.getElementById('file');
+  const btn = id=>document.getElementById(id);
+  const loadBtn=btn('load'), testsBtn=btn('tests'), tunerBtn=btn('tuner'), blendBtn=btn('blend'), exportBtn=btn('export'), helpBtn=btn('help'), gyroBtn=btn('gyro');
+  const panel=document.getElementById('tunerPanel');
+  const rng = id=>document.getElementById(id);
+  const rngWheelR=rng('rngWheelR'), rngCoreR=rng('rngCoreR'), rngFric=rng('rngFric'), rngMist=rng('rngMist'), rngFeath=rng('rngFeath'), rngDepth=rng('rngDepth'), rngPara=rng('rngPara');
+
+  function setTip(txt){ tip.textContent=txt; tip.style.opacity=1; clearTimeout(setTip._t); setTip._t=setTimeout(()=> tip.style.opacity=0, 1700); }
+  function vibrate(p){ if(navigator.vibrate) try{ navigator.vibrate(p);}catch(e){} }
+
+  // Config / State
+  const center=()=>({x:W/2, y:H/2});
+  const state={
+    wheelR: parseFloat(rngWheelR.value)*dpr,
+    coreR : parseFloat(rngCoreR.value)*dpr,
+    friction: parseFloat(rngFric.value),
+    fog:{ density: parseFloat(rngMist.value), feather: parseFloat(rngFeath.value) },
+    depthBias: parseFloat(rngDepth.value),
+    parallax: parseFloat(rngPara.value),
+    wheelTheta: 0, wheelOmega: 0,
+    blendModes: ['lighter','screen','multiply','hard-light','overlay'],
+    blendIdx:0,
+    camera:{tx:0,ty:0},
+    recording:false
+  };
+  rngWheelR.oninput=()=> state.wheelR=parseFloat(rngWheelR.value)*dpr;
+  rngCoreR.oninput =()=> state.coreR =parseFloat(rngCoreR.value)*dpr;
+  rngFric.oninput  =()=> state.friction=parseFloat(rngFric.value);
+  rngMist.oninput  =()=> state.fog.density=parseFloat(rngMist.value);
+  rngFeath.oninput =()=> state.fog.feather=parseFloat(rngFeath.value);
+  rngDepth.oninput =()=> state.depthBias=parseFloat(rngDepth.value);
+  rngPara.oninput  =()=> state.parallax=parseFloat(rngPara.value);
+
+  // Touch & gestures
+  const touches=new Map();
+  let draggingWheel=false; let wheelGrabAngle=0; let wheelStartTheta=0;
+
+  function screenToWorld(x,y){ // parallax camera
+    const cx=W/2 + state.camera.tx*state.parallax, cy=H/2 + state.camera.ty*state.parallax;
+    return {x: x*dpr, y: y*dpr, cx, cy};
+  }
+
+  function onPointerDown(e){ const w=screenToWorld(e.clientX,e.clientY); const id=e.pointerId||('m'+Math.random()); touches.set(id,{id,x:w.x,y:w.y, t:performance.now(), path:[{x:w.x,y:w.y}], onClip:null});
+    // wheel hit test
+    const R=state.wheelR, dist=Math.hypot(w.x-w.cx, w.y-w.cy); const rimHit=Math.abs(dist-R)<18*dpr;
+    if(rimHit){ draggingWheel=true; wheelGrabAngle = Math.atan2(w.y-w.cy, w.x-w.cx); wheelStartTheta=state.wheelTheta; vibrate(8); setTip('Spin the wheel'); }
+    // pick topmost clip under pointer
+    const c=pickClip(w.x,w.y); if(c){ touches.get(id).onClip=c; c.selected=true; vibrate(6); }
+  }
+  function onPointerMove(e){ const id=e.pointerId||[...touches.keys()][0]; if(!touches.has(id)) return; const w=screenToWorld(e.clientX,e.clientY); const tp=touches.get(id); tp.x=w.x; tp.y=w.y; tp.path.push({x:w.x,y:w.y}); if(tp.path.length>10) tp.path.shift();
+    if(draggingWheel){ const ang=Math.atan2(w.y-w.cy, w.x-w.cx); const dAng=ang-wheelGrabAngle; state.wheelTheta = wheelStartTheta + dAng; state.wheelOmega = (dAng - (tp.prevAng||ang))/ (1/60); tp.prevAng=ang; }
+    if(tp.onClip){ // drag clip in x/y; two-finger scale/feather; three-finger z
+      const c=tp.onClip; if(touches.size===1){ c.x = w.x; c.y = w.y; }
+      if(touches.size===2){ const ids=[...touches.values()]; const d=dist(ids[0],ids[1]); c.scale = clamp((d/(180*dpr)), 0.5, 3.0); c.feather = clamp(state.fog.feather + (d/(600*dpr)-0.3), 0.1, 0.9); }
+      if(touches.size>=3){ const centroidPt=centroid([...touches.values()]); c.z += ( (centroidPt.y - (c._zRefY||centroidPt.y)) )/(300*dpr); c._zRefY=centroidPt.y; c.z = clamp(c.z, -1.5, 1.5); setTip('Z: '+c.z.toFixed(2)); }
+    }
+  }
+  function onPointerUp(e){ const id=e.pointerId||[...touches.keys()][0]; const tp=touches.get(id); if(!tp) return; if(tp.onClip) tp.onClip.selected=false; touches.delete(id); draggingWheel=false; }
+  canvas.addEventListener('pointerdown', onPointerDown); canvas.addEventListener('pointermove', onPointerMove); canvas.addEventListener('pointerup', onPointerUp); canvas.addEventListener('pointercancel', onPointerUp);
+
+  // Gyro for parallax
+  let gyroOn=false; gyroBtn.addEventListener('click', async ()=>{ if(!gyroOn){ if(typeof DeviceOrientationEvent!== 'undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){ try{ const p=await DeviceOrientationEvent.requestPermission(); if(p!=='granted') return; }catch(e){} } window.addEventListener('deviceorientation', onOri); gyroOn=true; gyroBtn.classList.add('active'); setTip('Tilt camera on'); } else { window.removeEventListener('deviceorientation', onOri); gyroOn=false; gyroBtn.classList.remove('active'); setTip('Tilt camera off'); } });
+  function onOri(e){ state.camera.tx = (e.gamma||0)*8*dpr; state.camera.ty=(e.beta||0)*6*dpr; }
+
+  // Loaders
+  loadBtn.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', ev=>{
+    const files=[...ev.target.files]
+      .filter(f=> (f.type && f.type.startsWith('video/')) || !f.type)
+      .slice(0,8);
+    if(!files.length) return setTip('No videos selected');
+    files.forEach(f=> addVideoClip(f));
+  });
+  testsBtn.addEventListener('click', ()=>{ addProcClip('plasma'); addProcClip('rings'); addProcClip('stripes'); setTip('Loaded test patterns'); });
+  tunerBtn.addEventListener('click', ()=>{ const vis=panel.style.display==='block'; panel.style.display= vis?'none':'block'; tunerBtn.classList.toggle('active', !vis); });
+  blendBtn.addEventListener('click', ()=>{ state.blendIdx=(state.blendIdx+1)%state.blendModes.length; setTip('Blend: '+state.blendModes[state.blendIdx]); vibrate([8,40,8]); });
+
+  // Export core (WebM)
+  let recorder=null; let recordChunks=[]; exportBtn.addEventListener('click', ()=>{ if(state.recording){ recorder.stop(); state.recording=false; exportBtn.classList.remove('active'); setTip('Stopped. Saving…'); } else { const stream = coreCV.captureStream? coreCV.captureStream(30): canvas.captureStream(30); recorder=new MediaRecorder(stream, {mimeType:'video/webm;codecs=vp9'}); recordChunks=[]; recorder.ondataavailable=e=>{ if(e.data.size>0) recordChunks.push(e.data); }; recorder.onstop=()=>{ const blob=new Blob(recordChunks,{type:'video/webm'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='hyperclay_core.webm'; a.click(); setTip('Saved core as WebM'); }; recorder.start(); state.recording=true; exportBtn.classList.add('active'); setTip('Recording core…'); }
+  });
+
+  helpBtn.addEventListener('click', ()=>{
+    alert('Hyperclay basics:\n\n• Spin the rim to scrub (wheel inertia).\n• Drag a tile to move; pinch on it to scale/feather.\n• Use 3 fingers over a tile to push/pull in Z.\n• Core shows a live composite; tweak blend (✸).\n• Tuner (⚙) adjusts wheel, fog, depth, parallax.\n• ✚ loads test patterns, ⧉ loads your clips.\n• ⬤ records the core to WebM.');
+  });
+
+  // Clips
+  const clips=[]; let nextId=1;
+  function addVideoClip(file){
+    const url=URL.createObjectURL(file);
+    const v=document.createElement('video');
+    v.loop=true;
+    v.muted=true;
+    v.autoplay=true;
+    v.preload='auto';
+    v.playsInline=true;
+    v.setAttribute('playsinline','');
+    v.crossOrigin='anonymous';
+    v.src=url;
+    v.load();
+    v.addEventListener('error', ()=> setTip('Video error: '+(file.name||'unknown')));
+    v.addEventListener('canplay', ()=>{
+      v.play().catch(()=>{});
+      createClip({
+        draw:ctx=>ctx.drawImage(v,0,0),
+        w:()=>v.videoWidth||320,
+        h:()=>v.videoHeight||180,
+        type:'video'
+      });
+    });
+  }
+  function addProcClip(kind){ const off=document.createElement('canvas'); off.width=320; off.height=180; const cx=off.getContext('2d'); let seed=Math.random()*1000; function render(t){ const w=off.width,h=off.height; const img=cx.createImageData(w,h); const data=img.data; for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ const i=(y*w+x)*4; const nx=x/w-.5, ny=y/h-.5; const r=Math.hypot(nx,ny); let v=0; if(kind==='plasma'){ v=0.5+0.5*(Math.sin(6*nx+t*1.4)+Math.sin(7*ny-t*1.1)); v*=0.5+0.5*Math.sin(4*(nx+ny)+t*0.7+seed); } else if(kind==='rings'){ v=0.5+0.5*Math.sin(16*r - t*1.8 + seed); } else { v = 0.5+0.5*Math.sin(10*nx+seed)*Math.cos(10*ny+t*1.2); } const R=120+120*v, G=120+120*Math.sin(v*3.14+1), B=120+120*Math.cos(v*3.14+2); data[i]=R; data[i+1]=G; data[i+2]=B; data[i+3]=255; }} cx.putImageData(img,0,0); return off; }
+    createClip({draw:(ctx)=>ctx.drawImage(render(t*0.05),0,0), w:()=>off.width, h:()=>off.height, type:'proc'});
+  }
+
+  function createClip(renderable){ const c=center(); const theta= (clips.length/6)*Math.PI*2; const clip={ id:nextId++, x:c.x + state.wheelR*Math.cos(theta), y:c.y + state.wheelR*Math.sin(theta), theta, z: (Math.random()*2-1)*0.4, scale:1, feather:state.fog.feather, selected:false, renderable };
+    // prebuild fog mask
+    clip.mask = buildMask(256, clip.feather);
+    clip.blend='source-over';
+    clips.push(clip);
+  }
+
+  // Fog mask generator (radial gradient + animated grain)
+  function buildMask(size, feather){ const cv=document.createElement('canvas'); cv.width=cv.height=size; const cx=cv.getContext('2d'); const g=cx.createRadialGradient(size/2,size/2,size*0.05, size/2,size/2,size*0.5);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(feather, 'rgba(255,255,255,0.7)'); g.addColorStop(1, 'rgba(255,255,255,0)'); cx.fillStyle=g; cx.fillRect(0,0,size,size);
+    return cv;
+  }
+
+  function updateMasks(){ for(const c of clips){ c.mask = buildMask(256, c.feather); } }
+  rngFeath.addEventListener('change', updateMasks);
+
+  function pickClip(sx,sy){ // choose topmost by z and distance
+    let best=null, bestD=1e9, bestZ=-1e9; for(const c of clips){ const d=Math.hypot(sx-c.x, sy-c.y); const zOrder=c.z; if(d< (90*dpr*c.scale) ){ if(zOrder>bestZ || (zOrder===bestZ && d<bestD)){ best=c; bestD=d; bestZ=zOrder; } } } return best; }
+
+  function centroid(pts){ let x=0,y=0; for(const p of pts){ x+=p.x;y+=p.y;} return {x:x/pts.length, y:y/pts.length}; }
+  function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+
+  // Offscreen core
+  const coreCV=document.createElement('canvas'); coreCV.width=coreCV.height= Math.min(512, Math.floor(Math.min(W,H)/dpr)*dpr ); const coreCtx=coreCV.getContext('2d');
+
+  function draw(){ t+=1/60; // physics
+    if(!draggingWheel){ state.wheelTheta += state.wheelOmega*(1/60); state.wheelOmega *= state.friction; if(Math.abs(state.wheelOmega)<1e-3) state.wheelOmega=0; }
+
+    // camera bg
+    ctx.fillStyle= '#07080c'; ctx.fillRect(0,0,W,H);
+    // grid glow
+    const g=42*dpr; ctx.globalAlpha=.16; ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.beginPath(); for(let y=(((-state.camera.ty)%g)+g)%g; y<H; y+=g){ ctx.moveTo(0,y); ctx.lineTo(W,y);} for(let x=(((-state.camera.tx)%g)+g)%g; x<W; x+=g){ ctx.moveTo(x,0); ctx.lineTo(x,H);} ctx.stroke(); ctx.globalAlpha=1;
+
+    // update ring positions from wheel theta
+    const c=center();
+    for(let i=0;i<clips.length;i++){ const clip=clips[i]; clip.theta = (i/clips.length)*Math.PI*2 + state.wheelTheta; const R=state.wheelR; clip.x = c.x + R*Math.cos(clip.theta); clip.y = c.y + R*Math.sin(clip.theta); }
+
+    // CORE: clear then light mist overlay (avoid heavy dark feedback hiding content)
+    coreCtx.save();
+    coreCtx.globalCompositeOperation='source-over';
+    coreCtx.clearRect(0,0,coreCV.width,coreCV.height);
+    // subtle mist base
+    coreCtx.fillStyle=`rgba(0,0,0,${Math.max(0, state.fog.density-0.04).toFixed(3)})`;
+    coreCtx.fillRect(0,0,coreCV.width,coreCV.height);
+    coreCtx.restore();
+
+    // mix clips into core by proximity (3D distance favors nearer z)
+    coreCtx.save();
+    coreCtx.translate(coreCV.width/2, coreCV.height/2); // center core for clip drawing
+    coreCtx.globalCompositeOperation = state.blendModes[state.blendIdx];
+    for(const clip of sortedByZ(clips)){
+      const wx=(clip.x-c.x)/(state.coreR); const wy=(clip.y-c.y)/(state.coreR);
+      const dz = clamp(1 - (clip.z*state.depthBias+0), 0.4, 1.4);
+      const d=Math.hypot(wx,wy);
+      const maxD=1.35; // include rim tiles (wheelR ~ coreR*1.2)
+      if(d<=maxD){
+        const alpha = clamp(maxD - d, 0, 1) * dz; // non-zero at rim
+        drawClipInto(coreCtx, clip, alpha*0.85);
+      }
+    }
+    coreCtx.restore();
+
+    // main view: draw wheel, clips, and core circle
+    // draw core circle
+    ctx.save(); ctx.translate(c.x + state.camera.tx*state.parallax, c.y + state.camera.ty*state.parallax); const R=state.coreR; ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.strokeStyle='rgba(98,224,208,.9)'; ctx.lineWidth=2*dpr; ctx.shadowColor='rgba(98,224,208,.6)'; ctx.shadowBlur=18; ctx.stroke(); ctx.shadowBlur=0;
+      // clip core texture inside
+      ctx.save(); ctx.beginPath(); ctx.arc(0,0,R-3*dpr,0,Math.PI*2); ctx.clip(); const dw=R*2, dh=R*2; ctx.globalAlpha=0.98; ctx.drawImage(coreCV, -dw/2, -dh/2, dw, dh); ctx.globalCompositeOperation='screen'; ctx.globalAlpha=0.18; ctx.filter='blur(6px)'; ctx.drawImage(coreCV, -dw/2, -dh/2, dw, dh); ctx.filter='none'; ctx.restore();
+    ctx.restore();
+
+    // draw wheel rim
+    ctx.save(); ctx.translate(c.x + state.camera.tx*state.parallax, c.y + state.camera.ty*state.parallax); ctx.beginPath(); ctx.arc(0,0,state.wheelR,0,Math.PI*2); ctx.strokeStyle='rgba(255,255,255,.16)'; ctx.lineWidth=2*dpr; ctx.stroke(); ctx.restore();
+
+    // draw clips around wheel (depth-sorted for occlusion look)
+    for(const clip of sortedByZ(clips)) drawClip(ctx, clip);
+
+    requestAnimationFrame(draw);
+  }
+
+  function sortedByZ(arr){ return [...arr].sort((a,b)=> (a.z-b.z)); }
+
+  function drawClipInto(targetCtx, clip, alpha){ // draw with fog mask
+    const w=clip.renderable.w(), h=clip.renderable.h(); if(!w||!h) return;
+    const tmp = getTempCanvas(w,h); const tctx=tmp.getContext('2d');
+    tctx.clearRect(0,0,w,h); clip.renderable.draw(tctx);
+    // apply radial mask feather
+    tctx.globalCompositeOperation='destination-in'; const ms=clip.mask; tctx.drawImage(ms, 0,0,w,h);
+    targetCtx.save(); targetCtx.globalAlpha = alpha; targetCtx.translate(0,0); // core is already centered
+    // scale to fit core canvas bounds (uniform)
+    const S=coreCV.width*0.9; const sc=Math.max(S/w, S/h) * clip.scale * (1 + clip.z*0.12);
+    targetCtx.drawImage(tmp, -w*sc/2, -h*sc/2, w*sc, h*sc);
+    targetCtx.restore();
+  }
+
+  function drawClip(targetCtx, clip){ const w=clip.renderable.w(), h=clip.renderable.h(); if(!w||!h) return; const tmp=getTempCanvas(w,h); const tctx=tmp.getContext('2d'); tctx.clearRect(0,0,w,h); clip.renderable.draw(tctx); tctx.globalCompositeOperation='destination-in'; tctx.drawImage(clip.mask,0,0,w,h);
+    const depthScale = 1 + clip.z*0.14; const sc = 0.45 * clip.scale * depthScale * dpr; const dw=w*sc, dh=h*sc;
+    targetCtx.save(); targetCtx.translate(clip.x + state.camera.tx*state.parallax, clip.y + state.camera.ty*state.parallax);
+    targetCtx.globalAlpha = clamp(0.85 - Math.max(0,clip.z)*0.15, 0.45, 0.95);
+    targetCtx.drawImage(tmp, -dw/2, -dh/2, dw, dh);
+    // ring
+    targetCtx.lineWidth=1.5*dpr; targetCtx.strokeStyle = clip.selected? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.25)'; targetCtx.beginPath(); targetCtx.arc(0,0, Math.max(dw,dh)/2 + 4*dpr, 0, Math.PI*2); targetCtx.stroke();
+    targetCtx.restore();
+  }
+
+  // temp canvas pool
+  const pool=[]; function getTempCanvas(w,h){ let cv=pool.find(c=>c.width===w && c.height===h); if(!cv){ cv=document.createElement('canvas'); cv.width=w; cv.height=h; pool.push(cv);} return cv; }
+
+  // kickoff
+  setTip('✚ test · ⧉ clips · spin rim to scrub · 3‑finger push/pull for Z · ✸ blend · ⚙ tuner');
+  draw();
+})();
+</script>
+</body>
+</html>

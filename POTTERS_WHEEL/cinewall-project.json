@@ -1,0 +1,21 @@
+{
+  "pattern": "stack",
+  "tiles": [
+    {
+      "id": 1,
+      "type": "video",
+      "url": "blob:null/02e04b9f-6bbb-49a8-857e-c8dcee81aa77"
+    }
+  ],
+  "scenes": [],
+  "filters": {
+    "bright": 0.88,
+    "contrast": 1.52,
+    "sat": 1.1,
+    "hue": 0,
+    "sepia": 0.05,
+    "blur": 0,
+    "vign": 0.35
+  },
+  "gap": 11
+}

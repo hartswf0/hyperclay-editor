@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Gear Narrative Engine — Full Send</title>
+<style>
+  :root{ --bg:#07090d; --ink:#e8e6df; --muted:#9aa0a6; --accent:#00d0b4; --panel:#0d1117ee; --glass:#0b0f14cc; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink)}
+  #app{position:fixed;inset:0;overflow:hidden}
+  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .tb,.hud{font:600 12px/1.2 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto}
+  .tb{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.5rem .6rem;background:linear-gradient(180deg,var(--glass),transparent);pointer-events:none}
+  .tb .g{pointer-events:auto;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .badge{padding:.24rem .5rem;border:1px solid #27313b;border-radius:12px;background:#0c1118;color:#cfd3d8}
+  .note{font-size:11px;color:var(--muted)}
+  .bar{width:72px;height:8px;background:#0e131a;border:1px solid #24303a;border-radius:6px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#2e9fff,#00d0b4)}
+  .hud{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;gap:.5rem;padding:.6rem;align-items:center;justify-content:center;flex-wrap:wrap;background:linear-gradient(180deg,transparent,var(--glass));backdrop-filter:blur(8px)}
+  button,label.btn,a.btn{border:1px solid #2a313a;border-radius:14px;padding:.6rem .8rem;background:#11161e;color:var(--ink);display:inline-flex;align-items:center;gap:.35rem;cursor:pointer;user-select:none;text-decoration:none}
+  button:active,label.btn:active{transform:translateY(1px)}
+  button.on{outline:1px solid var(--accent);box-shadow:0 0 0 2px #00d0b422 inset}
+  #vidFile,#imgFile,#audFile,#jsonFile{display:none}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:82px;z-index:20;background:#0f141b;border:1px solid #2a313a;border-radius:12px;padding:.5rem .75rem;color:#cfd3d8;opacity:0;transition:opacity .25s}
+  .toast.show{opacity:1}
+  .inspector{position:fixed;z-index:10;min-width:260px;max-width:360px;background:var(--panel);border:1px solid #29323c;border-radius:16px;padding:.75rem;box-shadow:0 6px 28px rgba(0,0,0,.6)}
+  .inspector h3{margin:.1rem 0 .35rem;font-size:14px}
+  .row{display:grid;grid-template-columns:110px 1fr auto;align-items:center;gap:.5rem;margin:.35rem 0}
+  .row>label{color:var(--muted);font-weight:600}
+  .row input[type=range],.row select{width:100%}
+  .inspector .mini{display:flex;gap:.35rem;justify-content:flex-end;margin-top:.35rem}
+  .danger{color:#ffb3b3;border-color:#7a2a2a;background:#1a0e0e}
+  .stageBadge{cursor:pointer}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+  <div class="tb">
+    <div class="g">
+      <span class="badge">Gear Narrative Engine — Full Send</span>
+      <span class="note" id="fps">fps —</span>
+      <span class="note" id="gearCount">gears 0</span>
+      <span class="badge" id="driveBadge">Drive: —</span>
+      <span class="badge stageBadge" id="stageBadge" title="Toggle Stage compositor">Stage: ON</span>
+      <div class="bar"><i id="inertia"></i></div>
+    </div>
+    <div class="g">
+      <span class="badge">Time = Circumference • Contacts = Events</span>
+    </div>
+  </div>
+  <div class="hud">
+    <label class="btn" for="vidFile">Add Video</label><input id="vidFile" type="file" accept="video/*" multiple>
+    <label class="btn" for="imgFile">Add Image</label><input id="imgFile" type="file" accept="image/*" multiple>
+    <label class="btn" for="audFile">Add Audio</label><input id="audFile" type="file" accept="audio/*" multiple>
+    <button id="addText">Add Text</button>
+    <button id="playBtn" class="on">Play</button>
+    <button id="hapticBtn" class="on">HAPTIC</button>
+    <button id="routeBtn" title="Route selected gears to stage">Route</button>
+    <button id="stampBtn" title="Stamp Stage → Gear">STAMP</button>
+    <button id="recordBtn">● Record</button>
+    <a id="dl" class="btn" style="display:none" download="gear_narrative.webm">Download</a>
+    <label class="btn" for="jsonFile">Load JSON</label><input id="jsonFile" type="file" accept="application/json">
+    <button id="saveBtn">Save JSON</button>
+    <button id="clearBtn">Clear</button>
+  </div>
+  <div id="toast" class="toast">Saved</div>
+</div>
+<script>
+(() => {
+  // ===== Canvas & DPR =====
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let DPR = 1;
+  function computeDPR(){ DPR = Math.max(1, Math.min(2, (window.devicePixelRatio||1))); }
+  function resize(){ computeDPR(); const w = canvas.clientWidth, h = canvas.clientHeight; canvas.width = Math.floor(w*DPR); canvas.height = Math.floor(h*DPR); }
+  new ResizeObserver(resize).observe(canvas); resize();
+
+  // ===== UI refs =====
+  const fpsEl = document.getElementById('fps');
+  const gearCountEl = document.getElementById('gearCount');
+  const inertiaEl = document.getElementById('inertia');
+  const driveBadge = document.getElementById('driveBadge');
+  const stageBadge = document.getElementById('stageBadge');
+  const vidFile = document.getElementById('vidFile');
+  const imgFile = document.getElementById('imgFile');
+  const audFile = document.getElementById('audFile');
+  const jsonFile = document.getElementById('jsonFile');
+  const addTextBtn = document.getElementById('addText');
+  const playBtn = document.getElementById('playBtn');
+  const hapticBtn = document.getElementById('hapticBtn');
+  const routeBtn = document.getElementById('routeBtn');
+  const stampBtn = document.getElementById('stampBtn');
+  const recordBtn = document.getElementById('recordBtn');
+  const dlLink = document.getElementById('dl');
+  const saveBtn = document.getElementById('saveBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const toastEl = document.getElementById('toast');
+
+  function showToast(msg, ms=900){ toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'), ms); }
+
+  // ===== Haptics & Clicks =====
+  let AC=null; let clickCooldown=0; let pulseAlpha=0;
+  let hapticsOn = true; hapticBtn.addEventListener('click', ()=>{ hapticsOn=!hapticsOn; hapticBtn.classList.toggle('on', hapticsOn); showToast(hapticsOn?'Haptics on':'Haptics off'); });
+  function ensureAC(){ if (!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(_){} } return AC; }
+  function vibrate(p){ try{ navigator.vibrate && navigator.vibrate(p); }catch(_){} }
+  function playClick(type='minor'){
+    const ac=ensureAC(); if(!ac) return; const t=ac.currentTime; const osc=ac.createOscillator(); const g=ac.createGain();
+    const f = type==='major'? 210 : (type==='perfect'? 120 : 170);
+    const d = type==='major'? 0.03 : (type==='perfect'? 0.06 : 0.015);
+    const a = type==='perfect'? 0.32 : (type==='major'? 0.2 : 0.14);
+    osc.type='sine'; osc.frequency.setValueAtTime(f,t); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(a,t+0.001); g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    osc.connect(g).connect(ac.destination); osc.start(t); osc.stop(t+d+0.02);
+  }
+  function haptic(type='minor'){
+    if (!hapticsOn) return; const now=performance.now(); if (type!=='perfect' && (now-clickCooldown)<10) return; clickCooldown=now;
+    if (type==='minor') vibrate(6); else if (type==='major') vibrate([1,12]); else vibrate([1,18,1,28]);
+    playClick(type); pulseAlpha = Math.min(1, pulseAlpha + (type==='perfect'? .8 : type==='major'? .5 : .3));
+  }
+
+  // ===== Engine State =====
+  const R_PER_SEC = 5 * DPR; // radius per second of duration
+  const TOOTH_PITCH = 8 * DPR;
+  const gears = []; // list of Gear
+  const contacts = new Map(); // key "a-b" => contact state
+  let driveId = null; // id of the drive gear
+  let playing = true; playBtn.addEventListener('click', ()=>{ playing = !playing; playBtn.classList.toggle('on', playing); playBtn.textContent = playing? 'Play' : 'Pause'; });
+  let stageOn = true; stageBadge.addEventListener('click', ()=>{ stageOn=!stageOn; stageBadge.textContent = 'Stage: ' + (stageOn?'ON':'OFF'); showToast(stageOn?'Stage on':'Stage off'); });
+
+  let nextId=1; let selected=new Set();
+  function makeGearBase(x,y, duration){
+    const r = Math.max(22*DPR, R_PER_SEC * Math.max(1, duration));
+    const teeth = Math.max(8, Math.round((2*Math.PI*r)/TOOTH_PITCH));
+    return { id: nextId++, x, y, r, teeth, angle: Math.random()*Math.PI*2, omega: 0, duration: Math.max(1, duration), type:'empty', kind:'placeholder', media:null, label:'', volume:1, vScale:0.95, lines:[], lastTooth:-1, lastMajor:-1, routed:false };
+  }
+
+  function addVideo(file){
+    const url = URL.createObjectURL(file); const v=document.createElement('video'); v.src=url; v.preload='auto'; v.loop=true; v.muted=true; v.playsInline=true;
+    v.addEventListener('loadedmetadata', ()=>{
+      const dur = isFinite(v.duration)? v.duration : 8;
+      const g = makeGearBase(canvas.width*0.5 + (Math.random()*140-70), canvas.height*0.5 + (Math.random()*140-70), dur);
+      g.type='video'; g.kind='video'; g.media=v; g.label=file.name; gears.push(g); if(driveId==null) setDrive(g.id); updateBadges();
+    });
+    v.play().catch(()=>{}); v.pause();
+  }
+  function addImage(file){
+    const url = URL.createObjectURL(file); const img=new Image(); img.onload=()=>{
+      const dur = 8; const g=makeGearBase(canvas.width*0.5 + (Math.random()*140-70), canvas.height*0.5 + (Math.random()*140-70), dur);
+      g.type='image'; g.kind='img'; g.media=img; g.label=file.name; gears.push(g); if(driveId==null) setDrive(g.id); updateBadges();
+    }; img.src=url;
+  }
+  function addAudio(file){
+    const url = URL.createObjectURL(file); const a=new Audio(url); a.loop=true; a.preload='auto'; a.volume=1; a.crossOrigin='';
+    a.addEventListener('loadedmetadata', ()=>{
+      const dur = isFinite(a.duration)? a.duration : 12;
+      const g = makeGearBase(canvas.width*0.5 + (Math.random()*140-70), canvas.height*0.5 + (Math.random()*140-70), dur);
+      g.type='audio'; g.kind='audio'; g.media=a; g.label=file.name; gears.push(g); if(driveId==null) setDrive(g.id); updateBadges();
+    });
+    a.load();
+  }
+  function addTextBlock(text){
+    const lines = text.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+    const dur = Math.max(6, lines.length * 2);
+    const g = makeGearBase(canvas.width*0.5 + (Math.random()*140-70), canvas.height*0.5 + (Math.random()*140-70), dur);
+    g.type='text'; g.kind='text'; g.lines=lines; g.label = `Text ×${lines.length}`; gears.push(g); if(driveId==null) setDrive(g.id); updateBadges();
+  }
+
+  vidFile.addEventListener('change', e=>{ for (const f of e.target.files) addVideo(f); vidFile.value=''; });
+  imgFile.addEventListener('change', e=>{ for (const f of e.target.files) addImage(f); imgFile.value=''; });
+  audFile.addEventListener('change', e=>{ for (const f of e.target.files) addAudio(f); audFile.value=''; });
+  addTextBtn.addEventListener('click', ()=>{ const t=prompt('Enter poetry/lines (one per line):','We return to water\nAtlantis breathes in gears\nCulture is a clock'); if(t!=null) addTextBlock(t); });
+
+  function setDrive(id){ driveId=id; driveBadge.textContent = 'Drive: #' + id; }
+  function updateBadges(){ gearCountEl.textContent = `gears ${gears.length}`; }
+
+  // Selection + routing
+  routeBtn.addEventListener('click', ()=>{ for (const g of gears){ if(selected.has(g.id)) g.routed = !g.routed; } showToast('Routed: ' + [...selected].join(',')); });
+
+  // ===== Interactions (drag, select, long-press inspector) =====
+  let dragging=false, dragId=null, dx=0, dy=0, longTimer=null, moved=false;
+  canvas.addEventListener('mousedown', pointerDown); canvas.addEventListener('touchstart', pointerDown, {passive:false});
+  function gearAt(x,y){ for(let i=gears.length-1;i>=0;i--){ const g=gears[i]; const d2=(x-g.x)*(x-g.x)+(y-g.y)*(y-g.y); if(d2<=g.r*g.r) return g; } return null; }
+  function pointerXY(e){ const r=canvas.getBoundingClientRect(); const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left; const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top; return {x:cx*DPR,y:cy*DPR,sx:(e.touches?e.touches[0].clientX:e.clientX),sy:(e.touches?e.touches[0].clientY:e.clientY)} }
+  function pointerDown(e){ e.preventDefault(); moved=false; if(longTimer){ clearTimeout(longTimer); longTimer=null; }
+    const p=pointerXY(e); const g=gearAt(p.x,p.y); if(!g) { selected.clear(); return; }
+    dragging=true; dragId=g.id; dx=p.x-g.x; dy=p.y-g.y;
+    if (!e.shiftKey){ selected.clear(); }
+    selected.add(g.id);
+    longTimer=setTimeout(()=>{ if(!moved) openInspector(g, p.sx, p.sy); }, 420);
+  }
+  window.addEventListener('mousemove', pointerMove); window.addEventListener('touchmove', pointerMove, {passive:false});
+  function pointerMove(e){ if(!dragging) return; e.preventDefault(); moved=true; if(longTimer){ clearTimeout(longTimer); longTimer=null; }
+    const p=pointerXY(e); const g = gears.find(k=>k.id===dragId); if(!g) return; g.x = p.x - dx; g.y = p.y - dy; snapToTangency(g); }
+  window.addEventListener('mouseup', pointerUp); window.addEventListener('touchend', pointerUp);
+  function pointerUp(){ dragging=false; dragId=null; if(longTimer){ clearTimeout(longTimer); longTimer=null; } }
+
+  // Snap when near other gear circumferences
+  function snapToTangency(g){
+    for (const h of gears){ if (h===g) continue; const dx=h.x-g.x, dy=h.y-g.y; const d=Math.hypot(dx,dy); const target = g.r + h.r; if (Math.abs(d-target) < 10*DPR){
+        const a=Math.atan2(dy,dx); g.x = h.x - Math.cos(a)* (h.r+g.r); g.y = h.y - Math.sin(a)* (h.r+g.r);
+        haptic('perfect'); return;
+      }}
+  }
+
+  // ===== Inspector =====
+  let inspector=null;
+  function openInspector(g, sx, sy){ closeInspector(); const el=document.createElement('div'); el.className='inspector'; el.style.left = Math.max(8, Math.min(window.innerWidth-380, sx-160))+'px'; el.style.top = Math.max(8, Math.min(window.innerHeight-280, sy-120))+'px';
+    el.innerHTML = `
+      <h3>Gear #${g.id} <span style="opacity:.6">(${g.type})</span></h3>
+      <div class="row"><label>Label</label><input id="i_label" type="text" value="${g.label}"><span></span></div>
+      <div class="row"><label>Duration</label><input id="i_dur" type="range" min="2" max="180" step="1" value="${g.duration}"><span>${g.duration|0}s</span></div>
+      ${g.type==='audio'? '<div class="row"><label>Volume</label><input id="i_vol" type="range" min="0" max="1" step="0.01" value="'+g.volume+'"><span>'+g.volume.toFixed(2)+'</span></div>': ''}
+      ${(g.type==='video'||g.type==='image')? '<div class="row"><label>Scale</label><input id="i_vscale" type="range" min="0.2" max="1.6" step="0.01" value="'+g.vScale+'"><span>'+g.vScale.toFixed(2)+'</span></div>': ''}
+      <div class="row"><label>Route to Stage</label><select id="i_route"><option value="off">off</option><option value="on" ${g.routed?'selected':''}>on</option></select><span></span></div>
+      <div class="mini"><button id="i_drive">Set as Drive</button><button id="i_close">Close</button></div>`;
+    document.body.appendChild(el); inspector={el, id:g.id};
+    const lbl=el.querySelector('#i_label'); lbl&&lbl.addEventListener('input', ()=>{ g.label=lbl.value; });
+    const d=el.querySelector('#i_dur'); const ds=d.nextElementSibling; d&&d.addEventListener('input', ()=>{ const v=Number(d.value); g.duration=v; g.r = Math.max(22*DPR, R_PER_SEC*v); g.teeth = Math.max(8, Math.round((2*Math.PI*g.r)/TOOTH_PITCH)); ds.textContent=v+'s'; });
+    const vol=el.querySelector('#i_vol'); const vs=vol && vol.nextElementSibling; vol&&vol.addEventListener('input', ()=>{ g.volume=Number(vol.value); vs.textContent=g.volume.toFixed(2); if(g.type==='audio' && g.media) g.media.volume=g.volume; });
+    const vscl=el.querySelector('#i_vscale'); const vss=vscl && vscl.nextElementSibling; vscl&&vscl.addEventListener('input', ()=>{ g.vScale=Number(vscl.value); vss.textContent=g.vScale.toFixed(2); });
+    const routeSel=el.querySelector('#i_route'); routeSel&&routeSel.addEventListener('change', ()=>{ g.routed = routeSel.value==='on'; });
+    el.querySelector('#i_drive').addEventListener('click', ()=>{ setDrive(g.id); showToast('Drive set: #'+g.id); });
+    el.querySelector('#i_close').addEventListener('click', closeInspector);
+  }
+  function closeInspector(){ if(inspector){ inspector.el.remove(); inspector=null; }}
+
+  // ===== Connectivity & Kinematics =====
+  function neighborsOf(g){ const arr=[]; for (const h of gears){ if(h===g) continue; const d=Math.hypot(h.x-g.x, h.y-g.y); if (Math.abs(d - (g.r+h.r)) < 2.5*DPR) arr.push(h); } return arr; }
+  function computeOmegas(){ if (driveId==null) return; const drive=gears.find(k=>k.id===driveId); if(!drive) return;
+    const omegaDrive = (2*Math.PI)/drive.duration * (playing?1:0);
+    const visited=new Set(); drive.omega=omegaDrive; visited.add(drive.id);
+    const q=[drive];
+    while(q.length){ const g=q.shift(); const nbrs=neighborsOf(g);
+      for (const h of nbrs){ if(visited.has(h.id)) continue; h.omega = - g.omega * (g.r / h.r); visited.add(h.id); q.push(h); }
+    }
+    // disjoint gears idle unless driven elsewhere (we keep omega as-is)
+  }
+
+  // ===== Contact Events & Sparks =====
+  function contactKey(a,b){ return a.id<b.id? `${a.id}-${b.id}` : `${b.id}-${a.id}`; }
+  function updateContacts(dt){
+    for (const g of gears){ for (const h of neighborsOf(g)){ if (g.id>=h.id) continue; const key=contactKey(g,h);
+        let c = contacts.get(key); if(!c){ c={tooth:-1,major:-1,ttl:0}; contacts.set(key,c); }
+        // tooth index along contact normal: approximate by g's tooth index
+        const idx = Math.floor((((g.angle/(2*Math.PI))%1+1)%1) * g.teeth);
+        const midx = Math.floor((((g.angle/(2*Math.PI))%1+1)%1) * 12);
+        if (idx!==c.tooth){ haptic('minor'); c.tooth=idx; c.ttl=0.12; }
+        if (midx!==c.major){ haptic('major'); c.major=midx; // stage nudge: briefly focus smaller gear
+          const smaller = g.r<h.r? g : h; smaller._focusTimer = 0.6; }
+        c.ttl = Math.max(c.ttl, 0.12);
+    }}
+    // decay TTL
+    for (const [k,c] of contacts){ c.ttl -= dt; if (c.ttl<=-0.2) contacts.delete(k); }
+  }
+
+  // ===== Media Sync =====
+  function syncMedia(g){
+    const phase = ((g.angle/(2*Math.PI))%1 + 1)%1;
+    if (g.kind==='video' && g.media){ const t = phase * g.duration; try{ g.media.currentTime = t; }catch(_){} }
+    if (g.kind==='audio' && g.media){ const t = phase * g.duration; if (!isNaN(g.media.duration)){ try{ g.media.currentTime = Math.min(g.media.duration-0.05, t); }catch(_){} } }
+  }
+
+  // ===== Stage (central compositor) =====
+  const stageOff = document.createElement('canvas');
+  let so = stageOff.getContext('2d');
+  function ensureStage(w,h){ if(stageOff.width!==w||stageOff.height!==h){ stageOff.width=w; stageOff.height=h; so = stageOff.getContext('2d'); } }
+  function drawStage(){ if(!stageOn) return; const w=Math.floor(canvas.width*0.5), h=Math.floor(canvas.height*0.5); ensureStage(w,h); so.clearRect(0,0,w,h);
+    // subtle bg
+    so.fillStyle='#0a0f14'; so.fillRect(0,0,w,h);
+    // composite routed gears
+    for (const g of gears){ if(!g.routed) continue; const phase=((g.angle/(2*Math.PI))%1+1)%1; if(g.kind==='video'&&g.media){ const vw=g.media.videoWidth||320, vh=g.media.videoHeight||180; if(vw&&vh){ const s=g.vScale*Math.min(w/vw, h/vh); const W=vw*s, H=vh*s; so.globalCompositeOperation='screen'; so.globalAlpha=0.9; so.drawImage(g.media, (w-W)/2, (h-H)/2, W, H); } }
+      else if(g.kind==='img'&&g.media){ const vw=g.media.naturalWidth||g.media.width||320, vh=g.media.naturalHeight||g.media.height||180; const s=g.vScale*Math.min(w/vw, h/vh); const W=vw*s, H=vh*s; so.globalCompositeOperation='screen'; so.globalAlpha=0.9; so.drawImage(g.media, (w-W)/2, (h-H)/2, W, H); }
+      else if(g.kind==='text'){ const lines=g.lines||[]; if(lines.length){ const idx=Math.floor(phase*lines.length)%lines.length; const txt=lines[idx]; so.save(); so.fillStyle='#e8e6df'; so.textAlign='center'; so.textBaseline='middle'; const fs=Math.max(16, Math.min(w,h)*0.08); so.font=fs+'px ui-sans-serif'; wrapText(so, txt, w/2, h/2, w*0.9, fs*1.05); so.restore(); } }
+      else if(g.kind==='audio'){ // draw circle EQ
+        const bars = 48; const R = Math.min(w,h)*0.42; for(let i=0;i<bars;i++){ const a=i/bars*2*Math.PI; const amp=0.65+0.35*Math.sin( (phase*2*Math.PI*3)+i*0.5 ); const r0=R, r1=R-amp*22; so.strokeStyle='rgba(0,208,180,0.9)'; so.lineWidth=2; so.beginPath(); so.moveTo(w/2+Math.cos(a)*r0, h/2+Math.sin(a)*r0); so.lineTo(w/2+Math.cos(a)*r1, h/2+Math.sin(a)*r1); so.stroke(); }
+      }
+      if (g._focusTimer>0){ so.save(); so.globalCompositeOperation='overlay'; so.globalAlpha=Math.min(0.35, g._focusTimer*0.5); so.fillStyle='#00d0b4'; so.beginPath(); so.arc(w/2,h/2, Math.min(w,h)*0.48, 0, Math.PI*2); so.fill(); so.restore(); g._focusTimer -= 1/60; }
+    }
+    // draw to screen
+    ctx.save(); ctx.globalAlpha=0.95; ctx.drawImage(stageOff, canvas.width-w-16*DPR, 16*DPR, w, h); ctx.restore();
+  }
+
+  // ===== Drawing =====
+  function draw(){
+    // background
+    ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height);
+    const grad=ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, Math.max(canvas.width,canvas.height)*0.6);
+    grad.addColorStop(0,'#081018'); grad.addColorStop(1,'#05070b'); ctx.fillStyle=grad; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // draw connections
+    for (const g of gears){ const nbrs=neighborsOf(g); for (const h of nbrs){ if (g.id<h.id){ ctx.save(); const key=contactKey(g,h); const c=contacts.get(key); ctx.strokeStyle=c?`rgba(0,208,180,${Math.max(0,Math.min(1,(c.ttl||0)) )})`:'rgba(0,208,180,0.15)'; ctx.lineWidth=1*DPR; ctx.beginPath(); ctx.moveTo(g.x,g.y); ctx.lineTo(h.x,h.y); ctx.stroke(); ctx.restore(); } } }
+
+    // draw gears and content
+    for (const g of gears){ drawGear(g); drawContent(g); drawLabels(g); }
+
+    // stage
+    drawStage();
+
+    // center pulse
+    if (pulseAlpha>0.01){ ctx.save(); ctx.globalAlpha=Math.min(0.25, pulseAlpha*0.25); ctx.fillStyle='#00d0b4'; ctx.beginPath(); ctx.arc(canvas.width*0.5, canvas.height*0.5, 40*DPR, 0, Math.PI*2); ctx.fill(); ctx.restore(); pulseAlpha*=0.86; }
+  }
+
+  function drawGear(g){
+    ctx.save(); ctx.translate(g.x,g.y); ctx.rotate(g.angle);
+    // selection ring
+    if (selected.has(g.id)){ ctx.save(); ctx.globalAlpha=0.25; ctx.fillStyle='#00d0b4'; ctx.beginPath(); ctx.arc(0,0,g.r+10*DPR,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+    // gear body
+    ctx.fillStyle='#0f141b'; ctx.strokeStyle='#1f2731'; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.arc(0,0,g.r-6*DPR,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    // teeth
+    const t=g.teeth; const toothDepth=8*DPR; const toothW = (2*Math.PI*g.r)/t * 0.5; // visual
+    for (let i=0;i<t;i++){ const a = (i/t)*2*Math.PI; const x = Math.cos(a)*(g.r-6*DPR); const y = Math.sin(a)*(g.r-6*DPR);
+      ctx.save(); ctx.translate(x,y); ctx.rotate(a);
+      ctx.fillStyle='#121a22'; ctx.strokeStyle='#2a313a'; ctx.lineWidth=1*DPR;
+      ctx.beginPath(); ctx.rect(-toothW*0.5, -(toothDepth), toothW, toothDepth); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+    // track ring
+    ctx.strokeStyle=g.routed?'#2f7f74':'#25303a'; ctx.lineWidth=3*DPR; ctx.beginPath(); ctx.arc(0,0,g.r-16*DPR,0,Math.PI*2); ctx.stroke();
+
+    // tick indicator pulses when tooth/major changes
+    const toothIdx = Math.floor((((g.angle/(2*Math.PI))%1+1)%1) * g.teeth);
+    if (toothIdx!==g.lastTooth){ g.lastTooth=toothIdx; }
+    const majorIdx = Math.floor((((g.angle/(2*Math.PI))%1+1)%1) * 12);
+    if (majorIdx!==g.lastMajor){ g.lastMajor=majorIdx; }
+
+    ctx.restore();
+  }
+
+  function drawContent(g){
+    ctx.save(); ctx.beginPath(); ctx.arc(g.x,g.y,g.r-18*DPR,0,Math.PI*2); ctx.clip();
+    if (g.kind==='video' && g.media){ const vw=g.media.videoWidth||320, vh=g.media.videoHeight||180; if(vw>0&&vh>0){ const s = g.vScale * Math.min((g.r*1.8)/vw,(g.r*1.8)/vh); const w=vw*s, h=vh*s; ctx.drawImage(g.media, g.x-w/2, g.y-h/2, w, h); } }
+    else if (g.kind==='img' && g.media){ const vw=g.media.naturalWidth||g.media.width||320, vh=g.media.naturalHeight||g.media.height||180; const s = g.vScale * Math.min((g.r*1.8)/vw,(g.r*1.8)/vh); const w=vw*s, h=vh*s; ctx.drawImage(g.media, g.x-w/2, g.y-h/2, w, h); }
+    else if (g.kind==='audio'){ const t = ((g.angle/(2*Math.PI))%1+1)%1; const bars = 36; for(let i=0;i<bars;i++){ const a=i/bars*2*Math.PI; const amp = 0.6+0.4*Math.sin( (t*2*Math.PI*3)+i*0.6 ); const r0=g.r-22*DPR, r1=r0-amp*18*DPR; ctx.strokeStyle='rgba(0,208,180,0.7)'; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.moveTo(g.x+Math.cos(a)*r0, g.y+Math.sin(a)*r0); ctx.lineTo(g.x+Math.cos(a)*r1, g.y+Math.sin(a)*r1); ctx.stroke(); }
+    }
+    else if (g.kind==='text'){ const lines=g.lines; if(lines.length){ const phase = ((g.angle/(2*Math.PI))%1+1)%1; const idx = Math.floor(phase*lines.length) % lines.length; const txt = lines[idx]; ctx.fillStyle='#e8e6df'; ctx.font=`${Math.max(12*DPR, g.r*0.18)}px ui-sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; wrapText(ctx, txt, g.x, g.y, g.r*1.5, Math.max(14*DPR, g.r*0.18)); } }
+    ctx.restore();
+  }
+  function drawLabels(g){ ctx.save(); ctx.fillStyle='#9aa0a6'; ctx.font=`${11*DPR}px ui-sans-serif`; ctx.textAlign='center'; ctx.fillText(`#${g.id} ${g.label}${g.routed?' • routed':''}`, g.x, g.y + g.r + 14*DPR); ctx.restore(); }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight){ const words=text.split(' '); let line=''; const lines=[]; for(const w of words){ const test=line? line+' '+w : w; if(ctx.measureText(test).width>maxWidth){ lines.push(line); line=w; } else line=test; } lines.push(line); const total=lines.length*lineHeight; let yy=y-total/2+lineHeight/2; for(const l of lines){ ctx.fillText(l,x,yy); yy+=lineHeight; } }
+
+  // ===== Recording =====
+  let mediaRecorder=null, recChunks=[], recording=false;
+  recordBtn.addEventListener('click', ()=>{ if(!recording) startRec(); else stopRec(); });
+  function startRec(){ if(recording) return; if(!('captureStream' in canvas)){ alert('Recording not supported'); return; } const stream=canvas.captureStream(30); if(!('MediaRecorder' in window)){ alert('MediaRecorder not supported'); return; } mediaRecorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'}); recChunks=[]; mediaRecorder.ondataavailable=e=>{ if(e.data.size) recChunks.push(e.data); }; mediaRecorder.onstop=()=>{ const blob=new Blob(recChunks,{type:'video/webm'}); const url=URL.createObjectURL(blob); dlLink.href=url; dlLink.style.display=''; }; mediaRecorder.start(); recording=true; showToast('Recording…'); }
+  function stopRec(){ if(!recording) return; mediaRecorder.stop(); recording=false; showToast('Recording complete — Download'); }
+
+  // ===== Save / Load =====
+  saveBtn.addEventListener('click', ()=>{
+    const payload = { version:1, driveId, stageOn, gears: gears.map(g=>({ id:g.id, x:g.x, y:g.y, r:g.r, teeth:g.teeth, angle:g.angle, duration:g.duration, type:g.type, label:g.label, volume:g.volume, vScale:g.vScale, lines:g.lines, routed:g.routed })) };
+    const blob = new Blob([JSON.stringify(payload)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='unthinkable_clock.json'; a.click(); showToast('Session saved');
+  });
+  jsonFile.addEventListener('change', async e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; try{ const obj=JSON.parse(await f.text()); gears.length=0; for(const g of obj.gears||[]){ const ng=makeGearBase(g.x,g.y,g.duration); Object.assign(ng,g); ng.lastTooth=-1; ng.lastMajor=-1; gears.push(ng); } driveId=obj.driveId||null; stageOn = (obj.stageOn!==false); stageBadge.textContent='Stage: '+(stageOn?'ON':'OFF'); updateBadges(); showToast('Session loaded'); }catch(_){ alert('Invalid JSON'); } jsonFile.value=''; });
+
+  clearBtn.addEventListener('click', ()=>{ gears.length=0; driveId=null; updateBadges(); });
+
+  // ===== STAMP Stage → Gear =====
+  stampBtn.addEventListener('click', ()=>{ if(!stageOn){ showToast('Turn Stage on first'); return; } const w=stageOff.width,h=stageOff.height; if(!w||!h){ showToast('Nothing to stamp'); return; } try{ const url=stageOff.toDataURL('image/png'); const img=new Image(); img.onload=()=>{ const g=makeGearBase(canvas.width*0.5 + (Math.random()*140-70), canvas.height*0.5 + (Math.random()*140-70), 8); g.type='image'; g.kind='img'; g.media=img; g.label='STAMP'; g.routed=false; gears.push(g); updateBadges(); }; img.src=url; showToast('Stamped to new gear'); }catch(_){ showToast('Stamp failed'); }
+  });
+
+  // ===== Main loop =====
+  let last=performance.now(), fps=60;
+  function loop(now){ const dt=(now-last)/1000; last=now;
+    computeOmegas(); updateContacts(dt);
+    for(const g of gears){ g.angle += g.omega * dt; syncMedia(g); }
+    draw();
+    fps = fps*0.9 + (1/dt)*0.1; fpsEl.textContent = 'fps ' + Math.max(1,Math.round(fps)); inertiaEl.style.width = Math.min(100, Math.abs((gears.find(k=>k.id===driveId)?.omega||0))*120)+'%';
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ===== Keyboard aids =====
+  window.addEventListener('keydown', e=>{
+    if(e.key===' '){ playing=!playing; playBtn.classList.toggle('on', playing); }
+    if(e.key==='d'){ const lastSel=[...selected].pop(); if(lastSel) setDrive(lastSel); }
+    if(e.key==='r'){ routeBtn.click(); }
+    if(e.key==='s'){ stampBtn.click(); }
+    if(e.key==='h'){ hapticBtn.click(); }
+  });
+
+})();
+</script>
+</body>
+</html>

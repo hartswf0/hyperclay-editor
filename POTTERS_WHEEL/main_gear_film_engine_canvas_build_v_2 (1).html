@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Main Gear Film Engine — v2.2 (Focus Mode)</title>
+<style>
+  :root{ --bg0:#081018; --bg1:#05070b; --ink:#E8E6DF; --muted:#9AA0A6; --teal:#00D0B4; --blue:#5FB3FF; --glass: rgba(11,17,24,0.78); --panel: rgba(12,16,22,0.92); }
+  html, body { height:100%; margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, sans-serif; color:var(--ink); }
+  body { background: radial-gradient(1200px 800px at 60% 20%, #0f1b25 0%, var(--bg0) 35%, var(--bg1) 100%); overflow:hidden; }
+
+  .chrome { position:fixed; inset:0; display:grid; grid-template-columns: 1fr 420px; grid-template-rows: 36px 1fr 160px; gap:8px; padding:8px; box-sizing:border-box; }
+  .toolbar { grid-column:1 / span 2; grid-row:1; display:flex; align-items:center; gap:8px; padding:6px 8px; background: linear-gradient(180deg, rgba(20,26,33,0.55), rgba(8,12,16,0.25)); border-radius:10px; backdrop-filter: blur(6px); }
+  .badge { font-size:12px; letter-spacing:0.08em; color:var(--muted); border:1px solid #19313a; border-radius:999px; padding:4px 8px; text-transform:uppercase; background:rgba(10,18,22,0.6); }
+  .badge strong { color:var(--teal); }
+  .spacer { flex:1; }
+  .btn { font-size:12px; padding:6px 10px; border-radius:10px; border:1px solid #23333b; background:linear-gradient(180deg,#10161c,#0a0f13); color:var(--ink); cursor:pointer; }
+  .btn:active{ transform: translateY(1px); }
+
+  .gearwrap { grid-column:1; grid-row:2 / span 2; position:relative; border-radius:14px; overflow:hidden; }
+  #gearCanvas { position:absolute; inset:0; background: radial-gradient(1200px 800px at 60% 20%, rgba(95,179,255,0.06), transparent 40%), radial-gradient(1600px 1200px at 30% 70%, rgba(0,208,180,0.04), transparent 50%); }
+  .orbitView { position:absolute; right:12px; bottom:12px; width:200px; height:200px; border-radius:14px; border:1px solid #20333b; background:rgba(8,12,16,0.55); display:none; }
+  .orbitView.on { display:block; }
+
+  .rightcol { grid-column:2; grid-row:2; display:grid; grid-template-rows: minmax(220px, 46vh) 1fr; gap:8px; }
+  .stagecard { position:relative; background:var(--glass); border:1px solid #17313a; border-radius:14px; overflow:hidden; }
+  .stagehead { position:absolute; left:8px; top:8px; font-size:11px; color:var(--muted); letter-spacing:0.06em; text-transform:uppercase; }
+  #stage { display:block; width:100%; height:100%; background:black; }
+  .panels { display:grid; grid-template-columns: 1fr; gap:8px; }
+  .panel { background:var(--panel); border:1px solid #17232b; border-radius:14px; padding:10px; overflow:auto; }
+  .panel h3 { margin:0 0 6px 0; font-size:12px; letter-spacing:0.08em; color:var(--muted); text-transform:uppercase; }
+  .console { font-size:12px; line-height:1.35; color:#cdd3d8; white-space:pre-wrap; }
+
+  .footer { grid-column:2; grid-row:3; display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .inspector { background:var(--panel); border:1px solid #17232b; border-radius:14px; padding:10px; }
+  .settings { background:var(--panel); border:1px solid #17232b; border-radius:14px; padding:10px; }
+  .row { display:grid; grid-template-columns: 110px 1fr; align-items:center; gap:8px; margin:6px 0; }
+
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid #22424b; background:#0b1216; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--teal); box-shadow:0 0 8px rgba(0,208,180,0.6); }
+
+  .tooltip { position:fixed; pointer-events:none; transform:translate(-50%,-120%); background:#0c1319; color:var(--ink); padding:6px 8px; border:1px solid #1b2a32; border-radius:8px; font-size:12px; opacity:0; transition:opacity .12s ease; }
+  .tooltip.on { opacity:1; }
+  .hide { position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+
+  /* --- NEW: Visibility & Focus --- */
+  .hidden{ display:none !important; }
+  .focus .toolbar, .focus .rightcol, .focus .footer { display:none !important; }
+  .focus .gearwrap { grid-column:1 / span 2; grid-row:1 / span 3; border-radius:16px; }
+  .hud { position:absolute; left:12px; top:12px; display:flex; gap:6px; z-index:5; }
+  .hud .btn { padding:4px 8px; font-size:11px; opacity:0.9; }
+</style>
+</head>
+<body>
+<div class="chrome">
+  <div class="toolbar" id="toolbar">
+    <span class="badge">Drive: <strong id="driveBadge">#0 MAIN</strong></span>
+    <span class="badge">BPM: <strong id="bpmBadge">Free</strong></span>
+    <span class="badge">Quant: <strong id="quantBadge">Off</strong></span>
+    <span class="badge">Mix: <strong id="mixBadge">Normal</strong></span>
+    <span class="badge">Mode: <strong id="modeBadge">Spin</strong></span>
+    <span class="badge">Output: <strong id="outBadge">Normal</strong></span>
+    <span class="spacer"></span>
+    <button class="btn" id="btnPlay">► Play</button>
+    <button class="btn" id="btnRec">● Record</button>
+    <button class="btn" id="btnSnap">⎘ Snapshot</button>
+    <button class="btn" id="btnAB">A/B</button>
+    <label class="btn" for="fileImport">＋ Import</label>
+    <input id="fileImport" class="hide" type="file" accept="video/*,image/*,audio/*,.txt,.md,.fdx,.fountain" multiple />
+    <button class="btn" id="btnSaveSession">Save</button>
+    <button class="btn" id="btnLoadSession">Load</button>
+    <input id="fileLoadSession" class="hide" type="file" accept="application/json" />
+    <button class="btn" id="btnExportEDL">Export EDL</button>
+    <button class="btn" id="btnExportSRT">Export SRT</button>
+  </div>
+
+  <div class="gearwrap">
+    <div class="hud">
+      <button class="btn" id="hudFocus">Focus</button>
+      <button class="btn" id="hudStage">Stage</button>
+      <button class="btn" id="hudPanels">Panels</button>
+      <button class="btn" id="hudInspector">Inspector</button>
+      <button class="btn" id="hudSettings">Settings</button>
+      <button class="btn" id="hudOrbit">Orbit</button>
+    </div>
+    <canvas id="gearCanvas"></canvas>
+    <canvas class="orbitView" id="orbit"></canvas>
+    <div class="tooltip" id="lensTip"></div>
+  </div>
+
+  <div class="rightcol" id="rightcol">
+    <div class="stagecard" id="stagecard">
+      <div class="stagehead">Stage 16:9 (pristine)</div>
+      <canvas id="stage"></canvas>
+    </div>
+    <div class="panels">
+      <div class="panel" id="prov">
+        <h3>Provenance Console — last 10 cuts (cause → effect)</h3>
+        <div class="console" id="provText">(empty)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer" id="footer">
+    <div class="inspector" id="inspector">
+      <h3>Inspector (long-press a gear)</h3>
+      <div class="row"><label>Gear ID</label><div id="insGearId" class="chip"><span class="dot"></span><span>#None</span></div></div>
+      <div class="row"><label>Duration (s)</label><input id="insDuration" type="number" step="0.1" min="0.5" /></div>
+      <div class="row"><label>Route to Stage</label><select id="insRoute"><option value="mix">Mix</option><option value="exclusive">Exclusive</option><option value="off">Off</option></select></div>
+      <div class="row"><label>Throttle</label><input id="insThrottle" type="range" min="0.1" max="2" step="0.01" /></div>
+      <div class="row"><label>Quantize</label><select id="insQuant"><option value="off">Off</option><option value="q60">1/60</option><option value="q12">1/12</option></select></div>
+      <div class="row"><label>Blend</label><select id="insBlend"><option>normal</option><option>screen</option><option>multiply</option><option>overlay</option><option>lighten</option></select></div>
+      <div class="row"><label>Opacity</label><input id="insOpacity" type="range" min="0" max="1" step="0.01" /></div>
+      <div class="row"><label>Audio Gain (dB)</label><input id="insGain" type="range" min="-36" max="12" step="1" /></div>
+      <div class="row"><label>Role</label><select id="insRole"><option>Motif</option><option>Action</option><option>Reaction</option><option>Atmosphere</option><option>Dialogue</option></select></div>
+      <div class="row"><label>Segments</label><button class="btn" id="btnEditSegs">Edit List…</button></div>
+    </div>
+    <div class="settings">
+      <h3>Center Ring Settings</h3>
+      <div class="row"><label>BPM</label><input id="setBpm" type="number" step="1" placeholder="Free" /></div>
+      <div class="row"><label>Haptics</label><select id="setHaptic"><option value="on">On</option><option value="off">Off</option></select></div>
+      <div class="row"><label>Tick Volume</label><input id="setVol" type="range" min="0" max="1" step="0.01" value="0.4" /></div>
+      <div class="row"><label>Resonance Glow</label><select id="setGlow"><option value="on">On</option><option value="off">Off</option></select></div>
+      <div class="row"><label>Orbit View</label><select id="setOrbit"><option value="off">Off</option><option value="on">On</option></select></div>
+      <div class="row"><label>Golden Cuts</label><select id="setPhi"><option value="off">Off</option><option value="on">On</option></select></div>
+      <div class="row"><label>Inception Sheet</label><button class="btn" id="btnInception">Show</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="inception" style="position:fixed; inset:0; background:rgba(0,0,0,0.72); display:none; align-items:center; justify-content:center;">
+  <div style="width:min(940px,92vw); max-height:86vh; overflow:auto; padding:16px; background:var(--panel); border:1px solid #12313a; border-radius:14px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+      <h3 style="margin:0;">Inception Prompt (read-only)</h3>
+      <button class="btn" id="btnCloseInception">Close (Esc)</button>
+    </div>
+    <pre style="white-space:pre-wrap; font-size:12px; line-height:1.35; color:#cfd6db;" id="incText"></pre>
+  </div>
+</div>
+
+<div id="segModal" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center;">
+  <div style="width:min(720px,92vw); max-height:80vh; overflow:auto; padding:16px; background:var(--panel); border:1px solid #12313a; border-radius:14px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+      <h3 style="margin:0;">Segments for Gear <span id="segGearId">#?</span></h3>
+      <button class="btn" id="segClose">Done</button>
+    </div>
+    <div id="segList" class="console"></div>
+    <div style="margin-top:8px; display:flex; gap:8px;">
+      <button class="btn" id="segAddText">+ Text</button>
+      <button class="btn" id="segAddMedia">+ Media (assign from imports)</button>
+      <button class="btn" id="segClear">Clear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(()=>{
+  const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+  const gearCanvas = document.getElementById('gearCanvas');
+  const gctx = gearCanvas.getContext('2d');
+  const orbitCanvas = document.getElementById('orbit');
+  const octx = orbitCanvas.getContext('2d');
+  const stage = document.getElementById('stage');
+  const sctx = stage.getContext('2d');
+
+  // HUD + Containers
+  const hudFocus = document.getElementById('hudFocus');
+  const hudStage = document.getElementById('hudStage');
+  const hudPanels = document.getElementById('hudPanels');
+  const hudInspector = document.getElementById('hudInspector');
+  const hudSettings = document.getElementById('hudSettings');
+  const hudOrbit = document.getElementById('hudOrbit');
+  const rightcol = document.getElementById('rightcol');
+  const stagecard = document.getElementById('stagecard');
+
+  // Badges
+  const driveBadge = document.getElementById('driveBadge');
+  const bpmBadge = document.getElementById('bpmBadge');
+  const quantBadge = document.getElementById('quantBadge');
+  const mixBadge  = document.getElementById('mixBadge');
+  const modeBadge = document.getElementById('modeBadge');
+  const outBadge  = document.getElementById('outBadge');
+  const lensTip   = document.getElementById('lensTip');
+
+  // Controls
+  const btnPlay = document.getElementById('btnPlay');
+  const btnRec = document.getElementById('btnRec');
+  const btnSnap = document.getElementById('btnSnap');
+  const btnAB = document.getElementById('btnAB');
+  const fileImport = document.getElementById('fileImport');
+  const btnSaveSession = document.getElementById('btnSaveSession');
+  const btnLoadSession = document.getElementById('btnLoadSession');
+  const fileLoadSession = document.getElementById('fileLoadSession');
+  const btnExportEDL = document.getElementById('btnExportEDL');
+  const btnExportSRT = document.getElementById('btnExportSRT');
+
+  // Panels
+  const provText = document.getElementById('provText');
+  const inspector = document.getElementById('inspector');
+  const insGearId = document.getElementById('insGearId');
+  const insDuration = document.getElementById('insDuration');
+  const insRoute = document.getElementById('insRoute');
+  const insThrottle = document.getElementById('insThrottle');
+  const insQuant = document.getElementById('insQuant');
+  const insBlend = document.getElementById('insBlend');
+  const insOpacity = document.getElementById('insOpacity');
+  const insGain = document.getElementById('insGain');
+  const insRole = document.getElementById('insRole');
+  const btnEditSegs = document.getElementById('btnEditSegs');
+
+  const setBpm = document.getElementById('setBpm');
+  const setHaptic = document.getElementById('setHaptic');
+  const setVol = document.getElementById('setVol');
+  const setGlow = document.getElementById('setGlow');
+  const setOrbit = document.getElementById('setOrbit');
+  const setPhi = document.getElementById('setPhi');
+  const btnInception = document.getElementById('btnInception');
+  const incPane = document.getElementById('inception');
+  const incText = document.getElementById('incText');
+  const btnCloseInception = document.getElementById('btnCloseInception');
+
+  const segModal = document.getElementById('segModal');
+  const segList = document.getElementById('segList');
+  const segGearId = document.getElementById('segGearId');
+  const segClose = document.getElementById('segClose');
+  const segAddText = document.getElementById('segAddText');
+  const segAddMedia = document.getElementById('segAddMedia');
+  const segClear = document.getElementById('segClear');
+
+  // Inception text
+  incText.textContent = 'v2.2 Focus Mode: Use HUD or keys to toggle views. Keys: F Focus · T Stage · P Panels · I Inspector · S Settings · V Orbit';
+
+  // Error surfacing
+  window.addEventListener('error', (ev)=>{ try{ pushProv('JS Error: '+ev.message); }catch(_){} });
+
+  const state = { mode:'Spin', output:'Normal', quant:'off', bpm:null, haptics:'on', vol:0.4, resonanceGlow:'on', orbitView:'off', phi:'off', playing:false, masterTime:0, driveId:0, pitch:12, k:5, gears:[], media:[], snapshots:[], provenance:[], recorder:null, recording:false, edl:[], srt:[] };
+  const vis = { focus:false, stage:true, panels:true, inspector:true, settings:true, orbit:false };
+
+  function fit(){
+    const gw = gearCanvas.clientWidth = gearCanvas.parentElement.clientWidth;
+    const gh = gearCanvas.clientHeight = gearCanvas.parentElement.clientHeight;
+    gearCanvas.width = Math.floor(gw * DPR); gearCanvas.height = Math.floor(gh * DPR);
+    const ow = 200, oh = 200; orbitCanvas.width = Math.floor(ow * DPR); orbitCanvas.height = Math.floor(oh * DPR);
+    const stageBox = document.getElementById('stagecard');
+    if(stageBox && !stageBox.classList.contains('hidden')){
+      const sw = stageBox.clientWidth; const sh = stageBox.clientHeight;
+      let w = sw, h = Math.floor(sw * 9/16); if (h > sh) { h = sh; w = Math.floor(sh * 16/9); }
+      stage.width = Math.floor(w * DPR); stage.height = Math.floor(h * DPR); stage.style.width = w+'px'; stage.style.height = h+'px';
+    }
+  }
+  new ResizeObserver(fit).observe(document.body); fit();
+
+  // Audio + haptics
+  let AC=null; function ensureAC(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); } }
+  function tick(type='minor'){ if(state.vol<=0) return; ensureAC(); const o=AC.createOscillator(), g=AC.createGain(); o.type='square'; let f=170,d=0.015; if(type==='major'){f=210;d=0.03;} if(type==='perfect'){f=120;d=0.06;} o.frequency.value=f; g.gain.value=state.vol*(type==='perfect'?0.7:0.5); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime+d); if(state.haptics==='on'&&navigator.vibrate){ if(type==='minor')navigator.vibrate(6); else if(type==='major')navigator.vibrate(14); else navigator.vibrate([1,18,1,28]); } }
+
+  function dl(name, blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+  function dlText(name, text){ dl(name, new Blob([text], {type:'application/json'})); }
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)); const mod=(a,b)=>((a%b)+b)%b; function toTC(sec){ const s=Math.max(0,sec|0); const ms=Math.round((sec-(sec|0))*1000); const hh=(s/3600|0).toString().padStart(2,'0'); const mm=((s%3600)/60|0).toString().padStart(2,'0'); const ss=(s%60|0).toString().padStart(2,'0'); return `${hh}:${mm}:${ss}.${ms.toString().padStart(3,'0')}`; }
+
+  function mkGear(id,cx,cy,seconds,role='Motif'){
+    const r = state.k * seconds * DPR; const teeth = Math.max(12, Math.round((2*Math.PI*r)/state.pitch));
+    return { id,cx,cy,r,seconds,teeth,theta:0,omega:0,throttle:1,quant:'off', blend:'normal',opacity:1,gainDb:0,role,route:'mix',active:true,
+      segments:[{id:`${id}-s0`,type:'text',label:`G${id}:A`,start:0,end:0.33,weight:1,fades:[0.1,0.1],blend:'screen',opacity:0.9,role},{id:`${id}-s1`,type:'text',label:`G${id}:B`,start:0.33,end:0.66,weight:1,fades:[0.1,0.1],blend:'overlay',opacity:0.9,role},{id:`${id}-s2`,type:'text',label:`G${id}:C`,start:0.66,end:1,weight:1,fades:[0.1,0.1],blend:'normal',opacity:0.9,role}], color:id===0?'#00D0B4':'#5FB3FF', minorPhase:0, majorPhase:0, dragging:false, dragDx:0, dragDy:0 };
+  }
+  function rebuildTeeth(g){ g.r = state.k * g.seconds * DPR; g.teeth = Math.max(12, Math.round((2*Math.PI*g.r)/state.pitch)); }
+  function addSeed(){ const w=gearCanvas.width,h=gearCanvas.height; state.gears=[ mkGear(0,w*0.45,h*0.55,16,'Motif'), mkGear(1,w*0.68,h*0.55,8,'Action'), mkGear(2,w*0.26,h*0.35,12,'Atmosphere') ]; state.driveId=0; refreshBadges(); }
+
+  fileImport.addEventListener('change',(e)=>{ const files=[...e.target.files||[]]; for(const f of files){ const url=URL.createObjectURL(f); if(f.type.startsWith('video/')){ const v=document.createElement('video'); v.src=url; v.muted=true; v.loop=true; v.playsInline=true; v.preload='auto'; v.play().catch(()=>{}); state.media.push({kind:'video',name:f.name,url,el:v}); }
+    else if(f.type.startsWith('image/')){ const im=new Image(); im.src=url; state.media.push({kind:'image',name:f.name,url,el:im}); }
+    else if(f.type.startsWith('audio/')){ const a=document.createElement('audio'); a.src=url; a.loop=true; a.preload='auto'; a.play().catch(()=>{}); state.media.push({kind:'audio',name:f.name,url,el:a}); }
+    else { const r=new FileReader(); r.onload=()=>parseScript(f.name,r.result); r.readAsText(f); } } });
+  function parseScript(name,text){ const scenes=text.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean); const g=state.gears[2]||state.gears[0]; g.segments=scenes.slice(0,5).map((sc,i,arr)=>{ const a=i/arr.length,b=(i+1)/arr.length; return { id:`${g.id}-txt-${i}`, type:'text', label:sc.substring(0,48).replace(/\s+/g,' '), start:a, end:b, weight:1, fades:[0.1,0.1], blend:'overlay', opacity:0.9, role:'Dialogue' }; }); pushProv(`Script import → mapped ${g.segments.length} text arcs to Gear #${g.id}`); }
+
+  function pushProv(line){ state.provenance.push(line); if(state.provenance.length>10) state.provenance.shift(); provText.textContent=state.provenance.join('\n'); }
+
+  function updateOmegas(){ const MAIN=state.gears[state.driveId]; if(!MAIN) return; let mainOmega; if(state.bpm && state.bpm>0){ const beatSec=60/state.bpm; const rev=beatSec*4; mainOmega=2*Math.PI/rev; bpmBadge.textContent=state.bpm|0; } else { mainOmega=2*Math.PI/MAIN.seconds; bpmBadge.textContent='Free'; } for(const g of state.gears){ g.omega = (g.id===MAIN.id? mainOmega : - mainOmega * (MAIN.r/Math.max(1,g.r))) * g.throttle; } }
+  function ticksFor(g){ const minorStep=2*Math.PI/60, majorStep=2*Math.PI/12; const minor=Math.floor(mod(g.theta,2*Math.PI)/minorStep); const major=Math.floor(mod(g.theta,2*Math.PI)/majorStep); if(minor!==g.minorPhase){ g.minorPhase=minor; tick('minor'); } if(major!==g.majorPhase){ g.majorPhase=major; tick('major'); recordEditIfEligible(g); } }
+  function recordEditIfEligible(g){ if(g.id===state.driveId||g.route==='off') return; const tc=toTC(state.masterTime); pushProv(`G${g.id} major @ ${tc} → cut (route:${g.route}, blend:${g.blend})`); state.edl.push({t:state.masterTime, gear:g.id, blend:g.blend, route:g.route}); }
+  function nearResonance(MAIN,g){ const ratio=(MAIN.seconds/g.seconds); const maxN=8; let best=1e9; for(let m=1;m<=maxN;m++){ for(let n=1;n<=maxN;n++){ best=Math.min(best, Math.abs(ratio-m/n)); } } return best<0.02; }
+  function maybePhiPing(){ if(state.phi!=='on') return; const phi=0.618; const pos=(state.masterTime%1); if(Math.abs(pos-phi)<0.003){ tick('perfect'); } }
+
+  function drawGears(dt){ const w=gearCanvas.width,h=gearCanvas.height; gctx.clearRect(0,0,w,h);
+    gctx.save(); gctx.globalAlpha=0.08; gctx.strokeStyle='#5fb3ff'; gctx.lineWidth=1*DPR; gctx.beginPath(); for(let i=0;i<8;i++){ gctx.moveTo((i+1)*w/9,0); gctx.lineTo((i+1)*w/9,h);} for(let j=0;j<6;j++){ gctx.moveTo(0,(j+1)*h/7); gctx.lineTo(w,(j+1)*h/7);} gctx.stroke(); gctx.restore();
+    const MAIN=state.gears[state.driveId]; if(!MAIN) return; for(const g of state.gears){ const res=(state.resonanceGlow==='on'&&g!==MAIN&&nearResonance(MAIN,g)); gctx.save(); gctx.translate(g.cx,g.cy); gctx.rotate(g.theta); gctx.beginPath(); gctx.arc(0,0,g.r,0,Math.PI*2); gctx.strokeStyle=res?'rgba(95,179,255,0.9)':'rgba(0,208,180,0.85)'; gctx.lineWidth=(g.id===state.driveId?3:2)*DPR; gctx.shadowColor=res?'rgba(95,179,255,0.4)':'rgba(0,208,180,0.35)'; gctx.shadowBlur=res?24:12; gctx.stroke(); gctx.save(); gctx.shadowBlur=0; gctx.lineWidth=1*DPR; gctx.strokeStyle='rgba(180,220,230,0.35)'; const step=(2*Math.PI)/g.teeth; gctx.beginPath(); for(let i=0;i<g.teeth;i++){ const a=i*step; gctx.moveTo(Math.cos(a)*(g.r-4*DPR), Math.sin(a)*(g.r-4*DPR)); gctx.lineTo(Math.cos(a)*(g.r+6*DPR), Math.sin(a)*(g.r+6*DPR)); } gctx.stroke(); gctx.restore(); for(const s of g.segments){ const a0=s.start*2*Math.PI,a1=s.end*2*Math.PI; gctx.beginPath(); gctx.arc(0,0,g.r-8*DPR,a0,a1); gctx.strokeStyle='rgba(232,230,223,0.65)'; gctx.lineWidth=6*DPR; gctx.lineCap='round'; gctx.stroke(); } gctx.rotate(-g.theta); gctx.fillStyle='rgba(232,230,223,0.9)'; gctx.font=`${12*DPR}px system-ui`; gctx.textAlign='center'; gctx.textBaseline='middle'; gctx.fillText(g.id===0?'MAIN':`G${g.id}`,0,0); gctx.restore(); ticksFor(g); }
+    if(state.orbitView==='on') drawOrbit(); }
+  function drawOrbit(){ const w=orbitCanvas.width,h=orbitCanvas.height; octx.clearRect(0,0,w,h); octx.save(); octx.translate(w/2,h/2); for(const g of state.gears){ octx.beginPath(); octx.arc(0,0,Math.max(8*DPR,g.r*0.12),0,Math.PI*2); octx.strokeStyle=g.id===state.driveId?'rgba(0,208,180,0.9)':'rgba(95,179,255,0.7)'; octx.lineWidth=2*DPR; octx.stroke(); const pr=Math.max(8*DPR,g.r*0.12); const x=Math.cos(g.theta)*pr,y=Math.sin(g.theta)*pr; octx.beginPath(); octx.arc(x,y,3*DPR,0,Math.PI*2); octx.fillStyle='rgba(255,255,255,0.8)'; octx.fill(); } octx.restore(); }
+
+  function drawStage(){ if(!stage || stagecard.classList.contains('hidden')) return; const w=stage.width,h=stage.height; sctx.clearRect(0,0,w,h); if(state.phi==='on'){ sctx.save(); sctx.globalAlpha=0.12; sctx.strokeStyle='#5FB3FF'; sctx.lineWidth=1*DPR; const phi=0.618; sctx.beginPath(); sctx.moveTo(w*phi,0); sctx.lineTo(w*phi,h); sctx.moveTo(0,h*phi); sctx.lineTo(w,h*phi); sctx.stroke(); sctx.restore(); }
+    const exclusive=state.gears.find(g=>g.route==='exclusive'); const list=exclusive?[exclusive]:state.gears.filter(g=>g.route==='mix'); for(const g of list){ const tg=gearTime(g); const seg=pickSeg(g,tg); if(!seg) continue; sctx.save(); sctx.globalAlpha=clamp(g.opacity*(seg.opacity??1),0,1); sctx.globalCompositeOperation=(g.blend||'normal'); if(seg.type==='media'&&seg.media){ renderMediaToStage(seg.media); } else if(seg.type==='text'){ renderTextToStage(seg.label||'Text', g.role); } else if(seg.type==='color'){ sctx.fillStyle=seg.fill||'#111'; sctx.fillRect(0,0,w,h); } sctx.restore(); } }
+  function renderMediaToStage(m){ const w=stage.width,h=stage.height; if(m.kind==='video'&&m.el.readyState>=2){ sctx.drawImage(m.el,0,0,w,h); } else if(m.kind==='image'&&m.el.complete){ sctx.drawImage(m.el,0,0,w,h); } else if(m.kind==='audio'){ const grd=sctx.createRadialGradient(w*0.5,h*0.6,10*DPR,w*0.5,h*0.6,Math.min(w,h)*0.8); grd.addColorStop(0,'rgba(95,179,255,0.10)'); grd.addColorStop(1,'rgba(0,0,0,0)'); sctx.fillStyle=grd; sctx.fillRect(0,0,w,h); } }
+  function renderTextToStage(txt,role){ const w=stage.width,h=stage.height; const min=Math.min(w,h); const fs=Math.max(14*DPR,Math.floor(min*0.08)); sctx.save(); sctx.fillStyle='rgba(0,0,0,0.35)'; sctx.fillRect(0,h*0.68,w,h*0.32); sctx.fillStyle='#E8E6DF'; sctx.font=`${fs}px system-ui, Inter, sans-serif`; sctx.textAlign='center'; sctx.textBaseline='middle'; sctx.fillText(txt,w/2,h*0.82,w*0.92); sctx.restore(); }
+  function gearTime(g){ const MAIN=state.gears[state.driveId]; if(!MAIN) return 0; const base=state.masterTime*(MAIN.seconds/g.seconds)*(g===MAIN?1:-1)*g.throttle; let t=mod(base,g.seconds); const q=g.quant==='off'?state.quant:g.quant; if(q==='q60'){ const step=g.seconds/60; t=Math.round(t/step)*step; } else if(q==='q12'){ const step=g.seconds/12; t=Math.round(t/step)*step; } return t; }
+  const pickSeg=(g,t)=>{ const u=t/g.seconds; const x=mod(u,1); return g.segments.find(s=>x>=s.start && x<s.end); };
+
+  let pointer={x:0,y:0,down:false,long:false,lens:false,gear:null,pressT:0};
+  gearCanvas.addEventListener('pointerdown',(e)=>{ ensureAC(); pointer.down=true; pointer.x=e.offsetX*DPR; pointer.y=e.offsetY*DPR; pointer.pressT=performance.now(); for(const g of [...state.gears].reverse()){ const dx=pointer.x-g.cx, dy=pointer.y-g.cy; const d=Math.hypot(dx,dy); if(Math.abs(d-g.r)<18*DPR || d<g.r*0.85){ pointer.gear=g; g.dragging=true; g.dragDx=dx; g.dragDy=dy; break; } } setTimeout(()=>{ if(pointer.down && !pointer.gear){ pointer.long=true; pointer.lens=true; lensTip.classList.add('on'); lensTip.textContent='Time Lens'; lensTip.style.left=(e.clientX)+'px'; lensTip.style.top=(e.clientY)+'px'; } else if(pointer.down && pointer.gear){ openInspector(pointer.gear); } },350); });
+  gearCanvas.addEventListener('pointermove',(e)=>{ pointer.x=e.offsetX*DPR; pointer.y=e.offsetY*DPR; if(pointer.gear && pointer.down){ const g=pointer.gear; if(state.mode==='Spin'){ const a0=Math.atan2(g.dragDy,g.dragDx); const ax=Math.atan2(pointer.y-g.cy, pointer.x-g.cx); const da=ax-a0; g.theta+=da; g.dragDx=pointer.x-g.cx; g.dragDy=pointer.y-g.cy; if(g.id===state.driveId){ state.masterTime+=(da/(2*Math.PI))*g.seconds; maybePhiPing(); } } else { g.cx=pointer.x; g.cy=pointer.y; } } });
+  window.addEventListener('pointerup',()=>{ pointer.down=false; pointer.long=false; pointer.lens=false; lensTip.classList.remove('on'); if(pointer.gear){ pointer.gear.dragging=false; pointer.gear=null; } });
+
+  function openInspector(g){ insGearId.querySelector('span:last-child').textContent=`#${g.id}`; insDuration.value=g.seconds; insRoute.value=g.route; insThrottle.value=g.throttle; insQuant.value=g.quant; insBlend.value=g.blend; insOpacity.value=g.opacity; insGain.value=g.gainDb; insRole.value=g.role; inspector.dataset.gear=g.id; }
+  const getInsGear=()=>{ const id=+inspector.dataset.gear; return state.gears.find(g=>g.id===id); };
+  insDuration.oninput=()=>{ const g=getInsGear(); if(!g) return; g.seconds=Math.max(0.5,+insDuration.value||g.seconds); rebuildTeeth(g); updateOmegas(); };
+  insRoute.oninput=()=>{ const g=getInsGear(); if(!g) return; g.route=insRoute.value; };
+  insThrottle.oninput=()=>{ const g=getInsGear(); if(!g) return; g.throttle=+insThrottle.value; updateOmegas(); };
+  insQuant.oninput=()=>{ const g=getInsGear(); if(!g) return; g.quant=insQuant.value; };
+  insBlend.oninput=()=>{ const g=getInsGear(); if(!g) return; g.blend=insBlend.value; mixBadge.textContent=g.blend; };
+  insOpacity.oninput=()=>{ const g=getInsGear(); if(!g) return; g.opacity=+insOpacity.value; };
+  insGain.oninput=()=>{ const g=getInsGear(); if(!g) return; g.gainDb=+insGain.value; };
+  insRole.oninput=()=>{ const g=getInsGear(); if(!g) return; g.role=insRole.value; };
+
+  btnEditSegs.onclick=()=>{ const g=getInsGear(); if(!g) return; segGearId.textContent='#'+g.id; renderSegList(g); segModal.style.display='flex'; };
+  segClose.onclick=()=> segModal.style.display='none';
+  segAddText.onclick=()=>{ const g=getInsGear(); if(!g) return; const n=g.segments.length; g.segments.push({id:`${g.id}-txt-${n}`, type:'text', label:`Note ${n+1}`, start:0, end:1, weight:1, fades:[0.1,0.1], blend:'normal', opacity:1, role:g.role}); renderSegList(g); };
+  segAddMedia.onclick=()=>{ const g=getInsGear(); if(!g) return; const med=state.media[state.media.length-1]; if(!med){ alert('Import media first.'); return; } const n=g.segments.length; g.segments.push({id:`${g.id}-m-${n}`, type:'media', media:med, start:0, end:1, weight:1, fades:[0.1,0.1], blend:'normal', opacity:1, role:g.role}); renderSegList(g); };
+  segClear.onclick=()=>{ const g=getInsGear(); if(!g) return; g.segments=[]; renderSegList(g); };
+  function renderSegList(g){ segList.innerHTML=g.segments.map((s,i)=>`[${i}] ${s.type.toUpperCase()} ${s.media?('«'+(s.media.name||s.media.kind)+'»'):(s.label||'—')}  start:${s.start.toFixed(2)} end:${s.end.toFixed(2)} blend:${s.blend} op:${(s.opacity??1).toFixed(2)} role:${s.role}`).join('\n'); }
+
+  // Playback & record
+  btnPlay.onclick=()=>{ state.playing=!state.playing; btnPlay.textContent=state.playing?'❚❚ Pause':'► Play'; if(state.playing) ensureAC(); };
+  btnRec.onclick=()=>{ if(!state.recording){ const stream=stage.captureStream(60); let rec; try{ rec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'});}catch(e){ pushProv('MediaRecorder unsupported: '+e.message); return; } const chunks=[]; rec.ondataavailable=e=>{ if(e.data.size>0) chunks.push(e.data); }; rec.onstop=()=>{ dl(`stage-${Date.now()}.webm`, new Blob(chunks,{type:'video/webm'})); }; rec.start(); state.recorder=rec; state.recording=true; btnRec.textContent='■ Stop'; pushProv('Record start → Stage only'); } else { state.recorder.stop(); state.recording=false; btnRec.textContent='● Record'; pushProv('Record stop → saved WebM'); } };
+  btnSnap.onclick=()=>{ const snap=JSON.stringify(serialize()); state.snapshots.push({name:`snap-${state.snapshots.length+1}`,data:snap}); pushProv('Snapshot saved'); };
+  btnAB.onclick=()=>{ if(state.snapshots.length<2){ alert('Need at least two snapshots.'); return; } const a=JSON.parse(state.snapshots[state.snapshots.length-2].data); const b=JSON.parse(state.snapshots[state.snapshots.length-1].data); let t=0,which=false; const id=setInterval(()=>{ which=!which; loadSerialized(which?b:a); if(++t>=8){ clearInterval(id); loadSerialized(b);} },1000); pushProv('A/B compare (8s) between last two snapshots'); };
+
+  function serialize(){ return { mode:state.mode,bpm:state.bpm,quant:state.quant,pitch:state.pitch,k:state.k, gears: state.gears.map(g=>({ id:g.id,cx:g.cx,cy:g.cy,seconds:g.seconds,teeth:g.teeth,theta:g.theta,throttle:g.throttle,quant:g.quant,blend:g.blend,opacity:g.opacity,gainDb:g.gainDb,role:g.role,route:g.route,color:g.color, segments:g.segments.map(s=>({id:s.id,type:s.type,label:s.label,start:s.start,end:s.end,weight:s.weight,fades:s.fades,blend:s.blend,opacity:s.opacity,role:s.role, media:s.media?{name:s.media.name,url:s.media.url,kind:s.media.kind}:null})) })) }; }
+  function loadSerialized(obj){ state.mode=obj.mode; state.bpm=obj.bpm; state.quant=obj.quant; state.pitch=obj.pitch; state.k=obj.k; state.gears=obj.gears.map(g=>{ const G=mkGear(g.id,g.cx,g.cy,g.seconds,g.role); Object.assign(G,g); G.segments=g.segments.map(s=>({ ...s, media:s.media?findOrAdoptMedia(s.media):null })); rebuildTeeth(G); return G; }); updateOmegas(); }
+  function findOrAdoptMedia(m){ let found=state.media.find(x=>x.url===m.url&&x.kind===m.kind); if(found) return found; if(m.kind==='image'){ const im=new Image(); im.src=m.url; found={kind:'image',name:m.name,url:m.url,el:im}; } else if(m.kind==='video'){ const v=document.createElement('video'); v.src=m.url; v.loop=true; v.muted=true; v.playsInline=true; v.play().catch(()=>{}); found={kind:'video',name:m.name,url:m.url,el:v}; } else if(m.kind==='audio'){ const a=document.createElement('audio'); a.src=m.url; a.loop=true; a.play().catch(()=>{}); found={kind:'audio',name:m.name,url:m.url,el:a}; } state.media.push(found); return found; }
+
+  btnSaveSession.onclick=()=>dlText(`gear-session-${Date.now()}.json`, JSON.stringify(serialize(),null,2));
+  btnLoadSession.onclick=()=>fileLoadSession.click();
+  fileLoadSession.onchange=(e)=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ loadSerialized(JSON.parse(r.result)); pushProv('Session loaded'); }; r.readAsText(f); };
+  btnExportEDL.onclick=()=>{ const edl=state.edl.map((e,i)=>({ id:i, timecode:toTC(e.t), gear:e.gear, blend:e.blend, route:e.route })); dlText(`session-${Date.now()}.edl.json`, JSON.stringify(edl,null,2)); };
+  btnExportSRT.onclick=()=>{ let idx=1,t=0,lines=''; for(const g of state.gears){ if(g.route==='off') continue; for(const s of g.segments){ if(s.type==='text'){ const dur=Math.max(1,Math.round((s.end-s.start)*g.seconds)); const t0=toTC(t), t1=toTC(t+dur); lines += `${idx++}\n${t0.replace('.',',')} --> ${t1.replace('.',',')}\n${s.label||'…'}\n\n`; t+=dur; } } } dl(`captions-${Date.now()}.srt`, new Blob([lines],{type:'text/plain'})); };
+
+  setBpm.oninput=()=>{ const v=+setBpm.value; state.bpm=isNaN(v)||v<=0?null:Math.max(30,Math.min(240,v)); updateOmegas(); refreshBadges(); };
+  setHaptic.oninput=()=>{ state.haptics=setHaptic.value; };
+  setVol.oninput=()=>{ state.vol=+setVol.value; };
+  setGlow.oninput=()=>{ state.resonanceGlow=setGlow.value; };
+  setOrbit.oninput=()=>{ state.orbitView=setOrbit.value; document.getElementById('orbit').classList.toggle('on', state.orbitView==='on'); };
+  setPhi.oninput=()=>{ state.phi=setPhi.value; };
+
+  btnInception.onclick=()=>{ incPane.style.display='flex'; };
+  btnCloseInception.onclick=()=>{ incPane.style.display='none'; };
+  window.addEventListener('keydown',(e)=>{ if(e.key==='Escape'){ incPane.style.display='none'; segModal.style.display='none'; }});
+
+  // Shortcuts (added view toggles)
+  window.addEventListener('keydown',(e)=>{
+    if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA') return;
+    if(e.key===' '){ e.preventDefault(); btnPlay.click(); }
+    else if(e.key==='['){ cycleDrive(-1); }
+    else if(e.key===']'){ cycleDrive(+1); }
+    else if(e.key==='\\'){ /* AutoShift stub */ }
+    else if(e.key.toLowerCase()==='q'){ cycleQuant(); }
+    else if(e.key.toLowerCase()==='o'){ state.output=(state.output==='Normal'?'Canvas':'Normal'); outBadge.textContent=state.output; }
+    else if(e.key==='1'){ setMode('Spin'); }
+    else if(e.key==='2'){ setMode('Sculpt'); }
+    else if(e.key==='3'){ setMode('Mix'); }
+    else if(e.key==='4'){ setMode('Script'); }
+    else if(e.key==='5'){ setMode('Route'); }
+    else if(e.key==='?'){ btnInception.click(); }
+    else if(e.key.toLowerCase()==='f'){ hudFocus.click(); }
+    else if(e.key.toLowerCase()==='t'){ hudStage.click(); }
+    else if(e.key.toLowerCase()==='p'){ hudPanels.click(); }
+    else if(e.key.toLowerCase()==='i'){ hudInspector.click(); }
+    else if(e.key.toLowerCase()==='s'){ hudSettings.click(); }
+    else if(e.key.toLowerCase()==='v'){ hudOrbit.click(); }
+  });
+
+  function cycleDrive(step){ const idx=state.gears.findIndex(g=>g.id===state.driveId); const nx=((idx+step)%state.gears.length+state.gears.length)%state.gears.length; state.driveId=state.gears[nx].id; updateOmegas(); refreshBadges(); tick('perfect'); }
+  function cycleQuant(){ const order=['off','q60','q12']; const i=order.indexOf(state.quant); state.quant=order[(i+1)%order.length]; quantBadge.textContent=state.quant==='off'?'Off':(state.quant==='q60'?'60th':'12th'); tick('major'); }
+  function setMode(m){ state.mode=m; modeBadge.textContent=m; tick('major'); }
+  function refreshBadges(){ driveBadge.textContent=`#${state.driveId} ${state.driveId===0?'MAIN':''}`; bpmBadge.textContent=state.bpm? state.bpm|0 : 'Free'; quantBadge.textContent=state.quant==='off'?'Off':(state.quant==='q60'?'60th':'12th'); }
+
+  // HUD actions
+  hudFocus.onclick=()=>{ vis.focus=!vis.focus; document.body.classList.toggle('focus', vis.focus); pushProv('View: '+(vis.focus?'Focus on Gear Field':'Standard layout')); fit(); };
+  hudStage.onclick=()=>{ vis.stage=!vis.stage; stagecard.classList.toggle('hidden', !vis.stage); pushProv('Stage '+(vis.stage?'shown':'hidden')); fit(); };
+  hudPanels.onclick=()=>{ vis.panels=!vis.panels; rightcol.classList.toggle('hidden', !vis.panels && !vis.stage); pushProv('Panels '+(vis.panels?'shown':'hidden')); fit(); };
+  hudInspector.onclick=()=>{ vis.inspector=!vis.inspector; inspector.classList.toggle('hidden', !vis.inspector); pushProv('Inspector '+(vis.inspector?'shown':'hidden')); };
+  hudSettings.onclick=()=>{ vis.settings=!vis.settings; document.querySelector('.settings').classList.toggle('hidden', !vis.settings); pushProv('Settings '+(vis.settings?'shown':'hidden')); };
+  hudOrbit.onclick=()=>{ vis.orbit=!vis.orbit; setOrbit.value=vis.orbit?'on':'off'; setOrbit.oninput(); pushProv('Orbit '+(vis.orbit?'on':'off')); };
+
+  // Main loop
+  let last=performance.now();
+  function loop(now){ const dt=(now-last)/1000; last=now; if(state.playing){ state.masterTime+=dt; maybePhiPing(); } updateOmegas(); for(const g of state.gears){ g.theta=mod(g.theta+g.omega*dt,2*Math.PI);} drawGears(dt); drawStage(); requestAnimationFrame(loop); }
+
+  // Init
+  addSeed(); updateOmegas(); pushProv('Boot OK'); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Cinematic Data‑Wall — Time‑Worm Entangler (Mobile · No Deps)</title>
+<style>
+  :root{
+    --bg:#07080b; --ink:#e8e8ea; --muted:#9aa0a6; --accent:#13bfa8; --hot:#ff5a3c; --edge:#202734; --card:#0e1218;
+    --yaw:0deg; --pitch:0deg; --zoom:1000px;
+    --tap:60px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,"Helvetica Neue",Arial,sans-serif}
+  header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#07080bf0,#07080bcc 60%,#07080b00);backdrop-filter:blur(8px);display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--edge)}
+  .title{font-weight:600;letter-spacing:.2px}
+  .grow{flex:1}
+  .btn{appearance:none;border:1px solid var(--edge);background:var(--card);color:var(--ink);height:var(--tap);min-width:var(--tap);padding:0 12px;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:18px}
+  .btn.small{height:40px;min-width:40px;border-radius:10px;font-size:16px}
+  .btn.ghost{background:transparent}
+  .tools{display:flex;gap:8px;flex-wrap:wrap}
+
+  #stageWrap{position:relative;width:100%;height:62vh;min-height:420px;border-bottom:1px solid var(--edge)}
+  .world{position:absolute;inset:0;perspective:1200px;overflow:hidden}
+  .camera{position:absolute;left:50%;top:50%;transform-style:preserve-3d;transition:transform .2s ease;transform:translate3d(-50%,-50%,0) rotateX(var(--pitch)) rotateY(var(--yaw)) translateZ(calc(-1 * var(--zoom)))}
+  .space{position:relative;transform-style:preserve-3d}
+  .vignette{pointer-events:none;position:absolute;inset:0;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.35) 100%)}
+
+  /* Worm segments */
+  .seg3d{position:absolute;width:22vmin;height:12vmin;border-radius:10px;border:1px solid #1f2634;box-shadow:0 6px 18px rgba(0,0,0,.5);overflow:hidden;transform-style:preserve-3d;will-change:transform,opacity}
+  .seg3d canvas{width:100%;height:100%;display:block}
+  .seg3d .badge{position:absolute;left:6px;top:6px;background:#0b0f1490;color:#d1d5db;border:1px solid #1f2634;padding:2px 6px;border-radius:6px;font-size:10px}
+  .seg3d.focus{outline:2px solid var(--accent)}
+
+  #panel{position:fixed;right:8px;bottom:86px;z-index:22;background:#0b0f1495;border:1px solid #1c232f;border-radius:16px;padding:10px;backdrop-filter:blur(6px);display:none;min-width:260px}
+  #panel.show{display:block}
+  #panel label{display:flex;justify-content:space-between;font-size:12px;color:#cdd6e3;margin:6px 0}
+  #panel input[type=range]{width:150px}
+
+  #timeline{position:sticky;bottom:0;background:linear-gradient(180deg,#07080bcc,#07080bee);backdrop-filter:blur(8px);border-top:1px solid var(--edge);padding:10px 8px;z-index:21}
+  #lane{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}
+  .scene{flex:0 0 auto;scroll-snap-align:center;min-width:170px;height:60px;border:1px solid var(--edge);border-radius:12px;background:#0e141b;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .scene.active{outline:2px solid var(--accent)}
+  .meta{font-size:12px;color:#9aa0a6}
+  .playbar{position:relative;height:6px;border:1px solid var(--edge);border-radius:6px;background:#0e141b;margin-top:8px}
+  .cursor{position:absolute;left:0;top:-4px;width:2px;height:14px;background:var(--hot)}
+
+  input[type=file]{display:none}
+</style>
+</head>
+<body>
+  <header>
+    <div class="title">Time‑Worm Entangler</div>
+    <div class="grow"></div>
+    <div class="tools">
+      <button id="addClipsBtn" class="btn">＋ Clips</button>
+      <button id="filtersBtn" class="btn ghost" title="Time‑Worm Settings">◫</button>
+      <button id="entangleBtn" class="btn ghost" title="Toggle Entangle">∞</button>
+      <button id="exportBtn" class="btn ghost" title="Export">⇪</button>
+      <button id="importBtn" class="btn ghost" title="Import">⇲</button>
+      <button id="resetBtn" class="btn ghost" title="New">⟲</button>
+    </div>
+    <input id="clipInput" type="file" multiple accept="video/*,image/*" />
+    <input id="jsonInput" type="file" accept="application/json" />
+  </header>
+
+  <section id="stageWrap">
+    <div class="world" id="world">
+      <div class="camera" id="camera">
+        <div class="space" id="space"></div>
+      </div>
+      <div class="vignette"></div>
+    </div>
+  </section>
+
+  <section id="timeline">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <button id="playBtn" class="btn">⏵ Play</button>
+      <button id="stopBtn" class="btn small ghost">■</button>
+      <button id="addSceneBtn" class="btn small ghost">＋ Scene</button>
+      <span style="font-size:12px;color:#9aa0a6">Drag = orbit · Pinch = zoom · Tap segment = focus · Long‑press = capture look</span>
+    </div>
+    <div id="lane"></div>
+    <div class="playbar"><div class="cursor" id="cursor"></div></div>
+  </section>
+
+  <aside id="panel">
+    <label>Segments per Worm <input id="rSegs" type="range" min="8" max="48" step="4" value="24"></label>
+    <label>Trail FPS <input id="rFPS" type="range" min="6" max="30" step="1" value="12"></label>
+    <label>Curve Radius <input id="rRad" type="range" min="40" max="140" step="1" value="80"></label>
+    <label>Curve Pitch <input id="rPitch" type="range" min="10" max="40" step="1" value="20"></label>
+    <label>Twist Speed <input id="rSpeed" type="range" min="0" max="0.06" step="0.002" value="0.02"></label>
+    <label>Entangle Strength <input id="rEnt" type="range" min="0" max="1" step="0.01" value="0.5"></label>
+  </aside>
+
+<script>
+(function(){
+  'use strict';
+  const el=s=>document.querySelector(s), els=s=>Array.from(document.querySelectorAll(s));
+  const world=el('#world'), camera=el('#camera'), space=el('#space'), lane=el('#lane'), cursor=el('#cursor');
+
+  const state={
+    camera:{yaw:0,pitch:0,zoom:1000},
+    worms:[], // each: {id, name, video, buffer: [canvas], segs:[], phase}
+    params:{segs:24, fps:12, radius:80, pitch:20, speed:0.02, entangle:0.5, weaving:true, t:0},
+    scenes:[], playing:false, playStart:0, playIndex:0
+  };
+
+  // Camera
+  function applyCamera(){ document.documentElement.style.setProperty('--yaw', state.camera.yaw+'deg'); document.documentElement.style.setProperty('--pitch', state.camera.pitch+'deg'); document.documentElement.style.setProperty('--zoom', state.camera.zoom+'px'); }
+
+  // UI wiring
+  el('#addClipsBtn').addEventListener('click',()=> el('#clipInput').click());
+  el('#clipInput').addEventListener('change', e=> addClips(e.target.files));
+  el('#filtersBtn').addEventListener('click', ()=> el('#panel').classList.toggle('show'));
+  el('#entangleBtn').addEventListener('click', ()=>{ state.params.weaving=!state.params.weaving; el('#entangleBtn').textContent = state.params.weaving? '∞∞':'∞';});
+  el('#exportBtn').addEventListener('click', exportProject);
+  el('#importBtn').addEventListener('click', ()=> el('#jsonInput').click());
+  el('#jsonInput').addEventListener('change', importProject);
+  el('#resetBtn').addEventListener('click', ()=>{ if(confirm('Start new?')) resetProject(); });
+
+  el('#rSegs').addEventListener('input', e=>{ state.params.segs=+e.target.value; rebuildAllSegs(); });
+  el('#rFPS').addEventListener('input', e=>{ state.params.fps=+e.target.value; });
+  el('#rRad').addEventListener('input', e=>{ state.params.radius=+e.target.value; });
+  el('#rPitch').addEventListener('input', e=>{ state.params.pitch=+e.target.value; });
+  el('#rSpeed').addEventListener('input', e=>{ state.params.speed=+e.target.value; });
+  el('#rEnt').addEventListener('input', e=>{ state.params.entangle=+e.target.value; });
+
+  // Gestures
+  let tStart={x:0,y:0,d:0,touches:0};
+  world.addEventListener('touchstart', e=>{ if(e.target.closest('.seg3d')) return; if(e.touches.length===1){ tStart.x=e.touches[0].clientX; tStart.y=e.touches[0].clientY; } if(e.touches.length===2){ const a=e.touches; tStart.d=Math.hypot(a[0].clientX-a[1].clientX, a[0].clientY-a[1].clientY); } tStart.touches=e.touches.length; }, {passive:true});
+  world.addEventListener('touchmove', e=>{ if(e.target.closest('.seg3d')) return; if(e.touches.length===1 && tStart.touches===1){ const dx=e.touches[0].clientX-tStart.x; const dy=e.touches[0].clientY-tStart.y; state.camera.yaw += dx*.08; state.camera.pitch += -dy*.06; state.camera.pitch=Math.max(-60,Math.min(60,state.camera.pitch)); tStart.x=e.touches[0].clientX; tStart.y=e.touches[0].clientY; applyCamera(); } if(e.touches.length===2){ const a=e.touches; const d=Math.hypot(a[0].clientX-a[1].clientX, a[0].clientY-a[1].clientY); const dd=d-tStart.d; state.camera.zoom -= dd*1.4; state.camera.zoom=Math.max(300,Math.min(2200,state.camera.zoom)); tStart.d=d; applyCamera(); } }, {passive:true});
+
+  // Add clips -> worms
+  let idc=1;
+  function addClips(fileList){ if(!fileList||!fileList.length) return; Array.from(fileList).slice(0,12).forEach(file=>{
+      if(!file.type.startsWith('video')) return; // time‑worms thrive on video
+      const url=URL.createObjectURL(file);
+      const vid=document.createElement('video');
+      vid.src=url; vid.muted=true; vid.playsInline=true; vid.loop=true; vid.autoplay=true; vid.controls=false; vid.preload='auto';
+      vid.addEventListener('canplay', ()=> { try{vid.play();}catch(e){} });
+
+      const worm={ id:idc++, name:file.name, video:vid, buffer:[], segs:[], phase: Math.random()*Math.PI*2 };
+      buildWorm(worm);
+      state.worms.push(worm);
+  }); }
+
+  function buildWorm(worm){
+    // Clear prior
+    worm.segs.forEach(s=> s.el.remove()); worm.segs.length=0; worm.buffer.length=0;
+
+    // Create buffer of canvases for trailing frames
+    const SEG=state.params.segs;
+    for(let i=0;i<SEG;i++){
+      const c=document.createElement('canvas'); c.width=192; c.height=108; // small for mobile
+      worm.buffer.push(c);
+      const segEl=document.createElement('div'); segEl.className='seg3d';
+      const inner=document.createElement('canvas'); inner.width=192; inner.height=108; segEl.appendChild(inner);
+      const badge=document.createElement('div'); badge.className='badge'; badge.textContent = worm.name.slice(0,12)+` · ${i+1}/${SEG}`; segEl.appendChild(badge);
+      segEl.addEventListener('click', ()=> focus(segEl));
+      segEl.addEventListener('touchstart', e=>{ // long‑press to tint
+        let t=setTimeout(()=>{ segEl.style.filter = 'hue-rotate('+(Math.random()*360)+'deg)'; }, 600);
+        segEl.addEventListener('touchend', ()=> clearTimeout(t), {once:true});
+      }, {passive:true});
+      space.appendChild(segEl);
+      worm.segs.push({el:segEl, canvas:inner});
+    }
+  }
+
+  function rebuildAllSegs(){ state.worms.forEach(w=> buildWorm(w)); }
+
+  // Focus
+  function focus(elm){ els('.seg3d').forEach(e=> e.classList.remove('focus')); elm.classList.add('focus'); }
+
+  // Frame pump: capture frames into buffers and paint to segments
+  let acc=0, last=0;
+  function animate(ts){ if(!last) last=ts; const dt=(ts-last)/1000; last=ts; acc+=dt; state.params.t += state.params.weaving ? state.params.speed : 0;
+    const step = 1/Math.max(1,state.params.fps);
+    if(acc>=step){ acc=0; // capture a frame per worm
+      state.worms.forEach(w=>{
+        const v=w.video; if(!v.videoWidth) return;
+        // draw current frame at head of buffer
+        const head=document.createElement('canvas'); head.width=192; head.height=108; const cx=head.getContext('2d');
+        cx.drawImage(v,0,0,head.width,head.height);
+        w.buffer.unshift(head); if(w.buffer.length>state.params.segs) w.buffer.pop();
+      });
+    }
+
+    // Layout & paint
+    layoutWorms();
+
+    requestAnimationFrame(animate);
+  }
+
+  function layoutWorms(){
+    const R=state.params.radius; const P=state.params.pitch; const t=state.params.t; const E=state.params.entangle;
+    const count=state.worms.length || 1;
+    state.worms.forEach((w, wi)=>{
+      const twistOffset = (wi/count)*Math.PI*2; // spread worms around
+      w.segs.forEach((seg, i)=>{
+        // Curve param s in [0,1]
+        const s = i/Math.max(1,(state.params.segs-1));
+        // Double‑helix base: two strands per worm via parity
+        const strand = i % 2; // 0/1
+        const theta = (s*Math.PI*2* (2 + count*0.5)) + (strand?Math.PI:0) + t + twistOffset;
+        const ent = Math.sin((s*6 + wi)*1.2 + t*2) * E; // entangle wobble
+        const x = Math.cos(theta) * (R + ent*20);
+        const y = Math.sin(theta) * (R*0.45 + ent*10);
+        const z = (s - 0.5) * (P* state.params.segs) + Math.sin(theta*0.5 + w.phase)*P*0.4;
+
+        const sc = 0.85 + 0.2*(0.5+0.5*Math.sin(theta*1.3));
+        const op = 0.55 + 0.45*(0.5+0.5*Math.cos(theta*1.1));
+        seg.el.style.opacity = op.toFixed(3);
+        seg.el.style.transform = `translate3d(${x}vmin, ${y}vmin, ${z}vmin) rotateY(${(-theta*180/Math.PI)%360}deg) scale(${sc})`;
+
+        // Paint buffered frame corresponding to this segment's lag
+        const frame = w.buffer[i]; if(frame){ const ctx = seg.canvas.getContext('2d'); ctx.drawImage(frame,0,0,seg.canvas.width,seg.canvas.height); }
+      });
+    });
+  }
+
+  // Scenes (optional sequencing)
+  function addScene(){ const id = Date.now()+Math.random(); const sc={id, name:`Scene ${state.scenes.length+1}`, params: JSON.parse(JSON.stringify(state.params)), camera: JSON.parse(JSON.stringify(state.camera)), duration:4.0}; state.scenes.push(sc); const card=document.createElement('div'); card.className='scene'; card.dataset.id=id; card.innerHTML=`<div>${sc.name}</div><div class="meta">${state.params.segs} seg · ${sc.duration}s</div>`; card.addEventListener('click',()=> loadScene(id)); lane.appendChild(card); }
+  function loadScene(id){ const sc=state.scenes.find(s=> s.id===id); if(!sc) return; state.params = JSON.parse(JSON.stringify(sc.params)); state.camera = JSON.parse(JSON.stringify(sc.camera)); applyCamera(); rebuildAllSegs(); }
+  function play(){ if(!state.scenes.length) { flash('＋ Scene to play'); return; } state.playing=true; state.playIndex=0; state.playStart=performance.now(); requestAnimationFrame(tick); }
+  function stop(){ state.playing=false; cursor.style.left='0%'; }
+  function tick(now){ if(!state.playing) return; const sc=state.scenes[state.playIndex]; if(!sc){ stop(); return; } const segStart=state.scenes.slice(0,state.playIndex).reduce((a,s)=>a+s.duration,0); const total=state.scenes.reduce((a,s)=>a+s.duration,0); const t=(now - state.playStart)/1000; const local=t - segStart; if(local<0.02){ loadScene(sc.id); } const pct=(t/total)*100; cursor.style.left=Math.min(100,Math.max(0,pct))+'%'; if(local>=sc.duration){ state.playIndex++; if(state.playIndex>=state.scenes.length){ stop(); return; } } requestAnimationFrame(tick); }
+
+  // Export / Import
+  function exportProject(){ const data={ params:state.params, scenes:state.scenes.map(s=> ({...s, camera:undefined})) }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='timeworms-project.json'; a.click(); }
+  function importProject(e){ const file=e.target.files?.[0]; if(!file) return; const fr=new FileReader(); fr.onload=()=>{ try{ const data=JSON.parse(fr.result); state.params=data.params||state.params; (data.scenes||[]).forEach(s=>{ const card=document.createElement('div'); card.className='scene'; card.dataset.id=s.id; card.innerHTML=`<div>${s.name}</div><div class=\"meta\">${s.params?.segs||state.params.segs} seg</div>`; card.addEventListener('click',()=> loadScene(s.id)); lane.appendChild(card); state.scenes.push({...s, camera: state.camera}); }); flash('Project imported (re‑add media)'); rebuildAllSegs(); }catch(err){ alert('Invalid JSON'); } }; fr.readAsText(file); }
+
+  function resetProject(){ stop(); state.worms.forEach(w=> w.segs.forEach(s=> s.el.remove())); state.worms=[]; state.scenes=[]; lane.innerHTML=''; state.params={segs:24,fps:12,radius:80,pitch:20,speed:0.02,entangle:0.5,weaving:true,t:0}; }
+
+  function flash(msg){ const b=document.createElement('div'); b.textContent=msg; b.style.position='fixed'; b.style.right='8px'; b.style.top='8px'; b.style.background='#10151b99'; b.style.border='1px solid #1c232f'; b.style.color='#cbd5e1'; b.style.padding='6px 10px'; b.style.borderRadius='999px'; b.style.fontSize='12px'; b.style.zIndex=50; document.body.appendChild(b); setTimeout(()=> b.remove(), 1400); }
+
+  // Buttons
+  el('#addSceneBtn').addEventListener('click', addScene);
+  el('#playBtn').addEventListener('click', play);
+  el('#stopBtn').addEventListener('click', stop);
+
+  // Start
+  applyCamera();
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

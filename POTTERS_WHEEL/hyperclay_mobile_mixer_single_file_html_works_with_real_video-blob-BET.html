@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Hyperclay — Mobile Soft‑Body Video MUSH</title>
+  <style>
+    :root{ --bg:#090b10; --ink:#eae7df; --muted:#9aa0a6; --accent:#22b3a6; --rose:#d35; --gold:#caa24a; }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    header{display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem .7rem;background:linear-gradient(180deg,#0d1117,#0a0c10)}
+    header h1{margin:0;font-size:.95rem;font-weight:700;letter-spacing:.2px}
+    .controls{display:flex;gap:.4rem;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;gap:.4rem;background:#0f131a;border:1px solid #1b2230;padding:.45rem .7rem;border-radius:999px;font-size:.85rem}
+    .btn{background:#121722;border:1px solid #1b2230;color:var(--ink);padding:.55rem .8rem;border-radius:.8rem}
+    .btn.primary{background:var(--accent);color:#051a18;font-weight:800}
+
+    main{display:grid;grid-template-rows:1fr auto;gap:.5rem;height:calc(100dvh - 56px);padding:.5rem}
+    #stage{position:relative;border:1px solid #18202b;border-radius:1rem;overflow:hidden;background:#000}
+    canvas{width:100%;height:100%;display:block;touch-action:none}
+    .hud{position:absolute;left:.6rem;bottom:.6rem;background:#0b0f16cc;border:1px solid #1b2230;border-radius:.8rem;padding:.45rem .6rem;font-size:.8rem}
+
+    .footer{display:grid;gap:.5rem}
+    .row{display:flex;gap:.5rem;flex-wrap:wrap}
+    .clips{display:flex;gap:.5rem;overflow:auto}
+    .chip{min-width:160px;background:#0c1118;border:1px solid #1b2230;border-radius:.9rem;padding:.55rem}
+    .chip h4{margin:.1rem 0 .3rem;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .small{font-size:.75rem;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hyperclay — Soft‑Body Video Mush</h1>
+    <div class="controls">
+      <label class="pill"><input id="filepick" type="file" accept="video/*" multiple hidden>➕ Load</label>
+      <button id="play" class="btn primary">▶︎ Play</button>
+      <button id="record" class="btn">● Record</button>
+      <label class="pill"><input id="audio" type="checkbox" checked> Audio</label>
+      <label class="pill">Viscosity <input id="visc" type="range" min="0.85" max="0.995" step="0.001" value="0.96"></label>
+      <label class="pill">Stiffness <input id="stiff" type="range" min="2" max="30" step="1" value="12"></label>
+    </div>
+  </header>
+
+  <main>
+    <section id="stage">
+      <canvas id="c"></canvas>
+      <div id="hud" class="hud">Load 2–6 short clips. Press ▶︎. Then *mush* blobs with 1–5 fingers; blobs push, jiggle, merge. Overlap = blend. Pinch a blob to tighten; fling to slide. Long‑press for a micro‑buzz.</div>
+    </section>
+
+    <section class="footer">
+      <div id="clips" class="clips"></div>
+    </section>
+  </main>
+
+  <div id="bucket" style="display:none"></div>
+
+  <script>
+  // ===== Soft‑body Hyperclay =====
+  const c = document.getElementById('c');
+  const ctx = c.getContext('2d');
+  let W=0,H=0; const DPR = Math.min(2, devicePixelRatio||1);
+  function fit(){ const r=c.parentElement.getBoundingClientRect(); W=r.width*DPR; H=r.height*DPR; c.width=W; c.height=H; }
+  addEventListener('resize', ()=>{fit()}); fit();
+
+  const hud = document.getElementById('hud');
+  const filepick = document.getElementById('filepick');
+  const playBtn = document.getElementById('play');
+  const recordBtn = document.getElementById('record');
+  const audioCb = document.getElementById('audio');
+  const viscSl = document.getElementById('visc');
+  const stiffSl = document.getElementById('stiff');
+  const clipsDiv = document.getElementById('clips');
+  const bucket = document.getElementById('bucket');
+
+  // Physics params (tunable)
+  let VISC = parseFloat(viscSl.value);    // velocity damping (viscosity)
+  let STIFF = parseFloat(stiffSl.value);  // spring stiffness of soft body rings
+  let REPULSE = 12000;                    // inter‑blob repulsion strength
+  let TOUCH_FORCE = 26000;                // finger press force
+  let EDGE = 0.8;                         // keep inside frame
+
+  viscSl.oninput = ()=> VISC = parseFloat(viscSl.value);
+  stiffSl.oninput = ()=> STIFF = parseFloat(stiffSl.value);
+
+  // Touch management
+  const touches = new Map(); // id -> {x,y}
+  c.addEventListener('pointerdown',e=>{ c.setPointerCapture(e.pointerId); const p=pt(e); touches.set(e.pointerId,p); if(navigator.vibrate) navigator.vibrate(8); });
+  c.addEventListener('pointermove',e=>{ if(!touches.has(e.pointerId))return; touches.set(e.pointerId,pt(e)); });
+  c.addEventListener('pointerup',e=>{ touches.delete(e.pointerId); });
+  c.addEventListener('pointercancel',e=>{ touches.delete(e.pointerId); });
+  function pt(e){ const r=c.getBoundingClientRect(); return {x:(e.clientX-r.left)*DPR, y:(e.clientY-r.top)*DPR}; }
+
+  // Blob = soft ring + video
+  const blobs = []; // {video, url, nodes:[{x,y,vx,vy,ox,oy}], cx,cy, r, mass, gain}
+
+  // Create soft ring nodes around a circle
+  function makeBlob(video){
+    const r = Math.min(W,H)*0.18; // base radius
+    const cx = (Math.random()*0.6+0.2)*W; const cy = (Math.random()*0.6+0.2)*H;
+    const n = 18; // nodes
+    const nodes = [];
+    for(let i=0;i<n;i++){
+      const a = (i/n)*Math.PI*2;
+      nodes.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a), vx:0, vy:0, ox:Math.cos(a), oy:Math.sin(a)});
+    }
+    return {video, nodes, cx, cy, r, mass:1 + Math.random()*0.3, gain:null, enabled:true};
+  }
+
+  // Audio
+  let AC=null, mix=null, mediaDest=null; let recording=false, recorder=null, chunks=[];
+  async function ensureAudio(){ if(AC||!audioCb.checked) return; const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx) return; AC=new Ctx(); mix=AC.createGain(); mix.gain.value=0.9; mix.connect(AC.destination); mediaDest=AC.createMediaStreamDestination(); mix.connect(mediaDest); blobs.forEach(b=>{ try{const src=AC.createMediaElementSource(b.video); const g=AC.createGain(); g.gain.value=0; src.connect(g).connect(mix); b.gain=g;}catch{} }); }
+
+  // File loading UI
+  document.querySelector('label .hiddenpick');
+  document.querySelector('label.pill')?.addEventListener('click',()=> filepick.click());
+  filepick.addEventListener('change', async (e)=>{
+    const list = Array.from(e.target.files||[]);
+    for(const f of list){ await addClip(f); }
+    hud.textContent = `Loaded ${blobs.length} blobs. Press ▶︎ then mush.`;
+  });
+
+  async function addClip(file){
+    const url=URL.createObjectURL(file); const v=document.createElement('video');
+    v.src=url; v.muted=true; v.playsInline=true; v.loop=true; v.preload='metadata'; v.crossOrigin='anonymous';
+    bucket.appendChild(v); await v.play().catch(()=>{}); v.pause();
+    const blob=makeBlob(v); blobs.push(blob); addCard(file.name, blob, url);
+  }
+
+  function addCard(name, blob, url){
+    const el=document.createElement('div'); el.className='chip';
+    el.innerHTML=`<h4>🎞️ ${name}</h4><div class="small">Pinch blob to tighten / expand. Double‑tap card to toggle.</div>`;
+    el.ondblclick=()=>{ blob.enabled=!blob.enabled; el.style.opacity=blob.enabled?1:0.35; };
+    clipsDiv.appendChild(el);
+  }
+
+  // Transport
+  let running=false, raf=null; function playAll(){ blobs.forEach(b=>b.video.play().catch(()=>{})); running=true; playBtn.textContent='⏸︎ Pause'; loop(); }
+  function pauseAll(){ blobs.forEach(b=>b.video.pause()); running=false; cancelAnimationFrame(raf); playBtn.textContent='▶︎ Play'; draw(); }
+  playBtn.onclick=async ()=>{ await ensureAudio(); running?pauseAll():playAll(); if(AC&&AC.state==='suspended') AC.resume(); };
+
+  // Recording
+  recordBtn.onclick=async ()=>{
+    if(!recording){ await ensureAudio(); const vstream=c.captureStream(30); let stream=vstream; if(mediaDest){ const a=mediaDest.stream.getAudioTracks()[0]; if(a) stream=new MediaStream([vstream.getVideoTracks()[0], a]); }
+      chunks=[]; recorder=new MediaRecorder(stream, {mimeType:'video/webm;codecs=vp9'});
+      recorder.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+      recorder.onstop=()=>{ const blob=new Blob(chunks,{type:'video/webm'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='hyperclay_mush.webm'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),4000); };
+      recorder.start(100); recording=true; recordBtn.textContent='■ Stop'; if(!running) playAll();
+    } else { recording=false; recordBtn.textContent='● Record'; recorder?.stop(); }
+  };
+
+  // Physics integrator
+  function step(dt){
+    // Soft ring springs (keep nodes near circle around blob center)
+    for(const b of blobs){ if(!b.enabled) continue; const nodes=b.nodes; const n=nodes.length; let cx=0,cy=0; for(const p of nodes){ cx+=p.x; cy+=p.y; } cx/=n; cy/=n; b.cx=cx; b.cy=cy;
+      // pinch/expand detection (two‑finger pinch near blob)
+      let pinch=0; touches.forEach(t=>{ const d=Math.hypot(t.x-b.cx, t.y-b.cy); if(d<b.r*1.2) pinch+=1; }); if(pinch>=2) b.r*=0.995; else b.r*=1.0005; b.r=Math.max(60, Math.min(Math.min(W,H)*0.32, b.r));
+      for(let i=0;i<n;i++){
+        const p=nodes[i]; const a=Math.atan2(p.oy, p.ox); const tx=b.cx + b.r*Math.cos(a); const ty=b.cy + b.r*Math.sin(a);
+        // spring to target ring
+        p.vx += (tx - p.x)*STIFF*dt; p.vy += (ty - p.y)*STIFF*dt;
+        // edge keep‑in
+        if(p.x< (1-EDGE)*W) p.vx += ( (1-EDGE)*W - p.x )*40*dt;
+        if(p.x> EDGE*W)     p.vx += ( EDGE*W     - p.x )*40*dt;
+        if(p.y< (1-EDGE)*H) p.vy += ( (1-EDGE)*H - p.y )*40*dt;
+        if(p.y> EDGE*H)     p.vy += ( EDGE*H     - p.y )*40*dt;
+      }
+    }
+
+    // Inter‑blob repulsion and jello coupling
+    for(let i=0;i<blobs.length;i++) for(let j=i+1;j<blobs.length;j++){
+      const A=blobs[i], B=blobs[j]; if(!A.enabled||!B.enabled) continue;
+      // center‑repulse
+      const dx=B.cx-A.cx, dy=B.cy-A.cy; const d=Math.hypot(dx,dy)+1e-3; const push=(REPULSE/(d*d)); const fx=push*dx/d, fy=push*dy/d;
+      for(const p of A.nodes){ p.vx -= fx*dt/ A.nodes.length; p.vy -= fy*dt/ A.nodes.length; }
+      for(const p of B.nodes){ p.vx += fx*dt/ B.nodes.length; p.vy += fy*dt/ B.nodes.length; }
+      // jelly contact: pull nearest nodes slightly towards the opposite ring for a sticky feel
+      const K=0.6; const pull=K*Math.min(1, (A.r+B.r)/Math.max(d,1));
+      for(let k=0;k<A.nodes.length;k+=3){ const pa=A.nodes[k]; pa.vx += (B.cx - pa.x)*pull*dt; pa.vy += (B.cy - pa.y)*pull*dt; }
+      for(let k=0;k<B.nodes.length;k+=3){ const pb=B.nodes[k]; pb.vx += (A.cx - pb.x)*pull*dt; pb.vy += (A.cy - pb.y)*pull*dt; }
+    }
+
+    // Touch forces
+    touches.forEach(t=>{
+      for(const b of blobs){ if(!b.enabled) continue; // apply force to nearest nodes
+        for(const p of b.nodes){ const dx=t.x-p.x, dy=t.y-p.y; const d2=dx*dx+dy*dy+1; const f=TOUCH_FORCE/d2; p.vx += f*dx*dt; p.vy += f*dy*dt; }
+      }
+    });
+
+    // Integrate & damp
+    for(const b of blobs){ if(!b.enabled) continue; for(const p of b.nodes){ p.vx*=VISC; p.vy*=VISC; p.x+=p.vx*dt*60; p.y+=p.vy*dt*60; } }
+  }
+
+  // Draw: clip each blob with a blobby path, draw video inside, alpha from overlap
+  function draw(){
+    ctx.clearRect(0,0,W,H); ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+
+    // Compute per‑blob alpha based on proximity to other blobs (denser overlap => higher alpha)
+    const alphas = blobs.map(_=>0.9);
+    for(let i=0;i<blobs.length;i++) for(let j=i+1;j<blobs.length;j++){
+      const A=blobs[i], B=blobs[j]; if(!A.enabled||!B.enabled) continue; const d=Math.hypot(A.cx-B.cx, A.cy-B.cy); const overlap = Math.max(0, (A.r+B.r)-d);
+      const boost = Math.min(0.6, overlap / Math.max(A.r,B.r)); alphas[i]+=boost*0.5; alphas[j]+=boost*0.5;
+    }
+
+    // Sort for nicer compositing (small alpha first)
+    const order = blobs.map((b,i)=>({i,a:alphas[i]})).sort((A,B)=>A.a-B.a).map(o=>o.i);
+    ctx.globalCompositeOperation='lighter';
+
+    for(const idx of order){ const b=blobs[idx]; if(!b.enabled) continue; const v=b.video; if(v.readyState<2) continue;
+      // Path from nodes (smooth blob)
+      ctx.save();
+      ctx.beginPath();
+      const ns=b.nodes; ctx.moveTo(ns[0].x, ns[0].y);
+      for(let i=1;i<ns.length;i++){ const p=ns[i]; ctx.lineTo(p.x,p.y); }
+      ctx.closePath();
+      ctx.clip();
+      ctx.globalAlpha = Math.max(0.15, Math.min(1.0, alphas[idx]));
+      // Fit video to blob bounds: scale so short edge ~2*r
+      const vw=v.videoWidth||W, vh=v.videoHeight||H; const s=(2*b.r)/Math.min(vw,vh); const dw=vw*s, dh=vh*s;
+      ctx.drawImage(v, b.cx-dw/2, b.cy-dh/2, dw, dh);
+      ctx.restore();
+
+      // rim
+      ctx.strokeStyle='rgba(202,162,74,.45)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(ns[0].x, ns[0].y); for(let i=1;i<ns.length;i++){ const p=ns[i]; ctx.lineTo(p.x,p.y); } ctx.closePath(); ctx.stroke();
+    }
+
+    // Audio gains tied to blob visible area proportion
+    if(AC && audioCb.checked){
+      for(let i=0;i<blobs.length;i++){ const b=blobs[i]; if(!b.gain) continue; const g = 0.2 + 0.8 * Math.max(0.05, Math.min(1, (b.r/Math.min(W,H)))); b.gain.gain.setTargetAtTime(g, AC.currentTime, 0.05); }
+    }
+  }
+
+  // Main loop
+  let last=performance.now();
+  function loop(){ raf=requestAnimationFrame(loop); const t=performance.now(); let dt=(t-last)/1000; last=t; dt=Math.min(0.05, dt); step(dt); draw(); }
+
+  // Kick first paint
+  draw();
+  </script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>POTTERS_WHEEL — Index</title>
+  <style>
+    :root{
+      --bg:#07080c; --pane:#0c0f14; --ink:#ecf0f1; --muted:#a8b0bd; --accent:#62e0d0; --hot:#ff6a3d; --gold:#e3c46b;
+      --border: rgba(255,255,255,.12);
+    }
+    html, body { height:100%; margin:0; background:var(--bg); color:var(--ink); font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji" }
+    .app{ display:grid; grid-template-rows:auto 1fr; height:100%; }
+    header{ display:flex; gap:.45rem; align-items:center; padding:calc(env(safe-area-inset-top,0) + .4rem) .6rem .4rem; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0)); position:sticky; top:0; z-index:3; backdrop-filter: blur(8px); }
+    .brand{ font-weight:800; letter-spacing:.02em; font-size:.95rem; color:var(--muted) }
+    .controls{ display:flex; gap:.45rem; align-items:center; margin-left:auto; flex-wrap:wrap; }
+    .controls select{ background:rgba(255,255,255,.06); border:1px solid var(--border); color:var(--ink); border-radius:12px; padding:.45rem .6rem; font-size:.95rem; min-height:40px; }
+    .controls .btn{ border:1px solid var(--border); background:rgba(255,255,255,.06); color:var(--ink); padding:.5rem .65rem; border-radius:12px; font-size:.95rem; min-height:40px; min-width:40px; }
+    .controls .btn.active{ outline:2px solid rgba(98,224,208,.5) }
+
+    .main{ display:grid; grid-template-columns: minmax(220px, 360px) 1fr; gap:.75rem; padding:.6rem; height:calc(100vh - 56px - env(safe-area-inset-bottom,0)); box-sizing:border-box; }
+    .main.solo{ grid-template-columns:1fr; }
+    .main.solo .listPane{ display:none; }
+    @media (max-width: 900px){
+      .main{ grid-template-columns:1fr; grid-auto-rows:auto 1fr; padding:.4rem; gap:.5rem; grid-template-areas: 'viewer' 'list'; }
+      .viewer{ grid-area: viewer; }
+      .listPane{ grid-area: list; }
+    }
+
+    .listPane{ background:var(--pane); border:1px solid var(--border); border-radius:14px; overflow:auto; }
+    .viewer{ background:var(--pane); border:1px solid var(--border); border-radius:14px; display:flex; flex-direction:column; min-height:200px; }
+
+    .family{ border-bottom:1px solid var(--border); }
+    .family h3{ margin:0; padding:.6rem .75rem; font-size:1rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; }
+    .family h3 .count{ color:var(--muted); font-weight:500; font-size:.9rem }
+    .group{ padding:.25rem .5rem .6rem .5rem; display:none; }
+    .group.open{ display:block; }
+    .item{ display:flex; align-items:center; justify-content:space-between; gap:.4rem; padding:.4rem .45rem; margin:.15rem 0; border-radius:10px; cursor:pointer; }
+    .item:hover{ background:rgba(255,255,255,.04) }
+    .item .name{ font-size:.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .item .tags{ display:flex; gap:.3rem; }
+    .tag{ font-size:.72rem; padding:.1rem .4rem; border-radius:999px; border:1px solid var(--border); color:#d7f6f0; }
+    .tag.gold{ background:rgba(227,196,107,.12); border-color:rgba(227,196,107,.35); color:#ffe6a6 }
+    .tag.hot{ background:rgba(255,106,61,.12); border-color:rgba(255,106,61,.35); color:#ffc0ad }
+
+    .viewerHead{ display:flex; gap:.5rem; align-items:center; padding:.6rem; border-bottom:1px solid var(--border); position:sticky; top:0; background:linear-gradient(180deg, rgba(12,15,20,.9), rgba(12,15,20,.6)); backdrop-filter: blur(6px); z-index:2; }
+    .viewerHead .btn{ border:1px solid var(--border); background:rgba(255,255,255,.06); color:var(--ink); padding:.5rem .7rem; border-radius:10px; font-size:1rem; min-height:44px; }
+    .viewerHead .title{ margin-left:auto; color:var(--muted); font-size:.9rem; }
+    .frameWrap{ position:relative; flex:1; display:flex; align-items:center; justify-content:center; padding:.5rem; padding-bottom:calc(env(safe-area-inset-bottom,0) + .5rem); }
+    iframe{ width:100%; height:100%; border:0; border-radius:10px; background:#111; }
+    .swipe{ position:absolute; inset:0; }
+
+    .empty{ color:var(--muted); padding:1rem; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">POTTERS_WHEEL — Catalogue</div>
+    <div class="controls">
+      <button id="onlyHighlights" class="btn">Highlights</button>
+      <select id="hiFilter" title="Highlight tag filter">
+        <option value="">Any tag</option>
+        <option value="BET">BET</option>
+        <option value="BETTER">BETTER</option>
+        <option value="GREAT">GREAT</option>
+      </select>
+      <button id="pickMedia" class="btn">Media</button>
+      <button id="syncMedia" class="btn">Sync</button>
+      <input id="mediaInput" type="file" accept="video/*,image/*,audio/*" multiple style="display:none" />
+    </div>
+  </header>
+  <div class="main">
+    <div class="listPane" id="list"></div>
+    <div class="viewer">
+      <div class="viewerHead">
+        <button id="prev" class="btn">◀</button>
+        <button id="next" class="btn">▶</button>
+        <button id="openNew" class="btn">Open</button>
+        <button id="toggleCols" class="btn">Layout</button>
+        <div class="title" id="title">No selection</div>
+      </div>
+      <div class="frameWrap">
+        <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock allow-downloads" allow="autoplay; clipboard-write; encrypted-media; fullscreen"></iframe>
+        <div class="swipe" id="swipe"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(async function(){
+  const listEl = document.getElementById('list');
+  const onlyHighlightsBtn = document.getElementById('onlyHighlights');
+  const frame = document.getElementById('frame');
+  const title = document.getElementById('title');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const openBtn = document.getElementById('openNew');
+  const toggleCols = document.getElementById('toggleCols');
+  const swipe = document.getElementById('swipe');
+  const hiFilter = document.getElementById('hiFilter');
+  const pickMediaBtn = document.getElementById('pickMedia');
+  const syncMediaBtn = document.getElementById('syncMedia');
+  const mediaInput = document.getElementById('mediaInput');
+
+  let manifest = null;
+  try {
+    const res = await fetch('manifest.json', {cache:'no-store'});
+    if(!res.ok) throw new Error('manifest fetch failed');
+    manifest = await res.json();
+  } catch(e) {
+    listEl.innerHTML = '<div class="empty">manifest.json not found. Run <code>node build_manifest.js</code> in this folder to generate it.</div>';
+    return;
+  }
+
+  const allItems = [];
+  for(const fam of manifest.families){
+    for(const it of fam.items){ allItems.push(it); }
+  }
+  let filtered = allItems.slice();
+  let currentIndex = -1;
+
+  // No family/search controls in compact header
+
+  function highlightBadge(tag){
+    if(!tag) return '';
+    const cls = tag==='GREAT' ? 'gold' : (tag==='BETTER' || tag==='BET') ? 'hot' : '';
+    return `<span class="tag ${cls}">${tag}</span>`;
+  }
+
+  function matchesFilter(it){
+    const hiActive = onlyHighlightsBtn.classList.contains('active');
+    const tagSel = hiFilter.value;
+    const hiOk = !hiActive || (it.highlight && (!tagSel || it.highlightTag===tagSel));
+    return hiOk;
+  }
+
+  function renderList(){
+    // Group by family with open/close
+    const famGroups = new Map();
+    for(const it of filtered.filter(matchesFilter)){
+      if(!famGroups.has(it.family)) famGroups.set(it.family, []);
+      famGroups.get(it.family).push(it);
+    }
+    const families = [...famGroups.keys()].sort((a,b)=>a.localeCompare(b));
+    listEl.innerHTML = '';
+    families.forEach(f=>{
+      const items = famGroups.get(f).sort((a,b)=>a.name.localeCompare(b.name));
+      const sec = document.createElement('div'); sec.className='family';
+      sec.innerHTML = `<h3><span>${f}</span><span class="count">${items.length}</span></h3>`;
+      const group = document.createElement('div'); group.className='group open';
+      items.forEach(it=>{
+        const row=document.createElement('div'); row.className='item'; row.dataset.path=it.path; row.dataset.name=it.name;
+        row.innerHTML = `<div class="name">${it.name}</div><div class="tags">${highlightBadge(it.highlightTag)}</div>`;
+        row.addEventListener('click', ()=> selectByName(it.name));
+        group.appendChild(row);
+      });
+      sec.querySelector('h3').addEventListener('click', ()=> group.classList.toggle('open'));
+      sec.appendChild(group);
+      listEl.appendChild(sec);
+    });
+  }
+
+  function selectByName(name){
+    const idx = filtered.findIndex(i=>i.name===name);
+    if(idx!==-1){ selectIndex(idx); scrollItemIntoView(name); }
+  }
+
+  function scrollItemIntoView(name){
+    const el = [...listEl.querySelectorAll('.item')].find(e=>e.dataset.name===name);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  function selectIndex(idx){
+    if(idx<0 || idx>=filtered.length) return; currentIndex = idx;
+    const it = filtered[idx];
+    title.textContent = it.name;
+    // Prefer relative path if in same folder
+    const url = it.name; // files are in same dir; href by name works when served locally
+    frame.src = url;
+    // selection highlight
+    listEl.querySelectorAll('.item').forEach(el=> el.style.outline='none');
+    const sel = [...listEl.querySelectorAll('.item')].find(e=>e.dataset.name===it.name);
+    if(sel) sel.style.outline = '2px solid rgba(98,224,208,.45)';
+  }
+
+  function next(step){
+    if(!filtered.length) return; const n=(currentIndex + step + filtered.length)%filtered.length; selectIndex(n);
+  }
+
+  // Events
+  hiFilter.addEventListener('change', renderList);
+  onlyHighlightsBtn.addEventListener('click', ()=>{ onlyHighlightsBtn.classList.toggle('active'); renderList(); });
+  prevBtn.addEventListener('click', ()=> next(-1));
+  nextBtn.addEventListener('click', ()=> next(1));
+  openBtn.addEventListener('click', ()=>{ const it=filtered[currentIndex]; if(it){ window.open(it.name, '_blank'); }});
+  toggleCols.addEventListener('click', ()=>{
+    // Toggle list pane visibility on small screens
+    document.querySelector('.main').classList.toggle('solo');
+    const solo = document.querySelector('.main').classList.contains('solo');
+    if(solo){ document.querySelector('.listPane').style.display='none'; } else { document.querySelector('.listPane').style.display='block'; }
+  });
+  window.addEventListener('keydown', (e)=>{
+    if(e.key==='ArrowRight') next(1);
+    if(e.key==='ArrowLeft') next(-1);
+  });
+  // Touch swipe for next/prev
+  let startX=null; swipe.addEventListener('touchstart', e=>{ startX = e.changedTouches[0].clientX; }, {passive:true});
+  swipe.addEventListener('touchend', e=>{ if(startX==null) return; const dx = e.changedTouches[0].clientX - startX; if(Math.abs(dx)>50){ next(dx<0?1:-1); } startX=null; }, {passive:true});
+
+  // Initial data
+  filtered = allItems.slice();
+  renderList();
+  if(filtered.length) selectIndex(0);
+
+  // Mobile: default to solo mode on narrow screens, keep responsive
+  function applyResponsiveLayout(){
+    const main = document.querySelector('.main');
+    if(window.innerWidth < 900){ main.classList.add('solo'); }
+    else { main.classList.remove('solo'); document.querySelector('.listPane').style.display='block'; }
+  }
+  applyResponsiveLayout();
+  window.addEventListener('resize', applyResponsiveLayout, {passive:true});
+
+  // =========================
+  // Media Hub (hotswap blobs)
+  // =========================
+  let mediaFiles = [];
+  pickMediaBtn.addEventListener('click', ()=> mediaInput.click());
+  mediaInput.addEventListener('change', (e)=>{ mediaFiles = [...e.target.files]; pickMediaBtn.classList.toggle('active', mediaFiles.length>0); });
+  syncMediaBtn.addEventListener('click', ()=>{
+    const cw = frame.contentWindow; if(!cw) return;
+    try { cw.postMessage({type:'hyper-media:files', files: mediaFiles}, '*'); syncMediaBtn.classList.add('active'); setTimeout(()=>syncMediaBtn.classList.remove('active'), 600); }
+    catch(e){ console.warn('media sync failed', e); }
+  });
+
+  frame.addEventListener('load', ()=>{
+    // inject receiver into iframe to expose __MEDIA_URLS__ and event
+    try{
+      const doc = frame.contentDocument;
+      const s = doc.createElement('script');
+      s.textContent = `(()=>{
+        window.addEventListener('message', async (e)=>{
+          const msg=e.data||{}; if(msg.type!=="hyper-media:files"||!msg.files) return;
+          try{
+            const urls = [];
+            for (const f of msg.files){ urls.push(URL.createObjectURL(f)); }
+            window.__MEDIA_URLS__ = urls;
+            window.dispatchEvent(new CustomEvent('HyperMediaReady', {detail:{count:urls.length}}));
+          }catch(err){ console.warn('HyperMedia import failed', err); }
+        });
+      })();`;
+      doc.documentElement.appendChild(s);
+    }catch(e){ /* cross-origin or sandbox blocked */ }
+  });
+})();
+</script>
+</body>
+</html>

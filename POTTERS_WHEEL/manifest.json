@@ -1,0 +1,565 @@
+{
+  "generatedAt": "2025-08-21T06:31:43.363Z",
+  "root": "/Users/gaia/POTTERS_WHEEL",
+  "totalFiles": 64,
+  "familiesCount": 12,
+  "highlightRule": "filename contains BET/BETTER/GREAT (case-insensitive)",
+  "families": [
+    {
+      "family": "cinematic_data_wall",
+      "counts": {
+        "total": 5,
+        "highlighted": 0
+      },
+      "items": [
+        {
+          "name": "cinematic_data_wall_editor_mobile_single_file_no_deps (1).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/cinematic_data_wall_editor_mobile_single_file_no_deps (1).html",
+          "family": "cinematic_data_wall",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "cinematic_data_wall_editor_mobile_single_file_no_deps.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/cinematic_data_wall_editor_mobile_single_file_no_deps.html",
+          "family": "cinematic_data_wall",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "cinematic_data_wall_editor_mobile_v_0.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/cinematic_data_wall_editor_mobile_v_0.html",
+          "family": "cinematic_data_wall",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "cinematic_data_wall_helix_weave_mobile_no_deps.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/cinematic_data_wall_helix_weave_mobile_no_deps.html",
+          "family": "cinematic_data_wall",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "cinematic_data_wall_tetrad_edition_mobile_no_deps.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/cinematic_data_wall_tetrad_edition_mobile_no_deps.html",
+          "family": "cinematic_data_wall",
+          "highlight": false,
+          "highlightTag": null
+        }
+      ]
+    },
+    {
+      "family": "cinome_sculpting_chamber",
+      "counts": {
+        "total": 2,
+        "highlighted": 0
+      },
+      "items": [
+        {
+          "name": "cinome_sculpting_chamber_centered_infinity_mobile_no_deps.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/cinome_sculpting_chamber_centered_infinity_mobile_no_deps.html",
+          "family": "cinome_sculpting_chamber",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "cinome_sculpting_chamber_mobile_no_deps.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/cinome_sculpting_chamber_mobile_no_deps.html",
+          "family": "cinome_sculpting_chamber",
+          "highlight": false,
+          "highlightTag": null
+        }
+      ]
+    },
+    {
+      "family": "gear_editing_canvas",
+      "counts": {
+        "total": 5,
+        "highlighted": 0
+      },
+      "items": [
+        {
+          "name": "gear_editing_canvas (1).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_editing_canvas (1).html",
+          "family": "gear_editing_canvas",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "gear_editing_canvas (2).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_editing_canvas (2).html",
+          "family": "gear_editing_canvas",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "gear_editing_canvas (3).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_editing_canvas (3).html",
+          "family": "gear_editing_canvas",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "gear_editing_canvas (4).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_editing_canvas (4).html",
+          "family": "gear_editing_canvas",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "gear_editing_canvas.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_editing_canvas.html",
+          "family": "gear_editing_canvas",
+          "highlight": false,
+          "highlightTag": null
+        }
+      ]
+    },
+    {
+      "family": "gear_narrative_engine",
+      "counts": {
+        "total": 5,
+        "highlighted": 3
+      },
+      "items": [
+        {
+          "name": "gear_narrative_engine_arc_sequencer_mechanical_nle.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_narrative_engine_arc_sequencer_mechanical_nle.html",
+          "family": "gear_narrative_engine",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "gear_narrative_engine_arc_sequencer_normal_output_16_9-BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_narrative_engine_arc_sequencer_normal_output_16_9-BET.html",
+          "family": "gear_narrative_engine",
+          "highlight": true,
+          "highlightTag": "BET"
+        },
+        {
+          "name": "gear_narrative_engine_full_send_single_file-BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_narrative_engine_full_send_single_file-BET.html",
+          "family": "gear_narrative_engine",
+          "highlight": true,
+          "highlightTag": "BET"
+        },
+        {
+          "name": "gear_narrative_engine_script_wheels_fountain_fdx_import_bet.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_narrative_engine_script_wheels_fountain_fdx_import_bet.html",
+          "family": "gear_narrative_engine",
+          "highlight": true,
+          "highlightTag": "BET"
+        },
+        {
+          "name": "gear_narrative_engine_script_wheels_fountain_fdx_import.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/gear_narrative_engine_script_wheels_fountain_fdx_import.html",
+          "family": "gear_narrative_engine",
+          "highlight": false,
+          "highlightTag": null
+        }
+      ]
+    },
+    {
+      "family": "hyperclay_fusion_wheel",
+      "counts": {
+        "total": 17,
+        "highlighted": 4
+      },
+      "items": [
+        {
+          "name": "hyperclay_fusion_wheel_3_d_mobile_editor_single_file_html_css_js (1).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_3_d_mobile_editor_single_file_html_css_js (1).html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_3_d_mobile_editor_single_file_html_css_js.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_3_d_mobile_editor_single_file_html_css_js.html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_3_d_mvp_prototype.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_3_d_mvp_prototype.html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_3_d_mvp_single_file_GREAT.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_3_d_mvp_single_file_GREAT.html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": true,
+          "highlightTag": "GREAT"
+        },
+        {
+          "name": "hyperclay_fusion_wheel_3_d_mvp_single_file-1-BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_3_d_mvp_single_file-1-BET.html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": true,
+          "highlightTag": "BET"
+        },
+        {
+          "name": "hyperclay_fusion_wheel_3_d_mvp_single_file-coulda-been.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_3_d_mvp_single_file-coulda-been.html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_all_out_poc (1).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_all_out_poc (1).html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_all_out_poc (2).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_all_out_poc (2).html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_all_out_poc (3).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_all_out_poc (3).html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_all_out_poc (4).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_all_out_poc (4).html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_all_out_poc (5).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_all_out_poc (5).html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_all_out_poc (6).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_all_out_poc (6).html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_all_out_poc_ok.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_all_out_poc_ok.html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_all_out_poc.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_all_out_poc.html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_linear_export_hi_q_sonic_haptic-BETTER.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_linear_export_hi_q_sonic_haptic-BETTER.html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": true,
+          "highlightTag": "BETTER"
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_prototype_mobile_single_file (1).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_prototype_mobile_single_file (1).html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_fusion_wheel_option_2_prototype_mobile_single_file_BBET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_fusion_wheel_option_2_prototype_mobile_single_file_BBET.html",
+          "family": "hyperclay_fusion_wheel",
+          "highlight": true,
+          "highlightTag": "BET"
+        }
+      ]
+    },
+    {
+      "family": "hyperclay_mobile_mixer",
+      "counts": {
+        "total": 5,
+        "highlighted": 2
+      },
+      "items": [
+        {
+          "name": "hyperclay_mobile_mixer_single_file_html_works_with_real_video (2).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_mobile_mixer_single_file_html_works_with_real_video (2).html",
+          "family": "hyperclay_mobile_mixer",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_mobile_mixer_single_file_html_works_with_real_video (3).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_mobile_mixer_single_file_html_works_with_real_video (3).html",
+          "family": "hyperclay_mobile_mixer",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_mobile_mixer_single_file_html_works_with_real_video (4).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_mobile_mixer_single_file_html_works_with_real_video (4).html",
+          "family": "hyperclay_mobile_mixer",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "hyperclay_mobile_mixer_single_file_html_works_with_real_video-BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_mobile_mixer_single_file_html_works_with_real_video-BET.html",
+          "family": "hyperclay_mobile_mixer",
+          "highlight": true,
+          "highlightTag": "BET"
+        },
+        {
+          "name": "hyperclay_mobile_mixer_single_file_html_works_with_real_video-blob-BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/hyperclay_mobile_mixer_single_file_html_works_with_real_video-blob-BET.html",
+          "family": "hyperclay_mobile_mixer",
+          "highlight": true,
+          "highlightTag": "BET"
+        }
+      ]
+    },
+    {
+      "family": "index",
+      "counts": {
+        "total": 2,
+        "highlighted": 0
+      },
+      "items": [
+        {
+          "name": "index.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/index.html",
+          "family": "index",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "index_minimal.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/index_minimal.html",
+          "family": "index",
+          "highlight": false,
+          "highlightTag": null
+        }
+      ]
+    },
+    {
+      "family": "main_gear_film",
+      "counts": {
+        "total": 6,
+        "highlighted": 1
+      },
+      "items": [
+        {
+          "name": "main_gear_film_engine_canvas_build_v_2 (1).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/main_gear_film_engine_canvas_build_v_2 (1).html",
+          "family": "main_gear_film",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "main_gear_film_engine_canvas_build_v_2.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/main_gear_film_engine_canvas_build_v_2.html",
+          "family": "main_gear_film",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "main_gear_film_engine_pro_arc_mix_controls.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/main_gear_film_engine_pro_arc_mix_controls.html",
+          "family": "main_gear_film",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "main_gear_film_engine_single_file_canvas_build (1).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/main_gear_film_engine_single_file_canvas_build (1).html",
+          "family": "main_gear_film",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "main_gear_film_engine_single_file_canvas_build-lil.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/main_gear_film_engine_single_file_canvas_build-lil.html",
+          "family": "main_gear_film",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "main_gear_film_engine_v_2-BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/main_gear_film_engine_v_2-BET.html",
+          "family": "main_gear_film",
+          "highlight": true,
+          "highlightTag": "BET"
+        }
+      ]
+    },
+    {
+      "family": "morphic_mergefield_mobile",
+      "counts": {
+        "total": 3,
+        "highlighted": 2
+      },
+      "items": [
+        {
+          "name": "morphic_mergefield_mobile_canvas_prototype_html_css_js_single_file (2).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/morphic_mergefield_mobile_canvas_prototype_html_css_js_single_file (2).html",
+          "family": "morphic_mergefield_mobile",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "morphic_mergefield_mobile_canvas_prototype_html_css_js_single_file_1_BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/morphic_mergefield_mobile_canvas_prototype_html_css_js_single_file_1_BET.html",
+          "family": "morphic_mergefield_mobile",
+          "highlight": true,
+          "highlightTag": "BET"
+        },
+        {
+          "name": "morphic_mergefield_mobile_canvas_prototype_html_css_js_single_file_BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/morphic_mergefield_mobile_canvas_prototype_html_css_js_single_file_BET.html",
+          "family": "morphic_mergefield_mobile",
+          "highlight": true,
+          "highlightTag": "BET"
+        }
+      ]
+    },
+    {
+      "family": "prime_inception_medium",
+      "counts": {
+        "total": 6,
+        "highlighted": 1
+      },
+      "items": [
+        {
+          "name": "prime_inception_medium_poml_runner_single_file_BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/prime_inception_medium_poml_runner_single_file_BET.html",
+          "family": "prime_inception_medium",
+          "highlight": true,
+          "highlightTag": "BET"
+        },
+        {
+          "name": "prime_inception_medium_poml_runner_single_file_html (1).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/prime_inception_medium_poml_runner_single_file_html (1).html",
+          "family": "prime_inception_medium",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "prime_inception_medium_poml_runner_single_file_html (2).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/prime_inception_medium_poml_runner_single_file_html (2).html",
+          "family": "prime_inception_medium",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "prime_inception_medium_poml_runner_single_file_html (4).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/prime_inception_medium_poml_runner_single_file_html (4).html",
+          "family": "prime_inception_medium",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "prime_inception_medium_poml_runner_single_file_html (5).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/prime_inception_medium_poml_runner_single_file_html (5).html",
+          "family": "prime_inception_medium",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "prime_inception_medium_poml_runner_single_file_html.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/prime_inception_medium_poml_runner_single_file_html.html",
+          "family": "prime_inception_medium",
+          "highlight": false,
+          "highlightTag": null
+        }
+      ]
+    },
+    {
+      "family": "temporal_sculptor_gear",
+      "counts": {
+        "total": 7,
+        "highlighted": 0
+      },
+      "items": [
+        {
+          "name": "temporal_sculptor_gear_editor_web_m_export (1).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/temporal_sculptor_gear_editor_web_m_export (1).html",
+          "family": "temporal_sculptor_gear",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "temporal_sculptor_gear_editor_web_m_export (2).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/temporal_sculptor_gear_editor_web_m_export (2).html",
+          "family": "temporal_sculptor_gear",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "temporal_sculptor_gear_editor_web_m_export (3).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/temporal_sculptor_gear_editor_web_m_export (3).html",
+          "family": "temporal_sculptor_gear",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "temporal_sculptor_gear_editor_web_m_export (4).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/temporal_sculptor_gear_editor_web_m_export (4).html",
+          "family": "temporal_sculptor_gear",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "temporal_sculptor_gear_editor_web_m_export (5).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/temporal_sculptor_gear_editor_web_m_export (5).html",
+          "family": "temporal_sculptor_gear",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "temporal_sculptor_gear_editor_web_m_export (6).html",
+          "path": "/Users/gaia/POTTERS_WHEEL/temporal_sculptor_gear_editor_web_m_export (6).html",
+          "family": "temporal_sculptor_gear",
+          "highlight": false,
+          "highlightTag": null
+        },
+        {
+          "name": "temporal_sculptor_gear_editor_web_m_export.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/temporal_sculptor_gear_editor_web_m_export.html",
+          "family": "temporal_sculptor_gear",
+          "highlight": false,
+          "highlightTag": null
+        }
+      ]
+    },
+    {
+      "family": "unthinkable_media_engine",
+      "counts": {
+        "total": 1,
+        "highlighted": 1
+      },
+      "items": [
+        {
+          "name": "unthinkable_media_engine_single_file_html_atlantis_edition_BET.html",
+          "path": "/Users/gaia/POTTERS_WHEEL/unthinkable_media_engine_single_file_html_atlantis_edition_BET.html",
+          "family": "unthinkable_media_engine",
+          "highlight": true,
+          "highlightTag": "BET"
+        }
+      ]
+    }
+  ]
+}

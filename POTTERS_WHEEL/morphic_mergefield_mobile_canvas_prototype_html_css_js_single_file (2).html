@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Morphic Mergefield — Mobile</title>
+<style>
+  :root{
+    --bg:#08090e; --ink:#e9e6df; --muted:#a2a7b0; --accent:#56d6c5; --hot:#ff6a3d; --gold:#d4b86a;
+    --glow: 0 0 12px rgba(86,214,197,.65), 0 0 24px rgba(86,214,197,.3);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";}
+  canvas{position:fixed;inset:0;touch-action:none;}
+  .hud{position:fixed;inset:auto 0 0 0;display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem .8rem;background:linear-gradient(180deg, transparent, rgba(6,7,10,.75));backdrop-filter: blur(6px);}
+  .btnrow{display:flex;gap:.5rem;align-items:center;}
+  .btn{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:var(--ink);padding:.55rem .7rem;border-radius:14px;font-size:18px;line-height:1;min-width:2.25rem;text-align:center;box-shadow:0 2px 0 rgba(0,0,0,.35);}
+  .btn:active{transform:translateY(1px);} .btn.active{outline:2px solid rgba(86,214,197,.6);box-shadow:var(--glow);} .brand{font-weight:700;letter-spacing:.02em;font-size:.9rem;color:var(--muted)}
+  input[type=file]{display:none}
+  .tooltip{position:fixed;left:50%;transform:translateX(-50%);bottom:64px;color:#cfe9e3;font-size:.8rem;opacity:.95;background:rgba(0,0,0,.45);padding:.35rem .6rem;border-radius:10px;border:1px solid rgba(255,255,255,.12)}
+  .help{position:fixed;inset:12% 8% auto 8%;max-height:70%;overflow:auto;background:rgba(8,10,14,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px 14px;display:none}
+  .help h3{margin:.2rem 0 .6rem 0} .help p, .help li{color:#d8dfeb} .help ul{padding-left:1rem}
+  .pill{display:inline-flex;gap:.4rem;align-items:center;padding:.12rem .5rem;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);font-size:.8rem;color:#cbd6e2}
+  @media (min-width:700px){ .hud{inset:auto auto 1rem 1rem;border-radius:14px;width:fit-content} }
+</style>
+</head>
+<body>
+<canvas id="field"></canvas>
+<input id="file" type="file" accept="video/*" multiple />
+<div class="hud" role="toolbar" aria-label="controls">
+  <div class="brand">MORPHIC MERGEFIELD</div>
+  <div class="btnrow">
+    <button class="btn" id="load" title="Load clips">⧉</button>
+    <button class="btn" id="test" title="Load test patterns">✚</button>
+    <button class="btn" id="overlay" title="Resonance overlay">⌁</button>
+    <button class="btn" id="fusion" title="Fusion core on/off">☯</button>
+    <button class="btn" id="tuner" title="Tuner">⚙</button>
+    <button class="btn" id="cal" title="Quick calibrate">🧭</button>
+    <button class="btn" id="gyro" title="Tilt navigation">◎</button>
+    <button class="btn" id="mute" title="Mute/Unmute audio">🔇</button>
+    <button class="btn" id="help" title="Help">?</button>
+  </div>
+</div>
+<div class="tooltip" id="tip"></div>
+<div class="help" id="helpPanel">
+  <h3>Gesture Guide</h3>
+  <ul>
+    <li><span class="pill">2–5 fingers</span> create a <b>Fusion Core</b> (radar circle). Streams inside mix in the center.</li>
+    <li><span class="pill">Pinch/Spread</span> fingers to tune core radius; move fingers as control points.</li>
+    <li><span class="pill">Long‑press</span> a tile → capture resonance; drag onto another to inflect.</li>
+    <li><span class="pill">Circle</span> a tile: clockwise → faster · counter → rewind drift.</li>
+    <li>
+      <span class="pill">⚙ Tuner</span> live‑adjust <i>Sensitivity, Mist, Swirl, Threshold</i>.
+      <span class="pill">🧭 Cal</span> two‑finger hold 2s → auto‑calibrate.
+      <span class="pill">✚ Test</span> loads procedural clips for calibration.
+    </li>
+  </ul>
+  <p>Use ⧉ to load 2–6 short clips (muted by default). Everything runs on‑device.</p>
+</div>
+
+<!-- TUNER PANEL -->
+<div id="tunerPanel" style="display:none; position:fixed; left:0; right:0; bottom:3.3rem; margin:0 auto; width:min(720px, 96%); background:rgba(10,12,16,.92); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:10px 12px; color:#d8dfeb;">
+  <div style="display:grid; grid-template-columns: 1fr 100px; gap:.4rem .8rem; align-items:center;">
+    <label>Core Sensitivity</label>
+    <input id="rngSens" type="range" min="0.5" max="2.5" step="0.05" value="1.2" />
+    <label>Mist Density</label>
+    <input id="rngMist" type="range" min="0.02" max="0.25" step="0.01" value="0.08" />
+    <label>Mist Swirl</label>
+    <input id="rngSwirl" type="range" min="0.0" max="0.02" step="0.0005" value="0.0045" />
+    <label>Mist Spread</label>
+    <input id="rngSpread" type="range" min="1.000" max="1.030" step="0.001" value="1.010" />
+    <label>Pair Threshold</label>
+    <input id="rngThresh" type="range" min="0.20" max="0.80" step="0.01" value="0.45" />
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('field');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const fileInput = document.getElementById('file');
+  const tipEl = document.getElementById('tip');
+  const helpBtn = document.getElementById('help');
+  const helpPanel = document.getElementById('helpPanel');
+  const overlayBtn = document.getElementById('overlay');
+  const gyroBtn = document.getElementById('gyro');
+  const loadBtn = document.getElementById('load');
+  const muteBtn = document.getElementById('mute');
+  const fusionBtn = document.getElementById('fusion');
+  const tunerBtn = document.getElementById('tuner');
+  const tunerPanel = document.getElementById('tunerPanel');
+  const testBtn = document.getElementById('test');
+  const calBtn = document.getElementById('cal');
+
+  // Tuner ranges
+  const rngSens = document.getElementById('rngSens');
+  const rngMist = document.getElementById('rngMist');
+  const rngSwirl = document.getElementById('rngSwirl');
+  const rngSpread = document.getElementById('rngSpread');
+  const rngThresh = document.getElementById('rngThresh');
+
+  let W = 0, H = 0; let t = 0;
+  let overlayOn = true; let gyroOn = false; let muted = true; let fusionOn = true; let tunerOn = false;
+
+  // Config (live‑tuned)
+  const cfg = {
+    core:{ sensitivity: parseFloat(rngSens.value), minR: 60, maxRFactor: 1.9 },
+    mist:{ decay: parseFloat(rngMist.value), swirl: parseFloat(rngSwirl.value), spread: parseFloat(rngSpread.value) },
+    pair:{ threshold: parseFloat(rngThresh.value) },
+    weights:{ touchBias:0.4, falloff:24, gamma:1.2 }
+  };
+
+  rngSens.oninput = ()=> cfg.core.sensitivity = parseFloat(rngSens.value);
+  rngMist.oninput = ()=> cfg.mist.decay = parseFloat(rngMist.value);
+  rngSwirl.oninput = ()=> cfg.mist.swirl = parseFloat(rngSwirl.value);
+  rngSpread.oninput= ()=> cfg.mist.spread = parseFloat(rngSpread.value);
+  rngThresh.oninput= ()=> cfg.pair.threshold = parseFloat(rngThresh.value);
+
+  // Camera
+  const camera = { x:0, y:0, zoom:1, vx:0, vy:0 };
+
+  // Web Audio
+  let audioCtx = null; let masterGain = null; let padOsc = null; let padFilter = null; let noise = null; let noiseGain = null; let rewindTimer = null;
+  function initAudio(){ if(audioCtx) return; audioCtx = new (window.AudioContext||window.webkitAudioContext)(); masterGain = audioCtx.createGain(); masterGain.gain.value = 0.24; masterGain.connect(audioCtx.destination); padOsc = audioCtx.createOscillator(); padOsc.type = 'sawtooth'; padFilter = audioCtx.createBiquadFilter(); padFilter.type = 'lowpass'; padFilter.frequency.value = 600; const padGain = audioCtx.createGain(); padGain.gain.value = 0.14; padOsc.connect(padFilter); padFilter.connect(padGain); padGain.connect(masterGain); padOsc.start(); const buf = audioCtx.createBuffer(1, audioCtx.sampleRate*2, audioCtx.sampleRate); const data = buf.getChannelData(0); for(let i=0;i<data.length;i++){ data[i] = (Math.random()*2-1)*0.12; } noise = audioCtx.createBufferSource(); noise.buffer = buf; noise.loop = true; noiseGain = audioCtx.createGain(); noiseGain.gain.value = 0.05; noise.connect(noiseGain); noiseGain.connect(masterGain); noise.start(); }
+
+  function setTip(txt){ tipEl.textContent = txt; tipEl.style.opacity = 1; clearTimeout(setTip._t); setTip._t = setTimeout(()=> tipEl.style.opacity = .0, 1600); }
+  function vibrate(msOrPattern){ if(navigator.vibrate) try{ navigator.vibrate(msOrPattern);}catch(e){} }
+
+  // Streams support procedural patterns for testing
+  const streams = []; // {video|proc:true, canvas, drawProc(t), x,y,r,hue,...}
+  const links = []; let nextId = 1;
+
+  function resize(){ W = Math.floor(window.innerWidth * dpr); H = Math.floor(window.innerHeight * dpr); canvas.width = W; canvas.height = H; canvas.style.width = (W/dpr)+'px'; canvas.style.height = (H/dpr)+'px'; }
+  window.addEventListener('resize', resize, {passive:true}); resize();
+
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+  function lerp(a,b,t){ return a + (b-a)*t; }
+  function centroid(pts){ let x=0,y=0; for(const p of pts){ x+=p.x; y+=p.y; } return {x:x/pts.length, y:y/pts.length}; }
+  function normAngle(a){ while(a>Math.PI) a-=2*Math.PI; while(a<-Math.PI) a+=2*Math.PI; return a; }
+  function lerpAngle(a,b,f){ let d = ((b - a + 540) % 360) - 180; return a + d*f; }
+
+  const sampleCV = document.createElement('canvas'); const sctx = sampleCV.getContext('2d'); sampleCV.width = 32; sampleCV.height = 18;
+  function avgHueFromFrame(drawable){ try{ sctx.drawImage(drawable,0,0,sampleCV.width,sampleCV.height); const d = sctx.getImageData(0,0,sampleCV.width,sampleCV.height).data; let r=0,g=0,b=0; for(let i=0;i<d.length;i+=4){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; } r/= (d.length/4); g/= (d.length/4); b/= (d.length/4); const [h] = rgb2h(r,g,b); return h; }catch(e){ return rnd(0,360); } }
+  function rgb2h(r,g,b){ r/=255; g/=255; b/=255; const max=Math.max(r,g,b), min=Math.min(r,g,b); let h,s,v=max; const d=max-min; s=max===0?0:d/max; if(max===min){h=0;} else { switch(max){ case r: h=(g-b)/d + (g<b?6:0); break; case g: h=(b-r)/d + 2; break; case b: h=(r-g)/d + 4; break; } h/=6; } return [h*360,s,v]; }
+
+  function addStreamFromFile(file, idx, total){ const url = URL.createObjectURL(file); const v = document.createElement('video'); v.src = url; v.muted = true; v.loop = true; v.playsInline = true; v.crossOrigin = 'anonymous'; v.addEventListener('canplay', ()=>{ v.play().catch(()=>{}); }); v.addEventListener('loadeddata', ()=>{ const h = avgHueFromFrame(v); const s = { id: nextId++, video: v, x: rnd(-W, W)+camera.x, y: rnd(-H, H)+camera.y, r: Math.max(60*dpr, Math.min(W,H) * .18), hue: h, tint: 0, mergeAlpha: 0.0, vx:rnd(-.2,.2), vy:rnd(-.2,.2), selected:false, targetRate:1, rewind:false, pressure:0.5 }; streams.push(s); layoutStreams(); if(audioCtx) setTip('Loaded '+ total +' clip'+(total>1?'s':'')); }); }
+
+  function addProceduralStream(kind){ const c=document.createElement('canvas'); c.width=320; c.height=180; const cx=c.getContext('2d'); let seed=Math.random()*1000; function drawProc(time){ const w=c.width, h=c.height; const img=cx.createImageData(w,h); const data=img.data; for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ const i=(y*w+x)*4; const nx=(x/w-.5), ny=(y/h-.5); const r=Math.hypot(nx,ny); let v=0; if(kind==='rings'){ v = 0.5+0.5*Math.sin(18*r - time*1.8 + seed); } else if(kind==='plasma'){ v = 0.5+0.5*(Math.sin(6*nx+time*1.4)+Math.sin(7*ny-time*1.1)); v*=0.5+0.5*Math.sin(4*(nx+ny)+time*0.7+seed); } else { v = 0.5+0.5*Math.sin(10*nx+seed) * Math.cos(10*ny+time*1.2); }
+        const R = 120 + 120*v, G = 120 + 120*Math.sin(v*3.14+1), B = 120 + 120*Math.cos(v*3.14+2);
+        data[i]=R; data[i+1]=G; data[i+2]=B; data[i+3]=255; }
+      }
+      cx.putImageData(img,0,0);
+      return c;
+    }
+    const hue = avgHueFromFrame(drawProc(0));
+    const s = { id: nextId++, proc:true, procKind:kind, procCanvas:c, drawProc, x:rnd(-W,W)+camera.x, y:rnd(-H,H)+camera.y, r: Math.max(60*dpr, Math.min(W,H)*.18), hue, tint:0, mergeAlpha:0, selected:false, targetRate:1, rewind:false, pressure:0.5 };
+    streams.push(s); layoutStreams(); return s;
+  }
+
+  function layoutStreams(){ const n=streams.length; if(n===0) return; const cols = Math.ceil(Math.sqrt(n)); const rows = Math.ceil(n/cols); const pad = Math.min(W,H) * 0.08; const cellW = (W - pad*2)/cols; const cellH = (H - pad*2)/rows; streams.forEach((s,i)=>{ const c = i % cols; const r = Math.floor(i/cols); s.x = camera.x + (-W/2 + pad + cellW*(c+.5)); s.y = camera.y + (-H/2 + pad + cellH*(r+.5)); s.r = Math.min(cellW, cellH) * .42; }); }
+
+  // Gestures
+  const touches = new Map(); let resonance = null; let prevTouchCount = 0;
+  function screenToWorld(x,y){ return { x: (x*dpr)/camera.zoom + camera.x - W/2/camera.zoom, y: (y*dpr)/camera.zoom + camera.y - H/2/camera.zoom } }
+  function worldToScreen(x,y){ return { x: ( (x - camera.x + W/2/camera.zoom) * camera.zoom)/dpr, y: ( (y - camera.y + H/2/camera.zoom) * camera.zoom)/dpr } }
+  function pickStream(p){ let best=null, bd=1e9; for(const s of streams){ const d = Math.hypot(p.x - s.x, p.y - s.y); if(d < s.r*1.1 && d<bd){ bd=d; best=s; } } return best; }
+
+  function onPointerDown(e){ initAudio(); if(audioCtx && audioCtx.state==='suspended'){ audioCtx.resume(); } const p = { x:e.clientX, y:e.clientY }; const w = screenToWorld(p.x,p.y); const s = pickStream(w); const id = e.pointerId || ('m'+Math.random()); const tp = { id, x:p.x, y:p.y, t:performance.now(), stream:s, path:[p], longPress:true, mode:'none', startDist:0, lastAngle:null, pressure:e.pressure||0.5 }; touches.set(id, tp); if(s){ s.selected=true; vibrate(12); } tp.lpTimer = setTimeout(()=>{ if(tp.longPress && s){ resonance = { hue: s.hue }; tp.mode='resonance'; setTip('Resonance captured'); vibrate([10,40,10]); } }, 520); if(touches.size>=2 && prevTouchCount<2){ setTip('Fusion Core ready: move 2–5 fingers'); vibrate([8,30,8]); } prevTouchCount = touches.size; }
+
+  function onPointerMove(e){ const id = e.pointerId || [...touches.keys()][0]; if(!touches.has(id)) return; const tp = touches.get(id); tp.x = e.clientX; tp.y = e.clientY; tp.pressure = e.pressure||tp.pressure; tp.path.push({x:tp.x,y:tp.y}); if(tp.path.length>16) tp.path.shift(); tp.longPress = false; clearTimeout(tp.lpTimer);
+    if(touches.size===2){ const [a,b] = [...touches.values()]; const aw = screenToWorld(a.x,a.y), bw = screenToWorld(b.x,b.y); const sa = pickStream(aw), sb = pickStream(bw); if(sa && sb && sa!==sb){ const d = Math.hypot(aw.x-bw.x, aw.y-bw.y); if(!a.startDist){ a.startDist=d; b.startDist=d; } const delta = d - (a.startDist); const strength = clamp( (-delta) / (Math.max(sa.r,sb.r)*1.2), 0, 1 ); let link = links.find(L=> (L.a===sa&&L.b===sb)||(L.a===sb&&L.b===sa)); if(!link){ link = {a:sa,b:sb, w:0}; links.push(link); } link.w = lerp(link.w, strength, .35); sa.mergeAlpha = Math.max(sa.mergeAlpha, link.w); sb.mergeAlpha = Math.max(sb.mergeAlpha, link.w); const ux = (bw.x-aw.x)/Math.max(1,d); const uy=(bw.y-aw.y)/Math.max(1,d); sa.x += ux * strength * .6; sa.y += uy * strength * .6; sb.x -= ux * strength * .6; sb.y -= uy * strength * .6; if(audioCtx){ padFilter.frequency.value = 400 + 900*link.w; masterGain.gain.value = .18 + .18*link.w; } if(link.w>.88 && !link.notified){ setTip('Merge stabilized'); vibrate([8,60,8,60,8]); link.notified=true; } } }
+    if(tp.mode==='resonance' && resonance){ const w = screenToWorld(tp.x, tp.y); const s = pickStream(w); if(s){ s.tint = lerp(s.tint || 0, 1.0, .4); s.hue = lerpAngle(s.hue, resonance.hue, .2); } return; }
+    if(tp.stream){ const pth = tp.path; if(pth.length>=4){ const c = centroid(pth); const a1 = Math.atan2(pth[0].y-c.y, pth[0].x-c.x); const a2 = Math.atan2(pth[pth.length-1].y-c.y, pth[pth.length-1].x-c.x); let da = normAngle(a2 - a1); if(Math.abs(da) > Math.PI/3){ if(da>0){ tp.stream.targetRate = clamp(tp.stream.targetRate + 0.02, 0.25, 2.0); tp.stream.rewind = false; clearInterval(rewindTimer); rewindTimer=null; setTip('↻ faster'); if(audioCtx) padOsc.frequency.value = 110 + 120*tp.stream.targetRate; vibrate(8); } else { tp.stream.rewind = true; tp.stream.targetRate = 0.001; if(!rewindTimer){ rewindTimer = setInterval(()=>{ for(const s of streams){ if(s.rewind){ s.video? s.video.currentTime = Math.max(0, s.video.currentTime - 0.06) : null; } } }, 60); } setTip('↺ rewind'); if(audioCtx) padOsc.frequency.value = 90; vibrate(6); } } } }
+    else { const last = tp.path[tp.path.length-2]; if(last){ camera.x -= (tp.x - last.x) * dpr / camera.zoom; camera.y -= (tp.y - last.y) * dpr / camera.zoom; } }
+  }
+
+  function onPointerUp(e){ const id = e.pointerId || [...touches.keys()][0]; const tp = touches.get(id); if(!tp) return; if(tp.stream){ tp.stream.selected=false; } if(tp.mode==='resonance' && resonance){ setTip('Resonance applied'); vibrate([6,30,6]); resonance=null; } touches.delete(id); clearTimeout(tp.lpTimer); if(prevTouchCount>=2 && touches.size<2){ setTip('Core dissipated'); vibrate(10); } prevTouchCount = touches.size; }
+
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointercancel', onPointerUp);
+
+  // Tilt navigation
+  async function enableGyro(){ function onOri(e){ const gx = e.gamma||0, gy=e.beta||0; camera.vx = lerp(camera.vx, gx*0.6, .08); camera.vy = lerp(camera.vy, gy*0.6, .08); }
+    if(typeof DeviceOrientationEvent!== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      try{ const p = await DeviceOrientationEvent.requestPermission(); if(p==='granted'){ window.addEventListener('deviceorientation', onOri); gyroOn=true; gyroBtn.classList.add('active'); setTip('Tilt on'); } }
+      catch(e){ setTip('Tilt not permitted'); }
+    }else{ window.addEventListener('deviceorientation', onOri); gyroOn=true; gyroBtn.classList.add('active'); setTip('Tilt on'); }
+  }
+
+  gyroBtn.addEventListener('click', ()=>{ if(!gyroOn) enableGyro(); else { gyroOn=false; window.removeEventListener('deviceorientation',()=>{}); gyroBtn.classList.remove('active'); setTip('Tilt off'); } });
+  overlayBtn.addEventListener('click', ()=>{ overlayOn=!overlayOn; overlayBtn.classList.toggle('active', overlayOn); setTip(overlayOn?'Overlay on':'Overlay off'); });
+  helpBtn.addEventListener('click', ()=>{ helpPanel.style.display = helpPanel.style.display==='block'?'none':'block'; helpBtn.classList.toggle('active', helpPanel.style.display==='block'); });
+  fusionBtn.addEventListener('click', ()=>{ fusionOn=!fusionOn; fusionBtn.classList.toggle('active', fusionOn); setTip(fusionOn?'Fusion on':'Fusion off'); });
+  tunerBtn.addEventListener('click', ()=>{ tunerOn=!tunerOn; tunerPanel.style.display = tunerOn?'block':'none'; tunerBtn.classList.toggle('active', tunerOn); setTip('Tuner '+(tunerOn?'open':'closed')); });
+  testBtn.addEventListener('click', ()=>{ addProceduralStream('plasma'); addProceduralStream('rings'); addProceduralStream('stripes'); setTip('3 test patterns loaded'); });
+
+  loadBtn.addEventListener('click', ()=>{ fileInput.click(); });
+  fileInput.addEventListener('change', (e)=>{ const files = [...e.target.files].filter(f=> f.type.startsWith('video/')).slice(0,8); if(files.length===0){ setTip('No video files selected'); return; } files.forEach((f,i)=> addStreamFromFile(f, i, files.length)); });
+  muteBtn.addEventListener('click', ()=>{ muted = !muted; for(const s of streams){ if(s.video) s.video.muted = muted; } muteBtn.textContent = muted ? '🔇' : '🔊'; setTip(muted?'Muted':'Audio passthrough'); });
+
+  // Quick Cal — hold two fingers steady ~2s
+  calBtn.addEventListener('click', ()=>{ setTip('Hold two fingers steady 2s'); vibrate([12,20,12]); quickCal(); });
+  async function quickCal(){ const start = performance.now(); const hist=[]; function sample(){ if(touches.size>=2){ const pts=[...touches.values()].map(tp=>({x:tp.x,y:tp.y})); const c=centroid(pts); let maxd=0, jitter=0; for(const p of pts){ const d=Math.hypot(p.x-c.x,p.y-c.y); jitter += d; maxd=Math.max(maxd,d); } hist.push({maxd,jitter}); }
+    const int = setInterval(sample, 50); await new Promise(r=> setTimeout(r, 2000)); clearInterval(int); if(hist.length){ const avgMaxd = hist.reduce((a,b)=>a+b.maxd,0)/hist.length; const avgJ = hist.reduce((a,b)=>a+b.jitter,0)/hist.length; cfg.weights.falloff = clamp(avgJ/8, 12, 40); cfg.core.minR = clamp(avgMaxd*0.9, 40, Math.min(W,H)/2); rngSens.value = cfg.core.sensitivity = clamp(1.2* (36/cfg.weights.falloff), 0.6, 2.2); setTip('Calibrated ✓'); vibrate([8,40,8]); }
+  }
+
+  // Fusion core offscreen
+  const S = 384; const fusionCV = document.createElement('canvas'); fusionCV.width=S; fusionCV.height=S; const fctx = fusionCV.getContext('2d');
+  const prevCV = document.createElement('canvas'); prevCV.width=S; prevCV.height=S; const pctx = prevCV.getContext('2d');
+
+  function computeCore(){ if(!fusionOn || touches.size<2) return null; const pts=[...touches.values()].map(tp=>({x:tp.x,y:tp.y,w:tp.pressure||0.5})); const c=centroid(pts); let maxd=0; for(const p of pts){ maxd=Math.max(maxd, Math.hypot(p.x-c.x, p.y-c.y)); } let r = clamp(maxd*1.15*cfg.core.sensitivity, cfg.core.minR, Math.min(W,H)/cfg.core.maxRFactor); return {cx:c.x, cy:c.y, r, pts}; }
+
+  function fusionWeights(core){ const weights = new Map(); let sum=0; for(const s of streams){ const sp = worldToScreen(s.x, s.y); let w=0; for(const tp of core.pts){ const d=Math.hypot(sp.x - tp.x, sp.y - tp.y); w += (tp.w+cfg.weights.touchBias) / (d+cfg.weights.falloff); } w = Math.pow(w, cfg.weights.gamma); weights.set(s, w); sum += w; } for(const [s,w] of weights){ weights.set(s, sum>0 ? w/sum : 0); } return weights; }
+
+  function renderFusion(core){ // temporal feedback
+    fctx.save(); fctx.globalCompositeOperation='source-over'; fctx.fillStyle=`rgba(0,0,0,${cfg.mist.decay})`; fctx.fillRect(0,0,S,S); fctx.translate(S/2,S/2); fctx.rotate(cfg.mist.swirl); fctx.scale(cfg.mist.spread, cfg.mist.spread); fctx.globalAlpha=0.92; fctx.drawImage(prevCV,-S/2,-S/2,S,S); fctx.restore();
+    // mix sources
+    const Wt = fusionWeights(core); let hueAcc=0, hueSum=0; fctx.globalCompositeOperation='lighter';
+    for(const s of streams){ const w = Wt.get(s)||0; if(w<=0.002) continue; let drawable=null; if(s.video){ drawable = s.video; } else if(s.proc){ drawable = s.drawProc(t*0.05); } if(!drawable) continue; const vw=drawable.videoWidth||drawable.width||320, vh=drawable.videoHeight||drawable.height||180; const scale = Math.max(S/vw, S/vh); const dw=vw*scale, dh=vh*scale; fctx.globalAlpha = clamp(0.65*w, 0, 0.8); fctx.drawImage(drawable, (S-dw)/2, (S-dh)/2, dw, dh); hueAcc += (s.hue||0)*w; hueSum += w; }
+    // bloom
+    fctx.globalCompositeOperation='screen'; fctx.globalAlpha = 0.10; fctx.filter='blur(4px)'; fctx.drawImage(fusionCV,0,0); fctx.filter='none'; fctx.globalAlpha = 1;
+    pctx.globalCompositeOperation='copy'; pctx.drawImage(fusionCV,0,0);
+    const hue = hueSum>0? (hueAcc/hueSum)|0 : 180; return hue; }
+
+  function mergePotential(s){ let m = 0; for(const o of streams){ if(o===s) continue; const d = Math.hypot(s.x-o.x, s.y-o.y); const p = Math.max(0, 1 - d/((s.r+o.r)*2.2)); m = Math.max(m, p); } return m; }
+  function potentialPairs(){ const res=[]; for(let i=0;i<streams.length;i++){ for(let j=i+1;j<streams.length;j++){ const a=streams[i], b=streams[j]; const d = Math.hypot(a.x-b.x, a.y-b.y); const p = Math.max(0, 1 - d/((a.r+b.r)*2.2)); if(p>cfg.pair.threshold) res.push({a,b,p}); } } return res; }
+
+  function draw(){ t += 1/60; camera.x += camera.vx; camera.y += camera.vy; camera.vx *= .94; camera.vy *= .94;
+    // backdrop grid
+    ctx.fillStyle = '#08090e'; ctx.fillRect(0,0,W,H); const g = 38*dpr; ctx.globalAlpha=.18; ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.beginPath(); for(let y=(((-camera.y)%g)+g)%g; y<H; y+=g){ ctx.moveTo(0,y); ctx.lineTo(W,y); } for(let x=(((-camera.x)%g)+g)%g; x<W; x+=g){ ctx.moveTo(x,0); ctx.lineTo(x,H); } ctx.stroke(); ctx.globalAlpha=1;
+    // links
+    if(overlayOn){ for(const L of links){ if(L.w<0.05) continue; const a=worldToScreen(L.a.x, L.a.y), b=worldToScreen(L.b.x, L.b.y); const mw = 2 + 10*L.w; const hue = Math.round((L.a.hue+L.b.hue)/2); ctx.strokeStyle = `hsla(${hue},80%,60%,${0.25 + 0.45*L.w})`; ctx.lineWidth = mw; ctx.beginPath(); const cx = (a.x+b.x)/2 + Math.sin(t*0.8 + L.a.id)*18; const cy=(a.y+b.y)/2 + Math.cos(t*0.8 + L.b.id)*18; ctx.moveTo(a.x,a.y); ctx.quadraticCurveTo(cx,cy,b.x,b.y); ctx.stroke(); } }
+    // streams
+    for(const s of streams){ const p = worldToScreen(s.x, s.y); const r = s.r * camera.zoom / dpr; ctx.save(); ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI*2); ctx.clip(); let drawable=null; if(s.video){ drawable=s.video; } else if(s.proc){ drawable=s.drawProc(t*0.05); } const vw = (drawable && (drawable.videoWidth||drawable.width)) || 320; const vh = (drawable && (drawable.videoHeight||drawable.height)) || 180; if(drawable){ const scale = Math.max((r*2)/vw, (r*2)/vh); const dw = vw*scale, dh = vh*scale; ctx.globalAlpha = 0.95; ctx.drawImage(drawable, p.x - dw/2, p.y - dh/2, dw, dh);} if(s.tint>0){ ctx.globalAlpha = clamp(s.tint,0,0.6); ctx.fillStyle = `hsla(${s.hue}, 70%, 55%, 1)`; ctx.fillRect(p.x - r, p.y - r, r*2, r*2); s.tint *= .95; } ctx.restore(); const pot = mergePotential(s); if(pot>0.35){ ctx.shadowBlur = 28; ctx.shadowColor = `hsla(${s.hue},80%,60%,.6)`; ctx.strokeStyle = `hsla(${s.hue},80%,60%,.8)`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(p.x, p.y, r+3, 0, Math.PI*2); ctx.stroke(); ctx.shadowBlur=0; } ctx.lineWidth = 2; ctx.strokeStyle = s.selected ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.22)'; ctx.beginPath(); ctx.arc(p.x, p.y, r+ (s.selected?4:1), 0, Math.PI*2); ctx.stroke(); }
+    // pair midpoints
+    if(overlayOn){ for(const P of potentialPairs()){ const a=worldToScreen(P.a.x,P.a.y), b=worldToScreen(P.b.x,P.b.y); const mx=(a.x+b.x)/2, my=(a.y+b.y)/2; const pulse = 0.5+0.5*Math.sin(t*3); ctx.fillStyle = `rgba(86,214,197,${0.2+0.5*pulse})`; ctx.beginPath(); ctx.arc(mx, my, 10+8*pulse, 0, Math.PI*2); ctx.fill(); } }
+    // fusion core
+    const core = computeCore(); if(core){ const hue = renderFusion(core); if(audioCtx){ const k = clamp((5*Math.min(5,touches.size))/5, 1, 5); padFilter.frequency.value = 300 + 140*k; masterGain.gain.value = 0.2 + 0.08*Math.min(1, 240/core.r); padOsc.frequency.value = 100 + 6*(6-touches.size); } ctx.save(); ctx.translate(core.cx, core.cy); const R = core.r; ctx.strokeStyle = `hsla(${hue},85%,60%,0.85)`; ctx.lineWidth = 2.5; ctx.shadowBlur=18; ctx.shadowColor=`hsla(${hue},85%,60%,.6)`; ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.stroke(); ctx.shadowBlur=0; ctx.save(); ctx.beginPath(); ctx.arc(0,0,R-4,0,Math.PI*2); ctx.clip(); const dw = R*2, dh = R*2; ctx.globalAlpha=0.97; ctx.drawImage(fusionCV, -dw/2, -dh/2, dw, dh); ctx.globalCompositeOperation='screen'; ctx.globalAlpha=0.20; ctx.filter='blur(6px)'; ctx.drawImage(fusionCV, -dw/2, -dh/2, dw, dh); ctx.filter='none'; ctx.restore(); ctx.globalAlpha=0.6; ctx.lineWidth=1.25; for(const tp of core.pts){ ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(tp.x - core.cx, tp.y - core.cy); ctx.stroke(); } ctx.restore(); } else { if(audioCtx){ masterGain.gain.value = 0.22; padFilter.frequency.value = 600; } }
+    // update
+    for(const s of streams){ if(s.video){ s.video.playbackRate = s.targetRate; if(!s.rewind) s.targetRate = lerp(s.targetRate, 1.0, .02); } }
+    for(const L of links){ L.w *= .992; }
+    requestAnimationFrame(draw);
+  }
+
+  // Click to auto‑fuse nearest midpoint
+  canvas.addEventListener('click', (e)=>{ const p = screenToWorld(e.clientX, e.clientY); let target=null, best=18*dpr; for(const L of potentialPairs()){ const m = { x:(L.a.x+L.b.x)/2, y:(L.a.y+L.b.y)/2 }; const ds = Math.hypot(p.x-m.x, p.y-m.y); if(ds < best){ best=ds; target=L; } } if(target){ let link = links.find(L=> (L.a===target.a&&L.b===target.b)||(L.a===target.b&&L.b===target.a)); if(!link){ link = {a:target.a,b:target.b,w:0}; links.push(link); } link.w = Math.max(link.w, .95); target.a.mergeAlpha = Math.max(target.a.mergeAlpha, .95); target.b.mergeAlpha = Math.max(target.b.mergeAlpha, .95); vibrate([10,60,10]); setTip('Auto‑fused'); if(audioCtx){ padFilter.frequency.value = 1200; masterGain.gain.value = .35; setTimeout(()=>{ masterGain.gain.value=.22;}, 320);} } });
+
+  setTip('⧉ load clips · ✚ test patterns · ⚙ tune · 🧭 quick‑cal · 2–5 fingers for Fusion Core');
+  draw();
+})();
+</script>
+</body>
+</html>

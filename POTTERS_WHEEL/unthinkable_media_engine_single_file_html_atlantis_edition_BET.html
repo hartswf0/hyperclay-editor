@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Unthinkable Media Engine — ATLANTIS</title>
+<style>
+  :root{
+    --bg:#0b0c0f;--ink:#e8e6df;--muted:#9aa0a6;--accent:#16b3a5;--rose:#b84b5b;--gold:#c8a552;--sea:#1a2a3a;--panel:#0f1217f2;--line:#1b2330;--ok:#33d6a6;--warn:#ffcc66;--danger:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;background:linear-gradient(180deg,#0b0c0f 0%,#0a0e14 60%,#09131b 100%);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;}
+  body{margin:0;display:flex;flex-direction:column;}
+  header{position:sticky;top:0;z-index:10;display:flex;gap:.6rem;align-items:center;padding:.6rem .8rem;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0d1117 0%, #0b0e13 100%);} 
+  header .title{font-weight:700;letter-spacing:.4px}
+  header .pill{border:1px solid #1f2a36;border-radius:999px;padding:.35rem .6rem;display:inline-flex;align-items:center;gap:.35rem;background:#0c1118}
+  header input[type=file]{display:none}
+  header .btn, .dock .btn{border:1px solid #1f2a36;background:#0e141b;border-radius:.7rem;padding:.5rem .7rem;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:.5rem;}
+  header .btn:hover, .dock .btn:hover{background:#111824}
+  header .btn:active, .dock .btn:active{transform:translateY(1px)}
+  header .spacer{flex:1}
+
+  main{flex:1;display:grid;grid-template-columns:1fr;grid-template-rows:1fr auto;min-height:0}
+  #stageWrap{position:relative;min-height:0}
+  #stage{position:absolute;inset:0;width:100%;height:100%;touch-action:none;background:radial-gradient(1200px 600px at 50% 55%, rgba(40,60,90,.25), transparent 60%), radial-gradient(600px 300px at 30% 20%, rgba(22,179,165,.12), transparent 60%);}
+  canvas{display:block}
+  #overlay{position:absolute;inset:0;pointer-events:none}
+
+  .dock{display:flex;gap:.6rem;overflow:auto;padding:.6rem;border-top:1px solid var(--line);background:linear-gradient(180deg,#0c1117 0%, #0a0f14 100%)}
+  .dock section{background:var(--panel);border:1px solid #141a22;border-radius:1rem;padding:.6rem .7rem;min-width:220px}
+  .dock h3{margin:.2rem 0 .4rem 0;font-size:.9rem;color:var(--muted);letter-spacing:.3px}
+  .row{display:flex;gap:.5rem;align-items:center}
+  .col{display:flex;flex-direction:column;gap:.4rem}
+  .knob{display:grid;grid-template-columns:auto 1fr auto;gap:.4rem;align-items:center}
+  .knob input[type=range]{width:100%}
+  .tag{font-size:.75rem;color:var(--muted)}
+  .token{display:flex;align-items:center;gap:.45rem}
+  .token input[type=range]{width:100%}
+
+  .layerItem{display:grid;grid-template-columns:1.2rem 1fr auto;gap:.4rem;align-items:center;padding:.35rem .4rem;border-radius:.5rem;border:1px dashed #1a2330}
+  .layerItem.active{border-color:var(--accent);background:rgba(22,179,165,.08)}
+  .chip{width:.9rem;height:.9rem;border-radius:999px;background:linear-gradient(135deg,#1b2c3a,#26384a)}
+  .small{font-size:.75rem;color:var(--muted)}
+  .miniBtn{background:#0d131a;border:1px solid #1a2330;border-radius:.45rem;padding:.2rem .45rem;cursor:pointer}
+  .miniBtn:hover{background:#121b24}
+
+  .shotCard{border:1px solid #1a2330;background:#0b1118;border-radius:.7rem;padding:.5rem;margin:.3rem 0}
+  .shotCard .id{font-weight:700;color:var(--accent)}
+
+  .abRow{display:flex;gap:.5rem}
+  .abRow .cap{border:1px solid #1a2330;border-radius:.5rem;padding:.3rem .5rem;background:#0d131a}
+
+  @media (min-width:1000px){
+    main{grid-template-columns:1fr 360px;grid-template-rows:1fr}
+    .dock{grid-column:2;grid-row:1;flex-direction:column;overflow:auto}
+    #stageWrap{grid-column:1;grid-row:1}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="pill"><span class="title">Unthinkable Media Engine</span><span class="tag">ATLANTIS Edition</span></div>
+    <label class="btn" title="Load Video"><input id="videoInput" type="file" accept="video/*" multiple/>🎞️ Video</label>
+    <label class="btn" title="Load Image"><input id="imageInput" type="file" accept="image/*" multiple/>🖼️ Image</label>
+    <label class="btn" title="Load Audio"><input id="audioInput" type="file" accept="audio/*" multiple/>🔊 Audio</label>
+    <button id="addTextBtn" class="btn" title="Add Poetry / Narrative">📝 Text</button>
+    <div class="spacer"></div>
+    <button id="playBtn" class="btn">▶️ Play</button>
+    <button id="pauseBtn" class="btn">⏸️ Pause</button>
+    <button id="recordBtn" class="btn" title="Record .webm">⏺️ Record</button>
+    <button id="frameBtn" class="btn" title="Save PNG Frame">🖼️ Save Frame</button>
+  </header>
+
+  <main>
+    <div id="stageWrap">
+      <canvas id="stage"></canvas>
+      <canvas id="overlay"></canvas>
+    </div>
+
+    <div class="dock" id="dock">
+      <section>
+        <h3>Wheel & Time</h3>
+        <div class="knob"><span>Rate</span><input id="rate" type="range" min="-3" max="3" value="1" step="0.05"/><span class="small" id="rateVal">1×</span></div>
+        <div class="knob"><span>Inertia</span><input id="inertia" type="range" min="0" max="1" value="0.92" step="0.01"/><span class="small" id="inertiaVal">0.92</span></div>
+        <div class="knob"><span>Focus Fog</span><input id="fog" type="range" min="0" max="1" step="0.01" value="0.35"/><span class="small" id="fogVal">0.35</span></div>
+        <div class="knob"><span>Vignette</span><input id="vig" type="range" min="0" max="1" step="0.01" value="0.25"/><span class="small" id="vigVal">0.25</span></div>
+      </section>
+
+      <section>
+        <h3>Semantic Tokens</h3>
+        <div class="token"><span>glyph</span><input data-k="glyph" type="range" min="0" max="1" step="0.01" value="0.6"/><span class="small" id="glyphVal">0.60</span></div>
+        <div class="token"><span>echo</span><input data-k="echo" type="range" min="0" max="1" step="0.01" value="0.7"/><span class="small" id="echoVal">0.70</span></div>
+        <div class="token"><span>fracture</span><input data-k="fracture" type="range" min="0" max="1" step="0.01" value="0.5"/><span class="small" id="fractureVal">0.50</span></div>
+        <div class="token"><span>tide</span><input data-k="tide" type="range" min="0" max="1" step="0.01" value="0.4"/><span class="small" id="tideVal">0.40</span></div>
+        <div class="token"><span>ritual</span><input data-k="ritual" type="range" min="0" max="1" step="0.01" value="0.65"/><span class="small" id="ritualVal">0.65</span></div>
+      </section>
+
+      <section>
+        <h3>Selected Layer</h3>
+        <div id="selNone" class="small">No layer selected. Tap a rim chip or a list item.</div>
+        <div id="selPanel" style="display:none" class="col">
+          <div class="row" style="gap:.4rem"><div class="chip" id="selSwatch"></div><div id="selName" style="font-weight:700"></div><span class="small" id="selType"></span></div>
+          <div class="knob"><span>Angle</span><input id="angle" type="range" min="0" max="6.283" step="0.001"/><span class="small" id="angleVal">0</span></div>
+          <div class="knob"><span>Radius</span><input id="radius" type="range" min="0.05" max="0.9" step="0.01"/><span class="small" id="radiusVal">0</span></div>
+          <div class="knob"><span>Depth</span><input id="depth" type="range" min="-1" max="1" step="0.01"/><span class="small" id="depthVal">0</span></div>
+          <div class="knob"><span>Opacity</span><input id="opacity" type="range" min="0" max="1" step="0.01"/><span class="small" id="opacityVal">1</span></div>
+          <div class="knob"><span>Soft Edge</span><input id="soft" type="range" min="0" max="1" step="0.01"/><span class="small" id="softVal">0.35</span></div>
+          <div class="row">
+            <select id="blend">
+              <option>source-over</option><option>screen</option><option>lighten</option><option>multiply</option><option>overlay</option><option>difference</option>
+            </select>
+            <button id="nudgeUp" class="miniBtn">▲</button>
+            <button id="nudgeDown" class="miniBtn">▼</button>
+            <button id="delLayer" class="miniBtn" style="color:var(--danger)">Delete</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Layers</h3>
+        <div id="layers"></div>
+      </section>
+
+      <section>
+        <h3>Shots (Paste POML → Parse)</h3>
+        <textarea id="poml" placeholder="Paste think-the-unthinkable.poml here (optional)" style="width:100%;min-height:80px;background:#0c1117;border:1px solid #1a2330;color:var(--ink);border-radius:.5rem;padding:.5rem"></textarea>
+        <div class="row" style="margin-top:.4rem;gap:.4rem">
+          <button id="parsePoml" class="miniBtn">Parse Shots</button>
+          <button id="applyShotA" class="miniBtn">Apply A</button>
+          <button id="applyShotB" class="miniBtn">Apply B</button>
+        </div>
+        <div id="shots"></div>
+      </section>
+
+      <section>
+        <h3>A/B What‑If</h3>
+        <div class="abRow">
+          <button id="captureA" class="miniBtn">Set A</button>
+          <div class="cap" id="capA">—</div>
+        </div>
+        <div class="abRow">
+          <button id="captureB" class="miniBtn">Set B</button>
+          <div class="cap" id="capB">—</div>
+        </div>
+        <div class="knob"><span>Compare</span><input id="compare" type="range" min="0" max="1" step="0.001" value="0"/><span class="small" id="compareVal">0%</span></div>
+      </section>
+    </div>
+  </main>
+
+<script>
+(function(){
+  // ---------- Utilities ----------
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const TAU=Math.PI*2;
+  const rnd=(a=1,b=0)=>b+Math.random()*(a-b);
+  const hsl=(h,s,l)=>`hsl(${h} ${s}% ${l}%)`;
+  function uid(p='L'){return p+Math.random().toString(36).slice(2,9)}
+
+  // ---------- Stage ----------
+  const stage = document.getElementById('stage');
+  const overlay = document.getElementById('overlay');
+  const ctx = stage.getContext('2d');
+  const octx = overlay.getContext('2d');
+  let W=0,H=0, DPR=window.devicePixelRatio||1;
+  function resize(){
+    const r=stage.getBoundingClientRect();
+    W=Math.floor(r.width*DPR); H=Math.floor(r.height*DPR);
+    stage.width=W; stage.height=H; overlay.width=W; overlay.height=H;
+  }
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
+
+  // ---------- Audio ----------
+  const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  const mixGain = audioCtx.createGain(); mixGain.gain.value=0.9; mixGain.connect(audioCtx.destination);
+  const analyser = audioCtx.createAnalyser(); analyser.fftSize=1024; analyser.smoothingTimeConstant=0.85; mixGain.connect(analyser);
+  const dest = audioCtx.createMediaStreamDestination(); mixGain.connect(dest);
+  const waveform = new Uint8Array(analyser.fftSize);
+
+  // ---------- State ----------
+  let layers=[]; // {id,type,name,el,w,h,duration,angle,radius,depth,opacity,soft,blend,color,offset, gainNode}
+  let selectedId=null;
+  let wheel={angle:0, vel:0, dragging:false, lastA:0};
+  let globalT=0; // canonical phase [0..1]
+  let playing=false;
+  let recording=false; let recorder=null; let recordChunks=[];
+  let A=null, B=null; // snapshots
+
+  // Semantics
+  const tokens={glyph:.6, echo:.7, fracture:.5, tide:.4, ritual:.65};
+
+  // Controls
+  const rate = document.getElementById('rate');
+  const inertia = document.getElementById('inertia');
+  const fog = document.getElementById('fog');
+  const vig = document.getElementById('vig');
+  const rateVal=document.getElementById('rateVal');
+  const inertiaVal=document.getElementById('inertiaVal');
+  const fogVal=document.getElementById('fogVal');
+  const vigVal=document.getElementById('vigVal');
+  [rate,inertia,fog,vig].forEach(inp=>inp.addEventListener('input',()=>{
+    rateVal.textContent=rate.value+'×';
+    inertiaVal.textContent=Number(inertia.value).toFixed(2);
+    fogVal.textContent=Number(fog.value).toFixed(2);
+    vigVal.textContent=Number(vig.value).toFixed(2);
+  }));
+
+  // File inputs
+  const videoInput=document.getElementById('videoInput');
+  const imageInput=document.getElementById('imageInput');
+  const audioInput=document.getElementById('audioInput');
+  videoInput.addEventListener('change', e=>{[...e.target.files].forEach(addVideo)});
+  imageInput.addEventListener('change', e=>{[...e.target.files].forEach(addImage)});
+  audioInput.addEventListener('change', e=>{[...e.target.files].forEach(addAudio)});
+  document.getElementById('addTextBtn').addEventListener('click', addTextLayer);
+
+  function addVideo(file){
+    const url=URL.createObjectURL(file);
+    const v=document.createElement('video');
+    v.src=url; v.loop=true; v.muted=true; v.playsInline=true; v.crossOrigin='anonymous';
+    v.addEventListener('loadedmetadata',()=>{
+      const L={id:uid('V'), type:'video', name:file.name, el:v, url, w:v.videoWidth||1280, h:v.videoHeight||720, duration:Math.max(0.1,v.duration||1),
+        angle:rnd(TAU), radius:rnd(.2,.55), depth:rnd(-.2,.2), opacity:1, soft:.35, blend:'screen', color:randColor(), offset:rnd(1), gainNode:null};
+      // route audio if present
+      try{
+        const src=audioCtx.createMediaElementSource(v); const g=audioCtx.createGain(); g.gain.value=.9; src.connect(g).connect(mixGain); L.gainNode=g;
+      }catch(err){/* some browsers disallow duplicate element source; ignore */}
+      layers.push(L); select(L.id); refreshLayers();
+    });
+  }
+
+  function addImage(file){
+    const url=URL.createObjectURL(file); const img=new Image(); img.src=url; img.crossOrigin='anonymous';
+    img.onload=()=>{ const L={id:uid('I'), type:'image', name:file.name, el:img, w:img.naturalWidth, h:img.naturalHeight,
+      duration:1, angle:rnd(TAU), radius:rnd(.25,.65), depth:rnd(-.2,.2), opacity:1, soft:.4, blend:'overlay', color:randColor(), offset:rnd(1), gainNode:null};
+      layers.push(L); select(L.id); refreshLayers(); };
+  }
+
+  function addAudio(file){
+    const url=URL.createObjectURL(file); const a=new Audio(); a.src=url; a.loop=true; a.crossOrigin='anonymous';
+    const src=audioCtx.createMediaElementSource(a); const g=audioCtx.createGain(); g.gain.value=.85; src.connect(g).connect(mixGain);
+    a.play();
+    const L={id:uid('A'), type:'audio', name:file.name, el:a, w:0,h:0,duration:1, angle:rnd(TAU), radius:rnd(.1,.2), depth:0, opacity:1, soft:.25, blend:'source-over', color:randColor(), offset:rnd(1), gainNode:g};
+    layers.push(L); select(L.id); refreshLayers();
+  }
+
+  function addTextLayer(){
+    const text=prompt('Poetry / Narrative text (will pulse with sound):','Culture is a pulse; Atlantis answers in concentric echoes.');
+    if(!text) return;
+    const L={id:uid('T'), type:'text', name:text.slice(0,24)+(text.length>24?'…':''), el:{text, t:0}, w:0,h:0,duration:1, angle:rnd(TAU), radius:rnd(.35,.75), depth:rnd(-.1,.3), opacity:1, soft:.2, blend:'lighten', color:randColor(), offset:rnd(1)};
+    layers.push(L); select(L.id); refreshLayers();
+  }
+
+  function randColor(){ return hsl(Math.floor(rnd(200,320)), 60, 55); }
+
+  // ---------- UI: Layers List ----------
+  const layersDiv=document.getElementById('layers');
+  function refreshLayers(){
+    layersDiv.innerHTML='';
+    layers.forEach((L,i)=>{
+      const row=document.createElement('div'); row.className='layerItem'+(L.id===selectedId?' active':'');
+      const sw=document.createElement('div'); sw.className='chip'; sw.style.background=`linear-gradient(135deg,#162330,${L.color})`;
+      const name=document.createElement('div'); name.textContent=`${L.name}`; name.style.cursor='pointer'; name.onclick=()=>select(L.id);
+      const ctl=document.createElement('div');
+      const up=btn('↑', ()=>moveLayer(i,-1)); const dn=btn('↓', ()=>moveLayer(i,+1));
+      ctl.append(up,dn);
+      row.append(sw,name,ctl);
+      layersDiv.append(row);
+    });
+    updateSelPanel();
+  }
+  function moveLayer(i,dir){ const j=clamp(i+dir,0,layers.length-1); if(i===j) return; const tmp=layers[i]; layers[i]=layers[j]; layers[j]=tmp; refreshLayers(); }
+  function btn(t, fn){ const b=document.createElement('button'); b.className='miniBtn'; b.textContent=t; b.onclick=fn; return b; }
+
+  // ---------- UI: Selected Panel ----------
+  const selNone=document.getElementById('selNone');
+  const selPanel=document.getElementById('selPanel');
+  const selSwatch=document.getElementById('selSwatch');
+  const selName=document.getElementById('selName');
+  const selType=document.getElementById('selType');
+  const angle=document.getElementById('angle'); const radius=document.getElementById('radius'); const depth=document.getElementById('depth'); const opacity=document.getElementById('opacity'); const soft=document.getElementById('soft'); const blend=document.getElementById('blend');
+  const angleVal=document.getElementById('angleVal'); const radiusVal=document.getElementById('radiusVal'); const depthVal=document.getElementById('depthVal'); const opacityVal=document.getElementById('opacityVal'); const softVal=document.getElementById('softVal');
+  const nudgeUp=document.getElementById('nudgeUp'); const nudgeDown=document.getElementById('nudgeDown'); const delLayer=document.getElementById('delLayer');
+
+  function select(id){ selectedId=id; refreshLayers(); }
+  function updateSelPanel(){
+    const L=layers.find(l=>l.id===selectedId);
+    if(!L){ selNone.style.display='block'; selPanel.style.display='none'; return; }
+    selNone.style.display='none'; selPanel.style.display='block';
+    selSwatch.style.background=`linear-gradient(135deg,#162330,${L.color})`;
+    selName.textContent=L.name; selType.textContent='('+L.type+')';
+    angle.value=L.angle; radius.value=L.radius; depth.value=L.depth; opacity.value=L.opacity; soft.value=L.soft; blend.value=L.blend;
+    angleVal.textContent=(+angle.value).toFixed(2); radiusVal.textContent=(+radius.value).toFixed(2); depthVal.textContent=(+depth.value).toFixed(2); opacityVal.textContent=(+opacity.value).toFixed(2); softVal.textContent=(+soft.value).toFixed(2);
+  }
+  [angle,radius,depth,opacity,soft,blend].forEach(inp=>inp.addEventListener('input',()=>{
+    const L=layers.find(l=>l.id===selectedId); if(!L) return; L.angle=+angle.value; L.radius=+radius.value; L.depth=+depth.value; L.opacity=+opacity.value; L.soft=+soft.value; L.blend=blend.value; updateSelPanel();
+  }));
+  nudgeUp.onclick=()=>{ const i=layers.findIndex(l=>l.id===selectedId); moveLayer(i,+1) };
+  nudgeDown.onclick=()=>{ const i=layers.findIndex(l=>l.id===selectedId); moveLayer(i,-1) };
+  delLayer.onclick=()=>{ layers=layers.filter(l=>l.id!==selectedId); selectedId=null; refreshLayers(); };
+
+  // ---------- Tokens UI ----------
+  document.querySelectorAll('.token input[type=range]').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      tokens[inp.dataset.k]=+inp.value;
+      document.getElementById(inp.dataset.k+'Val').textContent=Number(inp.value).toFixed(2)
+    })
+  })
+
+  // ---------- Shots via POML (optional) ----------
+  const pomlTA=document.getElementById('poml');
+  const shotsDiv=document.getElementById('shots');
+  let shots=[]; let shotSel={id:null, ver:'A'};
+  document.getElementById('parsePoml').onclick=()=>{
+    try{
+      const m=pomlTA.value.match(/<let name="shots"[^>]*>([\s\S]*?)<\/let>/);
+      if(!m){ alert('No <let name="shots"> found'); return; }
+      const txt=m[1].trim();
+      shots=JSON.parse(txt);
+      renderShots();
+    }catch(e){ alert('Parse error: '+e.message) }
+  };
+  function renderShots(){
+    shotsDiv.innerHTML='';
+    shots.slice(0,12).forEach(s=>{
+      const card=document.createElement('div'); card.className='shotCard';
+      const a=document.createElement('div'); a.innerHTML=`<span class="id">${s.id}</span> — ${s.concept}`;
+      const b=document.createElement('div'); b.className='small'; b.textContent=s.media_is;
+      const row=document.createElement('div'); row.className='row'; row.style.gap='.4rem';
+      const btnA=btn('A',()=>{shotSel={id:s.id, ver:'A'}; applyShotPreset(s,0)});
+      const btnB=btn('B',()=>{shotSel={id:s.id, ver:'B'}; applyShotPreset(s,1)});
+      row.append(btnA,btnB);
+      card.append(a,b,row); shotsDiv.append(card);
+    })
+  }
+  function applyShotPreset(s,vi){
+    // Map conceptual fields to engine parameters (simple symbolic mapping)
+    const v=s.versions[vi];
+    // Camera → tokens & vignette
+    tokens.glyph=clamp(tokens.glyph*0.7 + (s.id==='P0'?0.5:0.2),0,1);
+    tokens.echo =clamp(tokens.echo*0.6 + (s.id==='P3'?0.7:0.3),0,1);
+    tokens.fracture=clamp(tokens.fracture*0.5 + (/fracture|panes|broken|duplicate/i.test(v.visual)?0.7:0.2),0,1);
+    tokens.tide=clamp(tokens.tide*0.6 + (/tide|wave|flow|tunnel|ripples/i.test(v.visual)?0.7:0.25),0,1);
+    tokens.ritual=clamp(tokens.ritual*0.6 + (/ritual|altar|ceremony|procession/i.test(v.visual)?0.75:0.35),0,1);
+    document.getElementById('glyphVal').textContent=tokens.glyph.toFixed(2);
+    document.getElementById('echoVal').textContent=tokens.echo.toFixed(2);
+    document.getElementById('fractureVal').textContent=tokens.fracture.toFixed(2);
+    document.getElementById('tideVal').textContent=tokens.tide.toFixed(2);
+    document.getElementById('ritualVal').textContent=tokens.ritual.toFixed(2);
+
+    // Light keywords → fog/vignette
+    fog.value = clamp(+fog.value*0.6 + (/haze|fog|volumetric|glow/i.test(v.light)?0.45:0.2),0,1); fogVal.textContent=Number(fog.value).toFixed(2);
+    vig.value = clamp(+vig.value*0.6 + (/telephoto|compressed/i.test(v.camera)?0.35:0.2),0,1); vigVal.textContent=Number(vig.value).toFixed(2);
+  }
+  document.getElementById('applyShotA').onclick=()=>{
+    const s=shots.find(x=>x.id===shotSel.id); if(s) applyShotPreset(s,0);
+  };
+  document.getElementById('applyShotB').onclick=()=>{
+    const s=shots.find(x=>x.id===shotSel.id); if(s) applyShotPreset(s,1);
+  };
+
+  // ---------- A/B ----------
+  const capA=document.getElementById('capA'); const capB=document.getElementById('capB');
+  document.getElementById('captureA').onclick=()=>{ A=snapshot(); capA.textContent='A ✓'; };
+  document.getElementById('captureB').onclick=()=>{ B=snapshot(); capB.textContent='B ✓'; };
+  const compare=document.getElementById('compare'); const compareVal=document.getElementById('compareVal');
+  compare.addEventListener('input',()=>{ compareVal.textContent=Math.round(compare.value*100)+'%'; });
+
+  function snapshot(){
+    return {
+      layers: JSON.parse(JSON.stringify(layers.map(L=>({id:L.id,type:L.type,name:L.name,angle:L.angle,radius:L.radius,depth:L.depth,opacity:L.opacity,soft:L.soft,blend:L.blend,color:L.color,offset:L.offset})))),
+      tokens: {...tokens}, fog:+fog.value, vig:+vig.value, rate:+rate.value, inertia:+inertia.value
+    }
+  }
+
+  // ---------- Playback ----------
+  document.getElementById('playBtn').onclick=()=>{ playing=true; audioCtx.resume(); };
+  document.getElementById('pauseBtn').onclick=()=>{ playing=false; };
+
+  // ---------- Recording ----------
+  document.getElementById('recordBtn').onclick=()=>{
+    if(recording){ recorder.stop(); return; }
+    const vidStream = stage.captureStream(30);
+    const audStream = dest.stream;
+    const out = new MediaStream([ ...vidStream.getVideoTracks(), ...audStream.getAudioTracks() ]);
+    recorder = new MediaRecorder(out, {mimeType:'video/webm;codecs=vp9,opus'});
+    recordChunks=[]; recorder.ondataavailable=(e)=>{ if(e.data.size>0) recordChunks.push(e.data) };
+    recorder.onstop=()=>{
+      const blob=new Blob(recordChunks,{type:'video/webm'}); const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='unthinkable-atlantis.webm'; a.click();
+      recording=false; document.getElementById('recordBtn').textContent='⏺️ Record';
+    };
+    recorder.start(); recording=true; document.getElementById('recordBtn').textContent='⏹️ Stop';
+  };
+
+  // ---------- Save Frame ----------
+  document.getElementById('frameBtn').onclick=()=>{
+    stage.toBlob(b=>{ const url=URL.createObjectURL(b); const a=document.createElement('a'); a.href=url; a.download='frame.png'; a.click(); });
+  };
+
+  // ---------- Wheel interaction ----------
+  const wrap=document.getElementById('stageWrap');
+  let center={x:0,y:0};
+  function setCenter(){ const r=stage.getBoundingClientRect(); center.x=r.width/2; center.y=r.height/2; }
+  setCenter(); window.addEventListener('resize', setCenter);
+
+  wrap.addEventListener('pointerdown', onDown); wrap.addEventListener('pointermove', onMove); wrap.addEventListener('pointerup', onUp); wrap.addEventListener('pointercancel', onUp);
+  wrap.addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
+
+  function local(e){ const r=stage.getBoundingClientRect(); return {x:(e.clientX-r.left), y:(e.clientY-r.top)} }
+  function angleAt(p){ return Math.atan2(p.y-center.y, p.x-center.x) }
+  function distAt(p){ const dx=p.x-center.x, dy=p.y-center.y; return Math.sqrt(dx*dx+dy*dy) }
+
+  function onDown(e){ const p=local(e); wheel.dragging=true; wheel.lastA=angleAt(p); wrap.setPointerCapture(e.pointerId); maybeSelectByTap(p) }
+  function onMove(e){ if(!wheel.dragging) return; const p=local(e); const a=angleAt(p); let da=a-wheel.lastA; // unwrap
+    if(da>Math.PI) da-=TAU; else if(da<-Math.PI) da+=TAU; wheel.vel+=da; wheel.lastA=a; }
+  function onUp(e){ wheel.dragging=false; }
+  function maybeSelectByTap(p){
+    // if tap near rim chip, select that layer
+    const r = Math.min(center.x, center.y)*0.78;
+    const hit=layers.findLast(L=>{ const a=L.angle + wheel.angle; const x=center.x + Math.cos(a)*r; const y=center.y + Math.sin(a)*r; return ( (p.x-x)**2 + (p.y-y)**2 ) < 26*26 });
+    if(hit) select(hit.id);
+  }
+
+  // ---------- Render ----------
+  const off=document.createElement('canvas'); const offctx=off.getContext('2d');
+  function draw(){
+    ctx.clearRect(0,0,W,H); octx.clearRect(0,0,W,H);
+    const cx=W/2, cy=H/2; const R=Math.min(W,H)*0.45;
+
+    // wheel physics
+    wheel.angle += wheel.vel*0.98; // integrate
+    wheel.vel *= Number(inertia.value); // damping
+    if(playing) globalT = (globalT + (Number(rate.value) + wheel.vel*0.5)*0.002) % 1; else globalT = (globalT + wheel.vel*0.001) % 1;
+
+    // background grid aura
+    ctx.save();
+    const grd=ctx.createRadialGradient(cx, cy, R*0.1, cx, cy, R*1.1);
+    grd.addColorStop(0, 'rgba(22,179,165,0.05)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle=grd; ctx.fillRect(0,0,W,H); ctx.restore();
+
+    // sort layers by depth (painter's algo)
+    layers.sort((a,b)=> (a.depth-b.depth));
+
+    // composite layers
+    layers.forEach(L=>{
+      ctx.save();
+      ctx.globalAlpha = L.opacity * lerp(0.7,1, tokens.ritual);
+      ctx.globalCompositeOperation = L.blend;
+      // soft mask setup in offscreen
+      const baseScale = lerp(0.66,1.2, (L.depth+1)/2 );
+      const targetW = Math.min(W,H*16/9) * baseScale;
+      const targetH = targetW * 9/16;
+      off.width = Math.max(2, Math.floor(targetW));
+      off.height= Math.max(2, Math.floor(targetH));
+      offctx.clearRect(0,0,off.width, off.height);
+
+      // draw media into offscreen
+      if(L.type==='video'){
+        // seek by globalT
+        try{ L.el.pause(); L.el.currentTime = ( (globalT + L.offset) % 1 ) * L.duration; }catch(err){}
+        offctx.drawImage(L.el, 0,0, off.width, off.height);
+      } else if(L.type==='image'){
+        offctx.drawImage(L.el, 0,0, off.width, off.height);
+      } else if(L.type==='text'){
+        offctx.fillStyle='rgba(255,255,255,0.95)';
+        const amp = analyser.getByteTimeDomainData(waveform) || waveform; // may throw in some browsers
+        const f = waveform[64] ? (waveform[64]-128)/128 : 0; // simple pulse
+        const size = Math.floor( lerp(18, 46, clamp(0.5+f,0,1)) );
+        offctx.font = `600 ${size}px system-ui, Inter, sans-serif`;
+        offctx.textAlign='center'; offctx.textBaseline='middle';
+        wrapText(offctx, L.el.text, off.width/2, off.height/2, off.width*0.9, size*1.2);
+      }
+
+      // apply soft circular mask with fractal echo depending on tokens
+      const mask = offctx.createRadialGradient(off.width/2, off.height/2, off.width*clamp(0.25 - L.soft*0.2,0.01,0.9), off.width/2, off.height/2, off.width*0.55);
+      mask.addColorStop(0,'rgba(255,255,255,1)');
+      mask.addColorStop(1,'rgba(255,255,255,0)');
+      offctx.globalCompositeOperation='destination-in';
+      offctx.fillStyle=mask; offctx.fillRect(0,0,off.width,off.height);
+
+      // draw multiple echos based on tokens.echo & tokens.fracture
+      const echoN = Math.floor( lerp(0, 4, tokens.echo) );
+      const jitter = lerp(0, 6, tokens.fracture);
+
+      const a = L.angle + wheel.angle; const r = R * L.radius; const x = cx + Math.cos(a)*r; const y = cy + Math.sin(a)*r;
+      for(let i=0;i<=echoN;i++){
+        const jx = (i===0?0:(i-echoN/2))*jitter;
+        const jy = (i===0?0:(i-echoN/2))*jitter*0.7;
+        ctx.drawImage(off, Math.floor(x - off.width/2 + jx*DPR), Math.floor(y - off.height/2 + jy*DPR));
+      }
+      ctx.restore();
+    });
+
+    // global fog & vignette
+    ctx.save();
+    const fA = Number(fog.value);
+    const fogG = ctx.createRadialGradient(cx, cy, R*0.6*(1-fA), cx, cy, R*1.35);
+    fogG.addColorStop(0, `rgba(20,28,36,0)`);
+    fogG.addColorStop(1, `rgba(12,18,24,${0.55*fA})`);
+    ctx.fillStyle=fogG; ctx.fillRect(0,0,W,H);
+
+    const vA = Number(vig.value);
+    const vigG = ctx.createRadialGradient(cx, cy, R*0.2, cx, cy, R*1.3);
+    vigG.addColorStop(0, 'rgba(0,0,0,0)');
+    vigG.addColorStop(1, `rgba(0,0,0,${0.55*vA})`);
+    ctx.fillStyle=vigG; ctx.fillRect(0,0,W,H);
+    ctx.restore();
+
+    // ring: audio + tokens
+    drawRing(cx,cy,R*0.78);
+
+    // wheel rim chips
+    layers.forEach(L=>{
+      const a=L.angle + wheel.angle; const r=R*0.78; const x=cx+Math.cos(a)*r; const y=cy+Math.sin(a)*r;
+      octx.save();
+      octx.fillStyle=L.id===selectedId?L.color: 'rgba(180,200,220,.7)';
+      octx.beginPath(); octx.arc(x,y, 18*DPR, 0, TAU); octx.fill();
+      octx.fillStyle='rgba(10,14,20,.85)'; octx.beginPath(); octx.arc(x,y, 12*DPR, 0, TAU); octx.fill();
+      octx.fillStyle='rgba(230,236,245,.9)'; octx.font=(12*DPR)+'px monospace'; octx.textAlign='center'; octx.textBaseline='middle';
+      const short = (L.type==='video'?'V':L.type==='image'?'I':L.type==='audio'?'A':'T');
+      octx.fillText(short, x, y+1*DPR);
+      octx.restore();
+    });
+
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+
+  function drawRing(cx,cy,r){
+    // audio waveform ring
+    analyser.getByteTimeDomainData(waveform);
+    const N=128; const step=Math.floor(waveform.length/N);
+    octx.save(); octx.translate(cx,cy); octx.rotate(wheel.angle*0.25);
+    for(let i=0;i<N;i++){
+      const a=i/N*TAU; const v=(waveform[i*step]-128)/128; const out=r + v*22*DPR;
+      const x1=Math.cos(a)*r, y1=Math.sin(a)*r;
+      const x2=Math.cos(a)*out, y2=Math.sin(a)*out;
+      octx.strokeStyle='rgba(140,200,210,0.35)'; octx.lineWidth=1*DPR; octx.beginPath(); octx.moveTo(x1,y1); octx.lineTo(x2,y2); octx.stroke();
+    }
+    // tokens beads
+    const tks=['glyph','echo','fracture','tide','ritual'];
+    tks.forEach((k,idx)=>{
+      const a = (-Math.PI/2) + (idx/tks.length)*TAU;
+      const rad = r + 28*DPR;
+      octx.fillStyle='rgba(30,44,58,.8)'; octx.beginPath(); octx.arc(Math.cos(a)*rad, Math.sin(a)*rad, 14*DPR, 0, TAU); octx.fill();
+      octx.fillStyle='rgba(22,179,165,.85)'; const s=clamp(tokens[k],0,1);
+      octx.beginPath(); octx.arc(Math.cos(a)*rad, Math.sin(a)*rad, (7+6*s)*DPR, 0, TAU); octx.fill();
+      octx.fillStyle='rgba(230,236,245,.9)'; octx.font=(9*DPR)+'px monospace'; octx.textAlign='center'; octx.textBaseline='middle';
+      octx.fillText(k[0].toUpperCase(), Math.cos(a)*rad, Math.sin(a)*rad+1);
+    })
+    octx.restore();
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+    const words=text.split(' '); let line=''; let yy=y - lineHeight*2; const lines=[];
+    for(let n=0;n<words.length;n++){
+      const test=line+words[n]+" "; const m=ctx.measureText(test);
+      if(m.width>maxWidth && n>0){ lines.push(line); line=words[n]+" "; } else { line=test; }
+    }
+    lines.push(line);
+    const start=y - (lines.length-1)*lineHeight/2;
+    lines.forEach((ln,i)=>{ ctx.fillText(ln.trim(), x, start + i*lineHeight) });
+  }
+
+  // ---------- Compare blend (A/B) ----------
+  // Simple visual toggle by lerp parameters each frame — (applied implicitly via tokens/fog/vig while user scrubs compare slider)
+  setInterval(()=>{
+    if(A && B){
+      const t=+compare.value; // 0..1
+      // Interpolate tokens & globals
+      ['glyph','echo','fracture','tide','ritual'].forEach(k=>tokens[k]=lerp(A.tokens[k], B.tokens[k], t));
+      fog.value = lerp(A.fog, B.fog, t); fogVal.textContent=Number(fog.value).toFixed(2);
+      vig.value = lerp(A.vig, B.vig, t); vigVal.textContent=Number(vig.value).toFixed(2);
+      rate.value = lerp(A.rate, B.rate, t); rateVal.textContent=Number(rate.value).toFixed(2)+'×';
+      inertia.value = lerp(A.inertia, B.inertia, t); inertiaVal.textContent=Number(inertia.value).toFixed(2);
+    }
+  }, 30);
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Temporal Sculptor — Gear Editor (WebM Export) v3 — Direct Control</title>
+<style>
+  :root{
+    --bg:#061018; --bg2:#0a0f14; --ink:#e9ecef; --muted:#9aa0a6; --acc:#00d0b4; --acc2:#57ffd6; --accent:#7efcea;
+    --rim:#151b22; --edge:#202833; --ok:#18c37d;
+  }
+  html,body{margin:0; height:100%; background:radial-gradient(1200px 800px at 50% 45%, var(--bg2), var(--bg)); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial;}
+  #app{position:fixed; inset:0; display:grid; grid-template-rows:auto 1fr auto;}
+  .topbar{display:flex; align-items:center; gap:.5rem; padding:.5rem .6rem; background:linear-gradient(180deg, #0c1218e6, #0a0f14bf); backdrop-filter: blur(8px); border-bottom:1px solid #0f1720;}
+  .btn{appearance:none; border:1px solid #243042; background:#0f141b; color:var(--ink); padding:.45rem .7rem; border-radius:999px; font-size:.9rem; cursor:pointer; box-shadow:inset 0 0 0 1px #0b1118;}
+  .chip{padding:.35rem .6rem; font-size:.8rem; border:1px solid #263244; background:#0e131a; border-radius:999px; color:#cfd4da; user-select:none}
+  .chip.on{border-color:var(--acc); color:#bff7eb;}
+  .spacer{flex:1}
+  .tray{display:flex; gap:.5rem; overflow:auto; padding:.4rem .75rem; background:linear-gradient(180deg, #0a0f1499, #0a0f1400); border-top:1px solid #0e141c;}
+  .vidChip{min-width:120px; border:1px dashed #2a3544; border-radius:12px; padding:.5rem; background:#0b1016; color:#cfe6df; display:flex; align-items:center; gap:.5rem; cursor:grab}
+  .vidChip:active{cursor:grabbing}
+  .vidThumb{width:44px; height:28px; background:#1a212b; border-radius:6px; display:grid; place-items:center; font-size:.7rem; color:#9ab;}
+  #gears{position:absolute; inset:0; touch-action:none}
+  .stageWrap{position:absolute; right:10px; top:10px; width:min(58vw, 58vh*16/9); aspect-ratio:16/9; border-radius:12px; overflow:hidden; box-shadow:0 10px 30px #0009, 0 0 0 1px #263244; background:#000}
+  #stage{width:100%; height:100%; display:block}
+  .tiny{font-size:.75rem; opacity:.8}
+  .hide{display:none}
+  .hint{position:absolute; left:12px; bottom:12px; font-size:.8rem; color:#a8b3bf80}
+  .overlayMsg{position:absolute; left:12px; top:52px; background:#0b1119d0; padding:.4rem .6rem; border-radius:8px; border:1px solid #1b2835; font-size:.85rem}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar" id="topbar">
+    <button class="btn" id="addGearBtn" title="Add gear">+ Gear</button>
+    <label class="btn" title="Load videos"><input id="fileInput" type="file" accept="video/*" multiple style="display:none">Load Media</label>
+    <button class="btn" id="demoBtn" title="Load demo layers">Demo</button>
+    <button class="btn" id="assignBtn" title="Assign selected clip to selected gear">Bind ▶︎ Arc</button>
+    <button class="btn" id="playBtn" title="Play/Pause">Pause</button>
+    <button class="btn" id="recordBtn" title="Record WebM of the stage viewport">● Rec</button>
+    <span class="chip" id="viewerChip">Viewer: —</span>
+    <span class="chip" id="speedChip">1.0×</span>
+    <span class="spacer"></span>
+    <span class="chip on" id="directChip" title="Direct mode enlarges targets & locks gestures">Direct</span>
+    <span class="chip" id="modeChip" title="Toggle: Select / Pan">Mode: Select</span>
+    <button class="btn" id="fitBtn" title="Zoom to fit">Fit</button>
+    <button class="btn" id="zoomInBtn" title="Zoom in">＋</button>
+    <button class="btn" id="zoomOutBtn" title="Zoom out">－</button>
+    <button class="btn" id="cleanBtn" title="Clean output">Clean</button>
+  </div>
+  <div style="position:relative; flex:1;">
+    <canvas id="gears"></canvas>
+    <div class="stageWrap" id="stageWrap"><canvas id="stage" width="1280" height="720"></canvas></div>
+    <div class="hint">Direct mode: One‑finger = move gear (if you start on it); One‑finger off‑gear = pan; Two‑finger = zoom/pan; Double‑tap = set viewer; Drag green clutch to another gear to link; Drag arc handles to edit.</div>
+    <div class="overlayMsg" id="overlayMsg">Tip: Press <b>Demo</b> for instant motion. Tap a gear to select. Thick halo = selected.</div>
+  </div>
+  <div class="tray" id="tray"></div>
+</div>
+<script>
+(() => {
+  const TAU = Math.PI*2;
+  const $ = sel => document.querySelector(sel);
+  const gearsCanvas = $('#gears');
+  const gctx = gearsCanvas.getContext('2d');
+  const stageCanvas = $('#stage');
+  const sctx = stageCanvas.getContext('2d', { alpha:false });
+  const stageWrap = $('#stageWrap');
+  const topbar = $('#topbar');
+  const tray = $('#tray');
+  const fileInput = $('#fileInput');
+  const addGearBtn = $('#addGearBtn');
+  const playBtn = $('#playBtn');
+  const recordBtn = $('#recordBtn');
+  const assignBtn = $('#assignBtn');
+  const cleanBtn = $('#cleanBtn');
+  const speedChip = $('#speedChip');
+  const viewerChip = $('#viewerChip');
+  const fitBtn = $('#fitBtn');
+  const zoomInBtn = $('#zoomInBtn');
+  const zoomOutBtn = $('#zoomOutBtn');
+  const demoBtn = $('#demoBtn');
+  const directChip = $('#directChip');
+  const modeChip = $('#modeChip');
+  const overlayMsg = $('#overlayMsg');
+
+  let W = 0, H = 0; let DPR = Math.max(1, devicePixelRatio||1);
+  const state = {
+    gears: [],
+    clips: [],
+    selectedGearId: null,
+    selectedClipId: null,
+    viewerId: null,
+    playing: true,
+    speed: 1.0,
+    camera: {x:0, y:0, z:0.95},
+    lastTime: performance.now(),
+    audio: null,
+    tickBuf: null,
+    isRecording:false,
+    mediaRec:null,
+    chunks:[],
+    direct:true,
+    mode:'select', // 'select' or 'pan'
+    dragging:{kind:'none'}, // {kind:'gear'|'pan'|'resize'|'rotate'|'arcStart'|'arcEnd'|'link', gear, ...}
+    hover:{gear:null, arcIndex:-1},
+  };
+
+  class Gear{
+    constructor(x,y,r){
+      this.id = `g${Math.random().toString(36).slice(2,8)}`;
+      this.x=x; this.y=y; this.r=r; this.secondsPerRev=8;
+      this.angle=0; this.omega=0; this.teeth=Math.max(8, Math.round(r/6));
+      this.arcs=[]; // {clipId, start, sweep}
+      this.coupled = new Map();
+    }
+  }
+
+  function resize(){
+    W = gearsCanvas.clientWidth = window.innerWidth;
+    H = gearsCanvas.clientHeight = window.innerHeight - topbar.clientHeight - tray.clientHeight;
+    gearsCanvas.width = W*DPR; gearsCanvas.height = H*DPR; gctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // Audio/haptics
+  function ensureAudio(){ if(state.audio) return; const ac = new (window.AudioContext||window.webkitAudioContext)(); state.audio=ac; const rate=ac.sampleRate, len=Math.floor(rate*0.01); const buf=ac.createBuffer(1,len,rate); const data=buf.getChannelData(0); for(let i=0;i<len;i++){ const t=i/len; data[i]=Math.sin(2*Math.PI*800*i/rate)*(1-t)*0.45; } state.tickBuf=buf; }
+  function ping(){ if(!state.audio) return; const src=state.audio.createBufferSource(); src.buffer=state.tickBuf; const g=state.audio.createGain(); g.gain.value=0.18; src.connect(g).connect(state.audio.destination); src.start(); if(navigator.vibrate) navigator.vibrate(5); }
+
+  // Utils
+  function screenToWorld(x,y){ const c=state.camera; return { x:(x - W/2)/c.z + c.x, y:(y - H/2)/c.z + c.y }; }
+  function worldToScreen(x,y){ const c=state.camera; return { x:(x - c.x)*c.z + W/2, y:(y - c.y)*c.z + H/2 }; }
+  function normAngle(a){ a%=TAU; if(a<0)a+=TAU; return a; }
+  function angleWithin(a, start, sweep){ a=normAngle(a); start=normAngle(start); sweep=Math.max(0, Math.min(TAU, sweep)); if(sweep===0) return false; let end=(start+sweep)%TAU; if(start<=end) return a>=start && a<=end; return a>=start || a<=end; }
+
+  // File loading
+  fileInput.addEventListener('change', async (e)=>{ const files=[...e.target.files]; for(const f of files){ await loadFileClip(f); } autobind(); });
+  async function loadFileClip(f){ const url=URL.createObjectURL(f); const v=document.createElement('video'); v.src=url; v.muted=true; v.crossOrigin='anonymous'; v.playsInline=true; v.preload='auto'; await new Promise(res=> v.addEventListener('loadedmetadata', res, {once:true})); v.pause(); v.currentTime=0; const clip={id:`c${Math.random().toString(36).slice(2,8)}`, name:f.name, video:v, duration:Math.max(0.1, v.duration||6)}; state.clips.push(clip); addClipChip(clip); }
+
+  // Demo synth layers
+  demoBtn.addEventListener('click', ()=>{ const A=synthClip('Sine Fog',8,(ctx,w,h,t)=>{ ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h); const y=h*(.5+.4*Math.sin(t*2)); ctx.fillStyle='#00d0b433'; ctx.fillRect(0,y-60,w,120); }); const B=synthClip('Bars',6,(ctx,w,h,t)=>{ ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h); const n=6; for(let i=0;i<n;i++){ const x=(i/n)*w; const width=w/n; ctx.globalAlpha=.8; ctx.fillStyle=`hsl(${(i*60 + t*120)%360} 80% 55%)`; ctx.fillRect(x,0,width,h);} ctx.globalAlpha=1; }); const C=synthClip('Radial',10,(ctx,w,h,t)=>{ const cx=w/2, cy=h/2; for(let r=0;r<Math.hypot(cx,cy); r+=10){ const a=(t*1.2 + r*0.01)%TAU; const x=cx + Math.cos(a)*r, y=cy + Math.sin(a)*r; ctx.fillStyle=`hsla(${(r*2)%360},80%,60%,0.08)`; ctx.beginPath(); ctx.arc(x,y, 18, 0, TAU); ctx.fill(); } }); [A,B,C].forEach(addClipChip); autobind(true); overlay('Demo loaded. Drag green clutch to link gears.'); });
+  function synthClip(name,duration,painter){ const id=`c${Math.random().toString(36).slice(2,8)}`; return {id,name:`◼ ${name}`,duration,synth:true,render:(ctx,w,h,t)=>painter(ctx,w,h,t)}; }
+
+  function addClipChip(clip){ const chip=document.createElement('div'); chip.className='vidChip'; chip.draggable=true; chip.dataset.id=clip.id; chip.innerHTML=`<div class="vidThumb">${Math.round(clip.duration)}s</div><div style="min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">${clip.name}</div>`; chip.addEventListener('click', ()=>{ state.selectedClipId=clip.id; highlightSelection(); }); chip.addEventListener('dragstart', (ev)=>{ ev.dataTransfer.setData('text/plain', clip.id); }); tray.appendChild(chip); }
+  function highlightSelection(){ [...tray.children].forEach(n=>{ n.style.outline = (n.dataset.id===state.selectedClipId)? `2px solid var(--acc)` : 'none'; }); }
+
+  // Gears
+  function addGearAt(x,y){ const g=new Gear(x,y, 110); state.gears.push(g); if(state.viewerId==null){ state.viewerId=g.id; } return g; }
+  addGearBtn.addEventListener('click', ()=>{ const p=screenToWorld(W/2,H/2); addGearAt(p.x,p.y); zoomToFit(); });
+  assignBtn.addEventListener('click', ()=>{ const gear=state.gears.find(g=>g.id===state.selectedGearId)||state.gears.find(g=>g.id===state.viewerId); const clip=state.clips.find(c=>c.id===state.selectedClipId); if(!gear||!clip){ overlay('Select a gear and a clip, or drag a chip onto a gear.'); return; } autoBindClipToGear(clip, gear); });
+  function autoBindClipToGear(clip, gear){ const sweep=Math.min(TAU*0.95, (clip.duration/gear.secondsPerRev)*TAU); const start=-Math.PI/2; gear.arcs.push({clipId:clip.id,start,sweep}); }
+
+  // Coupling: snap on touch or explicit clutch drag
+  function snapCouplings(){ for(const a of state.gears){ for(const b of state.gears){ if(a===b) continue; const dx=b.x-a.x, dy=b.y-a.y; const d=Math.hypot(dx,dy); const target=a.r+b.r; if(Math.abs(d-target)<10){ const ux=dx/d, uy=dy/d; b.x=a.x+ux*target; b.y=a.y+uy*target; const ratio=a.r/b.r; a.coupled.set(b.id, ratio); b.coupled.set(a.id, 1/ratio); ping(); } } } }
+
+  function zoomToFit(){ if(state.gears.length===0){ state.camera={x:0,y:0,z:1}; return;} const pad=80; let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9; for(const g of state.gears){ minX=Math.min(minX,g.x-g.r); minY=Math.min(minY,g.y-g.r); maxX=Math.max(maxX,g.x+g.r); maxY=Math.max(maxY,g.y+g.r); } const cx=(minX+maxX)/2, cy=(minY+maxY)/2; const zw=(W-2*pad)/(maxX-minX || 1), zh=(H-2*pad)/(maxY-minY || 1); const z=Math.max(0.35, Math.min(2.2, Math.min(zw,zh))); state.camera.x=cx; state.camera.y=cy; state.camera.z=z; }
+  fitBtn.addEventListener('click', zoomToFit);
+  zoomInBtn.addEventListener('click', ()=>zoomBy(1.15));
+  zoomOutBtn.addEventListener('click', ()=>zoomBy(1/1.15));
+  function zoomBy(f){ state.camera.z=Math.min(2.5, Math.max(0.3, state.camera.z*f)); }
+
+  // Clean output
+  cleanBtn.addEventListener('click', ()=>{ document.body.classList.toggle('clean'); const on=document.body.classList.contains('clean'); stageWrap.style.boxShadow = on? 'none' : '0 10px 30px #0009, 0 0 0 1px #263244'; topbar.classList.toggle('hide', on); tray.classList.toggle('hide', on); $('.hint').classList.toggle('hide', on); });
+
+  // Playback
+  playBtn.addEventListener('click', async ()=>{ ensureAudio(); if(state.audio && state.audio.state==='suspended'){ await state.audio.resume(); } state.playing=!state.playing; playBtn.textContent= state.playing? 'Pause' : 'Play'; });
+  const speedSteps=[0.25,0.5,1,1.5,2,4]; let si=2; speedChip.addEventListener('click', ()=>{ si=(si+1)%speedSteps.length; state.speed=speedSteps[si]; speedChip.textContent=`${state.speed.toFixed(2).replace(/\.00$/,'')}×`; });
+
+  // Recording
+  recordBtn.addEventListener('click', ()=>{ if(state.isRecording){ stopRecording(); } else { startRecording(); } });
+  function startRecording(){ try{ const stream=stageCanvas.captureStream(30); const mr=new MediaRecorder(stream, {mimeType:'video/webm;codecs=vp9'}); state.mediaRec=mr; state.chunks=[]; state.isRecording=true; recordBtn.textContent='■ Stop'; mr.ondataavailable=(e)=>{ if(e.data&&e.data.size>0) state.chunks.push(e.data); }; mr.onstop=()=>{ const blob=new Blob(state.chunks,{type:'video/webm'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='temporal_sculptor.webm'; a.click(); state.isRecording=false; recordBtn.textContent='● Rec'; }; mr.start(100); } catch(err){ console.error(err); overlay('Recording not supported'); } }
+  function stopRecording(){ try{ state.mediaRec && state.mediaRec.stop(); }catch(e){} }
+
+  // Interaction & hit‑testing with BIG targets (Direct mode)
+  const pointers = new Map();
+  gearsCanvas.addEventListener('pointerdown', onPointerDown);
+  gearsCanvas.addEventListener('pointermove', onPointerMove);
+  gearsCanvas.addEventListener('pointerup', onPointerUp);
+  gearsCanvas.addEventListener('pointercancel', onPointerUp);
+  gearsCanvas.addEventListener('dblclick', (ev)=>{ const pt=screenToWorld(ev.clientX, ev.clientY); const g=gearAt(pt,true); if(!g) return; state.viewerId=g.id; overlay(`Viewer → ${g.id}`); });
+  gearsCanvas.addEventListener('dragover', ev=> ev.preventDefault());
+  gearsCanvas.addEventListener('drop', ev=>{ ev.preventDefault(); const id=ev.dataTransfer.getData('text/plain'); if(!id) return; const pt=screenToWorld(ev.clientX, ev.clientY); const g=gearAt(pt,true); if(!g) return; const clip=state.clips.find(c=>c.id===id); if(clip) autoBindClipToGear(clip,g); });
+
+  directChip.addEventListener('click', ()=>{ state.direct=!state.direct; directChip.classList.toggle('on', state.direct); directChip.textContent = state.direct? 'Direct' : 'Precise'; overlay(state.direct? 'Direct mode: big targets & gesture guard' : 'Precise mode: tighter hit‑boxes'); });
+  modeChip.addEventListener('click', ()=>{ state.mode = state.mode==='select' ? 'pan' : 'select'; modeChip.textContent = `Mode: ${state.mode[0].toUpperCase()+state.mode.slice(1)}`; overlay(`Mode → ${state.mode}`); });
+
+  function onPointerDown(ev){ if(ev.pointerType==='touch') ensureAudio(); gearsCanvas.setPointerCapture(ev.pointerId); const pt=screenToWorld(ev.clientX, ev.clientY); pointers.set(ev.pointerId,{x:ev.clientX,y:ev.clientY,pt}); const g=gearAt(pt,true);
+    if(state.mode==='pan' && g==null){ state.dragging={kind:'pan', start:{x:ev.clientX,y:ev.clientY}, cam0:{...state.camera}}; return; }
+    if(g){ selectGear(g);
+      // Determine which handle: resize, rotate, link, arc handles
+      const handle = whichHandle(g, pt);
+      if(handle.kind==='resize'){ state.dragging={kind:'resize', gear:g, r0:g.r, pt0:pt}; return; }
+      if(handle.kind==='rotate'){ state.dragging={kind:'rotate', gear:g, a0:g.angle, p0:angleOf(g,pt)}; return; }
+      if(handle.kind==='link'){ state.dragging={kind:'link', gear:g, p0:pt}; return; }
+      if(handle.kind==='arcStart' || handle.kind==='arcEnd'){ state.dragging={kind:handle.kind, gear:g, arcIndex:handle.arcIndex}; return; }
+      // default: move gear
+      state.dragging={kind:'gear', gear:g, offset:{x:pt.x-g.x, y:pt.y-g.y}};
+    } else {
+      // pan background
+      state.dragging={kind:'pan', start:{x:ev.clientX,y:ev.clientY}, cam0:{...state.camera}};
+    }
+  }
+  function onPointerMove(ev){ const drag=state.dragging; const pt=screenToWorld(ev.clientX, ev.clientY); if(drag.kind==='none') return; if(drag.kind==='gear'){ drag.gear.x = pt.x - drag.offset.x; drag.gear.y = pt.y - drag.offset.y; snapCouplings(); return; }
+    if(drag.kind==='pan'){ const dx=(ev.clientX - drag.start.x)/state.camera.z; const dy=(ev.clientY - drag.start.y)/state.camera.z; state.camera.x = drag.cam0.x - dx; state.camera.y = drag.cam0.y - dy; return; }
+    if(drag.kind==='resize'){ const g=drag.gear; const dist=Math.hypot(pt.x-g.x, pt.y-g.y); g.r = Math.max(60, Math.min(300, dist)); g.teeth=Math.max(8, Math.round(g.r/6)); g.secondsPerRev=Math.max(2, Math.min(40, g.teeth/4)); return; }
+    if(drag.kind==='rotate'){ const g=drag.gear; const a=angleOf(g,pt); g.angle = normAngle(drag.a0 + (a - drag.p0)); return; }
+    if(drag.kind==='link'){ // visual only; finalize on up
+      return; }
+    if(drag.kind==='arcStart' || drag.kind==='arcEnd'){ const g=drag.gear; const idx=drag.arcIndex; const arc=g.arcs[idx]; const a=angleOf(g,pt) - g.angle; if(drag.kind==='arcStart'){ const end=arc.start+arc.sweep; arc.start = a; arc.sweep = normAngle(end - arc.start); } else { arc.sweep = normAngle(a - arc.start); } return; }
+  }
+  function onPointerUp(ev){ const drag=state.dragging; const pt=screenToWorld(ev.clientX, ev.clientY); if(drag.kind==='link'){ const g=drag.gear; const o=gearAt(pt,true); if(o && o!==g){ // couple and snap to edge-to-edge along line
+        const dx=o.x-g.x, dy=o.y-g.y; const d=Math.hypot(dx,dy)||1; const target=g.r+o.r; const ux=dx/d, uy=dy/d; o.x=g.x+ux*target; o.y=g.y+uy*target; const ratio=g.r/o.r; g.coupled.set(o.id, ratio); o.coupled.set(g.id, 1/ratio); ping(); }
+    }
+    state.dragging={kind:'none'};
+  }
+
+  function angleOf(g,pt){ return Math.atan2(pt.y-g.y, pt.x-g.x); }
+
+  function selectGear(g){ state.selectedGearId=g.id; }
+
+  // Hit testing with screen‑space inflated targets
+  function gearAt(pt, inflate){ let best=null, bestScore=1e9; for(const g of state.gears){ const sc=worldToScreen(g.x,g.y); const dx=(pt.x-g.x)*state.camera.z, dy=(pt.y-g.y)*state.camera.z; const dpx=Math.hypot(dx,dy); const rimPx = g.r*state.camera.z; const pad = state.direct? 48 : 24; const score = Math.abs(dpx - rimPx); if(dpx <= rimPx + pad && score < bestScore){ best=g; bestScore=score; } }
+    return best; }
+
+  function whichHandle(g, pt){ // prioritize small green clutch > resize ring > rotate ring > arcs
+    const a = angleOf(g,pt); const d = Math.hypot(pt.x-g.x, pt.y-g.y); const rim=g.r; const pxr = rim*state.camera.z; const pad = state.direct? 44/state.camera.z : 28/state.camera.z;
+    // clutch: small green knob at +X rim
+    const clutch = {x:g.x+Math.cos(0)*rim, y:g.y+Math.sin(0)*rim};
+    if(Math.hypot(pt.x-clutch.x, pt.y-clutch.y) <= (state.direct? 26:18)/state.camera.z) return {kind:'link'};
+    // resize: outside rim
+    if(d>rim+pad*0.6 && d<rim+pad*1.6) return {kind:'resize'};
+    // rotate: inside rim near center ring
+    if(d>rim*0.55 && d<rim*0.75) return {kind:'rotate'};
+    // arcs: check handles
+    for(let i=0;i<g.arcs.length;i++){
+      const arc=g.arcs[i]; const s=normAngle(g.angle+arc.start); const e=normAngle(g.angle+arc.start+arc.sweep);
+      const hs={x:g.x+Math.cos(s)*rim, y:g.y+Math.sin(s)*rim}; const he={x:g.x+Math.cos(e)*rim, y:g.y+Math.sin(e)*rim};
+      const rpx=(state.direct? 26:18)/state.camera.z;
+      if(Math.hypot(pt.x-hs.x, pt.y-hs.y)<=rpx) return {kind:'arcStart', arcIndex:i};
+      if(Math.hypot(pt.x-he.x, pt.y-he.y)<=rpx) return {kind:'arcEnd', arcIndex:i};
+    }
+    return {kind:'move'};
+  }
+
+  // Playback & propagation
+  function update(dt){ const vg=state.gears.find(g=>g.id===state.viewerId); if(!vg) return; const baseOmega = state.playing ? TAU/vg.secondsPerRev * state.speed : 0; state.gears.forEach(g=> g.omega=0); vg.omega=baseOmega; const visited=new Set([vg.id]); const q=[vg]; while(q.length){ const g=q.shift(); for(const [oid,ratio] of g.coupled){ const o=state.gears.find(x=>x.id===oid); if(!o) continue; const expected = -g.omega*ratio; if(Math.abs(o.omega-expected)>1e-6) o.omega=expected; if(!visited.has(o.id)){ visited.add(o.id); q.push(o); } } } state.gears.forEach(g=>{ const prev=g.angle; g.angle=normAngle(g.angle + g.omega*dt); const tooth=TAU/g.teeth; if(Math.floor(prev/tooth)!==Math.floor(g.angle/tooth)){ ensureAudio(); ping(); } }); }
+
+  // Stage render
+  function renderStage(){ const vw=stageCanvas.width, vh=stageCanvas.height; sctx.fillStyle='#000'; sctx.fillRect(0,0,vw,vh); const pointer=-Math.PI/2; const active=[]; for(const g of state.gears){ for(const arc of g.arcs){ const worldStart=normAngle(g.angle+arc.start); const hit=angleWithin(pointer, worldStart, arc.sweep); if(!hit) continue; const pos=normAngle(pointer-worldStart)/arc.sweep; const clip=state.clips.find(c=>c.id===arc.clipId); if(!clip) continue; const t=clip.duration*pos; active.push({clip,t,weight:feather(pos)}); } }
+    if(active.length===0){ drawIdleTestPattern(sctx,vw,vh); return; }
+    active.sort((a,b)=> a.weight-b.weight);
+    for(const L of active){ sctx.globalAlpha=L.weight; if(L.clip.synth){ L.clip.render(sctx,vw,vh, L.t); } else { stepVideoTo(L.clip.video, L.t); try{ sctx.drawImage(L.clip.video,0,0,vw,vh);}catch(e){} } }
+    sctx.globalAlpha=1; }
+  function feather(p){ const edge=.08; const left=Math.min(1,p/edge); const right=Math.min(1,(1-p)/edge); return Math.max(0, Math.min(1, Math.min(left,right))); }
+  let lastSeekAt=0; function stepVideoTo(video,t){ const now=performance.now(); const target=Math.max(0, Math.min(video.duration||0, t)); if(Math.abs((video.currentTime||0)-target)>0.03 && (now-lastSeekAt)>8){ try{ video.currentTime=target; lastSeekAt=now; }catch(e){} } }
+  function drawIdleTestPattern(ctx,w,h){ ctx.fillStyle='#000'; ctx.fillRect(0,0,w,h); const n=8; for(let i=0;i<n;i++){ ctx.fillStyle=`hsl(${i*360/n} 80% 50%)`; ctx.globalAlpha=.6; const x=i*w/n; ctx.fillRect(x,0,w/n,h); } ctx.globalAlpha=1; ctx.fillStyle='#fff'; ctx.font='16px system-ui'; ctx.fillText('No active arcs under pointer — press Demo or bind clips.', 12, 24); }
+
+  // Gears render with big handles
+  function renderGears(){ gctx.setTransform(DPR,0,0,DPR,0,0); gctx.clearRect(0,0,W,H); gctx.translate(W/2,H/2); gctx.scale(state.camera.z, state.camera.z); gctx.translate(-state.camera.x,-state.camera.y);
+    const selected = state.gears.find(g=>g.id===state.selectedGearId);
+    for(const g of state.gears){ gctx.save(); gctx.translate(g.x,g.y); gctx.rotate(g.angle);
+      // base
+      gctx.beginPath(); gctx.arc(0,0,g.r+8,0,TAU); gctx.strokeStyle='#0e151d'; gctx.lineWidth=12; gctx.stroke();
+      gctx.beginPath(); gctx.arc(0,0,g.r,0,TAU); const grd=gctx.createRadialGradient(0,0,g.r*0.45,0,0,g.r); grd.addColorStop(0,'#111820'); grd.addColorStop(1,'#0b1218'); gctx.fillStyle=grd; gctx.fill();
+      // selection halo
+      if(selected && selected.id===g.id){ gctx.beginPath(); gctx.arc(0,0,g.r+22,0,TAU); gctx.strokeStyle='rgba(0,208,180,.55)'; gctx.lineWidth=12; gctx.setLineDash([8,10]); gctx.stroke(); gctx.setLineDash([]); }
+      // teeth
+      const teeth=g.teeth; gctx.strokeStyle='#1b2530'; gctx.lineWidth=2; for(let i=0;i<teeth;i++){ const a=i*TAU/teeth; gctx.beginPath(); gctx.moveTo(Math.cos(a)*(g.r-6), Math.sin(a)*(g.r-6)); gctx.lineTo(Math.cos(a)*(g.r+6), Math.sin(a)*(g.r+6)); gctx.stroke(); }
+      // arcs
+      for(const arc of g.arcs){ gctx.beginPath(); gctx.strokeStyle='#00d0b4'; gctx.lineWidth=14; gctx.arc(0,0,g.r-16, arc.start, arc.start+arc.sweep); gctx.stroke(); }
+      // viewer tick
+      if(g.id===state.viewerId){ gctx.beginPath(); gctx.strokeStyle='rgba(0,208,180,.35)'; gctx.lineWidth=18; gctx.arc(0,0,g.r+14, -Math.PI/2-0.07, -Math.PI/2+0.07); gctx.stroke(); }
+      // handles: resize ring, rotate ring, clutch, arc endpoints
+      if(selected && selected.id===g.id){
+        // resize ring
+        gctx.beginPath(); gctx.strokeStyle='rgba(126,252,234,.35)'; gctx.lineWidth=10; gctx.arc(0,0, g.r+34, 0, TAU); gctx.stroke();
+        // rotate ring
+        gctx.beginPath(); gctx.strokeStyle='rgba(255,255,255,.15)'; gctx.lineWidth=8; gctx.arc(0,0, g.r*0.65, 0, TAU); gctx.stroke();
+        // clutch knob (link)
+        gctx.beginPath(); gctx.fillStyle='#00d0b4'; gctx.arc(g.r, 0, 10/state.camera.z, 0, TAU); gctx.fill();
+        // arc endpoints
+        for(let i=0;i<g.arcs.length;i++){
+          const arc=g.arcs[i];
+          const s=g.angle+arc.start, e=g.angle+arc.start+arc.sweep;
+          gctx.fillStyle='#7efcea';
+          gctx.beginPath(); gctx.arc(Math.cos(s)*g.r, Math.sin(s)*g.r, 10/state.camera.z, 0, TAU); gctx.fill();
+          gctx.beginPath(); gctx.arc(Math.cos(e)*g.r, Math.sin(e)*g.r, 10/state.camera.z, 0, TAU); gctx.fill();
+        }
+      }
+      gctx.restore();
+      // coupling lines
+      for(const [oid,ratio] of g.coupled){ const o=state.gears.find(x=>x.id===oid); if(!o) continue; gctx.beginPath(); gctx.moveTo(g.x,g.y); gctx.lineTo(o.x,o.y); gctx.strokeStyle='#15202b'; gctx.lineWidth=1.5; gctx.stroke(); }
+    }
+    const vg = state.gears.find(x=>x.id===state.viewerId); if(vg){ gctx.save(); gctx.beginPath(); gctx.strokeStyle='rgba(255,255,255,.15)'; gctx.lineWidth=2; gctx.moveTo(vg.x, vg.y); gctx.lineTo(vg.x, vg.y - (vg.r+48)); gctx.stroke(); gctx.restore(); }
+  }
+
+  // Wheel zoom about cursor
+  let lastWheelAt=0; gearsCanvas.addEventListener('wheel', (ev)=>{ const now=performance.now(); if(now-lastWheelAt<8) return; lastWheelAt=now; const delta=Math.sign(ev.deltaY)*-0.04; const z0=state.camera.z; const z=Math.min(2.5, Math.max(0.3, z0*(1+delta))); const before=screenToWorld(ev.clientX, ev.clientY); state.camera.z=z; const after=screenToWorld(ev.clientX, ev.clientY); state.camera.x += before.x - after.x; state.camera.y += before.y - after.y; }, {passive:true});
+
+  function overlay(msg){ overlayMsg.textContent=msg; overlayMsg.style.opacity=1; clearTimeout(overlayMsg._t); overlayMsg._t=setTimeout(()=> overlayMsg.style.opacity=.0, 1600); }
+
+  // Main loop
+  function step(t){ const dt=Math.min(0.05, (t - state.lastTime)/1000); state.lastTime=t; update(dt); renderStage(); renderGears(); viewerChip.textContent=`Viewer: ${state.viewerId||'—'}`; requestAnimationFrame(step); }
+  requestAnimationFrame(step);
+
+  // Boot
+  const mid = screenToWorld(window.innerWidth/2, (window.innerHeight - topbar.clientHeight - tray.clientHeight)/2);
+  const g1=addGearAt(mid.x-160, mid.y), g2=addGearAt(mid.x, mid.y), g3=addGearAt(mid.x+160, mid.y); snapCouplings(); zoomToFit();
+
+  function autobind(demo){ const gears=state.gears; const clips=state.clips; if(clips.length===0 && !demo) return; const a=clips[0], b=clips[1]||clips[0], c=clips[2]||clips[0]; if(a) autoBindClipToGear(a, gears[0]); if(b && gears[1]) autoBindClipToGear(b, gears[1]); if(c && gears[2]) autoBindClipToGear(c, gears[2]); }
+})();
+</script>
+</body>
+</html>

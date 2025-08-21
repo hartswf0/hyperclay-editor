@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Hyperclay — Wheel Thrower</title>
+  <style>
+    :root{ --bg:#090b10; --ink:#eae7df; --muted:#9aa0a6; --accent:#18a999; --gold:#caa24a; }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    header{display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem .7rem;background:linear-gradient(180deg,#0d1117,#0a0c10)}
+    header h1{margin:0;font-size:.95rem;font-weight:800;letter-spacing:.2px}
+    .controls{display:flex;gap:.5rem;flex-wrap:wrap}
+    .pill{display:inline-flex;align-items:center;gap:.5rem;background:#0f131a;border:1px solid #1b2230;padding:.55rem .9rem;border-radius:999px;font-size:.9rem}
+    .btn{background:#121722;border:1px solid #1b2230;color:var(--ink);padding:.6rem .95rem;border-radius:.9rem;font-weight:700}
+    .btn.primary{background:var(--accent);color:#041a17}
+
+    main{display:grid;grid-template-rows:1fr auto;gap:.5rem;height:calc(100dvh - 56px);padding:.5rem}
+    #stage{position:relative;border:1px solid #18202b;border-radius:1rem;overflow:hidden;background:#000}
+    canvas{width:100%;height:100%;display:block;touch-action:none}
+    .hud{position:absolute;left:.6rem;bottom:.6rem;background:#0b0f16cc;border:1px solid #1b2230;border-radius:.8rem;padding:.5rem .7rem;font-size:.85rem;max-width:80ch}
+    .clips{display:flex;gap:.5rem;overflow:auto}
+    .chip{min-width:160px;background:#0c1118;border:1px solid #1b2230;border-radius:.9rem;padding:.55rem}
+    .chip h4{margin:.1rem 0 .3rem;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .small{font-size:.78rem;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hyperclay — Wheel Thrower</h1>
+    <div class="controls">
+      <label class="pill"><input id="filepick" type="file" accept="video/*" multiple hidden>➕ Load Clips</label>
+      <button id="play" class="btn primary">▶︎ Play</button>
+      <button id="record" class="btn">● Record</button>
+      <label class="pill"><input id="audio" type="checkbox" checked> Audio</label>
+    </div>
+  </header>
+
+  <main>
+    <section id="stage">
+      <canvas id="c"></canvas>
+      <div id="hud" class="hud">Wheel‑centric controls: <b>Swipe around center</b> to spin the wheel (timeline). <b>Press harder</b> (or long‑press) to increase pressure. <b>Pinch near a lump</b> to pull walls. <b>Drag lumps</b> around rim to place streams. Overlap = blend. Load 2–6 short clips for best performance.</div>
+    </section>
+
+    <section class="footer">
+      <div id="clips" class="clips"></div>
+    </section>
+  </main>
+
+  <div id="bucket" style="display:none"></div>
+
+  <script>
+  // ===== WHEEL THROWER (minimal sliders, pressure dials) =====
+  const c = document.getElementById('c');
+  const ctx = c.getContext('2d');
+  let W=0,H=0; const DPR=Math.min(2, devicePixelRatio||1);
+  function fit(){ const r=c.parentElement.getBoundingClientRect(); W=r.width*DPR; H=r.height*DPR; c.width=W; c.height=H; drawWheel(); }
+  addEventListener('resize',fit); fit();
+
+  const hud=document.getElementById('hud');
+  const filepick=document.getElementById('filepick');
+  const playBtn=document.getElementById('play');
+  const recordBtn=document.getElementById('record');
+  const audioCb=document.getElementById('audio');
+  const clipsDiv=document.getElementById('clips');
+  const bucket=document.getElementById('bucket');
+
+  // Wheel state
+  const wheel={ angle:0, omega:0, friction:0.985, radius:0.4, pressure:0.0 };
+
+  // Touch state
+  let dragging=false, lastP=null, lastAngle=0, lastTime=0; const touches=new Map();
+  c.addEventListener('pointerdown',e=>{ c.setPointerCapture(e.pointerId); const p=pt(e); touches.set(e.pointerId,p); gestureStart(p, e); if(navigator.vibrate) navigator.vibrate(10); });
+  c.addEventListener('pointermove',e=>{ if(!touches.has(e.pointerId)) return; const p=pt(e); touches.set(e.pointerId,p); gestureMove(p, e); });
+  c.addEventListener('pointerup',e=>{ touches.delete(e.pointerId); gestureEnd(); });
+  c.addEventListener('pointercancel',e=>{ touches.delete(e.pointerId); gestureEnd(); });
+  function pt(e){ const r=c.getBoundingClientRect(); return {x:(e.clientX-r.left)*DPR, y:(e.clientY-r.top)*DPR, pressure: e.pressure||0, t: performance.now()}; }
+
+  function gestureStart(p, e){ dragging=true; lastP=p; lastAngle=angleOf(p); lastTime=p.t; wheel.pressure = Math.max(wheel.pressure, p.pressure||0); if(!wheel.pressure){ // long‑press builds pressure
+      const startT=p.t; const id=setInterval(()=>{ const now=performance.now(); const dt=(now-startT)/1000; wheel.pressure = Math.min(1, dt*0.6); if(!dragging){ clearInterval(id); } }, 50);
+    }
+  }
+  function gestureMove(p, e){ if(!dragging) return; const a=angleOf(p); let da=a-lastAngle; if(da>Math.PI) da-=2*Math.PI; if(da<-Math.PI) da+=2*Math.PI; const dt=(p.t-lastTime)/1000; wheel.omega += (da/dt)*0.05; lastAngle=a; lastTime=p.t; wheel.pressure = Math.max(wheel.pressure*0.95, p.pressure||0); // decay + new
+    // two‑finger pinch near rim adjusts radius (wall pull)
+    if(touches.size>=2){ const [p1,p2]=[...touches.values()]; const cx=W/2, cy=H/2; const d1=Math.hypot(p1.x-cx,p1.y-cy), d2=Math.hypot(p2.x-cx,p2.y-cy); const avg=(d1+d2)/2; const target=Math.max(0.28, Math.min(0.48, avg/Math.min(W,H))); wheel.radius += (target - wheel.radius)*0.2; }
+  }
+  function gestureEnd(){ dragging=false; setTimeout(()=> wheel.pressure *= 0.5, 80); }
+
+  function angleOf(p){ const cx=W/2, cy=H/2; return Math.atan2(p.y-cy, p.x-cx); }
+
+  // Blobs (clips as lumps on the wheel)
+  const blobs=[]; // {video, theta, roff, r, cx,cy, nodes, gain, enabled}
+  function makeBlob(video){ const theta=Math.random()*Math.PI*2; const r = Math.min(W,H)*0.16; const nodes=[]; const n=18; const cx=W/2 + Math.cos(theta)*Math.min(W,H)*wheel.radius; const cy=H/2 + Math.sin(theta)*Math.min(W,H)*wheel.radius; for(let i=0;i<n;i++){ const a=(i/n)*Math.PI*2; nodes.push({x:cx+r*Math.cos(a), y:cy+r*Math.sin(a), vx:0,vy:0, ox:Math.cos(a), oy:Math.sin(a)}); } return {video, theta, roff:0, r, cx, cy, nodes, gain:null, enabled:true}; }
+
+  // Audio
+  let AC=null, mix=null, mediaDest=null; let recording=false, recorder=null, chunks=[];
+  async function ensureAudio(){ if(AC||!audioCb.checked) return; const Ctx=window.AudioContext||window.webkitAudioContext; if(!Ctx) return; AC=new Ctx(); mix=AC.createGain(); mix.gain.value=0.9; mix.connect(AC.destination); mediaDest=AC.createMediaStreamDestination(); mix.connect(mediaDest); blobs.forEach(b=>{ try{const src=AC.createMediaElementSource(b.video); const g=AC.createGain(); g.gain.value=0; src.connect(g).connect(mix); b.gain=g;}catch{} }); }
+
+  // Load UI (make sure clicking works)
+  document.querySelector('label.pill')?.addEventListener('click', (e)=>{ const input=e.currentTarget.querySelector('input[type=file]'); if(input){ input.value=''; input.click(); }});
+  filepick.addEventListener('change', async (e)=>{ const list=Array.from(e.target.files||[]); for(const f of list){ await addClip(f); } hud.textContent = `Loaded ${blobs.length} lumps. Spin & press to throw.`; drawWheel(); });
+  async function addClip(file){ const url=URL.createObjectURL(file); const v=document.createElement('video'); v.src=url; v.muted=true; v.playsInline=true; v.loop=true; v.preload='metadata'; v.crossOrigin='anonymous'; bucket.appendChild(v); await v.play().catch(()=>{}); v.pause(); const b=makeBlob(v); blobs.push(b); addCard(file.name, b); }
+  function addCard(name, blob){ const el=document.createElement('div'); el.className='chip'; el.innerHTML=`<h4>🎞️ ${name}</h4><div class="small">Drag around rim to place. Double‑tap to toggle.</div>`; el.ondblclick=()=>{ blob.enabled=!blob.enabled; el.style.opacity=blob.enabled?1:0.35; drawWheel(); }; clipsDiv.appendChild(el); }
+
+  // Transport
+  let running=false, raf=null; function playAll(){ blobs.forEach(b=>b.video.play().catch(()=>{})); running=true; playBtn.textContent='⏸︎ Pause'; loop(); }
+  function pauseAll(){ blobs.forEach(b=>b.video.pause()); running=false; cancelAnimationFrame(raf); playBtn.textContent='▶︎ Play'; draw(); }
+  playBtn.onclick=async ()=>{ await ensureAudio(); running?pauseAll():playAll(); if(AC&&AC.state==='suspended') AC.resume(); };
+
+  // Recording
+  recordBtn.onclick=async ()=>{ if(!recording){ await ensureAudio(); const vstream=c.captureStream(30); let stream=vstream; if(mediaDest){ const a=mediaDest.stream.getAudioTracks()[0]; if(a) stream=new MediaStream([vstream.getVideoTracks()[0], a]); } chunks=[]; recorder=new MediaRecorder(stream, {mimeType:'video/webm;codecs=vp9'}); recorder.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); }; recorder.onstop=()=>{ const blob=new Blob(chunks,{type:'video/webm'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='hyperclay_throw.webm'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),4000); }; recorder.start(100); recording=true; recordBtn.textContent='■ Stop'; if(!running) playAll(); } else { recording=false; recordBtn.textContent='● Record'; recorder?.stop(); } };
+
+  // Physics (soft bodies + wheel)
+  const VISC=0.965, STIFF=12, REPULSE=12000, TOUCH_FORCE=26000; const EDGE=0.82;
+  let baseT=0; // global scrub from wheel
+
+  function step(dt){
+    // Wheel kinematics
+    wheel.angle += wheel.omega*dt; wheel.omega *= wheel.friction; baseT += wheel.omega * dt * 0.25;
+
+    const cx=W/2, cy=H/2, R=Math.min(W,H)*wheel.radius;
+
+    // Place blobs on rim and apply pressure influence (pressure narrows radius + strengthens repulsion)
+    for(const b of blobs){ if(!b.enabled) continue; b.cx = cx + Math.cos(b.theta+wheel.angle)*(R + b.roff); b.cy = cy + Math.sin(b.theta+wheel.angle)*(R + b.roff); const ns=b.nodes; const n=ns.length; const pr = 1 - 0.12*wheel.pressure; b.r = Math.max(60, Math.min(Math.min(W,H)*0.3, Math.min(W,H)*0.16*pr)); // softer under pressure
+      for(let i=0;i<n;i++){ const p=ns[i]; const a=Math.atan2(p.oy,p.ox); const tx=b.cx + b.r*Math.cos(a); const ty=b.cy + b.r*Math.sin(a); p.vx += (tx-p.x)*STIFF*dt; p.vy += (ty-p.y)*STIFF*dt; if(p.x<(1-EDGE)*W) p.vx += ((1-EDGE)*W-p.x)*40*dt; if(p.x>EDGE*W) p.vx += (EDGE*W-p.x)*40*dt; if(p.y<(1-EDGE)*H) p.vy += ((1-EDGE)*H-p.y)*40*dt; if(p.y>EDGE*H) p.vy += (EDGE*H-p.y)*40*dt; }
+    }
+
+    // Inter‑blob coupling (pressure scales repulsion)
+    const rep = REPULSE * (1 + 2*wheel.pressure);
+    for(let i=0;i<blobs.length;i++) for(let j=i+1;j<blobs.length;j++){ const A=blobs[i], B=blobs[j]; if(!A.enabled||!B.enabled) continue; const dx=B.cx-A.cx, dy=B.cy-A.cy; const d=Math.hypot(dx,dy)+1e-3; const push=(rep/(d*d)); const fx=push*dx/d, fy=push*dy/d; for(const p of A.nodes){ p.vx -= fx*dt/ A.nodes.length; p.vy -= fy*dt/ A.nodes.length; } for(const p of B.nodes){ p.vx += fx*dt/ B.nodes.length; p.vy += fy*dt/ B.nodes.length; } const K=0.6; const pull=K*Math.min(1, (A.r+B.r)/Math.max(d,1)); for(let k=0;k<A.nodes.length;k+=3){ const pa=A.nodes[k]; pa.vx += (B.cx - pa.x)*pull*dt; pa.vy += (B.cy - pa.y)*pull*dt; } for(let k=0;k<B.nodes.length;k+=3){ const pb=B.nodes[k]; pb.vx += (A.cx - pb.x)*pull*dt; pb.vy += (A.cy - pb.y)*pull*dt; } }
+
+    // Touch forces (drag a lump if finger close to rim angle)
+    touches.forEach(t=>{ const a=angleOf(t); // move nearest blob by changing its theta
+      let best=null, bestDiff=1e9; for(const b of blobs){ const diff=angleDiff(a, b.theta+wheel.angle); if(diff<bestDiff){ bestDiff=diff; best=b; } }
+      if(best && bestDiff<0.5){ best.theta += (a - (best.theta+wheel.angle))*0.2; }
+      // apply local force to surfaces
+      for(const b of blobs){ for(const p of b.nodes){ const dx=t.x-p.x, dy=t.y-p.y; const d2=dx*dx+dy*dy+1; const f=TOUCH_FORCE/d2; p.vx += f*dx*dt; p.vy += f*dy*dt; } }
+    });
+
+    // Integrate
+    for(const b of blobs){ for(const p of b.nodes){ p.vx*=VISC; p.vy*=VISC; p.x+=p.vx*dt*60; p.y+=p.vy*dt*60; } }
+
+    // Pressure decay
+    wheel.pressure *= 0.985;
+  }
+
+  function angleDiff(a,b){ let d=a-b; if(d>Math.PI) d-=2*Math.PI; if(d<-Math.PI) d+=2*Math.PI; return Math.abs(d); }
+
+  // Edge fog + noise (fixed params for simplicity — no sliders)
+  const noiseTex=document.createElement('canvas'); const nctx=noiseTex.getContext('2d');
+  function makeNoise(size=256){ noiseTex.width=noiseTex.height=size; const img=nctx.createImageData(size,size); const d=img.data; for(let y=0;y<size;y++){ for(let x=0;x<size;x++){ const i=(y*size+x)*4; const v=(Math.random()*255)|0; d[i]=d[i+1]=d[i+2]=v; d[i+3]=255; } } nctx.putImageData(img,0,0); }
+  makeNoise(256);
+
+  const off=document.createElement('canvas'); const offctx=off.getContext('2d');
+  const FOG=0.55, NOISE=0.5; // tuned defaults
+  function drawBlob(b, alpha){ const v=b.video; if(v.readyState<2) return; const vw=v.videoWidth||W, vh=v.videoHeight||H; const s=(2*b.r)/Math.min(vw,vh); const dw=vw*s, dh=vh*s; const bx=b.cx-dw/2, by=b.cy-dh/2; off.width=Math.ceil(dw); off.height=Math.ceil(dh); offctx.clearRect(0,0,off.width,off.height); offctx.drawImage(v,0,0,dw,dh); const g=offctx.createRadialGradient(dw/2,dh/2,Math.max(1,(1-FOG)*Math.min(dw,dh)/2),dw/2,dh/2,Math.min(dw,dh)/2); g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(1,'rgba(255,255,255,0)'); offctx.globalCompositeOperation='destination-in'; offctx.fillStyle=g; offctx.fillRect(0,0,dw,dh); offctx.globalCompositeOperation='destination-in'; offctx.globalAlpha=0.35*NOISE; const tile=noiseTex; const rx=Math.ceil(dw/tile.width)+1, ry=Math.ceil(dh/tile.height)+1; for(let y=0;y<ry;y++){ for(let x=0;x<rx;x++){ offctx.drawImage(tile,(x-0.5)*tile.width + (performance.now()*0.02%tile.width),(y-0.5)*tile.height,tile.width,tile.height); } } ctx.globalAlpha=alpha; ctx.drawImage(off,bx,by); }
+
+  function drawWheel(){ ctx.clearRect(0,0,W,H); ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H); const cx=W/2, cy=H/2, r=Math.min(W,H)*wheel.radius; ctx.save(); ctx.strokeStyle='rgba(202,162,74,.28)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke(); for(let i=0;i<24;i++){ const a=i*(Math.PI*2/24)+wheel.angle; const x1=cx+(r-10)*Math.cos(a), y1=cy+(r-10)*Math.sin(a); const x2=cx+(r+10)*Math.cos(a), y2=cy+(r+10)*Math.sin(a); ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); } ctx.restore(); }
+
+  function draw(){ ctx.clearRect(0,0,W,H); ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H); drawWheel(); // alpha based on overlap
+    const alphas=blobs.map(_=>0.85); for(let i=0;i<blobs.length;i++) for(let j=i+1;j<blobs.length;j++){ const A=blobs[i], B=blobs[j]; if(!A.enabled||!B.enabled) continue; const d=Math.hypot(A.cx-B.cx, A.cy-B.cy); const overlap=Math.max(0,(A.r+B.r)-d); const boost=Math.min(0.6, overlap/Math.max(A.r,B.r)); alphas[i]+=boost*0.5; alphas[j]+=boost*0.5; }
+    const order=blobs.map((b,i)=>({i,a:alphas[i]})).sort((A,B)=>A.a-B.a).map(o=>o.i); ctx.globalCompositeOperation='screen';
+    for(const idx of order){ const b=blobs[idx]; if(!b.enabled) continue; try{ const t0=(blobs[0]?.video.currentTime)||0; const target=Math.max(0, t0 + baseT); if(Math.abs(b.video.currentTime-target)>0.03) b.video.currentTime=target; }catch{} drawBlob(b, Math.max(0.18, Math.min(1.0, alphas[idx]))); }
+  }
+
+  // Loop
+  let last=performance.now();
+  function loop(){ raf=requestAnimationFrame(loop); const t=performance.now(); let dt=(t-last)/1000; last=t; dt=Math.min(0.05,dt); step(dt); draw(); }
+
+  // Start with visible wheel (even with no clips)
+  draw();
+  
+  // ====== AUDIO MIX (size-based) ======
+  function updateAudio(){ if(!(AC&&audioCb.checked)) return; for(const b of blobs){ if(!b.gain) continue; const g=0.2+0.8*Math.max(0.05, Math.min(1, (b.r/Math.min(W,H)))); b.gain.gain.setTargetAtTime(g, AC.currentTime, 0.05); } }
+
+  // Handle adding clips updates audio graph
+  const observer = new MutationObserver(()=>{ if(!AC||!audioCb.checked) return; blobs.forEach(b=>{ if(b.gain) return; try{const src=AC.createMediaElementSource(b.video); const g=AC.createGain(); g.gain.value=0; src.connect(g).connect(mix); b.gain=g;}catch{} }); });
+  observer.observe(bucket,{childList:true});
+
+  // Expose play immediately for quick test
+  if (document.visibilityState==='visible') { /* no-op */ }
+  </script>
+</body>
+</html>

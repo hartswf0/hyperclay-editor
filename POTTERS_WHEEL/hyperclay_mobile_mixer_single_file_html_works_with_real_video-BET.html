@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Hyperclay Mobile Mixer — no‑cut, multi‑touch video sculptor</title>
+  <style>
+    :root{
+      --bg:#0b0c0f; --ink:#eae7df; --muted:#9aa0a6; --accent:#1aa7a1; --gold:#c8a552; --rose:#c94f5c;
+      --panel:#12151a; --chip:#171a20; --pad:#0c1118; --good:#18a999; --warn:#d99a2b; --bad:#e05252;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    body{display:flex;flex-direction:column;min-height:100dvh}
+    header{display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem .7rem;background:linear-gradient(180deg,#0d1117,#0b0c0f)}
+    header h1{font-size:1rem;margin:0;font-weight:600;letter-spacing:.2px;opacity:.9}
+    .controls{display:flex;gap:.4rem;flex-wrap:wrap}
+    button,select,input[type=range]{background:var(--chip);color:var(--ink);border:1px solid #222833;border-radius:.8rem;padding:.55rem .8rem;font-size:.9rem}
+    button:active{transform:scale(.98)}
+    button.primary{background:var(--accent);color:#001a18;border-color:#0b3b3a;font-weight:700}
+    button.warn{background:var(--warn);color:#231f12}
+    button.bad{background:var(--bad);color:#1e0f10}
+    .wrap{display:grid;grid-template-rows:1fr auto;gap:.5rem;padding:.5rem;height:calc(100dvh - 56px)}
+    #stage{position:relative;background:#000;border:1px solid #1c222b;border-radius:1rem;overflow:hidden}
+    canvas{width:100%;height:100%;display:block;touch-action:none}
+    .overlay{position:absolute;inset:0;pointer-events:none}
+    .hud{position:absolute;left:.6rem;bottom:.6rem;background:color-mix(in srgb, #0b0c0f 80%, transparent);border:1px solid #1c222b;border-radius:.8rem;padding:.5rem .6rem;font-size:.8rem;opacity:.92}
+    .pad{position:absolute;right:.6rem;bottom:.6rem;width:38dvw;max-width:240px;aspect-ratio:1;border-radius:50%;background:radial-gradient(80% 80% at 50% 50%, #111a27 0%, #0b1119 60%, #071018 100%);border:1px solid #1c222b;box-shadow:inset 0 0 40px #06090f80;touch-action:none}
+    .pad::after{content:"MIX";position:absolute;inset:auto 0 8px 0;text-align:center;font-size:.72rem;color:var(--muted);letter-spacing:.15em}
+    .dot{position:absolute;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+    .touch{background:var(--rose);box-shadow:0 0 18px #c94f5c88}
+    .anchor{background:var(--gold);opacity:.9;box-shadow:0 0 14px #c8a55288}
+
+    .footer{display:grid;grid-template-columns:1fr;gap:.5rem}
+    .row{display:flex;gap:.5rem;flex-wrap:wrap}
+    .clips{display:flex;gap:.5rem;overflow:auto;padding-bottom:.3rem}
+    .chip{min-width:140px;background:var(--panel);border:1px solid #1c222b;border-radius:.9rem;padding:.55rem}
+    .chip h4{margin:.1rem 0 .35rem 0;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .small{font-size:.75rem;color:var(--muted)}
+    .chip input[type=range]{width:100%}
+    .pill{display:inline-flex;align-items:center;gap:.4rem;background:#0f131a;border:1px solid #1f2530;color:var(--ink);padding:.25rem .5rem;border-radius:999px;font-size:.75rem}
+    label.pill input{accent-color:var(--accent)}
+
+    .help{font-size:.82rem;color:var(--muted);line-height:1.35}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hyperclay Mobile Mixer</h1>
+    <div class="controls">
+      <label class="pill"><input id="filepick" type="file" accept="video/*" multiple hidden><span>➕ Load Clips</span></label>
+      <button id="play" class="primary">▶︎ Play</button>
+      <button id="sync">↺ Resync</button>
+      <button id="clear" class="bad">✕ Clear</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="stage">
+      <canvas id="canvas"></canvas>
+      <div class="overlay">
+        <div id="hud" class="hud">Ready. Load a few short clips → Play → Mix with 1–5 fingers inside the ring.</div>
+        <div id="pad" class="pad"></div>
+      </div>
+    </section>
+
+    <section class="footer">
+      <div class="row">
+        <label class="pill">Blend
+          <select id="blend">
+            <option value="source-over">Normal</option>
+            <option value="lighter">Add</option>
+            <option value="multiply">Multiply</option>
+            <option value="screen">Screen</option>
+          </select>
+        </label>
+        <label class="pill">Softness γ <input id="gamma" type="range" min="0.5" max="2.5" step="0.05" value="1.2"></label>
+        <label class="pill">Anchors <span id="anchorCount">0</span></label>
+        <label class="pill"><input id="hold" type="checkbox"> Hold last mix on release</label>
+        <label class="pill"><input id="audio" type="checkbox" checked> Audio mix</label>
+        <button id="record" class="warn">● Record</button>
+      </div>
+
+      <div id="clips" class="clips"></div>
+      <div class="help">Tips: Use short clips for best performance. Up to 5 touches control the mix. Each clip sits on a golden anchor around the ring; move fingers nearer an anchor to strengthen that clip. Long‑press to feel a tiny buzz (Android). Offsets let you drift clips for creative resonance.</div>
+    </section>
+  </main>
+
+  <!-- Hidden media bucket -->
+  <div id="bucket" class="hidden"></div>
+
+  <script>
+  // --- Core state ---
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const pad = document.getElementById('pad');
+  const hud = document.getElementById('hud');
+  const clipsDiv = document.getElementById('clips');
+  const playBtn = document.getElementById('play');
+  const syncBtn = document.getElementById('sync');
+  const clearBtn = document.getElementById('clear');
+  const filepick = document.getElementById('filepick');
+  const blendSel = document.getElementById('blend');
+  const gammaSl = document.getElementById('gamma');
+  const holdCb = document.getElementById('hold');
+  const audioCb = document.getElementById('audio');
+  const recordBtn = document.getElementById('record');
+  const anchorCount = document.getElementById('anchorCount');
+  const bucket = document.getElementById('bucket');
+
+  let W = 0, H = 0;
+  let rafId = null;
+  let isPlaying = false;
+  let useAudio = true;
+  let gamma = parseFloat(gammaSl.value);
+  let currentBlend = blendSel.value;
+  let lastWeights = [];
+
+  const maxTouches = 5;
+  const touches = new Map(); // pointerId -> {x,y}
+  const anchors = []; // computed each frame from active clips
+
+  const files = []; // [{id,name,url,video,enabled,offset, gainNode?}]
+  let nextId = 1;
+
+  // Audio graph (optional)
+  let AC = null, mixGain = null, mediaDest = null;
+
+  // Recording
+  let recorder = null, chunks = [], recording = false;
+
+  // --- Responsive canvas ---
+  function fitCanvas(){
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    W = Math.floor(rect.width * dpr);
+    H = Math.floor(rect.height * dpr);
+    canvas.width = W; canvas.height = H;
+  }
+  addEventListener('resize', ()=>{fitCanvas(); drawOnce();});
+  fitCanvas();
+
+  // --- File loading ---
+  document.querySelector('label.pill input[type=file]')?.addEventListener('click', (e)=>{
+    // allow re-select same files
+    e.target.value = '';
+  });
+  document.querySelector('label.pill')?.addEventListener('click', ()=> filepick.click());
+  filepick.addEventListener('change', async (e)=>{
+    const list = Array.from(e.target.files || []);
+    for (const f of list){ await addClip(f); }
+    updateAnchors();
+    hud.textContent = `Loaded ${files.length} clip${files.length!==1?'s':''}. Tap ▶︎ to play, then mix with your fingers.`;
+    drawOnce();
+  });
+
+  async function addClip(file){
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.src = url; v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.loop = true; v.crossOrigin = 'anonymous';
+    bucket.appendChild(v);
+    await v.play().catch(()=>{}); // prime some browsers
+    v.pause();
+
+    const id = nextId++;
+    const rec = { id, name:file.name, url, video:v, enabled:true, offset:0, gain:null };
+    files.push(rec);
+    addClipChip(rec);
+  }
+
+  function addClipChip(rec){
+    const el = document.createElement('div');
+    el.className = 'chip'; el.id = `chip-${rec.id}`;
+    el.innerHTML = `
+      <h4 title="${rec.name}">🎞️ ${rec.name}</h4>
+      <div class="small">Offset: <span id="offv-${rec.id}">0.00</span>s</div>
+      <input type="range" min="-3" max="3" step="0.01" value="0" id="offs-${rec.id}">
+      <div class="row" style="margin-top:.35rem">
+        <label class="pill"><input type="checkbox" id="ena-${rec.id}" checked> Enabled</label>
+        <button class="pill" id="solo-${rec.id}">Solo</button>
+      </div>
+    `;
+    clipsDiv.appendChild(el);
+
+    const off = el.querySelector(`#offs-${rec.id}`);
+    const offv = el.querySelector(`#offv-${rec.id}`);
+    off.addEventListener('input', ()=>{ rec.offset = parseFloat(off.value)||0; offv.textContent = rec.offset.toFixed(2); });
+    el.querySelector(`#ena-${rec.id}`).addEventListener('change', (ev)=>{ rec.enabled = ev.target.checked; updateAnchors(); });
+    el.querySelector(`#solo-${rec.id}`).addEventListener('click', ()=>{
+      const target = rec.enabled ? rec.id : null;
+      files.forEach(r=> r.enabled = (r.id===rec.id));
+      document.querySelectorAll('.chip input[type=checkbox]').forEach((cb,i)=> cb.checked = (files[i].id===rec.id));
+      updateAnchors();
+    });
+  }
+
+  function updateAnchors(){
+    anchors.length = 0;
+    const active = files.filter(f=>f.enabled);
+    const N = active.length; anchorCount.textContent = N;
+    const padRect = pad.getBoundingClientRect();
+    const r = Math.min(padRect.width, padRect.height)*0.38; // radius for anchors
+    const cx = padRect.width/2, cy = padRect.height/2;
+
+    // Clear existing anchor dots
+    pad.querySelectorAll('.anchor').forEach(n=>n.remove());
+
+    active.forEach((f, i)=>{
+      const a = -Math.PI/2 + i*(2*Math.PI/N);
+      const x = cx + r*Math.cos(a);
+      const y = cy + r*Math.sin(a);
+      anchors.push({id:f.id, x, y});
+      const dot = document.createElement('div');
+      dot.className = 'dot anchor';
+      dot.style.left = x+'px'; dot.style.top = y+'px';
+      pad.appendChild(dot);
+    });
+
+    // normalize lastWeights length
+    lastWeights = active.map(()=>1/Math.max(1,N));
+  }
+
+  // --- Touch mixer on the pad ---
+  pad.style.touchAction = 'none';
+  function padPos(e){
+    const r = pad.getBoundingClientRect();
+    const x = (e.clientX||0) - r.left; const y = (e.clientY||0) - r.top; return {x,y};
+  }
+  function addTouchDot(id, x, y){
+    const d = document.createElement('div'); d.className='dot touch'; d.id = 't'+id; d.style.left=x+'px'; d.style.top=y+'px'; pad.appendChild(d);
+  }
+  function moveTouchDot(id,x,y){ const d = document.getElementById('t'+id); if(d){d.style.left=x+'px'; d.style.top=y+'px';} }
+  function removeTouchDot(id){ const d = document.getElementById('t'+id); if(d) d.remove(); }
+
+  pad.addEventListener('pointerdown', (e)=>{
+    if (touches.size>=maxTouches) return;
+    if (navigator.vibrate) navigator.vibrate(10);
+    pad.setPointerCapture(e.pointerId);
+    const p = padPos(e); touches.set(e.pointerId, p); addTouchDot(e.pointerId,p.x,p.y);
+  });
+  pad.addEventListener('pointermove', (e)=>{
+    if (!touches.has(e.pointerId)) return;
+    const p = padPos(e); touches.set(e.pointerId,p); moveTouchDot(e.pointerId,p.x,p.y);
+  });
+  pad.addEventListener('pointerup', (e)=>{
+    touches.delete(e.pointerId); removeTouchDot(e.pointerId);
+    if (!holdCb.checked) lastWeights = []; // reset to equal when released
+  });
+  pad.addEventListener('pointercancel', (e)=>{ touches.delete(e.pointerId); removeTouchDot(e.pointerId); });
+
+  function computeWeights(){
+    const active = files.filter(f=>f.enabled);
+    const N = active.length; if (N===0) return [];
+    // If no touches: keep last or equal
+    if (touches.size===0){
+      if (lastWeights.length===N && holdCb.checked) return lastWeights.slice();
+      return active.map(()=>1/N);
+    }
+    // Map clip id -> index
+    const idToIdx = new Map(active.map((f,i)=>[f.id,i]));
+    const padRect = pad.getBoundingClientRect();
+    const padR = Math.min(padRect.width, padRect.height)/2;
+
+    const w = new Array(N).fill(0);
+    const pwr = 2.2; const eps = 0.05; // Shepard power
+
+    // Sum inverse-distance weights for each touch
+    touches.forEach(({x,y})=>{
+      anchors.forEach(a=>{
+        const dx = (a.x - x), dy = (a.y - y);
+        const d = Math.hypot(dx,dy) / padR; // 0..~1
+        const contrib = 1/Math.pow(d+eps, pwr);
+        const i = idToIdx.get(a.id);
+        w[i] += contrib;
+      });
+    });
+
+    // Normalize
+    const sum = w.reduce((s,v)=>s+v,0) || 1;
+    let out = w.map(v=> v/sum);
+    lastWeights = out.slice();
+    return out;
+  }
+
+  // --- Transport ---
+  async function ensureAudio(){
+    if (!useAudio || AC) return;
+    const Ctx = window.AudioContext || window.webkitAudioContext; if(!Ctx) return;
+    AC = new Ctx();
+    mixGain = AC.createGain(); mixGain.gain.value = 0.9; mixGain.connect(AC.destination);
+    mediaDest = AC.createMediaStreamDestination();
+    mixGain.connect(mediaDest);
+
+    for (const f of files){
+      if (f.source) continue;
+      try{
+        const src = AC.createMediaElementSource(f.video);
+        const g = AC.createGain(); g.gain.value = 0.0; // start silent
+        src.connect(g).connect(mixGain);
+        f.gain = g; f.source = src;
+      }catch(err){ console.log('audio graph err', err); }
+    }
+  }
+
+  function playAll(){
+    files.forEach(f=>{ try{ f.video.play(); }catch{} });
+    isPlaying = true; playBtn.textContent = '⏸︎ Pause';
+    if (AC && AC.state==='suspended') AC.resume();
+    loop();
+  }
+  function pauseAll(){ files.forEach(f=> f.video.pause()); isPlaying = false; playBtn.textContent = '▶︎ Play'; cancelAnimationFrame(rafId); drawOnce(); }
+  playBtn.addEventListener('click', async ()=>{
+    useAudio = audioCb.checked;
+    await ensureAudio();
+    isPlaying ? pauseAll() : playAll();
+  });
+
+  syncBtn.addEventListener('click', ()=>{
+    const t = (files[0]?.video.currentTime)||0;
+    files.forEach(f=>{ f.video.currentTime = Math.max(0, t + f.offset); });
+  });
+
+  clearBtn.addEventListener('click', ()=>{
+    pauseAll();
+    files.forEach(f=>{ try{ URL.revokeObjectURL(f.url); f.video.remove(); }catch{} });
+    files.length = 0; clipsDiv.innerHTML=''; updateAnchors(); drawOnce();
+    hud.textContent = 'Cleared. Load new clips to start again.';
+  });
+
+  blendSel.addEventListener('change', ()=>{ currentBlend = blendSel.value; });
+  gammaSl.addEventListener('input', ()=>{ gamma = parseFloat(gammaSl.value)||1.0; });
+  audioCb.addEventListener('change', ()=>{ useAudio = audioCb.checked; });
+
+  // --- Recording (video+audio if available) ---
+  recordBtn.addEventListener('click', async ()=>{
+    if (!recording){
+      await ensureAudio();
+      const fps = 30;
+      const vstream = canvas.captureStream(fps);
+      let stream = vstream;
+      if (mediaDest){
+        const a = mediaDest.stream.getAudioTracks()[0];
+        if (a) stream = new MediaStream([vstream.getVideoTracks()[0], a]);
+      }
+      chunks = [];
+      recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+      recorder.ondataavailable = (e)=>{ if(e.data && e.data.size) chunks.push(e.data); };
+      recorder.onstop = ()=>{
+        const blob = new Blob(chunks, {type:'video/webm'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href=url; a.download='hyperclay_mix.webm'; a.click();
+        setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      };
+      recorder.start(100);
+      recording = true; recordBtn.textContent = '■ Stop'; hud.textContent = 'Recording…';
+      if (!isPlaying) playAll();
+    } else {
+      recording = false; recordBtn.textContent = '● Record'; hud.textContent = 'Recording saved.'; recorder?.stop();
+    }
+  });
+
+  // --- Render loop ---
+  function loop(){
+    rafId = requestAnimationFrame(loop);
+    drawOnce();
+  }
+
+  function drawOnce(){
+    if (W===0||H===0) fitCanvas();
+    ctx.clearRect(0,0,W,H);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,W,H);
+
+    const active = files.filter(f=>f.enabled);
+    if (active.length===0){ return; }
+
+    // Compute weights & apply gamma softness
+    const w = computeWeights();
+    const pow = (x,g)=> Math.pow(Math.max(0,Math.min(1,x)), g);
+    const wa = w.map(v=> pow(v, gamma));
+    const sumA = wa.reduce((s,v)=>s+v,0)||1; const normA = wa.map(v=>v/sumA);
+
+    // Update audio gains
+    if (AC && useAudio){
+      active.forEach((f,i)=>{ if (f.gain) f.gain.gain.setTargetAtTime(normA[i], AC.currentTime, 0.05); });
+    }
+
+    // Draw videos sorted by alpha for prettier blends
+    const pack = active.map((f,i)=>({f, a:normA[i]})).sort((A,B)=> A.a-B.a);
+    ctx.globalCompositeOperation = currentBlend;
+    for (const {f,a} of pack){
+      if (f.video.readyState < 2) continue;
+      // keep offsets honored
+      try{
+        const baseT = active[0].video.currentTime;
+        const targetT = Math.max(0, baseT + f.offset);
+        const dt = Math.abs(f.video.currentTime - targetT);
+        if (dt>0.05) f.video.currentTime = targetT;
+      }catch{}
+
+      ctx.globalAlpha = a;
+      // Fit video into canvas (contain)
+      const vw = f.video.videoWidth || W, vh = f.video.videoHeight || H;
+      const s = Math.min(W/vw, H/vh);
+      const dw = vw*s, dh = vh*s;
+      const dx = (W - dw)/2, dy = (H - dh)/2;
+      ctx.drawImage(f.video, dx, dy, dw, dh);
+    }
+  }
+
+  // Initial anchors overlay (empty)
+  updateAnchors();
+
+  // Kick a first paint
+  drawOnce();
+
+  // Accessibility hint: keyboard play/pause
+  addEventListener('keydown', (e)=>{ if(e.key===' '){ e.preventDefault(); playBtn.click(); }});
+  </script>
+</body>
+</html>

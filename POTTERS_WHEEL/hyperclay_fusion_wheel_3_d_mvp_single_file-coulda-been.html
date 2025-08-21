@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Hyperclay Fusion Wheel — MVP (Mobile)</title>
+<style>
+  :root{
+    --bg:#0a0b0f; --ink:#e8e6df; --muted:#9aa0a6; --accent:#7ef9c6; --rose:#ff5a7a; --gold:#c8a552;
+    --hud:#0e1118f2; --panel:#0b0e14f2; --ok:#15c39a; --warn:#ffb44d; --danger:#ff5a7a;
+  }
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Ubuntu,sans-serif;}
+  #app{position:fixed;inset:0;touch-action:none;-webkit-user-select:none;user-select:none;}
+  canvas{position:absolute;inset:0;width:100%;height:100%;}
+  .chrome{position:absolute;inset:0;pointer-events:none}
+  .topbar{position:absolute;left:0;right:0;top:0;height:54px;background:linear-gradient(180deg,#0b0e14b0,#0b0e1400);display:flex;align-items:center;gap:8px;padding:0 10px;pointer-events:auto}
+  .btn{appearance:none;border:1px solid #272c33;background:#12151a;color:var(--ink);border-radius:14px;padding:8px 12px;font-size:14px;line-height:1;display:inline-flex;align-items:center;gap:8px}
+  .btn:active{transform:scale(.98)}
+  .spacer{flex:1}
+  .meter{font-variant-numeric:tabular-nums;background:#0f131a;border:1px solid #222834;border-radius:12px;padding:6px 10px;font-size:12px}
+  .badg{border:1px solid #27303a;background:#121821;border-radius:999px;padding:6px 10px;font-size:12px}
+  .panel{position:absolute;right:10px;bottom:10px;left:10px;background:var(--panel);border:1px solid #232a33;border-radius:16px;padding:12px;backdrop-filter:blur(6px);display:none;pointer-events:auto}
+  .panel.open{display:block}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0}
+  .row label{font-size:12px;color:var(--muted)}
+  input[type=range]{flex:1}
+  .hud{position:absolute;left:10px;bottom:10px;background:var(--hud);border:1px solid #232a33;border-radius:16px;padding:10px;pointer-events:none;min-width:180px}
+  .hud h4{margin:0 0 6px 0;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+  .hud .kv{display:flex;justify-content:space-between;font-size:12px;line-height:1.4}
+  .overlay{position:absolute;inset:0;pointer-events:none}
+  .tag{position:absolute;background:#12151a;border:1px solid #20262f;color:#c7ced8;font-size:11px;padding:4px 8px;border-radius:999px;white-space:nowrap}
+  .toast{position:absolute;left:50%;transform:translateX(-50%);bottom:76px;background:#10141a;border:1px solid #263041;padding:8px 12px;border-radius:12px;font-size:12px;display:none}
+  .toast.show{display:block}
+  .toggle{display:inline-flex;gap:8px;align-items:center}
+  .toggle input{accent-color:var(--accent)}
+  .legend{position:absolute;right:10px;top:60px;background:#0f1319;border:1px solid #222a33;border-radius:12px;padding:8px;pointer-events:none}
+  .legend div{font-size:11px;color:#a9b1bb;margin:2px 0}
+  /* snap grid badge */
+  .snapBadge{position:absolute;top:60px;left:10px;background:#0f1319;border:1px solid #222a33;border-radius:999px;padding:6px 10px;font-size:12px;display:none}
+  .snapBadge.on{display:block}
+  /* Helper for big center-tap hint */
+  .hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#9aa0a6;font-size:12px;background:#0f1319b0;border:1px dashed #2a3340;border-radius:14px;padding:10px 12px;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="view"></canvas>
+  <div class="chrome">
+    <div class="topbar">
+      <button class="btn" id="loadBtn">＋ Load Clips</button>
+      <button class="btn" id="testBtn">✚ Test Clips</button>
+      <button class="btn" id="tunerBtn">⚙ Tuner</button>
+      <div class="spacer"></div>
+      <span class="meter" id="rpmMeter">RPM 0.00</span>
+      <span class="badg" id="blendBadge">Blend: screen</span>
+      <button class=\"btn\" id=\"recordBtn\">● Record<\/button>
+      <button class=\"btn\" id=\"modeBtn\">Mode: Core<\/button>
+      <button class=\"btn\" id=\"previewBtn\">👁 Preview Off<\/button>
+      <button class=\"btn\" id=\"logBtn\">⇣ Log<\/button>
+      <button class=\"btn\" id=\"snapBtn\">⌗ Snap<\/button>
+    </div>
+    <div class="panel" id="tuner">
+      <div class="row"><label>Core Radius</label><input type="range" min="0.15" max="0.48" step="0.001" id="coreR"></div>
+      <div class="row"><label>Mist Density</label><input type="range" min="0" max="1" step="0.01" id="mist"></div>
+      <div class="row"><label>Edge Feather (px)</label><input type="range" min="8" max="240" step="1" id="feather"></div>
+      <div class="row"><label>Depth Bias</label><input type="range" min="-1" max="1" step="0.01" id="depthBias"></div>
+      <div class="row"><label>Parallax Strength</label><input type="range" min="0" max="80" step="1" id="parallax"></div>
+      <div class="row"><label>Exposure</label><input type="range" min="0.2" max="1.8" step="0.01" id="exposure"></div>
+      <div class="row"><label>Gyro Parallax</label><span class="toggle"><input type="checkbox" id="gyroOn"><small>opt‑in</small></span></div>
+      <div class="row"><label>Snap Sectors</label><input type="range" min="6" max="60" step="6" id="sectors"></div>
+      <div class="row"><label>Depth Steps</label><input type="range" min="3" max="15" step="1" id="zsteps"></div>
+      <div class="row"><label>Fog Swirl</label><input type="range" min="0" max="1" step="0.01" id="swirl"></div>
+      <div class="row" style="justify-content:flex-end"><button class="btn" id="closeTuner">Close</button></div>
+    </div>
+    <div class="hud" id="hud">
+      <h4>Heads‑Up</h4>
+      <div class="kv"><span>Core R</span><span id="hudCore">—</span></div>
+      <div class="kv"><span>Alpha Load</span><span id="hudAlpha">—</span></div>
+      <div class="kv"><span>Z Tension</span><span id="hudZT">—</span></div>
+      <div class="kv"><span>Clips</span><span id="hudClips">0</span></div>
+    </div>
+    <div class="legend" id="legend">
+      <div>• Double‑tap center → cycle blend</div>
+      <div>• Triple‑tap center → mist on/off</div>
+      <div>• One‑finger rim → spin wheel</div>
+      <div>• Two‑finger rim → resize wheel</div>
+      <div>• Drag clip → move; long‑press for gain</div>
+      <div>• Pinch clip → scale/feather; rotate → phase</div>
+      <div>• Three‑finger over clip → Z‑nudge</div>
+      <div>• Flick to rim → throw & snap</div>
+    </div>
+    <div class="snapBadge" id="snapBadge">Snap Grid ON</div>
+    <div class="toast" id="toast"></div>
+    <div class="overlay" id="overlay"></div>
+  </div>
+  <input id="file" type="file" accept="video/*" multiple hidden />
+  <div class="hint" id="hint">Tap ✚ Test Clips or ＋ Load Clips. Spin the rim. Double‑tap center.</div>
+</div>
+<script>
+(() => {
+  // ————————————————————————————————————————————————————————————————
+  // Hyperclay Fusion Wheel — MVP (2D Canvas fallback for portability)
+  // Features implemented:
+  //  ✓ Wheel with inertia (θ) + rim spin + resize
+  //  ✓ Clips as circular patches w/ feathered edges + fog/mist feedback
+  //  ✓ Depth (z) ordering + parallax + 3‑finger z‑nudge + depth meter
+  //  ✓ Fusion Core mixes clips within radius using blend modes (tog‑through)
+  //  ✓ Heads‑up meters, snap grid, ghost‑handles, process log
+  //  ✓ Load local videos + procedural test clips
+  //  ✓ Export core to WebM (MediaRecorder) + gesture log export
+  //  ✓ Haptics + simple sonification (WebAudio)
+  //  Note: This uses Canvas2D for wide device compatibility; WebGL/WebGPU can be
+  //  swapped later. Blend modes map to globalCompositeOperation where possible.
+  // ————————————————————————————————————————————————————————————————
+
+  const view = document.getElementById('view');
+  const ctx = view.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const W = () => view.width;
+  const H = () => view.height;
+  const DPR = Math.max(1, devicePixelRatio || 1);
+
+  function resize(){
+    const w = view.clientWidth;
+    const h = view.clientHeight;
+    view.width = Math.round(w * DPR);
+    view.height = Math.round(h * DPR);
+  }
+  window.addEventListener('resize', resize, {passive:true});
+  resize();
+
+  // UI elements
+  const el = (id)=>document.getElementById(id);
+  const loadBtn=el('loadBtn'), testBtn=el('testBtn'), tunerBtn=el('tunerBtn'), recordBtn=el('recordBtn'), modeBtn=el('modeBtn'), previewBtn=el('previewBtn'), logBtn=el('logBtn'), snapBtn=el('snapBtn');
+  const file=el('file');
+  const tuner=el('tuner');
+  const rpmMeter=el('rpmMeter');
+  const blendBadge=el('blendBadge');
+  const hudCore=el('hudCore'), hudAlpha=el('hudAlpha'), hudZT=el('hudZT'), hudClips=el('hudClips');
+  const coreR=el('coreR'), mist=el('mist'), feather=el('feather'), depthBias=el('depthBias'), parallax=el('parallax'), exposure=el('exposure'), gyroOn=el('gyroOn'), sectors=el('sectors'), zsteps=el('zsteps'), swirl=el('swirl');
+  const hint=el('hint');
+  const toast=el('toast');
+  const snapBadge=el('snapBadge');
+
+  // State
+  const state = {$1
+    // derived export/preview
+    recordMode:'core', // 'core' | 'vessel' | 'temporal' | 'interdiff'
+    preview:false,
+  };
+
+  const gestureLog = (targetId, op, before, after) => {
+    state.processLog.push({t:performance.now(), targetId, op, params_before:before||null, params_after:after||null});
+  };
+
+  // WebAudio — simple ambient pad + noise tied to RPM and Z tension
+  let audioCtx = null, masterGain = null, noiseGain=null, osc=null;
+  function initAudio(){
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.15; masterGain.connect(audioCtx.destination);
+    // Noise buffer
+    const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate*2, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1)*0.4;
+    const noise = audioCtx.createBufferSource(); noise.buffer=buffer; noise.loop=true;
+    const lp = audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=600;
+    noiseGain = audioCtx.createGain(); noiseGain.gain.value=0.0;
+    noise.connect(lp); lp.connect(noiseGain); noiseGain.connect(masterGain); noise.start();
+    // Pad osc
+    osc = audioCtx.createOscillator(); osc.type='sine'; osc.frequency.value = 110;
+    const padGain = audioCtx.createGain(); padGain.gain.value=0.05; osc.connect(padGain); padGain.connect(masterGain); osc.start();
+  }
+
+  // Utility
+  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const TAU=Math.PI*2;
+  function haptic(ms=12){ if (navigator.vibrate) navigator.vibrate(ms); }
+
+  // Core helpers
+  function corePx(){ return Math.min(W(),H())*state.coreR; }
+  function wheelPx(){ return Math.min(W(),H())*state.wheelR; }
+
+  // Mist feedback buffer
+  const prev = document.createElement('canvas');
+  const pctx = prev.getContext('2d');
+  function ensurePrev(){ if (prev.width!==W()||prev.height!==H()){ prev.width=W(); prev.height=H(); }}
+
+  // Offscreen buffers for derived outputs
+  const comp = document.createElement('canvas'); // core composite only
+  const cctx = comp.getContext('2d');
+  const vessel = document.createElement('canvas');
+  const vctx = vessel.getContext('2d');
+  const inter = document.createElement('canvas');
+  const ictx = inter.getContext('2d');
+  const tdiff = document.createElement('canvas');
+  const dtctx = tdiff.getContext('2d');
+  const prevComp = document.createElement('canvas');
+  const pcctx = prevComp.getContext('2d');
+
+  function ensureBuffers(){
+    if (comp.width!==W()||comp.height!==H()){
+      [comp,vessel,inter,tdiff,prevComp].forEach(c=>{ c.width=W(); c.height=H(); });
+    }
+  }}
+
+  // Device orientation parallax
+  let gyro = {x:0,y:0};
+  gyroOn.addEventListener('change', ()=>{
+    state.gyro = gyroOn.checked;
+    if (state.gyro) {
+      if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) {
+        DeviceOrientationEvent.requestPermission().then(res=>{
+          if (res==='granted') window.addEventListener('deviceorientation', onGyro, true);
+        }).catch(()=>{ state.gyro=false; gyroOn.checked=false; });
+      } else {
+        window.addEventListener('deviceorientation', onGyro, true);
+      }
+    } else {
+      window.removeEventListener('deviceorientation', onGyro, true);
+    }
+  });
+  function onGyro(e){
+    // gamma ~ left/right, beta ~ front/back
+    gyro.x = (e.gamma||0)/45; // -1..1ish
+    gyro.y = (e.beta||0)/45;
+  }
+
+  // Clip sources — procedural & video
+  let nextId=1;
+  class ClipSource {
+    constructor(kind, payload){
+      this.kind = kind; // 'proc' | 'video'
+      this.payload = payload; // function(time,canvas) for proc OR <video>
+      this.buf = document.createElement('canvas');
+      this.btx = this.buf.getContext('2d');
+      this.w=256; this.h=256;
+      this.buf.width=this.w; this.buf.height=this.h;
+    }
+    update(t){
+      if (this.kind==='proc') {
+        this.payload(t, this.buf, this.btx);
+      } else if (this.kind==='video') {
+        const v = this.payload;
+        const w = v.videoWidth||256, h=v.videoHeight||256;
+        if (w && h) { if (this.buf.width!==w||this.buf.height!==h){this.buf.width=w;this.buf.height=h;} this.btx.drawImage(v,0,0,w,h); }
+      }
+    }
+  }
+
+  class Clip {
+    constructor(source){
+      this.id = nextId++;
+      this.source = source;
+      // Spatial
+      this.x= (Math.random()*2-1)*0.2; // normalized relative to min(W,H)
+      this.y= (Math.random()*2-1)*0.2;
+      this.z= (Math.random()*2-1)*0.5; // -0.5..0.5
+      this.scale= 0.8 + Math.random()*0.6; // radius factor
+      // Temporal/phase
+      this.phase= Math.random(); // 0..1 offset around wheel
+      this.alpha= 0.9;
+      this.hue= 0;
+      this.feather = state.featherPx; // pixels
+      this.fog = 0.6; // additional fog strength 0..1
+      this.blend = null; // use global blend
+      // gesture helpers
+      this._lastTouch = null;
+    }
+  }
+
+  // Test procedural generators
+  const procs = {
+    plasma:(t, c, g)=>{
+      const w=c.width,h=c.height; const img=g.getImageData(0,0,w,h); const d=img.data;
+      const tt=t*0.0006; for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ const nx=x/w, ny=y/h; const v= (Math.sin(10*nx+tt*6)+Math.sin(10*ny+tt*7)+Math.sin(10*(nx+ny)+tt*5))*0.33; const vv= clamp( (v*0.5+0.5)*1.1, 0,1); const i=(y*w+x)*4; d[i]=vv*255; d[i+1]= (0.5+0.5*Math.sin(tt+nx*12))*255; d[i+2]= (0.5+0.5*Math.cos(tt+ny*12))*255; d[i+3]=255; }} g.putImageData(img,0,0);
+    },
+    rings:(t, c, g)=>{
+      const w=c.width,h=c.height; g.clearRect(0,0,w,h); const cx=w/2, cy=h/2; const R=Math.min(w,h)/2; const k= (Math.sin(t*0.002)*0.5+0.5);
+      for(let i=0;i<14;i++){
+        g.beginPath(); const r=R*(i/14); g.arc(cx,cy,r+Math.sin(t*0.003+i)*8,0,TAU);
+        g.lineWidth= 6 + 8*Math.sin((t*0.002+i)*2);
+        g.strokeStyle = `rgba(${200-i*8},${160+i*6},${240-i*10},0.9)`; g.stroke();
+      }
+    },
+    stripes:(t, c, g)=>{
+      const w=c.width,h=c.height; g.clearRect(0,0,w,h);
+      const n=24; for(let i=0;i<n;i++){
+        const y = ((i/n)*h + (t*0.08)%(h/n))%h; g.fillStyle = `hsl(${(i*15+t*0.02)%360} 80% 55% / .9)`; g.fillRect(0,y,w,h/n*0.6);
+      }
+      g.globalCompositeOperation='overlay'; g.fillStyle='rgba(255,255,255,0.15)'; for(let i=0;i<6;i++){ g.fillRect(i*w/6,0,2,h);} g.globalCompositeOperation='source-over';
+    }
+  };
+
+  function addProcClips(){
+    const s1 = new ClipSource('proc', procs.plasma);
+    const s2 = new ClipSource('proc', procs.rings);
+    const s3 = new ClipSource('proc', procs.stripes);
+    [s1,s2,s3].forEach(s=> state.clips.push(new Clip(s)));
+    hudClips.textContent = String(state.clips.length);
+    toastMsg('Loaded 3 procedural clips');
+  }
+
+  // Load user videos
+  loadBtn.addEventListener('click', ()=> file.click());
+  file.addEventListener('change', (e)=>{
+    const files=[...e.target.files];
+    if (!files.length) return;
+    files.forEach(f=>{
+      const url=URL.createObjectURL(f);
+      const v=document.createElement('video'); v.src=url; v.loop=true; v.muted=true; v.playsInline=true; v.preload='auto';
+      v.addEventListener('loadeddata',()=>{ v.pause(); const src=new ClipSource('video', v); const clip=new Clip(src); state.clips.push(clip); hudClips.textContent=String(state.clips.length); toastMsg('Video loaded'); });
+      v.addEventListener('error',()=> toastMsg('Video failed','danger'));
+    });
+    file.value='';
+  });
+
+  testBtn.addEventListener('click', ()=>{ addProcClips(); });
+
+  // Mode & Preview controls
+  const modes=['core','vessel','temporal','interdiff'];
+  modeBtn.addEventListener('click', ()=>{
+    const i=(modes.indexOf(state.recordMode)+1)%modes.length;
+    state.recordMode = modes[i];
+    modeBtn.textContent = 'Mode: '+(state.recordMode==='core'?'Core': state.recordMode==='vessel'?'Vessel': state.recordMode==='temporal'?'Temporal Δ':'Inter‑clip Δ');
+    toastMsg('Mode → '+modeBtn.textContent.replace('Mode: ','').toUpperCase());
+  });
+  previewBtn.addEventListener('click', ()=>{
+    state.preview = !state.preview; previewBtn.textContent = state.preview? '👁 Preview On':'👁 Preview Off';
+  });
+
+  // Tuner panel
+  tunerBtn.addEventListener('click', ()=> tuner.classList.toggle('open'));
+  el('closeTuner').addEventListener('click', ()=> tuner.classList.remove('open'));
+
+  // Bind sliders
+  coreR.value=state.coreR; mist.value=state.coreMist; feather.value=state.featherPx; depthBias.value=state.depthBias; parallax.value=state.parallax; exposure.value=state.exposure; sectors.value=state.sectors; zsteps.value=state.zsteps; swirl.value=state.swirl;
+  coreR.oninput=()=>{ state.coreR=+coreR.value; haptic(8); gestureLog('core','tune',{coreR:state.coreR},{coreR:state.coreR}); };
+  mist.oninput=()=>{ state.coreMist=+mist.value; };
+  feather.oninput=()=>{ state.featherPx=+feather.value; state.clips.forEach(c=>c.feather=state.featherPx); };
+  depthBias.oninput=()=>{ state.depthBias=+depthBias.value; };
+  parallax.oninput=()=>{ state.parallax=+parallax.value; };
+  exposure.oninput=()=>{ state.exposure=+exposure.value; };
+  sectors.oninput=()=>{ state.sectors=+sectors.value; };
+  zsteps.oninput=()=>{ state.zsteps=+zsteps.value; };
+  swirl.oninput=()=>{ state.swirl=+swirl.value; };
+
+  snapBtn.addEventListener('click', ()=>{ state.snap=!state.snap; snapBadge.classList.toggle('on', state.snap); toastMsg(state.snap?`Snap ${state.sectors} sectors`:'Snap OFF'); });
+
+  // Blend mode toggling via double‑tap center; triple‑tap toggles mist
+  let tapCount=0, lastTapTime=0;
+  function onCenterTap(){
+    const now=performance.now();
+    if (now-lastTapTime<320){ tapCount++; } else { tapCount=1; }
+    lastTapTime=now;
+    if (tapCount===2){
+      state.blendIndex=(state.blendIndex+1)%state.blendModes.length; blendBadge.textContent='Blend: '+state.blendModes[state.blendIndex]; haptic(15);
+      gestureLog('core','blend',null,{blend:state.blendModes[state.blendIndex]});
+    } else if (tapCount===3){
+      state.mistOn=!state.mistOn; toastMsg('Mist '+(state.mistOn?'ON':'OFF')); haptic(30);
+      tapCount=0;
+    }
+  }
+
+  // Recording (MediaRecorder)
+  let recorder=null, recChunks=[], recStream=null, isRecording=false;
+  function chooseMime(){
+    try{
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported){
+        if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264')) return 'video/mp4;codecs=h264';
+        if (MediaRecorder.isTypeSupported('video/mp4')) return 'video/mp4';
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) return 'video/webm;codecs=vp9';
+      }
+    }catch{}
+    return 'video/webm';
+  }
+  recordBtn.addEventListener('click', ()=>{
+    if (!recorder){
+      if (!recStream) recStream = view.captureStream(30);
+      const mime = chooseMime();
+      try{
+        recorder = new MediaRecorder(recStream, {mimeType: mime});
+      }catch{
+        recorder = new MediaRecorder(recStream);
+      }
+      recorder.ondataavailable = (e)=>{ if (e.data.size>0) recChunks.push(e.data); };
+      recorder.onstop = ()=>{
+        const ext = (recorder && recorder.mimeType && recorder.mimeType.includes('mp4')) ? 'mp4' : 'webm';
+        const blob = new Blob(recChunks, {type: recorder && recorder.mimeType ? recorder.mimeType : 'video/webm'}); recChunks=[];
+        const url = URL.createObjectURL(blob);
+        const a=document.createElement('a'); a.href=url; a.download=`hyperclay_${state.recordMode}.${ext}`; a.click();
+        URL.revokeObjectURL(url);
+      };
+      isRecording = true;
+      // Force preview of selected record mode while recording
+      state.preview = state.recordMode!=='core';
+      recorder.start(); recordBtn.textContent='■ Stop'; toastMsg(`Recording ${state.recordMode.toUpperCase()}…`);
+    } else {
+      recorder.stop(); recorder=null; isRecording=false; recordBtn.textContent='● Record'; toastMsg('Saved');
+      state.preview = false;
+    }
+  });
+      recorder = new MediaRecorder(recStream, {mimeType: 'video/webm;codecs=vp9'});
+      recorder.ondataavailable = (e)=>{ if (e.data.size>0) recChunks.push(e.data); };
+      recorder.onstop = ()=>{
+        const blob = new Blob(recChunks, {type:'video/webm'}); recChunks=[];
+        const url = URL.createObjectURL(blob);
+        const a=document.createElement('a'); a.href=url; a.download='hyperclay_core.webm'; a.click();
+        URL.revokeObjectURL(url);
+      };
+      recorder.start(); recordBtn.textContent='■ Stop'; toastMsg('Recording…');
+    } else {
+      recorder.stop(); recorder=null; recordBtn.textContent='● Record'; toastMsg('Saved WebM');
+    }
+  });
+
+  // Log export
+  logBtn.addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(state.processLog,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='hyperclay_process_log.json'; a.click(); URL.revokeObjectURL(url);
+  });
+
+  // Toast helper
+  let toastTimer=null;
+  function toastMsg(msg, kind){
+    toast.textContent = msg; toast.className = 'toast show';
+    toast.style.borderColor = kind==='danger'? 'var(--danger)': kind==='warn'? 'var(--warn)': '#263041';
+    clearTimeout(toastTimer); toastTimer=setTimeout(()=> toast.className='toast', 1600);
+  }
+
+  // Touch interactions
+  const app = document.getElementById('app');
+  let longPressTimer=null; let longPressTarget=null;
+
+  app.addEventListener('touchstart', (e)=>{
+    initAudio();
+    hint.style.display='none';
+    const rect=view.getBoundingClientRect();
+    const tlist=[...e.changedTouches].map(t=>({id:t.identifier,x:(t.clientX-rect.left)*DPR,y:(t.clientY-rect.top)*DPR,ts:performance.now()}));
+    tlist.forEach(t=> state.touches.set(t.id,t));
+
+    const c=state.center; const r=wheelPx();
+    // Determine gesture
+    if (state.touches.size===1){
+      const t=tlist[0]; const dx=t.x-c.x, dy=t.y-c.y; const d=Math.hypot(dx,dy);
+      if (Math.abs(d-r)<40*DPR){ // rim spin
+        state.thetaDrag=true; state.lastAngle=Math.atan2(dy,dx);
+        state.scrubbing=true; // pause videos and scrub
+        pauseAllVideos();
+      } else if (d<corePx()*0.9){ // center tap area
+        // start a tap timer to detect double/triple taps
+      } else {
+        const hit = hitClip(t.x,t.y);
+        if (hit){
+          longPressTarget = hit;
+          longPressTimer = setTimeout(()=>{ longPressTarget._gainMode = true; toastMsg('Gain mode: drag up/down'); }, 550);
+          hit._lastTouch = {x:t.x,y:t.y};
+        }
+      }
+    } else if (state.touches.size===2){
+      // Two‑finger rim resize or pinch on clip
+      const pts=[...state.touches.values()];
+      const m = midpoint(pts[0], pts[1]); const d = distPt(m, state.center);
+      const nearRim = Math.abs(d - wheelPx()) < 60*DPR;
+      if (nearRim){ state._resizeStart = {r:state.wheelR, d0:d}; }
+      state._pinch = {p0:pts[0], p1:pts[1], rot0: Math.atan2(pts[1].y-pts[0].y, pts[1].x-pts[0].x), dist0: Math.hypot(pts[1].x-pts[0].x, pts[1].y-pts[0].y), target: hitClip(m.x,m.y) };
+    } else if (state.touches.size===3){
+      // three‑finger z‑nudge over clip
+      const pts=[...state.touches.values()]; const m = midpoint(pts[0], pts[1], pts[2]);
+      state._zTarget = hitClip(m.x,m.y);
+      state._zRef = m.y; // vertical reference
+    }
+  }, {passive:false});
+
+  app.addEventListener('touchmove', (e)=>{
+    const rect=view.getBoundingClientRect();
+    const moved=[...e.changedTouches].map(t=>({id:t.identifier,x:(t.clientX-rect.left)*DPR,y:(t.clientY-rect.top)*DPR}))
+    moved.forEach(t=> state.touches.set(t.id,t));
+
+    const c=state.center;
+    if (state.thetaDrag){
+      const t=[...state.touches.values()][0]; const dx=t.x-c.x, dy=t.y-c.y; const a = Math.atan2(dy,dx);
+      const da = angleDelta(a, state.lastAngle); state.theta += da; state.thetaVel = da * 0.9; state.lastAngle=a;
+    }
+    if (state._resizeStart && state.touches.size>=2){
+      const pts=[...state.touches.values()]; const m=midpoint(pts[0],pts[1]); const d=distPt(m,c);
+      const dr = (d - state._resizeStart.d0)/Math.min(W(),H());
+      state.wheelR = clamp(state._resizeStart.r + dr, 0.18, 0.48);
+    }
+    if (state._pinch){
+      const pts=[...state.touches.values()]; const p0=pts[0], p1=pts[1]; if (!p0||!p1) return;
+      const rot = Math.atan2(p1.y-p0.y,p1.x-p0.x); const dist=Math.hypot(p1.x-p0.x,p1.y-p0.y);
+      const target = state._pinch.target; if (target){
+        const sBefore=target.scale, fBefore=target.feather, phBefore=target.phase;
+        target.scale = clamp(target.scale*(dist/state._pinch.dist0), 0.3, 2.5);
+        const drot = angleDelta(rot, state._pinch.rot0);
+        target.phase = (target.phase + drot/TAU) % 1;
+        target.feather = clamp(target.feather + (dist-state._pinch.dist0)*0.1, 8, 320);
+        gestureLog(target.id,'pinch',{scale:sBefore, feather:fBefore, phase:phBefore},{scale:target.scale, feather:target.feather, phase:target.phase});
+      }
+      state._pinch.rot0=rot; state._pinch.dist0=dist;
+    }
+    if (state.touches.size===1 && !state.thetaDrag){
+      const t=[...state.touches.values()][0];
+      const hit = hitClip(t.x,t.y);
+      if (hit){
+        clearTimeout(longPressTimer);
+        const before={x:hit.x,y:hit.y,alpha:hit.alpha};
+        if (hit._gainMode){
+          // vertical drag adjusts alpha
+          const dy = (t.y - (hit._lastTouch?.y||t.y)) / (Math.min(W(),H())*0.6);
+          hit.alpha = clamp(hit.alpha - dy, 0.05, 1.2);
+        } else {
+          const dxn = (t.x - (hit._lastTouch?.x||t.x))/Math.min(W(),H());
+          const dyn = (t.y - (hit._lastTouch?.y||t.y))/Math.min(W(),H());
+          hit.x += dxn; hit.y += dyn;
+        }
+        state.ghostPaths.push({id:hit.id, pts:[{x:t.x,y:t.y, ts:performance.now()}]});
+        hit._lastTouch = {x:t.x,y:t.y};
+        gestureLog(hit.id,'drag',before,{x:hit.x,y:hit.y,alpha:hit.alpha});
+      }
+    }
+    if (state._zTarget && state.touches.size>=3){
+      const pts=[...state.touches.values()]; const m = midpoint(...pts);
+      const beforeZ = state._zTarget.z;
+      const dy = (m.y - state._zRef)/Math.min(W(),H());
+      state._zTarget.z = clamp(state._zTarget.z + -dy*0.8, -0.9, 0.9);
+      state._zRef = m.y;
+      gestureLog(state._zTarget.id,'z-nudge',{z:beforeZ},{z:state._zTarget.z});
+    }
+
+    e.preventDefault();
+  }, {passive:false});
+
+  app.addEventListener('touchend', (e)=>{
+    const rect=view.getBoundingClientRect();
+    const ended=[...e.changedTouches].map(t=>({id:t.identifier,x:(t.clientX-rect.left)*DPR,y:(t.clientY-rect.top)*DPR}))
+    // tap center detection
+    ended.forEach(t=>{
+      const d=dist(t.x,t.y,state.center.x,state.center.y);
+      if (d<corePx()*0.6) onCenterTap();
+    });
+
+    // Throw snap if flicked to rim
+    const t0=[...e.changedTouches][0];
+    if (t0){
+      const x=(t0.clientX-rect.left)*DPR, y=(t0.clientY-rect.top)*DPR;
+      const hit = hitClip(x,y);
+      if (hit){
+        const c=state.center; const dx=x-c.x, dy=y-c.y; const d=Math.hypot(dx,dy);
+        if (Math.abs(d-wheelPx())<50*DPR){ // near rim
+          const a = Math.atan2(dy,dx) - state.theta; // local wheel angle
+          if (state.snap){
+            const step=TAU/state.sectors; const snapped=Math.round(a/step)*step; const before=hit.phase; hit.phase=(snapped/TAU+1)%1; haptic(20);
+            toastMsg(`Snapped θ @ ${Math.round((hit.phase)*360)}°`);
+            gestureLog(hit.id,'throw-phase',{phase:before},{phase:hit.phase});
+          } else {
+            hit.phase = (a/TAU + 1)%1; gestureLog(hit.id,'throw-phase-free',null,{phase:hit.phase});
+          }
+        }
+      }
+    }
+
+    // cleanup
+    clearTimeout(longPressTimer); longPressTimer=null; if (longPressTarget){ longPressTarget._gainMode=false; longPressTarget=null; }
+
+    ended.forEach(t=> state.touches.delete(t.id));
+    state.thetaDrag=false; state._resizeStart=null; state._pinch=null; state._zTarget=null;
+
+    if (state.scrubbing){ resumeVideos(); state.scrubbing=false; }
+  }, {passive:false});
+
+  app.addEventListener('touchcancel', ()=>{ state.touches.clear(); state.thetaDrag=false; state._resizeStart=null; state._pinch=null; state._zTarget=null; if (state.scrubbing){ resumeVideos(); state.scrubbing=false; } }, {passive:false});
+
+  function midpoint(){ let x=0,y=0; for(let i=0;i<arguments.length;i++){ x+=arguments[i].x; y+=arguments[i].y; } return {x:x/arguments.length, y:y/arguments.length}; }
+  function dist(x1,y1,x2,y2){ return Math.hypot(x2-x1,y2-y1); }
+  function distPt(p, c){ return Math.hypot(p.x-c.x, p.y-c.y); }
+  function angleDelta(a,b){ let d=a-b; while(d>Math.PI)d-=TAU; while(d<-Math.PI)d+=TAU; return d; }
+
+  function hitClip(x,y){
+    // hit‑test in screen coords
+    const m = Math.min(W(),H());
+    for(let i=state.clips.length-1;i>=0;i--){ // top‑most first
+      const c=state.clips[i];
+      const pos = clipScreenPos(c);
+      const R = c.scale*0.18*m; // patch radius
+      if (dist(x,y,pos.x,pos.y) <= R*1.05) return c;
+    }
+    return null;
+  }
+
+  function clipScreenPos(c){
+    const m = Math.min(W(),H());
+    // wheel angle affects temporal phase; spatial pos is x/y offsets around center
+    const base = { x: state.center.x + c.x*m + gyro.x*state.parallax*c.z, y: state.center.y + c.y*m + gyro.y*state.parallax*c.z };
+    return base;
+  }
+
+  // Video control for scrub/spin
+  function pauseAllVideos(){ state.clips.forEach(cl=>{ if (cl.source.kind==='video'){ cl.source.payload.pause(); }}); }
+  function resumeVideos(){ state.clips.forEach(cl=>{ if (cl.source.kind==='video'){ const v=cl.source.payload; v.playbackRate = clamp(1 + state.thetaVel*8, -3, 3); if (!v.paused) return; v.play().catch(()=>{}); }}); }
+
+  // Main loop
+  let last=performance.now();
+  function tick(){
+    const now=performance.now(); const dt=now-last; last=now;
+    const w=W(), h=H(); state.center.x=w/2; state.center.y=h/2; ensurePrev();
+
+    // inertia
+    if (!state.thetaDrag){ state.theta += state.thetaVel; state.thetaVel *= 0.96; if (Math.abs(state.thetaVel)<1e-4) state.thetaVel=0; }
+
+    // Update sources
+    const t = now;
+    state.clips.forEach(c=> c.source.update(t));
+
+    // If scrubbing, map θ to phase‑time for videos
+    if (state.scrubbing){
+      state.clips.forEach(c=>{ if (c.source.kind==='video'){ const v=c.source.payload; if (v.duration){ const frac = ((state.theta/TAU) + c.phase)%1; const target = v.duration*frac; try{ v.currentTime = target; }catch{} } }});
+    }
+
+    // Background
+    ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha=1; ctx.globalCompositeOperation='source-over'; ctx.filter='none';
+    ctx.fillStyle= 'rgba(8,10,14,1)'; ctx.fillRect(0,0,w,h);
+
+    // Optional mist feedback
+    if (state.mistOn){
+      ctx.save(); ctx.globalAlpha = state.coreMist*0.28; ctx.filter = `blur(${8+state.coreMist*22}px)`;
+      // subtle swirl: translate center, rotate small angle proportional to swirl
+      ctx.translate(w/2,h/2); ctx.rotate(state.swirl*0.02); ctx.translate(-w/2,-h/2);
+      ctx.drawImage(prev,0,0);
+      ctx.restore();
+    }
+
+    // Draw snap grid & wheel
+    drawWheel(ctx);
+
+    // Compute z ordering
+    const sorted = [...state.clips].sort((a,b)=> (a.z - b.z + state.depthBias));
+
+    // Draw core composite: only clips near center within core radius get mixed with blend
+    const blend = state.blendModes[state.blendIndex];
+    blendBadge.textContent = 'Blend: '+blend;
+
+    let alphaLoad=0; let zVar=0; // metrics
+    // Precompute radial gradient masks per clip draw
+    for (const c of sorted){
+      const pos = clipScreenPos(c);
+      const m = Math.min(w,h);
+      const R = c.scale*0.18*m;
+      const dToCenter = Math.hypot(pos.x - state.center.x, pos.y - state.center.y);
+      const inCore = dToCenter < corePx();
+      const visAlpha = c.alpha * (inCore? 1:0.25);
+      if (inCore) alphaLoad += visAlpha;
+      zVar += c.z*c.z;
+
+      // shadow/fog glow
+      if (inCore){
+        ctx.save();
+        ctx.globalAlpha = 0.12 * c.fog; ctx.filter = `blur(${(c.feather*0.4)|0}px)`; ctx.beginPath(); ctx.arc(pos.x,pos.y, R*1.1, 0, TAU); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.restore();
+      }
+
+      // Clip circular mask with feather
+      ctx.save();
+      ctx.beginPath(); ctx.arc(pos.x,pos.y,R,0,TAU); ctx.closePath(); ctx.clip();
+
+      // Draw source
+      ctx.globalAlpha = visAlpha;
+      if (inCore){ ctx.globalCompositeOperation = blend; } else { ctx.globalCompositeOperation='source-over'; }
+
+      // Feather by destination-in radial gradient
+      ctx.drawImage(c.source.buf, pos.x-R, pos.y-R, R*2, R*2);
+
+      // Apply feather mask
+      const g = ctx.createRadialGradient(pos.x,pos.y, Math.max(1, R - c.feather), pos.x,pos.y,R);
+      g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.globalCompositeOperation='destination-in'; ctx.fillStyle=g; ctx.beginPath(); ctx.arc(pos.x,pos.y,R,0,TAU); ctx.fill();
+
+      ctx.restore();
+
+      // Ghost handles trail
+      drawGhost(pos.x,pos.y);
+    }
+
+    // Exposure pass (simple gamma)
+    ctx.globalCompositeOperation='source-atop'; ctx.globalAlpha = clamp(state.exposure-1, 0, 1); if (state.exposure>1){ ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h); }
+    ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=1;
+
+    // Heads‑up
+    const rpm = Math.abs(state.thetaVel)*60/(TAU/60); rpmMeter.textContent = 'RPM '+ (rpm*60).toFixed(2);
+    hudCore.textContent = corePx().toFixed(0)+'px';
+    hudAlpha.textContent = alphaLoad.toFixed(2);
+    hudZT.textContent = Math.sqrt(zVar/state.clips.length||1).toFixed(2);
+
+    // If preview/recording in derived mode, overwrite screen with derived buffer
+    if (state.preview || (typeof isRecording!=='undefined' && isRecording && state.recordMode!=='core')){
+      const screen = drawDerived(state.recordMode);
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.globalCompositeOperation='copy';
+      ctx.drawImage(screen,0,0);
+    }
+
+    // Copy to prev for mist trail
+    pctx.setTransform(1,0,0,1,0,0); pctx.globalAlpha=1; pctx.globalCompositeOperation='source-over'; pctx.drawImage(view,0,0);
+    // also keep last composite for temporal diff
+    ensureBuffers(); pcctx.setTransform(1,0,0,1,0,0); pcctx.globalCompositeOperation='copy'; pcctx.drawImage(comp,0,0);
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // ——— Derived output builders ———
+  function drawCompositeTo(ctxOut){
+    const w=W(), h=H(); ctxOut.setTransform(1,0,0,1,0,0); ctxOut.globalAlpha=1; ctxOut.globalCompositeOperation='source-over'; ctxOut.clearRect(0,0,w,h);
+    const blend = state.blendModes[state.blendIndex];
+    const sorted = [...state.clips].sort((a,b)=> (a.z - b.z + state.depthBias));
+    for (const c of sorted){
+      const pos = clipScreenPos(c);
+      const m = Math.min(w,h); const R = c.scale*0.18*m; const dToCenter = Math.hypot(pos.x - state.center.x, pos.y - state.center.y);
+      const inCore = dToCenter < corePx(); if (!inCore) continue;
+      ctxOut.save(); ctxOut.beginPath(); ctxOut.arc(pos.x,pos.y,R,0,TAU); ctxOut.clip();
+      ctxOut.globalCompositeOperation = blend; ctxOut.globalAlpha = c.alpha;
+      ctxOut.drawImage(c.source.buf, pos.x-R, pos.y-R, R*2, R*2);
+      // feather mask
+      const g = ctxOut.createRadialGradient(pos.x,pos.y, Math.max(1, R - c.feather), pos.x,pos.y,R);
+      g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(1,'rgba(255,255,255,0)');
+      ctxOut.globalCompositeOperation='destination-in'; ctxOut.fillStyle=g; ctxOut.beginPath(); ctxOut.arc(pos.x,pos.y,R,0,TAU); ctxOut.fill();
+      ctxOut.restore();
+    }
+    // crop to core circle
+    ctxOut.globalCompositeOperation='destination-in'; ctxOut.beginPath(); ctxOut.arc(state.center.x,state.center.y,corePx(),0,TAU); ctxOut.fill();
+    ctxOut.globalCompositeOperation='source-over';
+  }
+
+  function buildVessel(){
+    ensureBuffers(); const w=W(), h=H(); vctx.setTransform(1,0,0,1,0,0); vctx.globalAlpha=1; vctx.globalCompositeOperation='source-over'; vctx.clearRect(0,0,w,h);
+    // start with full core disk
+    vctx.beginPath(); vctx.arc(state.center.x,state.center.y,corePx(),0,TAU); vctx.fillStyle='#fff'; vctx.fill();
+    vctx.globalCompositeOperation='destination-out';
+    // subtract each in-core clip's feathered patch
+    for (const c of state.clips){
+      const pos=clipScreenPos(c); const m=Math.min(w,h); const R=c.scale*0.18*m; const d=Math.hypot(pos.x-state.center.x,pos.y-state.center.y); if (d>=corePx()) continue;
+      vctx.save(); vctx.beginPath(); vctx.arc(pos.x,pos.y,R,0,TAU); vctx.clip();
+      // draw solid circle then feather it out
+      vctx.globalAlpha = clamp(c.alpha,0,1); vctx.globalCompositeOperation='destination-out';
+      vctx.fillStyle='#fff'; vctx.beginPath(); vctx.arc(pos.x,pos.y,R,0,TAU); vctx.fill();
+      const g=vctx.createRadialGradient(pos.x,pos.y, Math.max(1,R-c.feather), pos.x,pos.y,R);
+      g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(1,'rgba(255,255,255,0)');
+      vctx.globalCompositeOperation='destination-out'; vctx.fillStyle=g; vctx.beginPath(); vctx.arc(pos.x,pos.y,R,0,TAU); vctx.fill();
+      vctx.restore();
+    }
+    // soften
+    vctx.filter='blur(4px)'; vctx.drawImage(vessel,0,0); vctx.filter='none';
+    return vessel;
+  }
+
+  function buildInterDiff(){
+    ensureBuffers(); const w=W(), h=H(); ictx.setTransform(1,0,0,1,0,0); ictx.globalAlpha=1; ictx.globalCompositeOperation='source-over'; ictx.clearRect(0,0,w,h);
+    // draw pairwise differences via cumulative difference op
+    const sorted=[...state.clips];
+    for (const c of sorted){
+      const pos=clipScreenPos(c); const m=Math.min(w,h); const R=c.scale*0.18*m; const d=Math.hypot(pos.x-state.center.x,pos.y-state.center.y); if (d>=corePx()) continue;
+      ictx.save(); ictx.beginPath(); ictx.arc(pos.x,pos.y,R,0,TAU); ictx.clip();
+      ictx.globalCompositeOperation = 'difference'; ictx.globalAlpha = clamp(c.alpha,0,1);
+      ictx.drawImage(c.source.buf, pos.x-R, pos.y-R, R*2, R*2);
+      // feather mask keeps transitions soft
+      const g=ictx.createRadialGradient(pos.x,pos.y, Math.max(1,R-c.feather), pos.x,pos.y,R);
+      g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(1,'rgba(255,255,255,0)');
+      ictx.globalCompositeOperation='destination-in'; ictx.fillStyle=g; ictx.beginPath(); ictx.arc(pos.x,pos.y,R,0,TAU); ictx.fill();
+      ictx.restore();
+    }
+    // crop to core
+    ictx.globalCompositeOperation='destination-in'; ictx.beginPath(); ictx.arc(state.center.x,state.center.y,corePx(),0,TAU); ictx.fill();
+    return inter;
+  }
+
+  function buildTemporalDiff(){
+    ensureBuffers(); drawCompositeTo(cctx);
+    // dt = |current - previous|
+    dtctx.setTransform(1,0,0,1,0,0); dtctx.globalAlpha=1; dtctx.globalCompositeOperation='source-over'; dtctx.clearRect(0,0,W(),H());
+    dtctx.drawImage(comp,0,0);
+    dtctx.globalCompositeOperation='difference'; dtctx.drawImage(prevComp,0,0);
+    // crop to core
+    dtctx.globalCompositeOperation='destination-in'; dtctx.beginPath(); dtctx.arc(state.center.x,state.center.y,corePx(),0,TAU); dtctx.fill();
+    // boost contrast
+    dtctx.globalCompositeOperation='source-over'; dtctx.filter='contrast(180%) brightness(115%)'; dtctx.drawImage(tdiff,0,0); dtctx.filter='none';
+    // update prevComp for next frame
+    pcctx.setTransform(1,0,0,1,0,0); pcctx.globalCompositeOperation='copy'; pcctx.drawImage(comp,0,0);
+    return tdiff;
+  }
+
+  function ensurePrevComp(){ ensureBuffers(); if (prevComp.width!==W()||prevComp.height!==H()){ prevComp.width=W(); prevComp.height=H(); } }
+
+  function drawDerived(mode){
+    ensureBuffers(); ensurePrevComp();
+    if (mode==='vessel') return buildVessel();
+    if (mode==='interdiff') return buildInterDiff();
+    if (mode==='temporal') return buildTemporalDiff();
+    // core
+    drawCompositeTo(cctx); return comp;
+  }
+
+  function drawWheel(ctx){
+    const w=W(), h=H(); const c=state.center; const r=wheelPx();
+    // snap grid overlay
+    if (state.snap){
+      ctx.save(); ctx.translate(c.x,c.y); ctx.strokeStyle='rgba(126,249,198,0.14)'; ctx.lineWidth=1*DPR;
+      for(let i=0;i<state.sectors;i++){ ctx.beginPath(); ctx.rotate(TAU/state.sectors); ctx.moveTo(0,0); ctx.lineTo(r,0); ctx.stroke(); }
+      ctx.setTransform(1,0,0,1,0,0); ctx.restore();
+    }
+    // rim
+    ctx.beginPath(); ctx.arc(c.x,c.y,r,0,TAU); ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=2*DPR; ctx.stroke();
+    // core
+    ctx.beginPath(); ctx.arc(c.x,c.y,corePx(),0,TAU); ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=2*DPR; ctx.stroke();
+  }
+
+  function drawGhost(x,y){
+    const now=performance.now();
+    state.ghostPaths.push({x,y,ts:now});
+    // prune
+    state.ghostPaths = state.ghostPaths.filter(p=> now-p.ts<240);
+    ctx.save(); ctx.globalAlpha=0.3; ctx.fillStyle='rgba(126,249,198,0.25)';
+    for (const p of state.ghostPaths){ ctx.fillRect(p.x-1.5, p.y-1.5, 3, 3); }
+    ctx.restore();
+  }
+
+  // Center tap proxy (mouse for desktop testing)
+  view.addEventListener('dblclick', (e)=>{
+    const rect=view.getBoundingClientRect(); const x=(e.clientX-rect.left)*DPR, y=(e.clientY-rect.top)*DPR; if (dist(x,y,state.center.x,state.center.y)<corePx()){ onCenterTap(); }
+  });
+
+  // Initial snap badge state
+  snapBadge.classList.toggle('on', state.snap);
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Hyperclay — Festival Export (CFR 24 FPS • PNG+WAV) — Zen Tube</title>
+<style>
+  :root{
+    --bg:#000; --ink:#eae7df; --muted:#9aa0a6; --accent:#00d0b4; --panel:#0f1319f2; --btn:#11161e; --btnb:#2a313a; --ink2:#cfd3d8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:var(--bg); color:var(--ink); height:100%; }
+  #app { position:fixed; inset:0; overflow:hidden; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; background:#000; }
+
+  .hud, .topbar { font: 600 12px/1.2 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue"; }
+  .topbar {
+    position:fixed; top:0; left:0; right:0; display:flex; gap:.5rem; padding:.5rem .6rem; align-items:center;
+    justify-content:space-between; background:linear-gradient(180deg, rgba(0,0,0,.35), transparent);
+    pointer-events:none; z-index:5;
+  }
+  .topbar .group { pointer-events:auto; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+  .badge { padding:.25rem .5rem; border:1px solid #2a313a; border-radius:12px; background:#0c1118; color:var(--ink2); }
+  .note  { font-size:11px; color:var(--muted); }
+  .meter { display:inline-flex; align-items:center; gap:.35rem; }
+  .bar { width:72px; height:8px; background:#0e131a; border:1px solid #24303a; border-radius:6px; overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:linear-gradient(90deg, #2e9fff, #00d0b4); }
+
+  .hud {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index:6;
+    display:flex; gap:.5rem; padding:.6rem; align-items:center; justify-content:center; flex-wrap:wrap;
+    background: linear-gradient(180deg, transparent, rgba(0,0,0,.35)); backdrop-filter: blur(8px);
+    transition: opacity .25s;
+  }
+  .hud.hidden{ opacity:0; pointer-events:none; }
+  button, label.btn, a.btn { border:1px solid var(--btnb); border-radius:14px; padding:.6rem .8rem; background:var(--btn); color:var(--ink); display:inline-flex; align-items:center; gap:.35rem; cursor:pointer; user-select:none; text-decoration:none; }
+  button:active, label.btn:active { transform: translateY(1px); }
+  button.on { outline: 1px solid var(--accent); box-shadow: 0 0 0 2px #00d0b422 inset; }
+  #file, #jsonfile { display:none; }
+
+  .toast { position:fixed; left:50%; transform:translateX(-50%); bottom:80px; z-index:20; background:#0f141b; border:1px solid #2a313a; border-radius:12px; padding:.5rem .75rem; color:var(--ink2); opacity:0; transition:opacity .25s; }
+  .toast.show { opacity:1; }
+
+  /* Recording visible stop pill */
+  .rec-stop{ position:fixed; right:12px; bottom:12px; z-index:50; padding:.6rem .9rem; border-radius:18px; border:1px solid #4a1f1f; background:#1a0e0e; color:#ffb3b3; display:none; }
+  body.recording .rec-stop{ display:inline-flex; }
+  /* Hide chrome in recording but keep stop pill alive */
+  body.recording .topbar, body.recording .hud { display:none; }
+  /* Festival panel */
+  .panel{position:fixed; right:12px; top:52px; z-index:40; width:320px; background:rgba(0,0,0,.72); border:1px solid #2a313a; border-radius:14px; padding:.6rem; display:none}
+  .panel.show{display:block}
+  .panel h3{margin:.2rem 0 .5rem; font-size:14px}
+  .panel .row{display:grid; grid-template-columns: 120px 1fr; gap:.4rem; align-items:center; margin:.35rem 0}
+  .panel input, .panel select{width:100%}
+  .panel .mini{display:flex; gap:.4rem; justify-content:flex-end; margin-top:.5rem}
+  .panel .danger{background:#2a0f0f; border-color:#5a1e1e}
+</style>
+</head>
+<body>
+<div id="app" data-mode="zen">
+  <canvas id="c"></canvas>
+
+  <div class="topbar">
+    <div class="group">
+      <span class="badge">Hyperclay — Zen Tube</span>
+      <span class="note" id="phaseNote">phase 0.000</span>
+      <span class="note" id="fpsNote">fps —</span>
+      <div class="meter" title="Inertia">
+        <span class="note">inertia</span>
+        <span class="bar"><i id="inertiaFill" style="width:0%"></i></span>
+      </div>
+      <span class="badge" id="resBadge" title="Render scale">RES 1.0×</span>
+      <span class="badge" id="wheelBadge" title="Wheel size factor">R 1.00×</span>
+    </div>
+    <div class="group"><span class="badge">No marks • Fixed viewport • Tube • Linear • Audio</span><button id="festBtn" class="btn" style="padding:.25rem .6rem">Festival Export</button></div>
+  </div>
+
+  <div class="hud">
+    <label class="btn" for="file">Load Clips</label><input id="file" type="file" multiple accept="image/*,video/*" />
+    <button id="modeSpin" class="on" title="SPIN: fling/drag to scrub time">SPIN</button>
+    <button id="modeSculpt" title="SCULPT: drag near anchors (invisible)">SCULPT</button>
+    <button id="playBtn" title="Play/Pause">Play</button>
+    <button id="lockViewBtn" class="on" title="Lock viewport (fixed camera)">Lock View</button>
+    <button id="tubeBtn" class="on" title="Concentric tube layout for stamps">Tube</button>
+    <button id="linearBtn" title="Linear timeline (0→1)">Linear</button>
+    <label class="btn" for="linDur" title="Linear duration (s)">Dur <input id="linDur" type="number" min="0.5" step="0.5" value="6" style="width:64px; margin-left:.35rem;"/></label>
+    <button id="linearLoop" title="Loop linear">Loop</button>
+    <button id="resBtn" title="Toggle render scale (for perf)">RES</button>
+    <button id="stampBtn" title="Stamp current composite as transparent">STAMP</button>
+    <button id="captureBtn" title="Capture viewport to PNG">Capture Frame</button>
+    <button id="undoBtn" title="Undo last change">Undo</button>
+    <button id="recBtn" title="Start/Stop recording">● Record</button>
+    <a id="dl" class="btn" style="display:none" download="hyperclay.webm">Download</a>
+    <label class="btn" for="jsonfile" title="Import session JSON">Load JSON</label><input id="jsonfile" type="file" accept="application/json" />
+    <button id="saveBtn" title="Export session JSON">Save JSON</button>
+    <button id="clearBtn" title="Remove all clips">Clear</button>
+
+    <span class="note" style="margin-left:.5rem">X‑Fade</span>
+    <input id="xfade" type="range" min="0" max="1" step="0.01" value="0.50" style="width:120px" />
+
+    <label class="btn" for="audioSel">Audio</label>
+    <select id="audioSel" title="Choose video as audio source"></select>
+    <label class="btn">Gain <input id="gain" type="range" min="0" max="2" value="1" step="0.01" style="width:90px"></label>
+  </div>
+
+  <button id="stopRec" class="rec-stop">⏹ Stop</button>
+  <div id="toast" class="toast">Saved</div>
+  <div id="festPanel" class="panel">
+    <h3>Festival Export</h3>
+    <div class="row"><label>Resolution</label>
+      <select id="fxRes">
+        <option value="1920x1080">1920×1080 (HD)</option>
+        <option value="3840x2160">3840×2160 (UHD)</option>
+        <option value="4096x2160">4096×2160 (DCI 4K)</option>
+      </select>
+    </div>
+    <div class="row"><label>FPS</label><input id="fxFps" type="number" step="0.001" value="24.000" min="1"/></div>
+    <div class="row"><label>Duration (s)</label><input id="fxDur" type="number" step="0.1" value="6.0" min="0.1"/></div>
+    <div class="row"><label>Prefix</label><input id="fxPrefix" type="text" value="hc_frame_"/></div>
+    <div class="row"><label>Audio WAV</label>
+      <select id="fxAudio">
+        <option value="off">(no audio)</option>
+        <option value="sel">Current selection</option>
+      </select>
+    </div>
+    <div class="mini">
+      <button id="fxRender" class="btn">Render PNG Seq (.tar)</button>
+      <button id="fxWav" class="btn">Record WAV</button>
+      <button id="fxClose" class="btn danger">Close</button>
+    </div>
+    <div class="note" id="fxNote">Outputs constant‑frame image sequence (CFR) + optional 48kHz WAV for NLE or ffmpeg.</div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ==========================
+  // Canvas & Resolution
+  // ==========================
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let RES_SCALE = 1.0; let DPR = 1;
+  function computeDPR(){ DPR = Math.max(1, Math.min(2, (window.devicePixelRatio || 1) * RES_SCALE)); }
+  function resize(){ computeDPR(); const {clientWidth:w, clientHeight:h} = canvas; canvas.width = Math.floor(w * DPR); canvas.height= Math.floor(h * DPR); if (state) { if (state.view.locked){ state.view.cx = canvas.width/2; state.view.cy = canvas.height/2; } } }
+
+  // ==========================
+  // App State
+  // ==========================
+  const state = {
+    cx: () => canvas.width  * 0.5,
+    cy: () => canvas.height * 0.5,
+    wheelScale: 1.0,
+    baseWheelR: () => Math.min(canvas.width, canvas.height) * 0.28 * state.wheelScale,
+    wheelAngle: 0, wheelVel: 0, friction: 0.985,
+    mode: 'SPIN', clips: [], activeClipId: null, history: [],
+    view: { zoom: 1.0, cx: canvas.width/2, cy: canvas.height/2, locked: true },
+    playing: false, tube: true, busXfade: 0.5,
+    linear: false, linearLoop:false, linearDur: 6, linearT: 0,
+    audio: { ctx:null, gainNode:null, dest:null, current:null }
+  };
+  let nextId = 1;
+  new ResizeObserver(() => requestAnimationFrame(resize)).observe(canvas); resize();
+
+  // ==========================
+  // UI Refs
+  // ==========================
+  const $ = (id)=>document.getElementById(id);
+  const fileInput=$('file'), jsonInput=$('jsonfile');
+  const modeSpinBtn=$('modeSpin'), modeScptBtn=$('modeSculpt');
+  const resBtn=$('resBtn'), resBadge=$('resBadge'), wheelBadge=$('wheelBadge');
+  const stampBtn=$('stampBtn'), captureBtn=$('captureBtn'), undoBtn=$('undoBtn');
+  const recBtn=$('recBtn'), dlLink=$('dl'), saveBtn=$('saveBtn'), clearBtn=$('clearBtn');
+  const phaseNote=$('phaseNote'), fpsNote=$('fpsNote'), inertiaFill=$('inertiaFill'), toastEl=$('toast');
+  const playBtn=$('playBtn'), lockViewBtn=$('lockViewBtn'), tubeBtn=$('tubeBtn');
+  const festBtn=$('festBtn'); const festPanel=$('festPanel');
+  const fxRes=$('fxRes'), fxFps=$('fxFps'), fxDur=$('fxDur'), fxPrefix=$('fxPrefix'), fxAudio=$('fxAudio');
+  const fxRender=$('fxRender'), fxWav=$('fxWav'), fxClose=$('fxClose');
+  const xfadeSlider=$('xfade'); const hud=document.querySelector('.hud'); const body=document.body;
+  const linearBtn=$('linearBtn'), linDur=$('linDur'), linearLoop=$('linearLoop');
+  const audioSel=$('audioSel'), gainRange=$('gain'); const stopRecBtn=$('stopRec');
+
+  function showToast(msg, ms=900){ toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(()=> toastEl.classList.remove('show'), ms); }
+
+  // Auto-hide HUD
+  let hudTimer=null; function bumpHUD(){ hud.classList.remove('hidden'); clearTimeout(hudTimer); hudTimer=setTimeout(()=>hud.classList.add('hidden'), 1600); }
+  window.addEventListener('mousemove', bumpHUD, {passive:true}); window.addEventListener('touchstart', bumpHUD, {passive:true}); bumpHUD();
+
+  // History
+  function snapshot(){ const snap = state.clips.map(c => ({ id:c.id, type:c.type, angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration, label:c.label || null, ring:c.ring||0 })); state.history.push(snap); if (state.history.length > 40) state.history.shift(); }
+  function restoreSnapshot(snap){ for (const s of snap){ const c = state.clips.find(k => k.id === s.id); if (c) Object.assign(c, s); } }
+  undoBtn.addEventListener('click', () => { const last = state.history.pop(); if (last){ restoreSnapshot(last); showToast('Undid'); } });
+
+  // Add Clips
+  function defaultClipBase(){ return { id: nextId++, angle: Math.random()*Math.PI*2, radius: 0, scale: 0.5, edge: 24, fog: 0.0, blend: 'source-over', timeOffset: 0, duration: 5, ring: 0 }; }
+  function addImageClip(img){ state.clips.push({ ...defaultClipBase(), type:'image', el:img, kind:'img' }); snapshot(); refreshAudioList(); }
+  function addStampClip(img){ const ring = Math.max(0, ...state.clips.map(c=>c.ring||0)) + 1; state.clips.push({ ...defaultClipBase(), type:'stamp', el:img, kind:'img', ring }); snapshot(); }
+  function addVideoClip(video, duration=5){ video.muted = true; state.clips.push({ ...defaultClipBase(), type:'video', el:video, kind:'video', duration: duration||5 }); snapshot(); refreshAudioList(); }
+  function addPlaceholder(label){ state.clips.push({ ...defaultClipBase(), type:'placeholder', label, kind:'placeholder', duration:5, scale:0.6 }); }
+
+  fileInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    for (const f of files){
+      if (f.type.startsWith('image/')){ const url = URL.createObjectURL(f); const img = new Image(); await new Promise(res => { img.onload = res; img.src = url; }); addImageClip(img); }
+      else if (f.type.startsWith('video/')){ const url = URL.createObjectURL(f); const vid = document.createElement('video'); vid.src = url; vid.preload='auto'; vid.loop=true; vid.muted=true; vid.playsInline=true; await vid.play().catch(()=>{}); vid.pause(); const duration = isFinite(vid.duration) ? vid.duration : 5; addVideoClip(vid, duration); }
+    }
+    fileInput.value = '';
+  });
+
+  // Modes / Controls
+  function setMode(m){ state.mode = m; modeSpinBtn.classList.toggle('on', m==='SPIN'); modeScptBtn.classList.toggle('on', m==='SCULPT'); }
+  modeSpinBtn.addEventListener('click', () => setMode('SPIN'));
+  modeScptBtn.addEventListener('click', () => setMode('SCULPT'));
+
+  playBtn.addEventListener('click', ()=>{
+    state.playing=!state.playing; playBtn.classList.toggle('on', state.playing); playBtn.textContent = state.playing? 'Pause':'Play';
+    if (state.playing){ ensureAudio(); if (state.audio.ctx&&state.audio.ctx.state==='suspended') state.audio.ctx.resume(); const id = Number(audioSel.value||'0'); const clip = state.clips.find(c=>c.id===id && c.kind==='video'); if (clip){ clip.el.loop = true; clip.el.play().catch(()=>{}); } }
+    else { for (const c of state.clips){ if (c.kind==='video') try{ c.el.pause(); }catch(_){} } }
+  });
+  festBtn.addEventListener('click', ()=>{ festPanel.classList.toggle('show'); });
+  fxClose.addEventListener('click', ()=>{ festPanel.classList.remove('show'); }); playBtn.textContent = state.playing? 'Pause':'Play'; });
+  lockViewBtn.addEventListener('click', ()=>{ state.view.locked=!state.view.locked; lockViewBtn.classList.toggle('on', state.view.locked); });
+  tubeBtn.addEventListener('click', ()=>{ state.tube=!state.tube; tubeBtn.classList.toggle('on', state.tube); });
+  linearBtn.addEventListener('click', ()=>{ state.linear=!state.linear; state.linearT=0; linearBtn.classList.toggle('on', state.linear); });
+  linearLoop.addEventListener('click', ()=>{ state.linearLoop=!state.linearLoop; linearLoop.classList.toggle('on', state.linearLoop); });
+  linDur.addEventListener('change', ()=>{ state.linearDur = Math.max(0.5, Number(linDur.value)||6); });
+
+  xfadeSlider.addEventListener('input', ()=>{ state.busXfade = Number(xfadeSlider.value); });
+
+  // Resolution
+  resBtn.addEventListener('click', () => { RES_SCALE = (RES_SCALE === 1.0) ? 0.8 : (RES_SCALE === 0.8 ? 0.6 : 1.0); resBadge.textContent = `RES ${RES_SCALE.toFixed(1)}×`; resize(); });
+
+  // Capture viewport exactly
+  captureBtn.addEventListener('click', ()=>{ const url = canvas.toDataURL('image/png'); const a=document.createElement('a'); a.href=url; a.download=`frame_${Date.now()}.png`; a.click(); showToast('Frame captured'); });
+
+  // STAMP transparent (render layers only to offscreen)
+  const stampBtnHandler = () => { const off = document.createElement('canvas'); off.width = canvas.width; off.height = canvas.height; const oc = off.getContext('2d'); const phase = timelinePhase(0); drawScene(oc, phase, true); const dataURL = off.toDataURL('image/png'); const img = new Image(); img.onload = () => addStampClip(img); img.src = dataURL; showToast('Stamped'); };
+  stampBtn.addEventListener('click', stampBtnHandler);
+
+  clearBtn.addEventListener('click', () => { stopRecording(true); state.clips = []; state.history = []; state.activeClipId=null; refreshAudioList(); });
+
+  // ==========================
+  // Audio (WebAudio graph + recording bus)
+  // ==========================
+  function ensureAudio(){ if (state.audio.ctx) return; const ctxA = new (window.AudioContext||window.webkitAudioContext)(); const gain = ctxA.createGain(); const dest = ctxA.createMediaStreamDestination(); gain.connect(ctxA.destination); gain.connect(dest); state.audio.ctx=ctxA; state.audio.gainNode=gain; state.audio.dest=dest; gainRange.addEventListener('input', ()=>{ gain.gain.value = Number(gainRange.value); }); }
+
+  function refreshAudioList(){ const vids = state.clips.filter(c=>c.kind==='video'); const sel = audioSel; const selected = sel.value; sel.innerHTML = '<option value="">(no audio)</option>'; for (const v of vids){ const opt=document.createElement('option'); opt.value=String(v.id); opt.textContent=`Video #${v.id}`; sel.appendChild(opt); } if ([...sel.options].some(o=>o.value===selected)) sel.value=selected; }
+
+  audioSel.addEventListener('change', ()=>{ const id = Number(audioSel.value||'0'); if (!id){ disconnectAudio(); return; } ensureAudio(); const clip = state.clips.find(c=>c.id===id && c.kind==='video'); if (!clip) return; try{ disconnectAudio(); const src = state.audio.ctx.createMediaElementSource(clip.el); src.connect(state.audio.gainNode); state.audio.current = { id, node:src }; }catch(err){ console.warn('Audio source error', err); }
+  });
+  function disconnectAudio(){ if (state.audio.current && state.audio.current.node){ try{ state.audio.current.node.disconnect(); }catch(_){} } state.audio.current=null; }
+
+  // ==========================
+  // Recording (canvas + WebAudio mux)
+  let mediaRecorder = null, recChunks = [], recording = false; let mixedStream=null;
+  recBtn.addEventListener('click', toggleRecording); stopRecBtn.addEventListener('click', ()=> stopRecording());
+  function toggleRecording(){ if (!recording) startRecording(); else stopRecording(); }
+  function startRecording(){ if (recording) return; ensureAudio(); if (state.audio.ctx&&state.audio.ctx.state==='suspended') state.audio.ctx.resume(); const vStream = canvas.captureStream(24); mixedStream = new MediaStream(); vStream.getVideoTracks().forEach(t=>mixedStream.addTrack(t)); if (state.audio.dest && state.audio.dest.stream.getAudioTracks()[0]){ mixedStream.addTrack(state.audio.dest.stream.getAudioTracks()[0]); }
+    if (!('MediaRecorder' in window)) { alert('MediaRecorder not supported.'); return; }
+    try{ mediaRecorder = new MediaRecorder(mixedStream, { mimeType: 'video/webm;codecs=vp9,opus' }); }catch(_){ mediaRecorder = new MediaRecorder(mixedStream); }
+    recChunks = []; mediaRecorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+    mediaRecorder.onstop = () => { const blob = new Blob(recChunks, { type:'video/webm' }); const url = URL.createObjectURL(blob); dlLink.href = url; dlLink.style.display=''; body.classList.remove('recording'); stopRecBtn.style.display='none'; };
+    mediaRecorder.start(1000); recording = true; recBtn.classList.add('on'); dlLink.style.display='none'; body.classList.add('recording'); stopRecBtn.style.display='inline-flex'; showToast('Recording…'); }
+  function stopRecording(silent=false){ if (!recording) return; try{ mediaRecorder.stop(); }catch(_){} recording=false; recBtn.classList.remove('on'); if(!silent) showToast('Recording complete — Download ready'); }
+
+  // ===== Festival Export: PNG sequence (.tar) + optional WAV capture =====
+  festBtn.addEventListener('click', ()=> festPanel.classList.toggle('show'));
+
+  fxRender.addEventListener('click', async ()=>{
+    const [W,H] = fxRes.value.split('x').map(Number); const fps = Number(fxFps.value||24); const seconds = Number(fxDur.value||6);
+    const n = Math.max(1, Math.round(fps*seconds));
+    const off = document.createElement('canvas'); off.width=W; off.height=H; const oc=off.getContext('2d');
+    const tarParts = [];
+    function b64ToU8(b64){ const bin=atob(b64); const u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; }
+    function padTo512(len){ return (512 - (len % 512)) % 512; }
+    function writeTarHeader(name,size){ const enc=new TextEncoder(); const buf=new Uint8Array(512); function write(str,off,len){ const b=enc.encode(str); buf.set(b.slice(0,len), off); }
+      write(name,0,100); write('0000777 ',100,8); write('0000000 ',108,8); write('0000000 ',116,8);
+      const sizeOct = size.toString(8); write(sizeOct.padStart(11,'0')+' ',124,12);
+      write(Math.floor(Date.now()/1000).toString(8).padStart(11,'0')+' ',136,12);
+      write('        ',148,8); // checksum blank
+      write('0',156,1); write('ustar ',257,6); write('00',263,2);
+      let sum=0; for(let i=0;i<512;i++) sum += buf[i]; const chk = sum.toString(8).padStart(6,'0')+'  '; write(chk,148,8);
+      tarParts.push(buf);
+    }
+    function tarAppend(name, u8){ writeTarHeader(name,u8.length); tarParts.push(u8); const pad = padTo512(u8.length); if (pad){ tarParts.push(new Uint8Array(pad)); } }
+
+    const origZoom = state.view.zoom, origCx = state.view.cx, origCy = state.view.cy; // lock view framing
+    for(let i=0;i<n;i++){
+      const phase = (i+0.000001)/n; // avoid exact 0 for some codecs
+      oc.setTransform(1,0,0,1,0,0); oc.fillStyle='#000'; oc.fillRect(0,0,W,H);
+      // Render at source canvas size, then fit to target with letterbox
+      ensureScene(); scx.setTransform(1,0,0,1,0,0); scx.clearRect(0,0,scn.width,scn.height); scx.fillStyle='#000'; scx.fillRect(0,0,scn.width,scn.height);
+      for (const c of state.clips) drawClipLayer(scx, c, phase);
+      const sw = canvas.width / origZoom; const sh = canvas.height / origZoom; const sx = Math.max(0, origCx - sw/2); const sy = Math.max(0, origCy - sh/2);
+      const scale = Math.min(W/sw, H/sh); const outW = Math.round(sw*scale); const outH = Math.round(sh*scale); const ox = Math.floor((W-outW)/2); const oy = Math.floor((H-outH)/2);
+      oc.drawImage(scn, sx, sy, sw, sh, ox, oy, outW, outH);
+      // PNG
+      const dataURL = off.toDataURL('image/png'); const u8 = b64ToU8(dataURL.split(',')[1]); const name = `${fxPrefix.value}${String(i+1).padStart(6,'0')}.png`;
+      tarAppend(name,u8);
+      if (i%10===0) await new Promise(r=>setTimeout(r)); // yield
+    }
+    // EOF blocks
+    tarParts.push(new Uint8Array(512)); tarParts.push(new Uint8Array(512));
+    const tarBlob = new Blob(tarParts, {type:'application/x-tar'});
+    const url = URL.createObjectURL(tarBlob); const a=document.createElement('a'); a.href=url; a.download=`${fxPrefix.value}seq.tar`; a.click();
+    showToast('PNG sequence ready (.tar)');
+  });
+
+  // WAV record from bus (real-time)
+  fxWav.addEventListener('click', async ()=>{
+    ensureAudio(); if (state.audio.ctx.state==='suspended') await state.audio.ctx.resume();
+    // Build a tap
+    const tap = state.audio.ctx.createGain(); state.audio.gainNode.connect(tap); const recorder = state.audio.ctx.createScriptProcessor(4096, 2, 2);
+    const chunks = []; const sr = state.audio.ctx.sampleRate;
+    tap.connect(recorder); recorder.connect(state.audio.ctx.destination);
+    recorder.onaudioprocess = (e)=>{ const L=e.inputBuffer.getChannelData(0); const R=e.inputBuffer.getChannelData(1); chunks.push(new Float32Array(L)); chunks.push(new Float32Array(R)); };
+    showToast('Recording WAV… click again to stop');
+    const stop = ()=>{ recorder.disconnect(); tap.disconnect(); const interleaved = interleaveFloat32(chunks); const wav = encodeWAV(interleaved, sr); const a=document.createElement('a'); const url=URL.createObjectURL(wav); a.href=url; a.download='hyperclay_audio_48k.wav'; a.click(); showToast('WAV exported'); fxWav.removeEventListener('click', stop); };
+    fxWav.addEventListener('click', stop, {once:true});
+  });
+  function interleaveFloat32(frags){ // frags [L0,R0,L1,R1,...]
+    const frames = frags.length/2; let len=0; for (let i=0;i<frags.length;i++) len+=frags[i].length; const n = len/2; const out=new Float32Array(n*2);
+    let o=0; for (let i=0;i<frags.length;i+=2){ const L=frags[i], R=frags[i+1]; for (let k=0;k<L.length;k++){ out[o++]=L[k]; out[o++]=R[k]; } }
+    return out;
+  }
+  function encodeWAV(float32, sampleRate){ const to16 = (x)=>{ let s=Math.max(-1, Math.min(1, x)); return s<0 ? (s*0x8000)|0 : (s*0x7FFF)|0; };
+    const bytesPerSample = 2; const blockAlign = 2*bytesPerSample; const dataBytes = float32.length*bytesPerSample; const buf = new ArrayBuffer(44+dataBytes); const dv = new DataView(buf); let p=0; function w4(s){ dv.setUint8(p++, s.charCodeAt(0)); dv.setUint8(p++, s.charCodeAt(1)); dv.setUint8(p++, s.charCodeAt(2)); dv.setUint8(p++, s.charCodeAt(3)); }
+    w4('RIFF'); dv.setUint32(p, 36+dataBytes, true); p+=4; w4('WAVE'); w4('fmt '); dv.setUint32(p, 16, true); p+=4; dv.setUint16(p, 1, true); p+=2; dv.setUint16(p, 2, true); p+=2; dv.setUint32(p, sampleRate, true); p+=4; dv.setUint32(p, sampleRate*blockAlign, true); p+=4; dv.setUint16(p, blockAlign, true); p+=2; dv.setUint16(p, 16, true); p+=2; w4('data'); dv.setUint32(p, dataBytes, true); p+=4; for (let i=0;i<float32.length;i++){ dv.setInt16(p, to16(float32[i]), true); p+=2; } return new Blob([dv], {type:'audio/wav'}); }
+
+  jsonInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if(!f) return; try{ const obj = JSON.parse(await f.text()); state.wheelScale = obj.wheelScale || 1.0; wheelBadge.textContent = `R ${state.wheelScale.toFixed(2)}×`; Object.assign(state.view, obj.view || {}); state.tube = !!obj.tube; state.busXfade = obj.busXfade ?? 0.5; state.linear = !!obj.linear; state.linearDur = obj.linearDur || 6; state.linearLoop = !!obj.linearLoop; xfadeSlider.value = String(state.busXfade); linearBtn.classList.toggle('on', state.linear); linearLoop.classList.toggle('on', state.linearLoop); linDur.value = String(state.linearDur); const rebuilt = []; for (const c of obj.clips||[]) { if ((c.type==='image'||c.type==='stamp') && c.data){ const img = new Image(); await new Promise(res => { img.onload=res; img.src=c.data; }); rebuilt.push({ ...defaultClipBase(), id:c.id, type:c.type, el:img, kind:'img', angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration, ring:c.ring||0 }); } else if (c.type==='video') { rebuilt.push({ ...defaultClipBase(), id:c.id, type:'placeholder', kind:'placeholder', label:'Video (relink)', angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration, ring:c.ring||0 }); } else { rebuilt.push({ ...defaultClipBase(), id:c.id, type:c.type||'placeholder', kind:c.kind||'placeholder', label:c.label||'Clip', angle:c.angle, radius:c.radius, scale:c.scale, edge:c.edge, fog:c.fog, blend:c.blend, timeOffset:c.timeOffset, duration:c.duration, ring:c.ring||0 }); } } state.clips = rebuilt; state.history=[]; refreshAudioList(); showToast('Session loaded'); }catch(err){ alert('Invalid JSON'); } jsonInput.value=''; });
+
+  // ==========================
+  // Interaction (spin/sculpt, zoom/pan)
+  // ==========================
+  let dragging=false, dragLastAngle=0; let draggingClip=null; let activeTouches = new Map(); let panning=false; let panLast=null; let pinchStartDist=0, pinchStartZoom=1.0, pinchStartMid=null;
+
+  function pointAngle(x,y){ const dx=x-state.cx(), dy=y-state.cy(); return Math.atan2(dy,dx); }
+  function pointerPos(e){ if (e.touches && e.touches[0]){ const r=canvas.getBoundingClientRect(); return { x:(e.touches[0].clientX-r.left)*DPR, y:(e.touches[0].clientY-r.top)*DPR }; } else { const r=canvas.getBoundingClientRect(); return { x:(e.clientX-r.left)*DPR, y:(e.clientY-r.top)*DPR }; } }
+  function nearestClipHandle(px,py){ const R=state.baseWheelR(); const world=(a)=>a+state.wheelAngle; let best=null, bestD2=Infinity; for (const c of state.clips){ const angleLocal = state.tube? 0 : c.angle; const radiusLocal = state.tube? (c.ring||0)*tubeSpacing() : c.radius; const a=world(angleLocal), r=R+radiusLocal; const hx=state.cx()+r*Math.cos(a), hy=state.cy()+r*Math.sin(a); const dx=hx-px, dy=hy-py, d2=dx*dx+dy*dy; if (d2<bestD2){ bestD2=d2; best={clip:c,hx,hy,d2}; } } return best && best.d2 < (36*DPR)*(36*DPR) ? best.clip : null; }
+
+  function updateActiveTouches(e){ activeTouches.clear(); if (!e.touches) return; const r=canvas.getBoundingClientRect(); for (let i=0;i<e.touches.length;i++){ const t=e.touches[i]; activeTouches.set(t.identifier, { x:(t.clientX-r.left)*DPR, y:(t.clientY-r.top)*DPR }); } }
+  function distanceBetweenTouches(){ if (activeTouches.size<2) return 0; const arr=[...activeTouches.values()]; const dx=arr[0].x-arr[1].x, dy=arr[0].y-arr[1].y; return Math.hypot(dx,dy); }
+  function midpointTouches(){ const arr=[...activeTouches.values()]; return { x:(arr[0].x+arr[1].x)/2, y:(arr[0].y+arr[1].y)/2 }; }
+
+  canvas.addEventListener('wheel', (e)=>{ if (state.view.locked) return; e.preventDefault(); const rect=canvas.getBoundingClientRect(); const sx=(e.clientX-rect.left)*DPR, sy=(e.clientY-rect.top)*DPR; const pre = screenToWorld(sx,sy); const k = Math.pow(1.0015, -e.deltaY); zoomAt(pre.x, pre.y, k); bumpHUD(); }, {passive:false});
+  function zoomAt(wx, wy, k){ const vz=clamp(state.view.zoom*k, 0.1, 50); const nx = wx + (state.view.cx - wx) * (state.view.zoom/vz); const ny = wy + (state.view.cy - wy) * (state.view.zoom/vz); state.view.cx = nx; state.view.cy = ny; state.view.zoom = vz; }
+  function screenToWorld(sx,sy){ const sw=canvas.width/state.view.zoom, sh=canvas.height/state.view.zoom; const sx0 = state.view.cx - sw/2; const sy0 = state.view.cy - sh/2; return { x: sx0 + sx/state.view.zoom, y: sy0 + sy/state.view.zoom }; }
+
+  canvas.addEventListener('touchstart', onDown, {passive:false}); canvas.addEventListener('mousedown', onDown);
+  function onDown(e){ if (state.view.locked) { // still allow spin/sculpt
+      e.preventDefault(); bumpHUD(); const {x,y} = pointerPos(e); dragLastAngle = pointAngle(x,y); dragging=true; state.activeClipId=null; draggingClip=null; if (state.mode==='SCULPT'){ draggingClip = nearestClipHandle(x,y); } return; }
+    e.preventDefault(); bumpHUD(); if (e.touches && e.touches.length>=2){ updateActiveTouches(e); pinchStartDist = distanceBetweenTouches(); pinchStartZoom = state.view.zoom; pinchStartMid = midpointTouches(); dragging=false; return; }
+    const {x,y} = pointerPos(e);
+    if (!e.touches && (e.button===1 || e.altKey || e.metaKey || e.ctrlKey || e.shiftKey)) { panning=true; panLast={x,y}; return; }
+    dragLastAngle = pointAngle(x,y); dragging=true; state.activeClipId=null; draggingClip=null; if (state.mode==='SCULPT'){ draggingClip = nearestClipHandle(x,y); }
+  }
+
+  window.addEventListener('touchmove', onMove, {passive:false}); window.addEventListener('mousemove', onMove);
+  function onMove(e){ if (!state.view.locked && e.touches && e.touches.length>=2){ updateActiveTouches(e); const dist = distanceBetweenTouches(); if (pinchStartDist>0){ const k = dist/pinchStartDist; state.view.zoom = clamp(pinchStartZoom*k, 0.1, 50); const mid = midpointTouches(); const dx = (pinchStartMid.x - mid.x) / state.view.zoom; const dy = (pinchStartMid.y - mid.y) / state.view.zoom; state.view.cx += dx*canvas.width/state.view.zoom; state.view.cy += dy*canvas.height/state.view.zoom; } return; }
+    if (!state.view.locked && panning && panLast){ const {x,y}=pointerPos(e); const dx=(panLast.x-x)/state.view.zoom; const dy=(panLast.y-y)/state.view.zoom; state.view.cx += dx; state.view.cy += dy; panLast={x,y}; return; }
+    if (!dragging) return; e.preventDefault(); const {x,y} = pointerPos(e); const a = pointAngle(x,y); const da = angDiff(a, dragLastAngle); dragLastAngle=a; if (state.mode==='SCULPT' && draggingClip){ const qStep = Math.PI/12; const R = state.baseWheelR(); const dist = Math.hypot(x-state.cx(), y-state.cy()); const angleRaw = normAngle((draggingClip.angle||0) + da); draggingClip.angle = state.tube ? 0 : Math.round(angleRaw/qStep)*qStep; const localR = clamp(dist - R, -R*0.25, R*0.6); draggingClip.radius = state.tube ? draggingClip.radius : localR; } else { state.wheelAngle = normAngle(state.wheelAngle + da); state.wheelVel = da; } }
+
+  window.addEventListener('touchend', onUp); window.addEventListener('mouseup', onUp);
+  function onUp(){ dragging=false; draggingClip=null; panning=false; panLast=null; }
+
+  function angDiff(a,b){ let d=a-b; while(d>Math.PI) d-=Math.PI*2; while(d<-Math.PI) d+=Math.PI*2; return d; }
+  function normAngle(a){ while(a>Math.PI) a-=Math.PI*2; while(a<=-Math.PI) a+=Math.PI*2; return a; }
+  const clamp = (v,lo,hi)=> Math.max(lo,Math.min(hi,v));
+
+  // Offscreens
+  const offA = document.createElement('canvas'); const offB = document.createElement('canvas');
+  let octxA = offA.getContext('2d'); let octxB = offB.getContext('2d');
+  function ensureOff(w,h){ if (offA.width!==w||offA.height!==h){ offA.width=w; offA.height=h; offB.width=w; offB.height=h; octxA=offA.getContext('2d'); octxB=offB.getContext('2d'); } }
+
+  // Scene buffer for fixed viewport
+  const scn = document.createElement('canvas'); const scx = scn.getContext('2d');
+  function ensureScene(){ if (scn.width!==canvas.width || scn.height!==canvas.height){ scn.width=canvas.width; scn.height=canvas.height; } }
+  function tubeSpacing(){ return Math.min(canvas.width, canvas.height) * 0.18; }
+
+  function drawFeatherMask(ctxMask,w,h,edgePx){ ctxMask.clearRect(0,0,w,h); if (edgePx<=1){ ctxMask.fillStyle='#fff'; ctxMask.fillRect(0,0,w,h); return; } ctxMask.fillStyle='#fff'; ctxMask.fillRect(edgePx,edgePx,w-2*edgePx,h-2*edgePx); const L=ctxMask.createLinearGradient(0,0,edgePx,0); L.addColorStop(0,'rgba(255,255,255,0)'); L.addColorStop(1,'#fff'); ctxMask.fillStyle=L; ctxMask.fillRect(0,edgePx,edgePx,h-2*edgePx); const Rg=ctxMask.createLinearGradient(w-edgePx,0,w,0); Rg.addColorStop(0,'#fff'); Rg.addColorStop(1,'rgba(255,255,255,0)'); ctxMask.fillStyle=Rg; ctxMask.fillRect(w-edgePx,edgePx,edgePx,h-2*edgePx); const T=ctxMask.createLinearGradient(0,0,0,edgePx); T.addColorStop(0,'rgba(255,255,255,0)'); T.addColorStop(1,'#fff'); ctxMask.fillStyle=T; ctxMask.fillRect(edgePx,0,w-2*edgePx,edgePx); const B=ctxMask.createLinearGradient(0,h-edgePx,0,h); B.addColorStop(0,'#fff'); B.addColorStop(1,'rgba(255,255,255,0)'); ctxMask.fillStyle=B; ctxMask.fillRect(edgePx,h-edgePx,w-2*edgePx,edgePx); function corner(xc,yc){ const rg=ctxMask.createRadialGradient(xc,yc,0, xc,yc,edgePx); rg.addColorStop(0,'#fff'); rg.addColorStop(1,'rgba(255,255,255,0)'); ctxMask.fillStyle=rg; ctxMask.beginPath(); ctxMask.arc(xc,yc,edgePx,0,Math.PI*2); ctxMask.fill(); } corner(edgePx,edgePx); corner(w-edgePx,edgePx); corner(edgePx,h-edgePx); corner(w-edgePx,h-edgePx); }
+
+  function drawClipLayer(mainCtx, clip, phase){
+    const cx=state.cx(), cy=state.cy(), R=state.baseWheelR();
+    let srcW=320, srcH=180;
+    if (clip.kind==='video'){
+      const selId = Number((audioSel && audioSel.value) || '0');
+      const t = ((phase * clip.duration) + clip.timeOffset) % clip.duration;
+      if (!Number.isNaN(t) && isFinite(t)) {
+        try {
+          // If this is the selected audio driver clip while playing linear, let it free‑run for audio sync
+          if (!(state.playing && state.linear && selId && selId===clip.id)) {
+            clip.el.currentTime = t;
+          }
+        } catch(_){}
+      }
+    }
+    else if (clip.kind==='img'){ srcW=clip.el.naturalWidth||clip.el.width||320; srcH=clip.el.naturalHeight||clip.el.height||180; }
+    else if (clip.kind==='placeholder'){ srcW=320; srcH=180; }
+
+    const targetW=Math.max(8, Math.floor(srcW*clip.scale));
+    const targetH=Math.max(8, Math.floor(srcH*clip.scale));
+    ensureOff(targetW,targetH);
+
+    if (clip.kind==='video'){ // sync time
+      const t = ((phase * clip.duration) + clip.timeOffset) % clip.duration;
+      if (!Number.isNaN(t) && isFinite(t)) { try { clip.el.currentTime = t; } catch(_){} }
+    }
+
+    octxA.clearRect(0,0,targetW,targetH);
+    if (clip.kind==='placeholder'){
+      octxA.fillStyle='#0c1118'; octxA.fillRect(0,0,targetW,targetH);
+      octxA.strokeStyle='#2a313a'; octxA.strokeRect(1,1,targetW-2,targetH-2);
+      octxA.fillStyle='#9aa0a6'; octxA.font='12px ui-sans-serif'; octxA.fillText(clip.label||'Video placeholder', 8, 18);
+    } else {
+      try { octxA.drawImage(clip.el, 0, 0, targetW, targetH); } catch(_) {}
+    }
+
+    octxB.clearRect(0,0,targetW,targetH); drawFeatherMask(octxB, targetW, targetH, Math.min(clip.edge * DPR, Math.floor(Math.min(targetW,targetH)/3)) ); octxA.globalCompositeOperation='destination-in'; octxA.drawImage(offB,0,0); octxA.globalCompositeOperation='source-over';
+
+    if (clip.fog>0.001){ octxA.save(); octxA.globalAlpha=clip.fog; octxA.fillStyle='#fff'; octxA.fillRect(0,0,targetW,targetH); octxA.restore(); }
+
+    const ringR = (clip.ring||0) * tubeSpacing();
+    const localAngle = state.tube ? 0 : clip.angle;
+    const localRadius = state.tube ? ringR : clip.radius;
+    const aWorld=localAngle+state.wheelAngle; const rWorld=R+localRadius; const x = cx + rWorld*Math.cos(aWorld) - targetW/2; const y= cy + rWorld*Math.sin(aWorld) - targetH/2;
+
+    let alpha = 1; const vids = state.clips.filter(k=>k.kind==='video'); if (clip.kind==='video' && vids.length===2){ alpha = (clip.id===vids[0].id) ? (1-state.busXfade) : state.busXfade; }
+    mainCtx.save(); mainCtx.globalCompositeOperation = clip.blend; mainCtx.globalAlpha = alpha; mainCtx.drawImage(offA, Math.floor(x), Math.floor(y)); mainCtx.restore();
+  }
+
+  // Timeline phase (wheel vs linear)
+  let lastTick = performance.now();
+  function timelinePhase(dtOverride){
+    const now = performance.now();
+    const dt = dtOverride || (now - lastTick) / 1000; lastTick = now;
+    // If linear and an audio source is selected, drive phase from that clip's audio time for tight A/V sync
+    const selId = Number((audioSel && audioSel.value) || '0');
+    if (state.playing && state.linear && selId){
+      const clip = state.clips.find(c=>c.id===selId && c.kind==='video');
+      if (clip && isFinite(clip.duration) && clip.duration>0){
+        return ( (clip.el.currentTime % clip.duration) / clip.duration );
+      }
+    }
+    if (state.playing && state.linear){
+      state.linearT += dt; const t = state.linearT / state.linearDur; if (t>=1){ if (state.linearLoop){ state.linearT = 0; } else { state.playing=false; playBtn.classList.remove('on'); playBtn.textContent='Play'; } }
+      return Math.min(1, (state.linearT / state.linearDur) || 0);
+    }
+    return ( (state.wheelAngle/(Math.PI*2)) % 1 + 1 ) % 1;
+  }{
+    const now = performance.now();
+    const dt = dtOverride || (now - lastTick) / 1000; lastTick = now;
+    if (state.playing && state.linear){
+      state.linearT += dt; const t = state.linearT / state.linearDur; if (t>=1){ if (state.linearLoop){ state.linearT = 0; } else { state.playing=false; playBtn.classList.remove('on'); playBtn.textContent='Play'; } }
+      return Math.min(1, (state.linearT / state.linearDur) || 0);
+    }
+    if (state.playing && !state.linear){ return ( (state.wheelAngle/(Math.PI*2)) % 1 + 1 ) % 1; }
+    return ( (state.wheelAngle/(Math.PI*2)) % 1 + 1 ) % 1;
+  }
+
+  // Draw scene (layersOnly skips bg)
+  function drawScene(context, phase, layersOnly=false){ if (!layersOnly){ context.clearRect(0,0,canvas.width,canvas.height); context.fillStyle='#000'; context.fillRect(0,0,canvas.width,canvas.height); } for (const c of state.clips) drawClipLayer(context, c, phase); }
+
+  // Main Loop
+  let lastT=performance.now(), fpsSm=60;
+  function tick(now){ const dt = now-lastT; lastT=now; const alpha = Math.max(0.25, Math.min(4, dt/16.6667)); if (!state.playing && (!dragging || state.mode!=='SCULPT')){ state.wheelAngle = normAngle(state.wheelAngle + state.wheelVel*alpha); state.wheelVel *= Math.pow(state.friction, alpha); if (Math.abs(state.wheelVel)<1e-5) state.wheelVel=0; }
+    const phase = timelinePhase(); ensureScene(); scx.setTransform(1,0,0,1,0,0); scx.clearRect(0,0,scn.width,scn.height); scx.fillStyle='#000'; scx.fillRect(0,0,scn.width,scn.height); for (const c of state.clips) drawClipLayer(scx, c, phase); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); const sw = canvas.width / state.view.zoom; const sh = canvas.height / state.view.zoom; const sx = Math.max(0, state.view.cx - sw/2); const sy = Math.max(0, state.view.cy - sh/2); ctx.drawImage(scn, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height); phaseNote.textContent = `phase ${phase.toFixed(3)}`; fpsSm = fpsSm*0.9 + (1000/dt)*0.1; fpsNote.textContent = `fps ${Math.max(1, Math.round(fpsSm))}`; const inertia = Math.min(1, Math.abs(state.wheelVel)*24); inertiaFill.style.width = `${Math.floor(inertia*100)}%`; requestAnimationFrame(tick); }
+  requestAnimationFrame(tick);
+
+  // Keyboard
+  window.addEventListener('keydown', e => {
+    if (e.key===' ') setMode(state.mode==='SPIN'?'SCULPT':'SPIN');
+    if (e.key==='p') playBtn.click(); if (e.key==='l') lockViewBtn.click(); if (e.key==='t') tubeBtn.click();
+    if (e.key==='s') stampBtn.click(); if (e.key==='r') recBtn.click(); if (e.key==='u') undoBtn.click();
+    if (e.key==='['){ state.busXfade = Math.max(0, state.busXfade-0.02); xfadeSlider.value=String(state.busXfade); }
+    if (e.key===']'){ state.busXfade = Math.min(1, state.busXfade+0.02); xfadeSlider.value=String(state.busXfade); }
+  });
+
+  // Auto-save
+  setInterval(()=>{ try{ const payload={ wheelScale: state.wheelScale, view: state.view, tube: state.tube, busXfade: state.busXfade, linear: state.linear, linearDur: state.linearDur, linearLoop: state.linearLoop, clips: state.clips.map(c=>({id:c.id,type:c.type,angle:c.angle,radius:c.radius,scale:c.scale,edge:c.edge,fog:c.fog,blend:c.blend,timeOffset:c.timeOffset,duration:c.duration,label:c.label||null,ring:c.ring||0,data:(c.type==='image'||c.type==='stamp')?tryImageToDataURL(c.el):null})) }; sessionStorage.setItem('hyperclay_auto', JSON.stringify(payload)); }catch(_){ } }, 2000);
+
+  dlLink.addEventListener('click', ()=> showToast('Downloaded'));
+
+  // ==========================
+  // Self-tests
+  // ==========================
+  function runSelfTests(){
+    const errs=[]; const ok=(name,cond)=>{ if(!cond){ errs.push(name); console.error('Test failed:', name); } };
+    try { resize(); ok('resize-after-state', true); } catch(e){ ok('resize-after-state', false); }
+    ok('state-exists', !!state && typeof state==='object');
+    ok('phase-in-range', (()=>{ const p=((state.wheelAngle/(Math.PI*2))%1 + 1) % 1; return p>=0 && p<1; })());
+    ok('linear-defaults', (state.linearDur>=0.5 && state.linearT===0));
+    // transparent stamp when no clips
+    const off=document.createElement('canvas'); off.width=2; off.height=2; const oc=off.getContext('2d'); drawScene(oc, 0.0, true); const px=oc.getImageData(0,0,1,1).data; ok('stamp-transparent', px[3]===0);
+    ok('stop-pill-present', !!document.getElementById('stopRec'));
+    // TAR writer check
+    (function(){ const enc=new TextEncoder(); const data=new Uint8Array([1,2,3]); const parts=[]; function sizeOct(n){return n.toString(8);} function padTo512(len){ return (512 - (len % 512)) % 512; }
+      function hdr(name,size){ const buf=new Uint8Array(512); const write=(s,o,l)=>{ const b=enc.encode(s); buf.set(b.slice(0,l),o); }; write(name,0,100); write('0000777 ',100,8); write('0000000 ',108,8); write('0000000 ',116,8); write(sizeOct(size).padStart(11,'0')+' ',124,12); write('00000000000 ',136,12); write('        ',148,8); write('0',156,1); write('ustar ',257,6); write('00',263,2); let sum=0; for(let i=0;i<512;i++) sum+=buf[i]; const chk=sum.toString(8).padStart(6,'0')+'  '; write(chk,148,8); parts.push(buf); parts.push(data); const pad=padTo512(data.length); if(pad) parts.push(new Uint8Array(pad)); parts.push(new Uint8Array(1024)); ok('tar-byte-length', parts.reduce((a,b)=>a+b.length,0)%512===0); })();
+    console.log(errs.length? 'Self-tests failed:'+errs.join(', ') : '%cSelf-tests passed','color:#00d0b4');
+  } };
+    try { resize(); ok('resize-after-state', true); } catch(e){ ok('resize-after-state', false); }
+    ok('state-exists', !!state && typeof state==='object');
+    ok('phase-in-range', (()=>{ const p=((state.wheelAngle/(Math.PI*2))%1 + 1) % 1; return p>=0 && p<1; })());
+    ok('linear-defaults', (state.linearDur>=0.5 && state.linearT===0));
+    // transparent stamp when no clips
+    const off=document.createElement('canvas'); off.width=2; off.height=2; const oc=off.getContext('2d'); drawScene(oc, 0.0, true); const px=oc.getImageData(0,0,1,1).data; ok('stamp-transparent', px[3]===0);
+    ok('stop-pill-present', !!document.getElementById('stopRec'));
+    if (errs.length===0){ console.log('%cSelf-tests passed','color:#00d0b4'); } else { console.warn('Self-tests failed:', errs); }
+  }
+  setTimeout(runSelfTests, 0);
+
+})();
+</script>
+</body>
+</html>
