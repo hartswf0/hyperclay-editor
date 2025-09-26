@@ -1,0 +1,348 @@
+<!--
+VOLHOLLA Assemblies — SINGLE FILE (HTML/CSS/JS)
+Theme: Viking/orange/blackletter energy matching the provided VOLHOLLA mark.
+Notes:
+- Replace the LOGO <img> src below with your asset if needed. A fallback SVG word-mark is included.
+- No external fonts. We mimic blackletter heft using outlined SVG + tracked small-caps.
+- Interaction model from your Orange Assemblies preserved, but visuals re-skinned to angular "rune tiles" (diamonds/shields) vs circles.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VOLHOLLA — Assemblies</title>
+<style>
+  :root{
+    /* Palette pulled from the VOLHOLLA banner */
+    --vh-ember:#ff8a00;       /* bright orange accent */
+    --vh-amber:#ff7a00;       /* logo mid */
+    --vh-honey:#ff9b1a;       /* warm fill */
+    --vh-ale:#ffb240;         /* light */
+    --vh-deep:#cc5a00;        /* shadow orange */
+    --ink:#1b0f00;            /* near-black/brown */
+    --paper:#ff9620;          /* bg base */
+    --paper-2:#ff7f00;        /* bg depth */
+    --grid:#00000018;         /* subtle grid */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 50% 0%, #ffa73a00 60%, #00000010 100%),
+      linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 60%, var(--paper) 100%);
+    background-attachment: fixed;
+    letter-spacing:.2px;
+    overflow-x:hidden;
+  }
+  /* Subtle parchment noise using CSS gradients */
+  body:before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      linear-gradient(transparent 98%, #00000010 100%),
+      linear-gradient(90deg, transparent 98%, #00000010 100%);
+    background-size: 24px 24px, 24px 24px; opacity:.15; mix-blend-mode:multiply;
+  }
+
+  /* HEADER */
+  .bar{position:sticky;top:0;z-index:10; backdrop-filter: blur(2px);
+    background: linear-gradient(180deg, #00000010, #00000000);
+    border-bottom:2px solid #00000040;
+  }
+  .bar-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 14px}
+  .crest{display:flex;align-items:center;gap:10px}
+  .crest .shield{width:44px;height:44px;position:relative;transform:rotate(45deg);}
+  .shield:before{content:"";position:absolute;inset:0;border:2px solid var(--ink);background:linear-gradient(135deg,var(--vh-honey),var(--vh-ember));box-shadow:4px 4px 0 #00000025}
+  .shield:after{content:"";position:absolute;inset:6px;border:2px solid var(--ink);background:conic-gradient(from 0deg, var(--vh-ale), var(--vh-ember), var(--vh-ale));}
+
+  /* Wordmark slot */
+  .wordmark{height:40px; display:flex; align-items:center}
+  .wordmark img{height:38px; display:block; filter: saturate(1.1) contrast(1.05)}
+  /* Fallback SVG for wordmark */
+  .fallback-mark{height:38px}
+
+  .tag{margin-left:auto;padding:4px 10px;border:2px solid var(--ink);background:linear-gradient(180deg,var(--vh-ale),var(--vh-honey));border-radius:999px;font-size:.75rem;font-weight:700;box-shadow:3px 3px 0 #00000025}
+
+  /* INTRO PANEL */
+  .intro{max-width:560px;margin:20px auto 0;position:relative;z-index:1}
+  .intro-card{border:2px solid var(--ink);border-radius:18px;overflow:hidden;background:linear-gradient(180deg,#fff0, #fff0),
+              linear-gradient(135deg,var(--vh-ale),var(--vh-honey)); box-shadow:6px 6px 0 #00000030}
+  .intro-top{padding:18px 18px 0;display:flex;justify-content:space-between;align-items:center}
+  .intro h1{font-size:1.2rem;letter-spacing:.16em;text-transform:uppercase}
+  .intro h1 span{display:inline-block;padding:2px 8px;border:2px solid var(--ink);background:linear-gradient(180deg,var(--vh-ale),var(--vh-ember));box-shadow:2px 2px 0 #00000025}
+  .intro p{padding:12px 18px 18px;line-height:1.45}
+  .intro .cta{display:flex;gap:10px;padding:0 18px 18px}
+  .btn{cursor:pointer;border:2px solid var(--ink);padding:10px 14px;background:linear-gradient(180deg,var(--vh-honey),var(--vh-amber));box-shadow:4px 4px 0 #00000030;border-radius:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+  .btn:hover{transform:translate(-1px,-1px)}
+
+  /* GRID (Rune Grove) */
+  .grove{max-width:1200px;margin:26px auto;padding:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px}
+
+  .tile{position:relative;aspect-ratio:1;cursor:crosshair}
+  .tile .shadow{position:absolute;inset:auto 16% -8px 16%;height:14px;background:#00000020;border-radius:999px;filter:blur(2px)}
+
+  /* Diamond/Shield container */
+  .rune{position:absolute;inset:0;margin:auto;width:86%;height:86%;transform:rotate(45deg);transition:transform .3s ease, filter .3s ease}
+  .tile:hover .rune{transform:rotate(45deg) translateY(-4px); filter: drop-shadow(6px 6px 0 #00000035)}
+
+  .rune .outer{position:absolute;inset:0;border:3px solid var(--ink);background:linear-gradient(135deg,var(--vh-honey),var(--vh-ember));}
+  .rune .inner{position:absolute;inset:10%;border:3px solid var(--ink);background:repeating-linear-gradient(45deg, #ffffff20 0 10px, #00000010 10px 20px), linear-gradient(135deg,var(--vh-ale),var(--vh-honey));}
+
+  /* Slice lines (engraving) */
+  .engrave{position:absolute;inset:14%;}
+  .engrave svg{width:100%;height:100%;display:block}
+  .engrave line{stroke:var(--ink);stroke-width:2;stroke-linecap:square;opacity:.9}
+
+  /* Interactive segment "rune dots" */
+  .segments{display:none !important}
+
+  /* TETRAD ARMS (Enhance • Retrieve • Reverse • Obsolesce) */
+  .tetrad{position:absolute;inset:0;pointer-events:none}
+  .arm{position:absolute;left:50%;top:50%;height:12px;width:32%;translate:0 -50%;transform-origin:0% 50%;
+    background:linear-gradient(180deg,var(--vh-ale),var(--vh-amber));border:2px solid var(--ink);border-radius:10px;box-shadow:3px 3px 0 #00000035;
+    pointer-events:auto;transition:transform .25s ease}
+  .arm .node{position:absolute;right:-9px;top:50%;width:26px;height:26px;transform:translateY(-50%) rotate(45deg);
+    border:2px solid var(--ink);background:linear-gradient(135deg,var(--vh-honey),var(--vh-ember));box-shadow:3px 3px 0 #00000035;border-radius:4px;display:grid;place-items:center;font-size:.6rem;font-weight:900}
+  .tile:hover .arm{filter:drop-shadow(4px 4px 0 #00000035)}
+  .arm.n{transform:rotate(-90deg) scaleX(.65)}
+  .arm.e{transform:rotate(0deg)   scaleX(.65)}
+  .arm.s{transform:rotate(90deg)  scaleX(.65)}
+  .arm.w{transform:rotate(180deg) scaleX(.65)}
+  .tile:hover .arm.n{transform:rotate(-90deg) scaleX(1)}
+  .tile:hover .arm.e{transform:rotate(0deg)   scaleX(1)}
+  .tile:hover .arm.s{transform:rotate(90deg)  scaleX(1)}
+  .tile:hover .arm.w{transform:rotate(180deg) scaleX(1)}
+  .arm[data-hide="true"]{display:none}
+
+  .label{position:absolute;left:50%;bottom:-36px;transform:translateX(-50%);text-align:center;font-size:.85rem;font-weight:800;letter-spacing:.08em}
+
+  /* MODAL */
+  .modal{position:fixed;inset:0;background:#00000055;display:none;align-items:center;justify-content:center;padding:16px}
+  .modal.active{display:flex}
+  .sheet{max-width:720px;width:min(720px,95vw);max-height:88vh;overflow:auto;border:3px solid var(--ink);border-radius:18px;background:linear-gradient(180deg,var(--vh-ale),var(--vh-honey));box-shadow:8px 8px 0 #00000065;position:relative}
+  .x{position:absolute;right:10px;top:10px;width:42px;height:42px;border:2px solid var(--ink);border-radius:10px;background:linear-gradient(180deg,var(--vh-amber),var(--vh-ember));font-size:22px;font-weight:900;display:grid;place-items:center;cursor:pointer}
+  .sheet h3{padding:16px 16px 0;text-transform:uppercase;letter-spacing:.12em}
+  .sheet #body{padding:12px 16px}
+  .sheet img{width:100%;border:2px solid var(--ink);border-radius:12px}
+  pre{white-space:pre-wrap;border:2px solid var(--ink);border-radius:12px;padding:12px;background:#fff8ee}
+  .dots{display:flex;gap:6px;justify-content:center;padding:10px 16px 16px;border-top:2px dashed #00000033}
+  .dots span{width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);background:var(--vh-amber);cursor:pointer}
+  .dots span.active{outline:3px solid #00000055}
+
+  @media (max-width:768px){
+    .grove{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:22px}
+    .seg{width:46px;height:46px}
+    .label{font-size:.75rem;bottom:-30px}
+  }
+</style>
+</head>
+<body>
+  <header class="bar">
+    <div class="bar-inner">
+      <div class="crest">
+        <div class="shield" aria-hidden="true"></div>
+        <div class="wordmark" aria-label="VOLHOLLA">
+          <!-- Try to load provided PNG; falls back to inline SVG if it can't render -->
+          <img alt="VOLHOLLA" src="sandbox:/mnt/data/24ccaeda-ef87-443e-872e-bae43ec9a0a4.png" onerror="this.replaceWith(document.getElementById('fallback-mark').content.cloneNode(true))"/>
+          <template id="fallback-mark">
+            <svg class="fallback-mark" viewBox="0 0 600 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="VOLHOLLA">
+              <defs>
+                <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="var(--vh-ale)"/><stop offset="100%" stop-color="var(--vh-ember)"/>
+                </linearGradient>
+              </defs>
+              <rect x="1" y="1" width="598" height="78" fill="url(#g)" stroke="var(--ink)" stroke-width="2" rx="6"/>
+              <text x="300" y="54" text-anchor="middle" font-size="48" font-weight="900" fill="var(--vh-deep)" letter-spacing="6">VOLHOLLA</text>
+            </svg>
+          </template>
+        </div>
+      </div>
+      <div class="tag">Assemblies</div>
+    </div>
+  </header>
+
+  <section class="intro">
+    <div class="intro-card">
+      <div class="intro-top">
+        <h1><span>VOLHOLLA</span> <span>ASSEMBLIES</span></h1>
+        <button class="btn" id="dismiss">Enter Hall</button>
+      </div>
+      <p>Forge‑fresh work tiles in a Viking citrus forge. Same interaction model as your original — remixed into diamond <em>rune tiles</em>, angular borders, and orange‑on‑orange embossing to echo the mark.</p>
+      <div class="cta">
+        <button class="btn" id="shuffle">Recast Grid</button>
+        <button class="btn" id="about">What is this?</button>
+      </div>
+    </div>
+  </section>
+
+  <main class="grove" id="grove" aria-live="polite"></main>
+
+  <div class="modal" id="modal" aria-modal="true" role="dialog">
+    <div class="sheet">
+      <button class="x" id="close">×</button>
+      <h3 id="title"></h3>
+      <div id="body"></div>
+      <div class="dots" id="dots"></div>
+    </div>
+  </div>
+
+<script>
+/**************** DATA ****************/
+const projects = [
+  {
+    id: 1, title: "CODE PEEL — Generative Art",
+    segments: [
+      { id: "01", type: "text", content: "Cellular automata carving orange‑rind lattices. Simple local rules ⇒ emergent tapestry."},
+      { id: "02", type: "image", content: svgBlock(200,200,`<rect width='200' height='200' fill='${css('--vh-ale')}'/><path d='M20,180 Q100,20 180,180' stroke='${css('--ink')}' stroke-width='3' fill='none'/><circle cx='100' cy='100' r='18' fill='${css('--vh-ember')}' stroke='${css('--ink')}' stroke-width='2'/>`) },
+      { id: "03", type: "code", content: `function updateCell(grid,x,y){const n=countNeighbors(grid,x,y),s=grid[y][x];if(s&& (n<2||n>3))return 0; if(!s&&n===3)return 1; return s;}`}
+    ]
+  },
+  {
+    id: 2, title: "SYNTH GROOVE — Web Audio UI",
+    segments: [
+      { id: "01", type: "text", content: "Patchable oscillators, filters, runic FX. Low‑latency on mobile."},
+      { id: "02", type: "image", content: svgBlock(200,200,`<rect width='200' height='200' fill='${css('--vh-honey')}'/><circle cx='60' cy='60' r='22' fill='${css('--vh-ember')}'/><circle cx='140' cy='60' r='22' fill='${css('--vh-ember')}'/><rect x='40' y='120' width='120' height='38' fill='${css('--vh-ale')}' stroke='${css('--ink')}' stroke-width='2'/>`) },
+      { id: "03", type: "code", content: `const ac=new (window.AudioContext||webkitAudioContext)();const o=ac.createOscillator();const g=ac.createGain();o.type='sawtooth';o.frequency.value=440;o.connect(g);g.connect(ac.destination);g.gain.value=.35;o.start();`}
+    ]
+  },
+  {
+    id: 3, title: "POSTER SYSTEM — Grid & Color",
+    segments:[
+      { id:"01", type:"text", content:"Randomness vs rule: a blacksmith's dance."},
+      { id:"02", type:"image", content: svgBlock(200,200,`<rect width='200' height='200' fill='${css('--vh-ale')}'/><rect x='20' y='20' width='160' height='160' fill='none' stroke='${css('--ink')}'/><rect x='40' y='40' width='60' height='60' fill='${css('--vh-ember')}'/><rect x='100' y='100' width='60' height='60' fill='${css('--vh-honey')}'/>`) },
+      { id:"03", type:"code", content:`const grid=(c,r)=>Array.from({length:c*r},(_,i)=>({x:i%c,y:(i/c)|0}));`},
+      { id:"04", type:"text", content:"Exports vector. Print‑ready."}
+    ]
+  }
+];
+
+/*************** UTIL ***************/
+function css(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim()}
+function svgBlock(w,h,inner){return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}'>${inner}</svg>`)}`}
+
+/************** BUILD **************/
+const grove = document.getElementById('grove');
+projects.forEach(p=>grove.appendChild(makeTile(p)));
+positionSegments();
+window.addEventListener('resize', positionSegments);
+
+function makeTile(project){
+  const wrap = el('div','tile');
+  const rune = el('div','rune');
+  rune.innerHTML = `<div class="outer"></div><div class="inner"></div><div class="engrave">${engraveSVG()}</div>`;
+
+  // Tetrad arms (N,E,S,W) mapped to first four segments
+  const tetrad = el('div','tetrad');
+  const pos = ['n','e','s','w'];
+  pos.forEach((p,i)=>{
+    const arm = el('div','arm '+p);
+    const seg = project.segments[i];
+    if(!seg){ arm.setAttribute('data-hide','true'); }
+    const node = el('button','node');
+    node.type='button';
+    node.title = seg? `Open segment ${seg.id}` : '';
+    node.textContent = seg? seg.id : '';
+    node.addEventListener('click', e=>{ e.stopPropagation(); if(seg) open(project,i); });
+    arm.appendChild(node);
+    tetrad.appendChild(arm);
+  });
+
+  const label = el('div','label');
+  label.textContent = `PROJECT ${String(project.id).padStart(2,'0')} — ${project.title}`;
+  wrap.append(el('div','shadow'), rune, tetrad, label);
+  return wrap;
+}
+
+function engraveSVG(){
+  // 6 wedge engravings to echo the original segments
+  const lines=[]; const N=6; const cx=50, cy=50, r1=14, r2=46;
+  for(let i=0;i<N;i++){
+    const a = (i * (Math.PI*2/N)) + (Math.PI/N); // center of wedge
+    const x1=cx + r1*Math.cos(a), y1=cy + r1*Math.sin(a);
+    const x2=cx + r2*Math.cos(a), y2=cy + r2*Math.sin(a);
+    lines.push(`<line x1='${x1.toFixed(1)}' y1='${y1.toFixed(1)}' x2='${x2.toFixed(1)}' y2='${y2.toFixed(1)}'/>`)
+  }
+  return `<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'>${lines.join('')}</svg>`
+}
+
+function el(tag,cls){const n=document.createElement(tag); if(cls) n.className=cls; return n}
+
+/************** SEGMENT LAYOUT (JS fallback for trig) **************/
+function positionSegments(){
+  document.querySelectorAll('.tile').forEach(tile=>{
+    const box = tile.getBoundingClientRect();
+    const R = Math.min(box.width, box.height)*0.33;
+    const buttons = tile.querySelectorAll('.seg');
+    buttons.forEach(btn=>{
+      const i = +btn.dataset.pos;
+      const ang = (i * 60 + 30) * Math.PI/180; // center of wedge
+      const x = Math.cos(ang)*R;
+      const y = Math.sin(ang)*R;
+      btn.style.left = '50%';
+      btn.style.top  = '50%';
+      btn.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(-45deg)`;
+    });
+  })
+}
+
+/************** MODAL **************/
+const modal = document.getElementById('modal');
+const title = document.getElementById('title');
+const body  = document.getElementById('body');
+const dots  = document.getElementById('dots');
+
+document.getElementById('close').onclick = close;
+modal.addEventListener('click',e=>{ if(e.target===modal) close(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+
+let activeProj=null, activeIndex=0;
+function open(project, index){
+  if(!project.segments[index]) return;
+  activeProj = project; activeIndex = index;
+  render();
+  blip();
+  modal.classList.add('active');
+}
+function render(){
+  const seg = activeProj.segments[activeIndex];
+  title.textContent = `PROJECT ${String(activeProj.id).padStart(2,'0')} — ${activeProj.title}`;
+  let c='';
+  if(seg.type==='text') c = `<p>${seg.content}</p>`;
+  if(seg.type==='image') c = `<img alt='' src='${seg.content}'>`;
+  if(seg.type==='code') c = `<pre><code>${seg.content.replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m]))}</code></pre>`;
+  body.innerHTML = `<h4>SEGMENT ${seg.id}</h4>` + c;
+  dots.innerHTML = '';
+  activeProj.segments.forEach((s,i)=>{
+    const d = document.createElement('span');
+    d.className = i===activeIndex? 'active' : '';
+    d.onclick=()=>{activeIndex=i; render(); blip();};
+    dots.appendChild(d);
+  });
+}
+function close(){ modal.classList.remove('active'); activeProj=null; }
+
+/************** FX + INTRO **************/
+function blip(){
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const o = ctx.createOscillator();
+  const g = ctx.createGain(); o.type='triangle'; o.frequency.value = 760; g.gain.value=.12;
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+.22); o.stop(ctx.currentTime+.24);
+}
+
+document.getElementById('dismiss').onclick=()=>{
+  document.querySelector('.intro').style.display='none';
+}
+document.getElementById('about').onclick=()=>{
+  open({id:0,title:'About VOLHOLLA Assemblies',segments:[{id:'01',type:'text',content:'Your modular portfolio remixed into Viking orange. Tiles = projects. Tap a rune to open segments. All single‑file, mobile‑first, no externals.'}]},0)
+}
+document.getElementById('shuffle').onclick=()=>{
+  // Simple visual shuffle: swap grid auto-placement by re‑appending nodes
+  [...grove.children].sort(()=>Math.random()-.5).forEach(n=>grove.appendChild(n));
+  blip();
+}
+</script>
+</body>
+</html>

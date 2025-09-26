@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VOLHOLLA — Asset Deck</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      /* Original brand tokens */
+      --vol-orange:#FF8200; --charcoal:#121212; --cream:#EDE8E1; --muted:#cfc8bd; --gold:#C7A64B;
+      --maxw:1100px; --r:14px; --shadow:0 10px 30px rgba(0,0,0,.2); --soft:0 6px 18px rgba(0,0,0,.12);
+      /* Orange Portal tokens */
+      --paper:#FF8A00;     /* dominant orange panel */
+      --paper-deep:#E57200;/* shadow orange */
+      --ink:#0E0E0E;       /* thick black */
+      --seed:#FFB357;      /* seed/segment accent */
+      --ring:#FF9D2E;      /* outer highlight */
+      --radius:28px;
+    }
+    html,body{height:100%}
+    body{margin:0;background:#000;color:var(--ink);font-family:Montserrat,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.6;display:grid;place-items:center;padding:10px}
+    a{color:var(--vol-orange)} a:hover{text-decoration:underline}
+
+    /* Card (poster) */
+    .card{width:min(1220px,96vw);min-height:92vh;background:linear-gradient(180deg,var(--paper) 0%,var(--paper-deep) 100%);
+      color:var(--ink);border-radius:var(--radius);border:8px solid var(--ink);box-shadow:0 18px 0 var(--ink), 0 34px 40px rgba(0,0,0,.28);
+      padding:16px 16px 22px;display:flex;flex-direction:column}
+
+    header{position:relative;z-index:1;background:transparent;border-bottom:4px solid var(--ink);}
+    .wrap{max-width:var(--maxw);margin:0 auto;padding:.5rem 0;display:flex;align-items:center;gap:.75rem;justify-content:space-between}
+    .brandstack{display:flex;align-items:center;gap:12px}
+    .brandtitle{font-weight:900;letter-spacing:.06em;font-size:clamp(20px,4.2vw,40px);line-height:1;text-transform:uppercase}
+    .svg-logo{display:block;width:460px;height:auto;max-width:100%;transform:scaleX(-1);filter: invert(53%) sepia(66%) saturate(1533%) hue-rotate(360deg) brightness(101%) contrast(102%)}
+
+    main{max-width:var(--maxw);margin:0 auto;padding:1rem 0;flex:1;display:flex;flex-direction:column;gap:14px}
+    section{margin:0}
+    .section{background:transparent;border:4px solid var(--ink);border-radius:18px;overflow:visible}
+    .section h2{margin:0;padding:.7rem 1rem .3rem;font-weight:900;color:var(--ink)}
+    .section .content{padding:.5rem 1rem 1rem}
+    .grid{display:grid;grid-template-columns:1fr;gap:.75rem}
+    /* Force CSV tables to single column on all screens */
+    #tables{display:grid;grid-template-columns:1fr;gap:.75rem}
+    .media{background:rgba(0,0,0,.06);border:4px solid var(--ink);border-radius:12px;padding:.5rem;overflow:visible}
+    .media img{max-width:100%;height:auto;border-radius:8px;display:block}
+    .kicker{color:var(--muted);font-size:.9rem;margin:.25rem 0 .6rem}
+
+    details{background:transparent;border:4px solid var(--ink);border-radius:12px}
+    details>summary{cursor:pointer;padding:.6rem .8rem;font-weight:800}
+    pre{margin:0;padding:.8rem;overflow:auto;background:#FFD58C;border-top:4px solid var(--ink)}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;color:#111}
+
+    .table-wrap{position:relative;width:100%;max-width:100%;overflow-x:auto;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x;border-radius:12px;border:4px solid var(--ink);background:#FFD58C;scrollbar-color: var(--ink) #FFE0A6;scrollbar-width: thin;cursor:grab}
+    .table-wrap::-webkit-scrollbar{height:10px}
+    .table-wrap::-webkit-scrollbar-track{background:#FFE0A6}
+    .table-wrap::-webkit-scrollbar-thumb{background:var(--ink);border-radius:999px}
+    .table-wrap.is-grabbing{cursor:grabbing}
+    .scroll-hint{position:absolute;right:8px;top:8px;background:rgba(0,0,0,.15);color:#000;border:2px solid var(--ink);border-radius:999px;padding:2px 8px;font-weight:800;font-size:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0;min-width:1200px;background:#FFE0A6}
+    th,td{border-bottom:2px solid var(--ink);padding:.55rem .7rem;font-size:.95rem;vertical-align:top;color:#111;white-space:nowrap}
+    th{position:static;background:#FFC266;color:#111;border-bottom:3px solid var(--ink)}
+    tr:nth-child(even) td{background:#FFE8BF}
+
+    .btn{appearance:none;border:4px solid var(--ink);background:rgba(0,0,0,.06);color:#000;padding:.55rem .9rem;border-radius:999px;cursor:pointer;font-weight:800}
+
+    @media(min-width:760px){.grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:520px){.svg-logo{width:300px}}
+    @media print{body{background:#fff;color:#000}.card{border-color:#000;box-shadow:none}.section,.media{background:#fff;border:1px solid #000;box-shadow:none}}
+  </style>
+</head>
+<body>
+  <div class="card" role="region" aria-label="Volholla Orange Portal">
+  <header>
+    <div class="wrap">
+      <div class="brandstack">
+        <div class="brandtitle">VOLHOLLA — Asset Deck</div>
+      </div>
+      <button class="btn" onclick="window.print()">Export PDF</button>
+    </div>
+    <div class="wrap" style="padding-top:0; padding-bottom:0.75rem">
+      <!-- Mirrored header SVG (inline image mirrored and tinted to orange) -->
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <img src="./vh-to-cut-base.svg" alt="Volholla header mark" class="svg-logo" />
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section">
+      <h2>Overview</h2>
+      <div class="content">
+        <p class="kicker">This single file showcases exported charts, data tables, PDFs, and code from:</p>
+        <ul>
+          <li><code>exported-assets (8)/</code></li>
+          <li><code>exported-assets (9)/</code></li>
+          <li><code>exported-assets (10)/</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Images</h2>
+      <div class="content grid">
+        <div class="media"><div class="kicker">chart.png</div><img src="./exported-assets (8)/chart.png" alt="Chart"/></div>
+        <div class="media"><div class="kicker">payback_chart.png</div><img src="./exported-assets (9)/payback_chart.png" alt="Payback Chart"/></div>
+        <div class="media"><div class="kicker">scatter_plot.png</div><img src="./exported-assets (9)/scatter_plot.png" alt="Scatter Plot"/></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>PDF</h2>
+      <div class="content">
+        <p class="kicker">Some mobile browsers block inline PDF previews. Use the download if the preview fails.</p>
+        <p>
+          <a class="btn" href="./exported-assets (8)/glamping-structure-analysis-report.pdf" download>Download PDF</a>
+        </p>
+        <div class="media" style="aspect-ratio:4/3">
+          <iframe src="./exported-assets (8)/glamping-structure-analysis-report.pdf" title="PDF" style="width:100%;height:100%;border:0;border-radius:8px;" loading="lazy"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>CSV Data</h2>
+      <div class="content">
+        <div id="tables" class="grid"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>HTML Pages</h2>
+      <div class="content grid">
+        <details open>
+          <summary>/index.html</summary>
+          <div class="media" style="height:520px"><iframe src="./index.html" title="index.html" style="width:100%;height:100%;border:0;border-radius:8px"></iframe></div>
+        </details>
+        <details>
+          <summary>/analysis.html</summary>
+          <div class="media" style="height:520px"><iframe src="./analysis.html" title="analysis.html" style="width:100%;height:100%;border:0;border-radius:8px"></iframe></div>
+        </details>
+        <details>
+          <summary>/exported-assets (10)/index.html</summary>
+          <div class="media" style="height:520px"><iframe src="./exported-assets (10)/index.html" title="exported index" style="width:100%;height:100%;border:0;border-radius:8px"></iframe></div>
+        </details>
+        <details>
+          <summary>/volholla_single_file_b_b_website_index.html</summary>
+          <div class="media" style="height:520px"><iframe src="./volholla_single_file_b_b_website_index.html" title="volholla_single_file_b_b_website_index.html" style="width:100%;height:100%;border:0;border-radius:8px"></iframe></div>
+        </details>
+        <details>
+          <summary>/volholla_single_file_b_b_website_index (1).html</summary>
+          <div class="media" style="height:520px"><iframe src="./volholla_single_file_b_b_website_index (1).html" title="volholla_single_file_b_b_website_index (1).html" style="width:100%;height:100%;border:0;border-radius:8px"></iframe></div>
+        </details>
+      </div>
+    </section>
+  </main>
+  <div class="footer" style="margin-top:14px;padding-top:14px;border-top:4px solid var(--ink);display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <div class="slogan" style="font-weight:900">Every segment a sample. Every project a loop.</div>
+    <div class="legal" style="font-size:12px">© <span id="yr"></span> VOLHOLLA</div>
+  </div>
+  </div>
+
+  <script>
+    // CSV strings embedded
+    const CSV = {
+      dep: `Structure Type,Critical Dependencies,Risk Level,Key Mitigations\nYurt,"Platform, snow load cert, insulation, septic",Medium,"Engineered platform, proper insulation liner"\nGeodesic Dome,"Platform, glazing cert, snow load, HVAC",Medium-High,"Professional glazing, certified snow load design"\nSafari Tent,"Heavy frame, platform, weather protection",Medium,"Quality frame system, seasonal maintenance plan"\nQuonset Hut,"Slab foundation, insulation, moisture control",Medium,"Proper vapor barrier, interior framing"\nTiny House,"Foundation/wheels decision, zoning variance",High,Pre-approved tiny house community\nBarndominium,"Full foundation, code compliance, HVAC",High,"Full architectural plans, professional construction"\nFEMA Tent,"Weatherproofing upgrades, aesthetic improvements",High,Major upgrades for durability and aesthetics\n`,
+      structure: `Market,Structure Type,CAPEX ($),Annual OPEX ($),Gross Revenue ($),Net Revenue ($),Payback (years),IRR Approx (%),Quality Score,Total 2yr Cost ($),Price Index,Bang for Buck,BFB Rank\nMaryville,Yurt,48000,4380,25550,20403.5,2.352537554831279,42.50729166666667,7.3,56760,7.275048037331869,5.736760359816208,1\nMaryville,Barndominium,140000,9180,25550,15603.5,8.972345948024481,11.145357142857144,8.26,158360,1.0,4.347368421052631,6\nMaryville,Quonset Hut,68000,6540,25550,18243.5,3.727354948337764,26.828676470588235,6.82,81080,5.772989294537469,4.793698508556986,4\nMaryville,Geodesic Dome,59000,5100,25550,19683.5,2.9974343993700305,33.36186440677966,7.59,69200,6.5067252264617075,5.62502441207584,2\nMaryville,Tiny House,90000,6060,25550,18723.5,4.806793601623628,20.80388888888889,7.19,102120,4.4735108427120505,4.630795749871824,5\nMaryville,Safari Tent,25200,3300,25550,21483.5,1.1729932273605326,85.25198412698413,6.19,31800,8.816634641778753,5.535006504504062,3\nMaryville,FEMA Tent,8800,1920,25550,22863.5,0.38489295164782295,259.8125,4.29,12640,10.0,4.29,7\nTownsend,Yurt,48000,4380,33215,27838.55,1.7242277345623247,57.99697916666666,7.3,56760,7.275048037331869,5.736760359816208,1\nTownsend,Barndominium,140000,9180,33215,23038.55,6.07677132458423,16.456107142857142,8.26,158360,1.0,4.347368421052631,6\nTownsend,Quonset Hut,68000,6540,33215,25678.55,2.648124602051128,37.76257352941176,6.82,81080,5.772989294537469,4.793698508556986,4\nTownsend,Geodesic Dome,59000,5100,33215,27118.55,2.1756325467253963,45.96364406779661,7.59,69200,6.5067252264617075,5.62502441207584,2\nTownsend,Tiny House,90000,6060,33215,26158.55,3.4405576761708887,29.065055555555553,7.19,102120,4.4735108427120505,4.630795749871824,5\nTownsend,Safari Tent,25200,3300,33215,28918.55,0.8714129857824822,114.7561507936508,6.19,31800,8.816634641778753,5.535006504504062,3\nTownsend,FEMA Tent,8800,1920,33215,30298.55,0.2904429419889731,344.3017045454545,4.29,12640,10.0,4.29,7\nWalland,Yurt,48000,4380,30295,25006.15,1.919527796162144,52.09614583333334,7.3,56760,7.275048037331869,5.736760359816208,1\nWalland,Barndominium,140000,9180,30295,20206.15,6.928583624292603,14.432964285714286,8.26,158360,1.0,4.347368421052631,6\nWalland,Quonset Hut,68000,6540,30295,22846.15,2.9764314775137164,33.59727941176471,6.82,81080,5.772989294537469,4.793698508556986,4\nWalland,Geodesic Dome,59000,5100,30295,24286.15,2.429368178982671,41.16296610169492,7.59,69200,6.5067252264617075,5.62502441207584,2\nWalland,Tiny House,90000,6060,30295,23326.15,3.858330671799675,25.917944444444448,7.19,102120,4.4735108427120505,4.630795749871824,5\nWalland,Safari Tent,25200,3300,30295,26086.15,0.9660298664233702,103.51646825396826,6.19,31800,8.816634641778753,5.535006504504062,3\nWalland,FEMA Tent,8800,1920,30295,27466.15,0.320394376350526,312.11534090909095,4.29,12640,10.0,4.29,7\n`,
+      reg: `Jurisdiction,Building Permit Required,Zoning Approval,Septic/Sewer,STR License,Occupancy Tax,Min Insurance\nBlount County,Yes,Required,Site dependent,$20 home occupation,County rate,$500K liability\nMaryville,Yes,Required,Municipal available,Business license req,City + County,$500K liability\nTownsend,Yes,Required,Limited municipal,Business license req,City + County,$500K liability\nWalland,Yes,Required,Septic required,Business license req,County rate,$500K liability\n`,
+      comp: `Type,Base_Kit_Cost,Size_SqFt,Platform_Foundation_Cost,Utilities_HVAC_Cost,Interior_Finish_Cost,Labor_Install_Cost,Total_CAPEX,Cost_Per_SqFt,Total_OPEX,Annual_Revenue,Annual_Net_Income,Payback_Years,ROI_Percent,Quality_Score,Price_Index,Bang_for_Buck\nGeodesic Dome (Odin's Eye Dome),5840,415,1600,2500,6000,1500,17440,42.024096385542165,23140,48654.50000000001,25514.500000000007,0.6835328930608083,146.3,7.48,8.66,6.6\nYurt (Shield Dome),8000,314,1600,3000,8000,2000,22600,71.97452229299363,16300,48654.50000000001,32354.500000000007,0.6985117989769583,143.2,7.22,8.26,6.15\nSafari Tent (Raiders' Pavilion),3800,450,800,2000,4000,1500,12100,26.88888888888889,16010,48654.50000000001,32644.500000000007,0.37065968233546226,269.8,6.5,9.07,5.95\nFEMA/Military Tent (Traveler's Shelter),1500,200,400,1000,2000,500,5400,27.0,19540,48654.50000000001,29114.500000000007,0.1854745916982946,539.2,5.05,9.59,4.85\nTiny House (Viking Cabin),30000,400,8000,8000,25000,10000,81000,202.5,26425,48654.50000000001,22229.500000000007,3.643806653321036,27.4,7.18,3.78,4.43\nQuonset Hut (Iron Longhouse),32640,5000,12000,8000,20000,8000,80640,16.128,24310,48654.50000000001,24344.500000000007,3.312452504672512,30.2,6.76,3.81,4.17\nBarndominium (Mead Hall),55200,2300,8000,15000,40000,12000,130200,56.60869565217392,32425,48654.50000000001,16229.500000000007,8.0224282941557,12.5,7.97,0.0,3.98\n`,
+      market: `Location,Avg_ADR,Occupancy_Rate,Annual_Revenue,Market_Type,RevPAR\nMaryville TN,220,55,44000,Gateway to GSMNP,121.0\nTownsend TN,310,43,48700,Peaceful Side Smokies,133.3\nWalland TN (Blackberry Farm area),400,60,87600,Luxury Halo,240.0\nSevierville TN,375,58,79500,Tourist Hub,217.5\nGatlinburg TN,335,55,67200,Mountain Town,184.25\nPigeon Forge TN,326,53,63100,Attraction Center,172.78\n`,
+      opex: `Type,Annual_Utilities,Cleaning_Laundry,Maintenance_Repairs,Insurance,Platform_Fees_15pct,Property_Tax,Total_OPEX\nYurt (Shield Dome),1800,3600,1500,2000,6600,800,16300\nBarndominium (Mead Hall),4000,6000,4000,4500,11925,2000,32425\nQuonset Hut (Iron Longhouse),3500,5500,3000,3500,7310,1500,24310\nGeodesic Dome (Odin's Eye Dome),2000,4000,1200,2200,13140,600,23140\nTiny House (Viking Cabin),3000,4500,2500,3000,11925,1500,26425\nSafari Tent (Raiders' Pavilion),1500,3000,2000,1800,7310,400,16010\nFEMA/Military Tent (Traveler's Shelter),1000,2500,1500,1200,13140,200,19540\n`
+    };
+
+    // Robust CSV parser: handles quoted fields, embedded commas, and newlines
+    function parseCSV(text){
+      const rows=[]; let row=[]; let field=''; let inQuotes=false; let i=0;
+      while(i<text.length){
+        const ch=text[i];
+        if(inQuotes){
+          if(ch==='"'){
+            if(text[i+1]==='"'){ field+='"'; i+=2; continue; } // escaped quote
+            inQuotes=false; i++; continue;
+          } else { field+=ch; i++; continue; }
+        } else {
+          if(ch==='"'){ inQuotes=true; i++; continue; }
+          if(ch===','){ row.push(field); field=''; i++; continue; }
+          if(ch==='\n' || ch==='\r'){
+            // finalize row if we have content
+            if(ch==='\r' && text[i+1]==='\n') i++; // handle CRLF
+            row.push(field); field='';
+            if(row.some(cell=>cell!=='')) rows.push(row);
+            row=[]; i++; continue;
+          }
+          field+=ch; i++; continue;
+        }
+      }
+      // push last field/row
+      row.push(field);
+      if(row.some(cell=>cell!=='')) rows.push(row);
+      return rows;
+    }
+
+    function csvToTable(id, title, csv){
+      const matrix = parseCSV(csv.trim());
+      if(matrix.length===0) return;
+      const headers = matrix[0];
+      const data = matrix.slice(1);
+      const card = document.createElement('div');
+      card.className = 'media';
+      card.innerHTML = `<div class=\"kicker\">${title}</div>`;
+      const wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      wrap.setAttribute('tabindex','0');
+      const hint = document.createElement('div');
+      hint.className = 'scroll-hint'; hint.textContent = 'Scroll →';
+      const expandBtn = document.createElement('button');
+      expandBtn.className = 'btn'; expandBtn.type = 'button'; expandBtn.style.float = 'right'; expandBtn.style.margin = '6px 0 6px 6px';
+      expandBtn.textContent = 'Expand';
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const trh = document.createElement('tr');
+      headers.forEach(h=>{ const th=document.createElement('th'); th.textContent=h; trh.appendChild(th); });
+      thead.appendChild(trh);
+      const tbody = document.createElement('tbody');
+      data.forEach(cells=>{
+        const tr=document.createElement('tr');
+        cells.forEach(c=>{ const td=document.createElement('td'); td.textContent=c; tr.appendChild(td); });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(thead); table.appendChild(tbody);
+      wrap.appendChild(table);
+      wrap.appendChild(hint);
+      card.appendChild(expandBtn);
+      card.appendChild(wrap);
+      document.getElementById(id).appendChild(card);
+
+      // Fullscreen overlay for expanded view
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:none;padding:18px;';
+      const inner = document.createElement('div');
+      inner.className = 'table-wrap';
+      inner.style.cssText += 'height:calc(100vh - 36px);background:#FFD58C;';
+      const close = document.createElement('button'); close.className='btn'; close.textContent='Close'; close.style.marginBottom='8px';
+      const cloneTable = table.cloneNode(true);
+      inner.appendChild(cloneTable);
+      overlay.appendChild(close);
+      overlay.appendChild(inner);
+      document.body.appendChild(overlay);
+      expandBtn.addEventListener('click',()=>{overlay.style.display='block';});
+      close.addEventListener('click',()=>{overlay.style.display='none';});
+    }
+
+    // Drag-to-scroll for CSV table wraps
+    function enableDragScroll(el){
+      let isDown=false; let startX=0; let scrollLeft=0;
+      el.addEventListener('mousedown',(e)=>{isDown=true; el.classList.add('is-grabbing'); startX=e.pageX - el.offsetLeft; scrollLeft=el.scrollLeft;});
+      el.addEventListener('mouseleave',()=>{isDown=false; el.classList.remove('is-grabbing');});
+      el.addEventListener('mouseup',()=>{isDown=false; el.classList.remove('is-grabbing');});
+      el.addEventListener('mousemove',(e)=>{if(!isDown) return; e.preventDefault(); const x=e.pageX - el.offsetLeft; const walk=(x-startX)*1; el.scrollLeft=scrollLeft - walk;});
+      // touch: passive false to allow preventDefault if needed
+      el.addEventListener('touchstart',(e)=>{isDown=true; startX=e.touches[0].pageX; scrollLeft=el.scrollLeft;},{passive:true});
+      el.addEventListener('touchend',()=>{isDown=false;});
+      el.addEventListener('touchmove',(e)=>{if(!isDown) return; const x=e.touches[0].pageX; const walk=(x-startX)*1; el.scrollLeft=scrollLeft - walk;},{passive:true});
+    }
+
+    // Render CSVs
+    csvToTable('tables','Dependencies & Risk', CSV.dep);
+    csvToTable('tables','Structure Analysis (All Markets)', CSV.structure);
+    csvToTable('tables','Regulatory Matrix', CSV.reg);
+    csvToTable('tables','Comprehensive Analysis', CSV.comp);
+    csvToTable('tables','Market Data', CSV.market);
+    csvToTable('tables','OPEX Data', CSV.opex);
+
+    // Activate drag scroll on all table wraps
+    requestAnimationFrame(()=>{
+      document.querySelectorAll('.table-wrap').forEach(enableDragScroll);
+      const yrEl=document.getElementById('yr'); if(yrEl) yrEl.textContent=new Date().getFullYear();
+    });
+
+    // Code sources are embedded above via iframes for simplicity and performance.
+  </script>
+</body>
+</html>

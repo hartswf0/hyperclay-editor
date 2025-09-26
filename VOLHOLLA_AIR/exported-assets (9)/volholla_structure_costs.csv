@@ -1,0 +1,8 @@
+Type,Base_Kit_Cost,Size_SqFt,Platform_Foundation_Cost,Utilities_HVAC_Cost,Interior_Finish_Cost,Labor_Install_Cost,Total_CAPEX,Cost_Per_SqFt
+Yurt (Shield Dome),8000,314,1600,3000,8000,2000,22600,71.97452229299363
+Barndominium (Mead Hall),55200,2300,8000,15000,40000,12000,130200,56.608695652173914
+Quonset Hut (Iron Longhouse),32640,5000,12000,8000,20000,8000,80640,16.128
+Geodesic Dome (Odin's Eye Dome),5840,415,1600,2500,6000,1500,17440,42.024096385542165
+Tiny House (Viking Cabin),30000,400,8000,8000,25000,10000,81000,202.5
+Safari Tent (Raiders' Pavilion),3800,450,800,2000,4000,1500,12100,26.88888888888889
+FEMA/Military Tent (Traveler's Shelter),1500,200,400,1000,2000,500,5400,27.0

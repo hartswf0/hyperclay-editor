@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VOLHOLLA — Modular Portfolio System</title>
+<style>
+  :root{
+    /* Volholla palette */
+    --bg:#FFF3D0;           /* parchment */
+    --ink:#0D0D0D;          /* charcoal */
+    --ember:#F28C18;        /* warm amber */
+    --iron:#B44C00;         /* forged orange-brown */
+    --accent:#FFBE3B;       /* highlight */
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+    background: radial-gradient(1200px 800px at 50% -10%, #fff9ea 0%, var(--bg) 60%, #f6e9c0 100%);
+    color:var(--ink);
+    overflow-x:hidden;
+  }
+  /* Header / brand */
+  .mast{
+    position:sticky;top:0;z-index:50;
+    background:linear-gradient(180deg,#fff7e2,rgba(255,247,226,0.85));
+    border-bottom:2px solid var(--ink);
+    backdrop-filter:saturate(1.2) blur(2px);
+  }
+  .mast-inner{display:flex;align-items:center;gap:.75rem;max-width:1100px;margin:0 auto;padding:.8rem 1rem}
+  .brandmark{height:46px;aspect-ratio:456/102;object-fit:contain;image-rendering:auto;border:1px solid var(--ink);border-radius:8px;background:linear-gradient(180deg,#ff9c1f22,#0000)}
+  .brand-fallback{display:none;font-weight:900;letter-spacing:.06em;text-transform:uppercase;font-size:1.25rem}
+  .tag{margin-left:auto;font-size:.85rem;text-transform:uppercase;letter-spacing:.09em;color:#6b4d1b}
+  .tag strong{color:var(--iron)}
+
+  /* Hero */
+  .hero{max-width:1100px;margin:1.2rem auto 0;padding:0 1rem 1rem}
+  .hero-card{
+    position:relative;border:2px solid var(--ink);border-radius:18px;overflow:hidden;
+    background:
+      linear-gradient(135deg,#fffaf0 0%,#ffe8b9 35%,#ffdca6 65%,#fff3d0 100%);
+    box-shadow:6px 6px 0 #00000012;
+  }
+  .hero-inner{display:grid;grid-template-columns:1fr;gap:1rem;padding:1rem}
+  .crest{display:flex;gap:12px;align-items:center}
+  .crest svg{width:42px;height:42px}
+  .hero h1{font-size:clamp(1.25rem,2.4vw,1.6rem);text-transform:uppercase;letter-spacing:.07em}
+  .hero p{line-height:1.5;font-size:.98rem;color:#382a10}
+  .hero-cta{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.25rem}
+  .btn{border:2px solid var(--ink);background:var(--ember);padding:.55rem .9rem;border-radius:12px;cursor:pointer;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  .btn.secondary{background:#fff5dc}
+  .btn:active{transform:translateY(1px)}
+
+  /* Grid of shields (formerly oranges) */
+  .grove{max-width:1100px;margin:1rem auto 3.5rem;padding:0 1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1.35rem}
+  .shield{position:relative;isolation:isolate;aspect-ratio:1/1;border:2px solid var(--ink);border-radius:22px;background:radial-gradient(circle at 50% 40%, #ffd08a 0%, #f9b04b 55%, #e68b1a 100%);box-shadow:6px 6px 0 #00000010}
+  .shield:hover{transform:translateY(-3px);transition:transform .2s}
+  .shield .shadow{position:absolute;inset:auto 10% -12px 10%;height:18px;background:#00000015;border-radius:50%;z-index:-1}
+  .shield svg{position:absolute;inset:0;width:100%;height:100%}
+  .shield .label{position:absolute;left:50%;bottom:-34px;transform:translateX(-50%);width:100%;text-align:center;font-size:.86rem;text-transform:uppercase;letter-spacing:.08em}
+
+  /* Slices -> runic sectors */
+  .whole{opacity:1;transition:opacity .25s}
+  .sliced{opacity:0;transition:opacity .25s}
+  .shield:hover .whole{opacity:0}
+  .shield:hover .sliced{opacity:1}
+
+  /* Segment dots */
+  .nodes{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+  .node{position:absolute;pointer-events:auto;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;background:var(--iron);color:#fff;border:2px solid var(--ink);box-shadow:2px 2px 0 #00000025}
+  .node:hover{transform:scale(1.075)}
+  .node.hidden{display:none}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(255,243,208,.94);opacity:0;pointer-events:none;display:grid;place-items:center;transition:.28s;z-index:100}
+  .modal.active{opacity:1;pointer-events:auto}
+  .paper{width:min(92vw,680px);max-height:86vh;overflow:auto;border:2px solid var(--ink);border-radius:18px;background:linear-gradient(180deg,#fffdf6,#fff6da);box-shadow:10px 10px 0 #00000018;transform:scale(.96);transition:.28s;padding:1rem 1rem 1.25rem}
+  .modal.active .paper{transform:scale(1)}
+  .x{position:sticky;top:.5rem;float:right;border:2px solid var(--ink);background:var(--ember);width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:1.2rem;cursor:pointer}
+  h3{font-size:1.15rem;margin:.5rem 0 .6rem;text-transform:uppercase}
+  .paper p{line-height:1.6;margin:.55rem 0}
+  .paper img{width:100%;border:2px solid var(--ink);border-radius:12px;margin:.5rem 0}
+  pre{white-space:pre-wrap;border:2px solid var(--ink);border-radius:12px;background:#fff;padding:.75rem;font-size:.86rem}
+  .dots{display:flex;gap:.45rem;justify-content:center;margin-top:.6rem}
+  .dot{width:12px;height:12px;border-radius:50%;border:1px solid var(--ink);background:var(--accent);opacity:.7}
+  .dot.active{opacity:1;border-width:2px}
+
+  /* Footer */
+  footer{border-top:2px solid var(--ink);padding:1rem;text-align:center;color:#6b4d1b;background:#fff9eb}
+
+  /* Responsive */
+  @media (max-width:768px){
+    .brandmark{height:40px}
+    .shield .label{font-size:.78rem}
+  }
+</style>
+</head>
+<body>
+  <header class="mast" aria-label="Volholla header">
+    <div class="mast-inner">
+      <!-- Volholla mark: image first, graceful fallback to text if not available -->
+      <img class="brandmark" id="volhollaLogo" alt="VOLHOLLA" src="/mnt/data/860fca0b-ebc9-44b3-8f3d-bbbd4a489ed8.png" onerror="this.style.display='none';document.querySelector('.brand-fallback').style.display='block'" />
+      <div class="brand-fallback">VOLHOLLA</div>
+      <div class="tag"><strong>Smokies</strong> • Runic Stays • Modular Work</div>
+    </div>
+  </header>
+
+  <section class="hero" aria-label="Intro">
+    <div class="hero-card">
+      <div class="hero-inner">
+        <div class="crest" aria-hidden="true">
+          <svg viewBox="0 0 64 64" role="img" aria-label="crest">
+            <circle cx="32" cy="32" r="30" fill="url(#g)" stroke="var(--ink)" stroke-width="2" />
+            <path d="M16 40 L32 18 L48 40 Z" fill="none" stroke="var(--ink)" stroke-width="3" />
+            <defs>
+              <radialGradient id="g" cx="50%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="#ffe4a3"/>
+                <stop offset="60%" stop-color="#f7b24c"/>
+                <stop offset="100%" stop-color="#e88918"/>
+              </radialGradient>
+            </defs>
+          </svg>
+          <div>
+            <h1>VOLHOLLA — A modular portfolio of stays, systems, and studies.</h1>
+            <p>Viking‑flavored brand craft for Townsend • Walland • Maryville. Same interactive system — reborn as shields and runes. Tap a shield to open segments; use the dots to navigate.</p>
+            <div class="hero-cta">
+              <button class="btn" onclick="scrollToGrid()">Explore Shields</button>
+              <button class="btn secondary" onclick="document.getElementById('about').showModal?.();openSegment(1,0)">Quick Tour</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main id="grid" class="grove" aria-label="Volholla work grid">
+    <!-- Shields inserted by JS -->
+  </main>
+
+  <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="paper">
+      <button class="x" aria-label="Close" onclick="closeModal()">×</button>
+      <h3 id="modal-title"></h3>
+      <div id="modal-body"></div>
+      <div class="dots" id="navDots"></div>
+    </div>
+  </div>
+
+  <footer>© VOLHOLLA — Smoky Mountain Craft • Built as a single‑file (HTML/CSS/JS) system.</footer>
+
+<script>
+  /* --- Data (same structure, new skin) --- */
+  const projects = [
+    { id:1, title:"CODE PEEL → Generative Art", segments:[
+      {id:"01", type:"text", content:"Emergent cellular patterns forged into ornamental motifs. Simple rules, complex tapestries."},
+      {id:"02", type:"image", content:svgImg(`<rect width='200' height='200' fill='#FFE15D'/><rect x='50' y='50' width='100' height='100' fill='none' stroke='black' stroke-width='2'/><path d='M50,50 L150,150 M150,50 L50,150' stroke='#B44C00' stroke-width='3'/>`)},
+      {id:"03", type:"code", content:`function updateCell(grid,x,y){\n  const n=countLiveNeighbors(grid,x,y);\n  const s=grid[y][x];\n  if(s===1&&(n<2||n>3))return 0;\n  if(s===0&&n===3)return 1;\n  return s;\n}`}
+    ]},
+    { id:2, title:"SYNTH GROOVE → Web Audio UI", segments:[
+      {id:"01", type:"text", content:"Patchable oscillators with a tactile, low‑latency feel for mobile."},
+      {id:"02", type:"image", content:svgImg(`<rect width='200' height='200' fill='#FFE15D'/><circle cx='60' cy='60' r='25' fill='#F28C18'/><circle cx='140' cy='60' r='25' fill='#F28C18'/><rect x='40' y='120' width='120' height='40' fill='#FFBE3B' stroke='black' stroke-width='2'/>`)},
+      {id:"03", type:"code", content:`const ctx=new (window.AudioContext||window.webkitAudioContext)();\nconst osc=ctx.createOscillator();\nconst g=ctx.createGain();\nosc.type='sawtooth';\nosc.frequency.setValueAtTime(440,ctx.currentTime);\nosc.connect(g);g.connect(ctx.destination);g.gain.setValueAtTime(.5,ctx.currentTime);\nosc.start();`},
+      {id:"04", type:"text", content:"Optimized for cross‑device WebAudio timing and GC pauses."}
+    ]},
+    { id:3, title:"POSTER SYSTEM → Grid & Color", segments:[
+      {id:"01", type:"text", content:"Deterministic grids with playful randomness; export‑ready vectors."},
+      {id:"02", type:"image", content:svgImg(`<rect width='200' height='200' fill='#FFE15D'/><line x1='20' y1='100' x2='180' y2='100' stroke='black'/><line x1='100' y1='20' x2='100' y2='180' stroke='black'/><rect x='40' y='40' width='60' height='60' fill='#F28C18'/><rect x='100' y='100' width='60' height='60' fill='#FFBE3B'/>`)},
+      {id:"03", type:"code", content:`const genGrid=(c,r)=>{const g=[];for(let y=0;y<r;y++){for(let x=0;x<c;x++){g.push({x,y,color:randColor()})}}return g};`},
+      {id:"04", type:"text", content:"SVG export for print‑grade output."}
+    ]},
+    { id:4, title:"DATA JUICE → Animated Viz", segments:[
+      {id:"01", type:"text", content:"From sheets to story: particles, motion, meaning."},
+      {id:"02", type:"image", content:svgImg(`<rect width='200' height='200' fill='#FFE15D'/><path d='M30,170 Q100,30 170,170' stroke='#B44C00' stroke-width='4' fill='none'/>`)},
+      {id:"03", type:"text", content:"Helps non‑technical folks read the room in the data."}
+    ]},
+    { id:5, title:"TYPE LOOP → Kinetic Type", segments:[
+      {id:"01", type:"text", content:"Letters as actors with rhythm and mood."},
+      {id:"02", type:"image", content:svgImg(`<rect width='200' height='200' fill='#FFE15D'/><text x='100' y='110' text-anchor='middle' font-size='72' font-family='monospace' fill='#F28C18'>V</text>`)},
+      {id:"03", type:"code", content:`@keyframes letterDance{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-10px) rotate(5deg)}75%{transform:translateY(10px) rotate(-5deg)}}.animated-letter{display:inline-block;animation:letterDance 1.5s ease-in-out infinite alternate}`}
+    ]},
+  ];
+
+  /* --- Build shields --- */
+  const gridEl=document.getElementById('grid');
+  projects.forEach(p=>gridEl.appendChild(makeShield(p)));
+  arrangeNodes();
+
+  function makeShield(project){
+    const el=document.createElement('div');
+    el.className='shield';
+    el.dataset.id=project.id;
+
+    // Visual sectors (like runic slices)
+    const sectors = (()=>{
+      let lines='';
+      const rOuter=80,rInner=22, n=6;
+      lines += `<circle cx="100" cy="100" r="${rInner}" fill="var(--accent)" stroke="var(--ink)" stroke-width="2"/>`;
+      for(let i=0;i<n;i++){
+        const a=i*(2*Math.PI/n);
+        const x1=100+rInner*Math.cos(a), y1=100+rInner*Math.sin(a);
+        const x2=100+rOuter*Math.cos(a), y2=100+rOuter*Math.sin(a);
+        lines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--ink)" stroke-width="2"/>`;
+      }
+      return lines;
+    })();
+
+    // Dots (up to 6 fixed positions)
+    let dots="";
+    for(let i=0;i<6;i++){
+      const seg=project.segments[i];
+      const hidden=!seg?" hidden":"";
+      dots += `<button class="node${hidden}" data-idx="${i}" aria-label="Open segment ${seg?seg.id:''}">${seg?seg.id:''}</button>`;
+    }
+
+    el.innerHTML=`
+      <div class="shadow"></div>
+      <svg viewBox="0 0 200 200">
+        <g class="whole">
+          <circle cx="100" cy="100" r="80" fill="url(#volGrad)" stroke="var(--ink)" stroke-width="2"/>
+          <defs>
+            <radialGradient id="volGrad" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#ffe9bf"/>
+              <stop offset="60%" stop-color="#f7b24c"/>
+              <stop offset="100%" stop-color="#e88918"/>
+            </radialGradient>
+          </defs>
+        </g>
+        <g class="sliced">${sectors}</g>
+      </svg>
+      <div class="nodes">${dots}</div>
+      <div class="label">PROJECT ${String(project.id).padStart(2,'0')} — ${project.title}</div>
+    `;
+
+    el.addEventListener('click', (e)=>{
+      const b=e.target.closest('.node');
+      if(!b) return; // only node opens modal
+      const idx=Number(b.dataset.idx);
+      openSegment(project.id, idx);
+    });
+    return el;
+  }
+
+  function arrangeNodes(){
+    document.querySelectorAll('.shield').forEach(shield=>{
+      const nodes=shield.querySelectorAll('.node');
+      const n=6, radius=shield.clientWidth*0.6/2; // ~60% inward
+      nodes.forEach((node,i)=>{
+        const step=(2*Math.PI)/n; const a=i*step + step/2 - Math.PI/2;
+        const x=Math.cos(a)*radius, y=Math.sin(a)*radius;
+        node.style.left=`calc(50% + ${x}px)`; node.style.top=`calc(50% + ${y}px)`; node.style.transform='translate(-50%,-50%)';
+      });
+    });
+  }
+  window.addEventListener('resize', arrangeNodes);
+
+  /* --- Modal logic --- */
+  let current=null, segIdx=0;
+  function openSegment(pid, idx){
+    current = projects.find(p=>p.id===pid);
+    if(!current || !current.segments[idx]) return;
+    segIdx=idx; renderModal();
+    document.getElementById('modal').classList.add('active');
+    clickTone();
+  }
+  function renderModal(){
+    const seg=current.segments[segIdx];
+    document.getElementById('modal-title').textContent=`PROJECT ${String(current.id).padStart(2,'0')} — ${current.title}`;
+    const body=document.getElementById('modal-body');
+    let html='';
+    if(seg.type==='text') html = `<p>${seg.content}</p>`;
+    if(seg.type==='image') html = `<img alt="Segment ${seg.id}" src="${seg.content}"/>`;
+    if(seg.type==='code') html = `<pre><code>${seg.content}</code></pre>`;
+    body.innerHTML = `<h4>SEGMENT ${seg.id}</h4>`+html;
+
+    const dots=document.getElementById('navDots'); dots.innerHTML='';
+    current.segments.forEach((s,i)=>{
+      const d=document.createElement('span'); d.className='dot'+(i===segIdx?' active':''); d.title=`Go to ${s.id}`; d.onclick=()=>{segIdx=i; renderModal(); clickTone();}; dots.appendChild(d);
+    });
+  }
+  function closeModal(){ document.getElementById('modal').classList.remove('active'); current=null; segIdx=0; }
+  document.getElementById('modal').addEventListener('click',e=>{ if(e.target.id==='modal') closeModal(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+
+  /* --- Small helpers --- */
+  function scrollToGrid(){ document.getElementById('grid').scrollIntoView({behavior:'smooth'}); }
+  function clickTone(){
+    const a=new (window.AudioContext||window.webkitAudioContext)();
+    const o=a.createOscillator(), g=a.createGain();
+    o.connect(g); g.connect(a.destination); o.type='sine'; o.frequency.value=820; g.gain.value=.08; g.gain.exponentialRampToValueAtTime(.01,a.currentTime+.22); o.start(); o.stop(a.currentTime+.22);
+  }
+  function svgImg(inner){
+    const s = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'>${inner}</svg>`;
+    return 'data:image/svg+xml,'+encodeURIComponent(s);
+  }
+</script>
+</body>
+</html>

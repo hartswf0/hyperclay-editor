@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOLHOLLA — The Hall</title>
+  <style>
+    :root {
+      --bg: #121212;         /* Night */
+      --fire: #ff6a00;       /* Fire */
+      --ember: #ffb157;      /* Warm accent */
+      --steel: #c0c0c0;      /* Steel */
+      --line: #000;          /* Border shadow base */
+      --ink: #f4f1ea;        /* Pale text */
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background:
+        radial-gradient(1200px 800px at 50% -20%, rgba(255,106,0,0.25), transparent 60%),
+        linear-gradient(180deg, #1b1b1b 0%, #0e0e0e 100%);
+      color: var(--ink);
+      overflow-x: hidden;
+      cursor: crosshair;
+      letter-spacing: 0.2px;
+    }
+
+    .intro {
+      position: fixed; inset: 0; display: grid; place-items: center; z-index: 1000;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(3px);
+      transition: opacity .5s ease, transform .5s ease;
+    }
+    .intro.hidden { opacity: 0; pointer-events: none; transform: scale(.98); }
+
+    .intro-card {
+      background: #171717;
+      border: 2px solid rgba(255,106,0,.8);
+      border-radius: 18px;
+      padding: 1.5rem;
+      width: min(92vw, 420px);
+      box-shadow: 0 10px 0 rgba(255,106,0,0.15);
+      text-align: center;
+    }
+    .intro h1 { font-size: 1.1rem; letter-spacing: 0.12em; margin-bottom: .5rem; }
+    .intro .crest { display:block; margin: .5rem auto 1rem; width: 260px; height: 60px; background:
+      url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 456 102\"><rect width=\"456\" height=\"102\" rx=\"6\" fill=\"%23ff6a00\"/><text x=\"50%\" y=\"58%\" dominant-baseline=\"middle\" text-anchor=\"middle\" font-family=\"Georgia,serif\" font-weight=\"700\" font-size=\"52\" fill=\"%23121212\">VOLHOLLA</text></svg>') center/contain no-repeat; }
+    .intro p { font-size: .92rem; opacity: .9; line-height: 1.45; margin-bottom: 1rem; }
+    .intro button {
+      background: var(--fire);
+      border: 2px solid #000;
+      color: #140a00;
+      padding: .6rem 1.2rem;
+      border-radius: 999px;
+      font-weight: 700; letter-spacing:.06em;
+      cursor: pointer; transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .intro button:hover { transform: translateY(-1px); box-shadow: 4px 4px 0 #000; }
+
+    .header { position: sticky; top: 0; z-index: 100; background: #121212e6; backdrop-filter: blur(6px);
+      border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .bar { max-width: 1200px; margin: 0 auto; padding: .9rem 1rem; display:flex; align-items:center; justify-content:space-between; }
+    .brand { display:flex; align-items:center; gap:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.12em; font-size:.8rem; }
+    .brand .dot { width:10px; height:10px; border-radius:50%; background:var(--fire); box-shadow:0 0 12px var(--fire); }
+    .nav { display:flex; gap: .9rem; }
+    .nav a { color: var(--ink); text-decoration: none; font-size:.8rem; opacity:.85; }
+    .nav a:hover { opacity:1 }
+
+    .grove { /* grid of relics */
+      display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem; padding: 2rem 1rem 4rem; max-width: 1200px; margin: 0 auto;
+    }
+
+    .relic { position: relative; width: 200px; height: 220px; margin: 0 auto; }
+    .shadow { position:absolute; bottom:-10px; left:50%; transform:translateX(-50%);
+      width: 150px; height: 20px; background: rgba(0,0,0,.35); border-radius:50%; filter: blur(4px);
+      transition: transform .3s ease; }
+    .relic:hover .shadow { transform: translateX(-50%) scale(1.08); }
+
+    .sigil-svg { position:absolute; inset:0; width:100%; height:100%; }
+
+    /* default shield */
+    .shield-group { opacity: 1; transition: opacity .3s ease; }
+    .relic:hover .shield-group { opacity: 0; }
+
+    .shield-body { fill: #1a1a1a; stroke: var(--fire); stroke-width: 3; filter: drop-shadow(0 6px 0 rgba(0,0,0,.4)); }
+
+    /* rune reveal */
+    .rune-group { opacity: 0; transition: opacity .3s ease; }
+    .relic:hover .rune-group { opacity: 1; }
+    .rune-disc { fill: #1a1a1a; stroke: var(--ember); stroke-width: 3; }
+    .rune-line { stroke: var(--ember); stroke-width: 2; stroke-linecap: round; }
+
+    /* interactive runes (dots) */
+    .runes { position:absolute; inset:0; display:block; opacity:0; pointer-events:none; transition:opacity .25s ease; }
+    .relic:hover .runes { opacity:1; pointer-events:auto; }
+    .rune-dot { position:absolute; width:56px; height:56px; border-radius:50%;
+      background: var(--fire); border: 2px solid #000; display:flex; align-items:center; justify-content:center;
+      font-size:.7rem; color:#140a00; font-weight:800; box-shadow: 2px 2px 0 #000; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
+    .rune-dot.hidden { display:none; }
+    .rune-dot:hover { transform: scale(1.07); box-shadow: 4px 4px 0 #000; background: var(--ember); }
+
+    .label { position:absolute; bottom:-38px; left:50%; transform:translateX(-50%);
+      width:100%; text-align:center; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; color:#d9d4cb; opacity:.95; }
+
+    .modal { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; background: rgba(10,10,10,.84); opacity:0; pointer-events:none; transition: opacity .4s ease; z-index:1000; }
+    .modal.active { opacity: 1; pointer-events:auto; }
+    .modal-content { width:min(92vw, 540px); max-height:80vh; overflow:auto; background:#141414; border:2px solid var(--ember); border-radius:18px; padding:1.2rem; position:relative; transform: scale(.98); transition: transform .3s ease; display:flex; flex-direction:column; }
+    .modal.active .modal-content { transform: scale(1); }
+
+    .close-btn { position:absolute; top:.8rem; right:.8rem; width:40px; height:40px; border-radius:50%; background:var(--fire); border:2px solid #000; color:#140a00; font-weight:900; display:grid; place-items:center; cursor:pointer; }
+    .close-btn:hover { transform: rotate(90deg); }
+    .modal h3 { font-size:1.1rem; letter-spacing:.1em; text-transform:uppercase; margin:.2rem 2.2rem 0 .2rem; }
+    .modal h4 { margin-top:.6rem; font-size:.9rem; letter-spacing:.1em; opacity:.85; text-transform:uppercase; }
+    .modal p { margin:.6rem 0 1rem; line-height:1.55; opacity:.92; }
+    .modal pre { background:#0f0f0f; color:#e9e4dc; border:1px solid #272727; border-radius:10px; padding:1rem; font-size:.78rem; overflow-x:auto; }
+    .modal img { width:100%; border-radius:10px; border:1px solid #272727; margin:.8rem 0; }
+
+    /* Data tables (for CSV segments) */
+    .table-wrap{position:relative;width:100%;max-width:100%;overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x;border:1px solid #2a2a2a;border-radius:10px;background:#151515;margin:.6rem 0}
+    .table-wrap::-webkit-scrollbar{height:8px}
+    .table-wrap::-webkit-scrollbar-thumb{background:#333;border-radius:999px}
+    table.data{width:100%;border-collapse:separate;border-spacing:0;min-width:960px;background:#121212;color:#e9e4dc}
+    table.data th, table.data td{border-bottom:1px solid #2a2a2a;padding:.45rem .6rem;white-space:nowrap;font-size:.85rem;vertical-align:top}
+    table.data th{position:sticky;top:0;background:#181818;color:#ffb157;border-bottom:2px solid #333;z-index:1}
+
+    .dots { display:flex; gap:8px; justify-content:center; padding-top:1rem; border-top:1px dashed rgba(255,255,255,.08); }
+    .dot { width:12px; height:12px; border-radius:50%; background: #2a2a2a; border:1px solid #000; cursor:pointer; }
+    .dot.active { background: var(--fire); box-shadow: 0 0 8px var(--fire); }
+
+    @media (max-width: 768px) {
+      .grove { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; padding-bottom: 5rem; }
+      .relic { width: 160px; height: 180px; }
+      .rune-dot { width:44px; height:44px; font-size:.62rem; }
+      .label { bottom: -30px; font-size:.7rem; }
+    }
+
+    /* === Assemblies Skin (vols-03) applied here === */
+    .bar{position:sticky;top:0;z-index:10; backdrop-filter: blur(2px); background: linear-gradient(180deg, #00000010, #00000000); border-bottom:2px solid #00000040}
+    .bar-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 14px}
+    .crest{display:flex;align-items:center;gap:10px}
+    .crest .shield{width:40px;height:40px;position:relative;transform:rotate(45deg)}
+    .crest .shield:before{content:"";position:absolute;inset:0;border:2px solid #000;background:linear-gradient(135deg,#ffb157,#ff6a00);box-shadow:4px 4px 0 #00000025}
+    .crest .shield:after{content:"";position:absolute;inset:6px;border:2px solid #000;background:conic-gradient(from 0deg, #ffb157, #ff6a00, #ffb157)}
+    .tag{margin-left:auto;padding:4px 10px;border:2px solid #000;background:linear-gradient(180deg,#ffb157,#ff8a00);border-radius:999px;font-size:.75rem;font-weight:700;box-shadow:3px 3px 0 #00000025}
+
+    /* Rune Grove tiles */
+    .grove-v3{max-width:1200px;margin:26px auto;padding:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:28px}
+    .tile{position:relative;aspect-ratio:1;cursor:crosshair}
+    .tile .shadow{position:absolute;inset:auto 16% -8px 16%;height:14px;background:#00000020;border-radius:999px;filter:blur(2px)}
+    .rune{position:absolute;inset:0;margin:auto;width:86%;height:86%;transform:rotate(45deg);transition:transform .3s ease, filter .3s ease}
+    .tile:hover .rune{transform:rotate(45deg) translateY(-4px); filter: drop-shadow(6px 6px 0 #00000035)}
+    .rune .outer{position:absolute;inset:0;border:3px solid #000;background:linear-gradient(135deg,#ffb157,#ff6a00)}
+    .rune .inner{position:absolute;inset:10%;border:3px solid #000;background:repeating-linear-gradient(45deg, #ffffff20 0 10px, #00000010 10px 20px), linear-gradient(135deg,#ff9d2e,#ffb157)}
+    .engrave{position:absolute;inset:14%}
+    .engrave svg{width:100%;height:100%;display:block}
+    .engrave line{stroke:#000;stroke-width:2;stroke-linecap:square;opacity:.9}
+    .tetrad{position:absolute;inset:0;pointer-events:none}
+    .arm{position:absolute;left:50%;top:50%;height:12px;width:32%;translate:0 -50%;transform-origin:0% 50%; background:linear-gradient(180deg,#ff9d2e,#ff8a00);border:2px solid #000;border-radius:10px;box-shadow:3px 3px 0 #00000035; pointer-events:auto;transition:transform .25s ease}
+    .arm .node{position:absolute;right:-9px;top:50%;width:26px;height:26px;transform:translateY(-50%) rotate(45deg); border:2px solid #000;background:linear-gradient(135deg,#ffb157,#ff6a00);box-shadow:3px 3px 0 #00000035;border-radius:4px;display:grid;place-items:center;font-size:.6rem;font-weight:900}
+    .tile:hover .arm{filter:drop-shadow(4px 4px 0 #00000035)}
+    .arm.n{transform:rotate(-90deg) scaleX(.65)}
+    .arm.e{transform:rotate(0deg)   scaleX(.65)}
+    .arm.s{transform:rotate(90deg)  scaleX(.65)}
+    .arm.w{transform:rotate(180deg) scaleX(.65)}
+    .tile:hover .arm.n{transform:rotate(-90deg) scaleX(1)}
+    .tile:hover .arm.e{transform:rotate(0deg)   scaleX(1)}
+    .tile:hover .arm.s{transform:rotate(90deg)  scaleX(1)}
+    .tile:hover .arm.w{transform:rotate(180deg) scaleX(1)}
+    .arm[data-hide="true"]{display:none}
+    .label-v3{position:absolute;left:50%;bottom:-36px;transform:translateX(-50%);text-align:center;font-size:.85rem;font-weight:800;letter-spacing:.08em}
+
+    /* Modal (v3 style) */
+    .modal-v3{position:fixed;inset:0;background:#00000055;display:none;align-items:center;justify-content:center;padding:16px;z-index:9999}
+    .modal-v3.active{display:flex}
+    .sheet{max-width:720px;width:min(720px,95vw);max-height:88vh;overflow:auto;border:3px solid #000;border-radius:18px;background:linear-gradient(180deg,#ff9d2e,#ffb157);box-shadow:8px 8px 0 #00000065;position:relative}
+    .x{position:absolute;right:10px;top:10px;width:42px;height:42px;border:2px solid #000;border-radius:10px;background:linear-gradient(180deg,#ff8a00,#ff6a00);font-size:22px;font-weight:900;display:grid;place-items:center;cursor:pointer}
+    .sheet h3{padding:16px 16px 0;text-transform:uppercase;letter-spacing:.12em}
+    .sheet #body-v3{padding:12px 16px}
+    .sheet img{width:100%;border:2px solid #000;border-radius:12px}
+    .dots-v3{display:flex;gap:6px;justify-content:center;padding:10px 16px 16px;border-top:2px dashed #00000033}
+    .dots-v3 span{width:12px;height:12px;border-radius:50%;border:2px solid #000;background:#ff8a00;cursor:pointer}
+    .dots-v3 span.active{outline:3px solid #00000055}
+  </style>
+</head>
+<body>
+  <div class="intro" id="intro">
+    <div class="intro-card">
+      <span class="crest" aria-hidden="true"></span>
+      <h1>ENTER THE HALL</h1>
+      <p>Myth-first interface. Each relic opens. Learn by claiming, not reading.</p>
+      <button onclick="closeIntro()">Enter</button>
+    </div>
+  </div>
+
+  <header class="header" role="banner">
+    <div class="bar">
+      <div class="brand"><span class="dot"></span><span>VOLHOLLA</span></div>
+      <nav class="nav" aria-label="Primary">
+        <a href="#relics">Relics</a>
+        <a href="#saga">Saga</a>
+        <a href="#raven">Raven</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Assemblies header bar -->
+  <header class="bar">
+    <div class="bar-inner">
+      <div class="crest"><div class="shield"></div><div class="wordmark" style="font-weight:900;letter-spacing:.12em">VOLHOLLA</div></div>
+      <div class="tag">Assemblies</div>
+    </div>
+  </header>
+
+  <!-- Rune Grove (v3 skin) built from existing relics data -->
+  <main class="grove-v3" id="grove" aria-live="polite"></main>
+
+  <!-- Modal v3 -->
+  <div class="modal-v3" id="modalV3" aria-modal="true" role="dialog">
+    <div class="sheet">
+      <button class="x" id="closeV3">×</button>
+      <h3 id="titleV3"></h3>
+      <div id="body-v3"></div>
+      <div class="dots-v3" id="dotsV3"></div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <button class="close-btn" aria-label="Close" onclick="closeModal()">×</button>
+      <h3 id="modal-title"></h3>
+      <div id="modal-body"></div>
+      <div class="dots" id="modal-dots"></div>
+    </div>
+  </div>
+
+  <script>
+    // CSV sources embedded from exported-assets
+    const CSV = {
+      structure: `Market,Structure Type,CAPEX ($),Annual OPEX ($),Gross Revenue ($),Net Revenue ($),Payback (years),IRR Approx (%),Quality Score,Total 2yr Cost ($),Price Index,Bang for Buck,BFB Rank\nMaryville,Yurt,48000,4380,25550,20403.5,2.3525,42.5073,7.3,56760,7.2750,5.7368,1\nMaryville,Barndominium,140000,9180,25550,15603.5,8.9723,11.1454,8.26,158360,1.0,4.3474,6\nMaryville,Quonset Hut,68000,6540,25550,18243.5,3.7274,26.8287,6.82,81080,5.7730,4.7937,4\nMaryville,Geodesic Dome,59000,5100,25550,19683.5,2.9974,33.3619,7.59,69200,6.5067,5.6250,2\nMaryville,Tiny House,90000,6060,25550,18723.5,4.8068,20.8039,7.19,102120,4.4735,4.6308,5\nMaryville,Safari Tent,25200,3300,25550,21483.5,1.1730,85.2520,6.19,31800,8.8166,5.5350,3\nMaryville,FEMA Tent,8800,1920,25550,22863.5,0.3849,259.8125,4.29,12640,10.0,4.29,7\nTownsend,Yurt,48000,4380,33215,27838.55,1.7242,58.0,7.3,56760,7.2750,5.7368,1\nTownsend,Geodesic Dome,59000,5100,33215,27118.55,2.1756,45.9636,7.59,69200,6.5067,5.6250,2\nTownsend,Safari Tent,25200,3300,33215,28918.55,0.8714,114.7562,6.19,31800,8.8166,5.5350,3\nTownsend,Quonset Hut,68000,6540,33215,25678.55,2.6481,37.7626,6.82,81080,5.7730,4.7937,4\nTownsend,Tiny House,90000,6060,33215,26158.55,3.4406,29.0651,7.19,102120,4.4735,4.6308,5\nTownsend,Barndominium,140000,9180,33215,23038.55,6.0768,16.4561,8.26,158360,1.0,4.3474,6\nTownsend,FEMA Tent,8800,1920,33215,30298.55,0.2904,344.3017,4.29,12640,10.0,4.29,7\nWalland,Yurt,48000,4380,30295,25006.15,1.9195,52.0961,7.3,56760,7.2750,5.7368,1\nWalland,Geodesic Dome,59000,5100,30295,24286.15,2.4294,41.1630,7.59,69200,6.5067,5.6250,2\nWalland,Safari Tent,25200,3300,30295,26086.15,0.9660,103.5165,6.19,31800,8.8166,5.5350,3\nWalland,Quonset Hut,68000,6540,30295,22846.15,2.9764,33.5973,6.82,81080,5.7730,4.7937,4\nWalland,Tiny House,90000,6060,30295,23326.15,3.8583,25.9180,7.19,102120,4.4735,4.6308,5\nWalland,Barndominium,140000,9180,30295,20206.15,6.9286,14.4330,8.26,158360,1.0,4.3474,6\nWalland,FEMA Tent,8800,1920,30295,27466.15,0.3204,312.1153,4.29,12640,10.0,4.29,7\n`,
+      market: `Location,Avg_ADR,Occupancy_Rate,Annual_Revenue,Market_Type,RevPAR\nMaryville TN,220,55,44000,Gateway to GSMNP,121.0\nTownsend TN,310,43,48700,Peaceful Side Smokies,133.3\nWalland TN (Blackberry Farm area),400,60,87600,Luxury Halo,240.0\nSevierville TN,375,58,79500,Tourist Hub,217.5\nGatlinburg TN,335,55,67200,Mountain Town,184.25\nPigeon Forge TN,326,53,63100,Attraction Center,172.78\n`,
+      opex: `Type,Annual_Utilities,Cleaning_Laundry,Maintenance_Repairs,Insurance,Platform_Fees_15pct,Property_Tax,Total_OPEX\nYurt (Shield Dome),1800,3600,1500,2000,6600,800,16300\nBarndominium (Mead Hall),4000,6000,4000,4500,11925,2000,32425\nQuonset Hut (Iron Longhouse),3500,5500,3000,3500,7310,1500,24310\nGeodesic Dome (Odin's Eye Dome),2000,4000,1200,2200,13140,600,23140\nTiny House (Viking Cabin),3000,4500,2500,3000,11925,1500,26425\nSafari Tent (Raiders' Pavilion),1500,3000,2000,1800,7310,400,16010\nFEMA/Military Tent (Traveler's Shelter),1000,2500,1500,1200,13140,200,19540\n`,
+      regulatory: `Jurisdiction,Building Permit Required,Zoning Approval,Septic/Sewer,STR License,Occupancy Tax,Min Insurance\nBlount County,Yes,Required,Site dependent,$20 home occupation,County rate,$500K liability\nMaryville,Yes,Required,Municipal available,Business license req,City + County,$500K liability\nTownsend,Yes,Required,Limited municipal,Business license req,City + County,$500K liability\nWalland,Yes,Required,Septic required,Business license req,County rate,$500K liability\n`,
+      deps: `Structure Type,Critical Dependencies,Risk Level,Key Mitigations\nYurt,"Platform, snow load cert, insulation, septic",Medium,"Engineered platform, proper insulation liner"\nGeodesic Dome,"Platform, glazing cert, snow load, HVAC",Medium-High,"Professional glazing, certified snow load design"\nSafari Tent,"Heavy frame, platform, weather protection",Medium,"Quality frame system, seasonal maintenance plan"\nQuonset Hut,"Slab foundation, insulation, moisture control",Medium,"Proper vapor barrier, interior framing"\nTiny House,"Foundation/wheels decision, zoning variance",High,Pre-approved tiny house community\nBarndominium,"Full foundation, code compliance, HVAC",High,"Full architectural plans, professional construction"\nFEMA Tent,"Weatherproofing upgrades, aesthetic improvements",High,Major upgrades for durability and aesthetics\n`
+    };
+    // ——— Data: VOLHOLLA Relics (myth-first, operative) ———
+    const relics = [
+      {
+        id: 1,
+        title: "MEAD HALL — Landing",
+        segments: [
+          { id: "01", type: "text", content: "One screen. Logo. Fire. CTA: Enter the Hall." },
+          { id: "02", type: "image", content: svgTile('#1a1a1a', '#ff6a00') },
+          { id: "03", type: "code", content: `const gate = () => scrollTo({ top: window.innerHeight, behavior: 'smooth' });` }
+        ]
+      },
+      {
+        id: 2,
+        title: "RELIC GRID — Catalog",
+        segments: [
+          { id: "01", type: "text", content: "Artifacts by image. One line each. CTA: Claim." },
+          { id: "02", type: "text", content: "Rename products to relics. Keep nouns sharp: Shield, Forge, Hunt, Hall." },
+          { id: "03", type: "code", content: `const claim = (id) => console.log('claim', id);` },
+        ]
+      },
+      {
+        id: 3,
+        title: "THE SAGA — About",
+        segments: [
+          { id: "01", type: "text", content: "Five lines only. No bio. Just origin, oath, forge, horde, horizon." },
+          { id: "02", type: "image", content: ringSvg('#ff6a00', '#ffb157') },
+          { id: "03", type: "text", content: "Voice rules: speak as command, not explanation." }
+        ]
+      },
+      {
+        id: 4,
+        title: "HUNT LODGE — Townsend/Walland",
+        segments: [
+          { id: "01", type: "text", content: "Site ideas: timber frame longhouse, stone hearth, copper roof." },
+          { id: "02", type: "text", content: "Study: Theodore Roosevelt lodge, Wrightian modernism, rural studios." },
+          { id: "03", type: "image", content: badgeSvg('#ff6a00') }
+        ]
+      },
+      {
+        id: 5,
+        title: "RUNE ENGINE — CMS Rules",
+        segments: [
+          { id: "01", type: "text", content: "Sections are rites. Blocks are runes. Content is ritual." },
+          { id: "02", type: "code", content: `const rite = (name, act) => ({ name, act });` },
+          { id: "03", type: "text", content: "Template: Gate → Relics → Saga → Horde → Raven." }
+        ]
+      },
+      {
+        id: 6,
+        title: "THE HORDE — Community",
+        segments: [
+          { id: "01", type: "text", content: "Collect proofs: builds, stays, field photos. Minimal feed." },
+          { id: "02", type: "image", content: ringSvg('#ffb157', '#ff6a00') },
+          { id: "03", type: "text", content: "Submission CTA: Send your proof. We feature deeds, not likes." }
+        ]
+      },
+      {
+        id: 7,
+        title: "RAVEN — Contact",
+        segments: [
+          { id: "01", type: "text", content: "Simple form. One rune button. Reply promise: 48 hours." },
+          { id: "02", type: "code", content: `function sendRaven(payload){ /* POST to your backend */ }` },
+          { id: "03", type: "text", content: "Copy: Send a Raven. We answer with fire." }
+        ]
+      },
+      {
+        id: 8,
+        title: "PAYOFF — CBA & SWOT",
+        segments: [
+          { id: "01", type: "text", content: "Glamping structure matrix: yurt, dome, quonset, barndo, tiny, safari." },
+          { id: "02", type: "text", content: "Metric: ADR, occupancy proxy, build capex, OPEX, permits, seasonality." },
+          { id: "03", type: "image", content: chartSvg() },
+          { id: "04", type: "image", content: './exported-assets (9)/payback_chart.png' },
+          { id: "05", type: "image", content: './exported-assets (9)/scatter_plot.png' }
+        ]
+      },
+      {
+        id: 11,
+        title: "STRUCTURE ANALYSIS — Tables",
+        segments: [
+          { id: "01", type: "table", content: CSV.structure },
+          { id: "02", type: "text", content: "Sort by Bang-for-Buck; Yurt and Dome lead across markets." }
+        ]
+      },
+      {
+        id: 12,
+        title: "MARKET & OPEX — Tables",
+        segments: [
+          { id: "01", type: "table", content: CSV.market },
+          { id: "02", type: "table", content: CSV.opex }
+        ]
+      },
+      {
+        id: 13,
+        title: "REGULATORY — Matrix",
+        segments: [
+          { id: "01", type: "table", content: CSV.regulatory },
+          { id: "02", type: "table", content: CSV.deps }
+        ]
+      },
+      {
+        id: 9,
+        title: "BRAND LORE — Tokens",
+        segments: [
+          { id: "01", type: "text", content: "Color: Fire, Night, Steel. Type: Blackletter heads + clean body." },
+          { id: "02", type: "image", content: paletteSvg() },
+          { id: "03", type: "code", content: `const tokens = { fire:'#ff6a00', night:'#121212', steel:'#c0c0c0' };` }
+        ]
+      },
+      {
+        id: 10,
+        title: "OPERATIONS — Stack",
+        segments: [
+          { id: "01", type: "text", content: "Shopify if selling. Webflow if myth-led. Single-page ritual works." },
+          { id: "02", type: "text", content: "Email: Claim your place in the Hall. SEO: myth + location." },
+          { id: "03", type: "code", content: `const stack = ['Host','CMS','Checkout','Email'];` }
+        ]
+      }
+    ];
+
+    // ——— SVG helpers ———
+    function svgTile(bg = '#1a1a1a', stroke = '#ff6a00') {
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='${bg}'/><g stroke='${stroke}' stroke-width='3' fill='none'><path d='M20 20L180 20L180 180L20 180Z'/><path d='M20 60H180M20 100H180M20 140H180'/></g></svg>`)}`;
+    }
+    function ringSvg(a = '#ff6a00', b = '#ffb157') {
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><radialGradient id='g' cx='50%' cy='50%'><stop offset='0%' stop-color='${a}'/><stop offset='100%' stop-color='${b}'/></radialGradient></defs><circle cx='100' cy='100' r='72' fill='none' stroke='url(#g)' stroke-width='10'/><circle cx='100' cy='100' r='6' fill='${a}'/></svg>`)}`;
+    }
+    function badgeSvg(c = '#ff6a00') {
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><polygon points='100,20 170,70 145,160 55,160 30,70' fill='none' stroke='${c}' stroke-width='6'/><circle cx='100' cy='100' r='26' fill='${c}'/></svg>`)}`;
+    }
+    function chartSvg(){
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='#0f0f0f'/><g stroke='#444' stroke-width='1'><path d='M20 170H180'/><path d='M20 130H180'/><path d='M20 90H180'/><path d='M20 50H180'/></g><polyline fill='none' stroke='#ff6a00' stroke-width='3' points='20,160 60,120 100,110 140,70 180,60'/></svg>`)}`;
+    }
+    function paletteSvg(){
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='#0f0f0f'/><rect x='20' y='30' width='40' height='140' fill='#ff6a00'/><rect x='80' y='30' width='40' height='140' fill='#ffb157'/><rect x='140' y='30' width='40' height='140' fill='#c0c0c0'/></svg>`)}`;
+    }
+
+    // ——— Factory: Relic (shield + runes) ———
+    function createRelic(item){
+      const wrap = document.createElement('div');
+      wrap.className = 'relic';
+      wrap.dataset.projectId = item.id;
+
+      // build rune dots (6)
+      let dots = '';
+      for(let i=0;i<6;i++){
+        const seg = item.segments[i];
+        const hidden = seg ? '' : 'hidden';
+        const label = seg ? seg.id : '';
+        dots += `<div class="rune-dot ${hidden}" data-seg="${i}" onclick="openSegment(${item.id}, ${i})">${label}</div>`;
+      }
+
+      wrap.innerHTML = `
+        <div class="shadow"></div>
+        <svg class="sigil-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <g class="shield-group">
+            <path class="shield-body" d="M100 20 Q140 40 170 60 Q170 120 140 160 Q100 180 60 160 Q30 120 30 60 Q60 40 100 20 Z" />
+          </g>
+          <g class="rune-group">
+            <circle class="rune-disc" cx="100" cy="100" r="78" />
+            ${buildRuneLines(6)}
+          </g>
+        </svg>
+        <div class="runes">${dots}</div>
+        <div class="label">RELIC ${String(item.id).padStart(2,'0')} — ${item.title}</div>
+      `;
+
+      return wrap;
+    }
+
+    function buildRuneLines(n){
+      const rIn = 24, rOut = 78; let lines = '';
+      for(let i=0;i<n;i++){
+        const a = (i*(360/n))*Math.PI/180;
+        const x1 = 100 + rIn*Math.cos(a), y1 = 100 + rIn*Math.sin(a);
+        const x2 = 100 + rOut*Math.cos(a), y2 = 100 + rOut*Math.sin(a);
+        lines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="rune-line"/>`;
+      }
+      return lines;
+    }
+
+    function positionRunes(){
+      document.querySelectorAll('.relic').forEach(rel => {
+        const box = rel.getBoundingClientRect();
+        const radius = box.width/2 * 0.62; // inner circle
+        rel.querySelectorAll('.rune-dot').forEach((dot, i) => {
+          const total = 6, step = (Math.PI*2)/total;
+          const angle = (i*step) + (step/2) - Math.PI/2; // start at top, centered
+          const x = Math.cos(angle)*radius, y = Math.sin(angle)*radius;
+          dot.style.left = `calc(50% + ${x}px)`;
+          dot.style.top  = `calc(50% + ${y}px)`;
+          dot.style.transform = 'translate(-50%, -50%)';
+        });
+      });
+    }
+
+    // ——— Modal Controls ———
+    let currentItem = null, currentSegIndex = 0;
+
+    function openSegment(id, idx){
+      currentItem = relics.find(r => r.id === id);
+      currentSegIndex = idx;
+      if(!currentItem || !currentItem.segments[idx]) return;
+      renderModal();
+      document.getElementById('modal').classList.add('active');
+      clickTone();
+    }
+
+    function renderModal(){
+      const seg = currentItem.segments[currentSegIndex];
+      document.getElementById('modal-title').textContent = `RELIC ${String(currentItem.id).padStart(2,'0')} — ${currentItem.title}`;
+      const body = document.getElementById('modal-body');
+      let html = '';
+      if(seg){
+        if(seg.type === 'text') html = `<h4>RUNE ${seg.id}</h4><p>${seg.content}</p>`;
+        if(seg.type === 'image') html = `<h4>RUNE ${seg.id}</h4><img alt="${seg.id}" src="${seg.content}">`;
+        if(seg.type === 'code') html = `<h4>RUNE ${seg.id}</h4><pre><code>${seg.content}</code></pre>`;
+        if(seg.type === 'table') html = `<h4>RUNE ${seg.id}</h4>${renderCSVTable(seg.content)}`;
+      }
+      body.innerHTML = html || '<p>No content.</p>';
+
+      const dots = document.getElementById('modal-dots');
+      dots.innerHTML = '';
+      currentItem.segments.forEach((_, i) => {
+        const d = document.createElement('span');
+        d.className = 'dot' + (i === currentSegIndex ? ' active' : '');
+        d.onclick = () => { currentSegIndex = i; renderModal(); clickTone(); };
+        dots.appendChild(d);
+      });
+    }
+
+    function closeModal(){
+      document.getElementById('modal').classList.remove('active');
+      currentItem = null; currentSegIndex = 0;
+    }
+
+    function closeIntro(){ document.getElementById('intro').classList.add('hidden'); }
+
+    // Robust CSV parser and renderer
+    function parseCSV(text){
+      const rows=[]; let row=[]; let field=''; let inQuotes=false; let i=0;
+      while(i<text.length){
+        const ch=text[i];
+        if(inQuotes){
+          if(ch==='"'){
+            if(text[i+1]==='"'){ field+='"'; i+=2; continue; }
+            inQuotes=false; i++; continue;
+          } else { field+=ch; i++; continue; }
+        } else {
+          if(ch==='"'){ inQuotes=true; i++; continue; }
+          if(ch===','){ row.push(field); field=''; i++; continue; }
+          if(ch==='\n' || ch==='\r'){
+            if(ch==='\r' && text[i+1]==='\n') i++;
+            row.push(field); field='';
+            if(row.some(c=>c!=='')) rows.push(row);
+            row=[]; i++; continue;
+          }
+          field+=ch; i++; continue;
+        }
+      }
+      row.push(field); if(row.some(c=>c!=='')) rows.push(row);
+      return rows;
+    }
+    function renderCSVTable(csv){
+      const m = parseCSV(csv.trim()); if(!m.length) return '<p>Empty</p>';
+      const h = m[0]; const d = m.slice(1);
+      const thead = `<thead><tr>${h.map(x=>`<th>${escapeHtml(x)}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${d.map(r=>`<tr>${r.map(c=>`<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+      return `<div class="table-wrap"><table class="data">${thead}${tbody}</table></div>`;
+    }
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+
+    // Tiny synth click
+    function clickTone(){
+      const Ctx = window.AudioContext || window.webkitAudioContext; const ctx = new Ctx();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = 740; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.06, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      o.start(); o.stop(ctx.currentTime + 0.15);
+    }
+
+    // Build v3 tiles from existing relics array
+    const grove = document.getElementById('grove');
+    relics.forEach(p=>grove.appendChild(makeTileV3(p)));
+
+    function makeTileV3(project){
+      const wrap = document.createElement('div'); wrap.className='tile';
+      const rune = document.createElement('div'); rune.className='rune';
+      rune.innerHTML = `<div class="outer"></div><div class="inner"></div><div class="engrave">${engraveSVGV3()}</div>`;
+      const tetrad = document.createElement('div'); tetrad.className='tetrad';
+      const pos=['n','e','s','w'];
+      pos.forEach((pname,i)=>{
+        const arm=document.createElement('div'); arm.className=`arm ${pname}`;
+        const seg=project.segments[i];
+        if(!seg){ arm.setAttribute('data-hide','true'); }
+        const node=document.createElement('button'); node.className='node'; node.type='button'; node.textContent=seg?seg.id:''; node.title=seg?`Open segment ${seg.id}`:'';
+        node.addEventListener('click',e=>{e.stopPropagation(); if(seg) openV3(project,i);});
+        arm.appendChild(node); tetrad.appendChild(arm);
+      });
+      const label=document.createElement('div'); label.className='label-v3';
+      label.textContent=`RELIC ${String(project.id).padStart(2,'0')} — ${project.title}`;
+      wrap.appendChild(document.createElement('div')).className='shadow';
+      wrap.append(rune,tetrad,label);
+      return wrap;
+    }
+    function engraveSVGV3(){
+      const lines=[]; const N=6; const cx=50,cy=50,r1=14,r2=46;
+      for(let i=0;i<N;i++){ const a=(i*(Math.PI*2/N))+(Math.PI/N); const x1=cx+r1*Math.cos(a), y1=cy+r1*Math.sin(a); const x2=cx+r2*Math.cos(a), y2=cy+r2*Math.sin(a); lines.push(`<line x1='${x1.toFixed(1)}' y1='${y1.toFixed(1)}' x2='${x2.toFixed(1)}' y2='${y2.toFixed(1)}'/>`)}
+      return `<svg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'>${lines.join('')}</svg>`
+    }
+
+    // Modal v3 uses existing segment types, including 'table' which relies on renderCSVTable
+    const modalV3=document.getElementById('modalV3');
+    const titleV3=document.getElementById('titleV3');
+    const bodyV3=document.getElementById('body-v3');
+    const dotsV3=document.getElementById('dotsV3');
+    document.getElementById('closeV3').onclick=()=>modalV3.classList.remove('active');
+    modalV3.addEventListener('click',e=>{ if(e.target===modalV3) modalV3.classList.remove('active'); });
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape') modalV3.classList.remove('active'); });
+
+    let activeProjV3=null, activeIndexV3=0;
+    function openV3(project,index){ activeProjV3=project; activeIndexV3=index; renderV3(); clickTone(); modalV3.classList.add('active'); }
+    function renderV3(){
+      const seg=activeProjV3.segments[activeIndexV3];
+      titleV3.textContent=`RELIC ${String(activeProjV3.id).padStart(2,'0')} — ${activeProjV3.title}`;
+      let c='';
+      if(seg){
+        if(seg.type==='text') c=`<p>${seg.content}</p>`;
+        if(seg.type==='image') c=`<img alt='' src='${seg.content}'>`;
+        if(seg.type==='code') c=`<pre><code>${escapeHtml(seg.content)}</code></pre>`;
+        if(seg.type==='table') c=`${renderCSVTable(seg.content)}`;
+      }
+      bodyV3.innerHTML = `<h4>SEGMENT ${seg.id}</h4>` + (c||'<p>No content.</p>');
+      dotsV3.innerHTML='';
+      activeProjV3.segments.forEach((_,i)=>{ const d=document.createElement('span'); d.className = i===activeIndexV3? 'active':''; d.onclick=()=>{activeIndexV3=i; renderV3(); clickTone();}; dotsV3.appendChild(d); });
+    }
+
+    // Helper used above
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+
+    // Done: v3 UI applied without removing existing data/CSV logic.
+  </script>
+</body>
+</html>

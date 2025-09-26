@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Volholla — Brand Identity Spec</title>
+  <meta name="description" content="Volholla is where Tennessee grit meets Viking saga — a Smoky Mountain stronghold for rebels, storytellers, and rock-n-roll dreamers." />
+
+  <!-- Brand Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&family=Oswald:wght@400;600;700&family=Rock+Salt&family=UnifrakturCook:wght@700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      /* Color palette */
+      --vol-orange: #FF8200;  /* Tennessee Volunteers */
+      --smoky-charcoal: #2C2C2C; /* Rock-and-roll grit */
+      --aged-gold: #C7A64B; /* Mead hall richness */
+      --pine-green: #2E4E3F; /* Smokies grounding */
+      --bone-white: #EDE8E1; /* Runic canvas */
+      --ink-black: #121212;
+
+      /* Layout */
+      --maxw: 1100px;
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.2);
+      --shadow-soft: 0 6px 18px rgba(0,0,0,.12);
+    }
+
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #111 0%, #1a1a1a 60%, #111 100%);
+      color: var(--bone-white);
+      font-family: Montserrat, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    a { color: var(--vol-orange); text-decoration: none; }
+    a:hover, a:focus { text-decoration: underline; }
+
+    /* Header */
+    .site-header {
+      position: sticky; top: 0; z-index: 999;
+      backdrop-filter: saturate(120%) blur(8px);
+      background: rgba(18,18,18,.7);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .header-wrap { max-width: var(--maxw); margin: 0 auto; padding: .75rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .brand {
+      display: flex; align-items: center; gap: .65rem;
+    }
+    .brand img.logo { width: 36px; height: 36px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,.1); background: #000; }
+    .brand .wordmark { font-family: "UnifrakturCook", serif; letter-spacing: .5px; font-size: 1.325rem; line-height: 1; }
+    .brand .tag { display: none; font-size: .8rem; color: #d9d4cd; opacity: .9; }
+
+    /* Nav */
+    .nav-toggle { background: none; border: 1px solid rgba(255,255,255,.18); color: #fff; padding: .5rem .65rem; border-radius: 10px; font-size: .95rem; display: inline-flex; align-items: center; gap: .5rem; }
+    .nav-toggle .burger { width: 18px; height: 2px; background: #fff; position: relative; display: block; }
+    .nav-toggle .burger::before, .nav-toggle .burger::after { content: ""; position: absolute; left: 0; width: 18px; height: 2px; background: #fff; }
+    .nav-toggle .burger::before { top: -6px; }
+    .nav-toggle .burger::after { top: 6px; }
+
+    nav.drawer {
+      max-height: 0; overflow: hidden; transition: max-height .35s ease; background: rgba(18,18,18,.9); border-top: 1px solid rgba(255,255,255,.06);
+    }
+    nav.drawer.open { max-height: 60vh; }
+    nav.drawer a { display: block; padding: .9rem 1rem; border-bottom: 1px solid rgba(255,255,255,.06); color: #eee; }
+    nav.drawer a:hover { background: rgba(255,255,255,.04); }
+
+    /* Hero */
+    .hero { position: relative; overflow: hidden; }
+    .hero-inner { max-width: var(--maxw); margin: 0 auto; padding: 2.25rem 1rem 1.75rem; display: grid; gap: 1.25rem; }
+    .badge {
+      display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 1rem; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: var(--radius); padding: .9rem; box-shadow: var(--shadow-soft);
+    }
+    .badge img { width: 90px; height: 90px; object-fit: contain; background: #000; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); }
+    .badge h1 { margin: 0; font-family: "UnifrakturCook", serif; font-size: clamp(1.6rem, 4.5vw, 2.4rem); letter-spacing: .5px; }
+    .badge p { margin: .2rem 0 0; color: #dcd7cf; font-size: .95rem; }
+
+    .hero-card {
+      background: linear-gradient(160deg, rgba(255,130,0,.08), rgba(199,166,75,.06));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      padding: 1rem; box-shadow: var(--shadow);
+    }
+    .hero-card h2 { font-family: Oswald, sans-serif; letter-spacing: .5px; margin: 0 0 .35rem; font-size: 1.15rem; color: var(--aged-gold); }
+    .hero-card .oneliner { font-size: 1.05rem; color: #efeae3; }
+    .hero-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .8rem; }
+    .btn { cursor: pointer; appearance: none; border: 1px solid rgba(255,255,255,.16); background: #1c1c1c; color: #fff; padding: .6rem .8rem; border-radius: 10px; font-weight: 600; }
+    .btn.primary { background: var(--vol-orange); color: #1b1200; border-color: transparent; }
+    .btn.ghost { background: transparent; }
+
+    /* KPI tiles */
+    .kpis { display: grid; grid-template-columns: repeat(2,1fr); gap: .6rem; }
+    .kpi { background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: .8rem; text-align: center; }
+    .kpi .val { font-family: Oswald, sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--vol-orange); }
+    .kpi .label { font-size: .8rem; color: #cfc8bd; }
+
+    /* Sections */
+    main { max-width: var(--maxw); margin: 0 auto; padding: 0 1rem 3rem; }
+    section { margin: 1.25rem 0; }
+    .card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: var(--radius); box-shadow: var(--shadow-soft); overflow: hidden; }
+    .card h3 { margin: 0; padding: .9rem 1rem .3rem; font-family: Oswald, sans-serif; letter-spacing: .5px; color: var(--aged-gold); }
+    .card .content { padding: .2rem 1rem 1rem; }
+
+    .pill { display: inline-block; padding: .2rem .55rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); color: #eee; margin: .2rem .25rem .2rem 0; font-size: .85rem; background: rgba(0,0,0,.2); }
+
+    .list { margin: .3rem 0; padding-left: 1.1rem; }
+    .list li { margin: .25rem 0; }
+
+    blockquote { margin: .6rem 0; padding: .6rem .8rem; background: rgba(255,255,255,.04); border-left: 4px solid var(--pine-green); border-radius: 8px; }
+    blockquote cite { display: block; margin-top: .35rem; font-family: "Rock Salt", cursive; color: #d1cbc3; opacity: .9; font-size: .95rem; }
+
+    /* Footer */
+    footer { border-top: 1px solid rgba(255,255,255,.08); color: #cfc8bd; font-size: .9rem; padding: 1rem; text-align: center; background: rgba(0,0,0,.25); }
+
+    /* Utilities */
+    .grid-2 { display: grid; grid-template-columns: 1fr; gap: .75rem; }
+
+    /* Larger screens */
+    @media (min-width: 720px) {
+      .brand .tag { display: inline; }
+      .hero-inner { padding: 2.8rem 1rem 2.2rem; }
+      .grid-2 { grid-template-columns: 1fr 1fr; }
+      .kpis { grid-template-columns: repeat(4,1fr); }
+    }
+
+    /* Print-friendly (per Blue Foot-style precedent) */
+    @media print {
+      body { background: #fff; color: #000; }
+      .site-header, nav.drawer, .hero-actions { display: none !important; }
+      a { color: #000; text-decoration: underline; }
+      .card, .badge, .hero-card, .kpi { box-shadow: none; border: 1px solid #000; background: #fff; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-wrap">
+      <div class="brand">
+        <!-- Use the local SVG for reliability -->
+        <img class="logo" src="./vh-to-cut-base.svg" alt="Volholla badge" />
+        <div>
+          <div class="wordmark">VOLHOLLA</div>
+          <div class="tag">Smokies refuge for rebels & storytellers</div>
+        </div>
+      </div>
+      <button class="nav-toggle" aria-controls="drawer" aria-expanded="false"><span class="burger" aria-hidden="true"></span><span>Menu</span></button>
+    </div>
+    <nav id="drawer" class="drawer" aria-label="Section navigation">
+      <a href="#essence">Brand Essence</a>
+      <a href="#voice">Voice</a>
+      <a href="#visual">Visual Identity</a>
+      <a href="#logo">Logo Concept</a>
+      <a href="#experience">Brand Experience</a>
+      <a href="#messaging">Messaging</a>
+      <a href="#metrics">Metrics & Growth</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#oneliner">One-liner</a>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="badge">
+        <img src="./vh-to-cut-base.svg" alt="Volholla logo badge" />
+        <div>
+          <h1>Raise Your Horns. Rest Like a Viking. Wake Like a Vol.</h1>
+          <p>A Smoky Mountains stay where Norse saga meets Tennessee grit.</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="hero-card">
+          <h2>Brand Essence</h2>
+          <p class="oneliner">Bold, primal, welcoming — a hall of stories where every guest becomes part of the legend.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#book" onclick="event.preventDefault(); window.print();">Export to PDF</a>
+            <a class="btn ghost" href="#visual">See Brand Kit</a>
+          </div>
+        </div>
+        <div class="hero-card">
+          <div class="kpis">
+            <div class="kpi"><div class="val">70%</div><div class="label">Occupancy Target</div></div>
+            <div class="kpi"><div class="val">$175–$275</div><div class="label">ADR Goal</div></div>
+            <div class="kpi"><div class="val">9+</div><div class="label">NPS Target</div></div>
+            <div class="kpi"><div class="val">Viral</div><div class="label">Photo Share Rate</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <!-- Voice -->
+    <section id="voice" class="card">
+      <h3>2. Brand Voice</h3>
+      <div class="content">
+        <p class="pill">Confident like a rock anthem</p>
+        <p class="pill">Folksy fire-side tales</p>
+        <p class="pill">Rebellious garage-band swagger</p>
+        <p class="pill">Mythic whispers through pines</p>
+        <h4 style="margin:.6rem 0 .3rem; font-family:Oswald, sans-serif; color: var(--vol-orange);">Style</h4>
+        <ul class="list">
+          <li>Short, punchy, story-driven lines.</li>
+          <li>Mix of plain-spoken wisdom and poetic saga.</li>
+          <li>Sprinkle of humor + swagger.</li>
+        </ul>
+        <blockquote>
+          “Sleep under the stars, but do it like a warrior. In Volholla, the firepit ain’t just for s’mores — it’s for tales that echo louder than Neyland Stadium on a Saturday night.”
+          <cite>— House Copy, Volholla</cite>
+        </blockquote>
+      </div>
+    </section>
+
+    <!-- Visual Identity -->
+    <section id="visual" class="card">
+      <h3>3. Visual Identity</h3>
+      <div class="content">
+        <h4 style="margin:.6rem 0 .3rem; font-family:Oswald, sans-serif; color: var(--vol-orange);">Colors</h4>
+        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:.5rem; margin:.4rem 0 .8rem;">
+          <div style="background:var(--vol-orange); height:54px; border-radius:8px; border:1px solid rgba(0,0,0,.3);"></div>
+          <div style="background:var(--smoky-charcoal); height:54px; border-radius:8px; border:1px solid rgba(255,255,255,.2);"></div>
+          <div style="background:var(--aged-gold); height:54px; border-radius:8px; border:1px solid rgba(0,0,0,.3);"></div>
+          <div style="background:var(--pine-green); height:54px; border-radius:8px; border:1px solid rgba(0,0,0,.3);"></div>
+          <div style="background:var(--bone-white); height:54px; border-radius:8px; border:1px solid rgba(0,0,0,.15);"></div>
+        </div>
+
+        <h4 style="margin:.6rem 0 .3rem; font-family:Oswald, sans-serif; color: var(--vol-orange);">Typography</h4>
+        <ul class="list">
+          <li><strong>Headers:</strong> UnifrakturCook (Norse display)</li>
+          <li><strong>Body:</strong> Montserrat (modern grit)</li>
+          <li><strong>Accent:</strong> Rock Salt (hand-drawn quotes)</li>
+        </ul>
+
+        <h4 style="margin:.6rem 0 .3rem; font-family:Oswald, sans-serif; color: var(--vol-orange);">Textures</h4>
+        <ul class="list">
+          <li>Rough timber grain (longhouse × Appalachian cabin)</li>
+          <li>Hammered iron (axes, anvils, DIY)</li>
+          <li>Weathered leather (guitar straps, Norse armor)</li>
+          <li>Campfire smoke haze (folk storytelling nights)</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Logo Concept -->
+    <section id="logo" class="card">
+      <h3>4. Logo Concept</h3>
+      <div class="content">
+        <ul class="list">
+          <li>Viking longhouse silhouette morphing into a guitar headstock.</li>
+          <li>Crossed Volunteers smokey hammers (Mjolnir × blacksmith tools).</li>
+          <li>Runic-style wordmark: VOLHOLLA.</li>
+        </ul>
+        <p class="pill">Primary: Wordmark + hall/guitar hybrid</p>
+        <p class="pill">Secondary: Rune “V” inside a shield</p>
+        <p class="pill">Badge: “Raise Your Horns” in circle with firepit rune</p>
+      </div>
+    </section>
+
+    <!-- Experience -->
+    <section id="experience" class="card">
+      <h3>5. Brand Experience</h3>
+      <div class="content grid-2">
+        <div>
+          <ul class="list">
+            <li><strong>Guest Units:</strong> Shield Domes, Mead Halls, Viking Cabins</li>
+            <li><strong>Communal:</strong> The Firepit of Legends (story + music)</li>
+            <li><strong>Rituals:</strong> Horns, saga-scroll guestbooks, carved proverbs</li>
+            <li><strong>Photo Ops:</strong> Rune-stone arch, guitars as battle-axes</li>
+          </ul>
+        </div>
+        <div>
+          <blockquote>
+            “Raise your horns, rest your bones.”
+            <cite>— Folk Wisdom, Volholla</cite>
+          </blockquote>
+        </div>
+      </div>
+    </section>
+
+    <!-- Messaging -->
+    <section id="messaging" class="card">
+      <h3>6. Messaging Framework</h3>
+      <div class="content">
+        <p><strong>Hero Line:</strong> Not a campground. Not a hotel. A saga written in smoke and fire — welcome to Volholla.</p>
+        <div class="grid-2">
+          <div>
+            <h4 style="margin:.4rem 0 .2rem; font-family:Oswald, sans-serif; color: var(--vol-orange);">Value Props</h4>
+            <ul class="list">
+              <li>Unique Stay: Viking-themed structures × Smokies.</li>
+              <li>Cultural Mashup: TN Volunteers + Norse + rock-n-roll.</li>
+              <li>Community Vibe: Storytelling, fire, music, folklore.</li>
+              <li>Escape + Pride: Feel epic, local, legendary.</li>
+            </ul>
+          </div>
+          <div>
+            <h4 style="margin:.4rem 0 .2rem; font-family:Oswald, sans-serif; color: var(--vol-orange);">Folk Wisdom Taglines</h4>
+            <ul class="list">
+              <li>Better to light a bonfire than curse the dark.</li>
+              <li>Raise your horns, rest your bones.</li>
+              <li>Even Odin would tailgate here.</li>
+              <li>Every cabin tells a tale.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Metrics -->
+    <section id="metrics" class="card">
+      <h3>7. Metrics & Growth</h3>
+      <div class="content grid-2">
+        <ul class="list">
+          <li><strong>Occupancy:</strong> 70% annualized</li>
+          <li><strong>ADR:</strong> $175–$275/night</li>
+          <li><strong>NPS:</strong> 9+</li>
+          <li><strong>Social:</strong> Viral photo rate per guest</li>
+        </ul>
+        <div>
+          <p class="pill">Smokies comps</p>
+          <p class="pill">Unique-stay premium</p>
+          <p class="pill">Story-first experience</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Roadmap -->
+    <section id="roadmap" class="card">
+      <h3>8. Roadmap</h3>
+      <div class="content grid-2">
+        <ul class="list">
+          <li><strong>MVP:</strong> Raiders’ Pavilion tents + Firepit of Legends</li>
+          <li><strong>Mid-Tier:</strong> Shield Domes + Viking Cabins</li>
+          <li><strong>Flagship:</strong> Mead Hall (event-scale barndominium)</li>
+          <li><strong>Merch:</strong> Horn mugs, tees, rune-etched fire pokers</li>
+        </ul>
+        <div>
+          <blockquote>
+            “Not a campground. Not a hotel. A saga written in smoke and fire.”
+            <cite>— Positioning, Volholla</cite>
+          </blockquote>
+        </div>
+      </div>
+    </section>
+
+    <!-- One Liner -->
+    <section id="oneliner" class="card">
+      <h3>🔥⚡ In one line</h3>
+      <div class="content">
+        <p style="font-size:1.15rem;">Volholla is where Tennessee grit meets Viking saga — a Smoky Mountain stronghold for rebels, storytellers, and rock-n-roll dreamers.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    © <span id="year"></span> Volholla — Built for the Smokies.
+  </footer>
+
+  <script>
+    // Mobile drawer
+    const toggle = document.querySelector('.nav-toggle');
+    const drawer = document.getElementById('drawer');
+    toggle?.addEventListener('click', () => {
+      const open = drawer.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(open));
+    });
+
+    // Current year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

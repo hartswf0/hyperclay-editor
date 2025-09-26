@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Volholla — Bed & Breakfast • Viking Stays in the Smokies</title>
+  <meta name="description" content="Volholla: a Viking‑branded bed & breakfast and unique-stay outpost in the Smoky Mountains. Firelit nights, shield‑domes, mead‑hall breakfasts, and folk wisdom under Tennessee skies." />
+  <meta name="theme-color" content="#FF8200" />
+  <style>
+    :root{
+      --vol-orange:#FF8200; /* Tennessee Vols punch */
+      --smoky:#2C2C2C;      /* rock grit */
+      --pine:#2E4E3F;       /* Smokies */
+      --gold:#C7A64B;       /* mead hall */
+      --bone:#EDE8E1;       /* parchment */
+      --ink:#0d0d0d;
+      --muted:#9a9a9a;
+      --card:#141414;
+      --card-2:#1b1b1b;
+      --radius:18px;
+      --shadow:0 18px 40px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:linear-gradient(180deg,#0a0a0a,#111);color:var(--bone);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    a{color:var(--vol-orange);text-decoration:none}
+    a:focus,button:focus,input:focus,select:focus,textarea:focus{outline:2px solid var(--vol-orange);outline-offset:2px}
+    .wrap{width:min(1200px,92vw);margin:auto}
+
+    /* Header */
+    header{position:sticky;top:0;z-index:50;background:rgba(10,10,10,.8);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid #222}
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:.6rem 0}
+    .brand{display:flex;gap:.6rem;align-items:center}
+    .brand svg{width:40px;height:40px}
+    .brand-title{font-weight:800;letter-spacing:.5px}
+    .brand-sub{font-size:.78rem;color:var(--muted)}
+    .menu{display:flex;gap:1rem;flex-wrap:wrap}
+    .menu a{font-weight:600;color:#ddd}
+    .menu a:hover{color:#fff}
+    .cta{background:var(--vol-orange);color:#000;padding:.6rem 1rem;border-radius:999px;font-weight:800;border:none;cursor:pointer}
+
+    /* Hero */
+    .hero{position:relative;overflow:hidden}
+    .hero .bg{position:absolute;inset:0;pointer-events:none;background:radial-gradient(1200px 600px at 70% 10%,rgba(255,130,0,.25),transparent),url('data:image/svg+xml;utf8,\
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">\
+        <defs>\
+          <linearGradient id="g" x1="0" x2="0" y1="0" y2="1">\
+            <stop offset="0%" stop-color="#1a1a1a"/>\
+            <stop offset="100%" stop-color="#0c0c0c"/>\
+          </linearGradient>\
+          <radialGradient id="flare" cx="75%" cy="25%" r="60%">\
+            <stop offset="0%" stop-color="rgba(255,130,0,0.25)"/>\
+            <stop offset="100%" stop-color="rgba(0,0,0,0)"/>\
+          </radialGradient>\
+        </defs>\
+        <rect fill="url(%23g)" width="1600" height="900"/>\
+        <g fill="none" stroke="rgba(255,255,255,0.04)">\
+          <path d="M0 720 C400 600, 1200 840, 1600 720"/>\
+          <path d="M0 780 C500 660, 1100 900, 1600 780"/>\
+        </g>\
+        <circle cx="1200" cy="180" r="400" fill="url(%23flare)"/>\
+      </svg>') center/cover no-repeat}
+    .hero .wrap{position:relative;padding:7rem 0 4rem}
+    .rune{font-weight:900;letter-spacing:.06em;text-transform:uppercase;font-size:clamp(1.6rem,3.8vw,3rem);display:block}
+    .kicker{color:var(--gold);font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+    .headline{font-size:clamp(2.2rem,6vw,4.2rem);line-height:1.05;margin:.4rem 0 .6rem;font-weight:900}
+    .sub{color:#dcd7cf;max-width:60ch}
+    .hero-cta{display:flex;gap:.8rem;flex-wrap:wrap;margin-top:1.2rem}
+    .btn{background:var(--vol-orange);color:#111;padding:.9rem 1.1rem;border:none;border-radius:12px;font-weight:800;cursor:pointer}
+    .btn.alt{background:#232323;color:#fff;border:1px solid #2f2f2f}
+
+    /* Cards grid */
+    .grid{display:grid;gap:1rem;grid-template-columns:repeat(12,1fr)}
+    .card{background:linear-gradient(180deg,var(--card),var(--card-2));border:1px solid #222;border-radius:var(--radius);box-shadow:var(--shadow);padding:1rem}
+
+    /* Booking */
+    section{padding:3.2rem 0;border-top:1px solid #1d1d1d}
+    h2{font-size:clamp(1.6rem,4.5vw,2.4rem);margin:0 0 .8rem}
+    p.lead{color:#d8d2c8;max-width:70ch}
+
+    .booking{display:grid;gap:1rem}
+    .booking form{display:grid;gap:1rem}
+    .row{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+    label{font-weight:700;font-size:.9rem}
+    input,select,textarea{background:#0f0f0f;color:#fff;border:1px solid #2a2a2a;border-radius:12px;padding:.85rem;font-size:1rem}
+    .helper{color:var(--muted);font-size:.85rem}
+    .notice{background:#0f140f;border:1px solid #243a2b;color:#cfe7d6;padding:.8rem;border-radius:12px}
+
+    /* Rooms */
+    .rooms .grid > article{grid-column:span 12}
+    @media (min-width:720px){.rooms .grid > article{grid-column:span 6}}
+    .room-img{aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0b0b0b;border:1px solid #222}
+    .badge{display:inline-block;padding:.25rem .6rem;border-radius:999px;border:1px solid #333;background:#191919;color:#eaeaea;font-size:.8rem}
+
+    /* Experiences */
+    .xp .grid > div{grid-column:span 12}
+    @media (min-width:900px){.xp .grid > div{grid-column:span 4}}
+
+    /* Reviews */
+    .reviews blockquote{margin:0;padding:1rem;background:#121212;border:1px solid #262626;border-radius:14px}
+    .stars{color:#ffb400}
+
+    /* Gallery */
+    .gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem}
+    @media (min-width:780px){.gallery{grid-template-columns:repeat(4,1fr)}}
+    .gallery img{border-radius:12px;border:1px solid #252525}
+
+    /* Footer */
+    footer{padding:2.2rem 0;background:#0b0b0b;border-top:1px solid #222;color:#bdb6ac}
+
+    /* Utility */
+    .pill{display:inline-flex;gap:.5rem;align-items:center;padding:.35rem .7rem;border:1px solid #2b2b2b;border-radius:999px;background:#161616;color:#dcd7cf}
+    .flex{display:flex;gap:.6rem;align-items:center}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav" role="navigation" aria-label="Main">
+      <div class="brand" aria-label="Volholla home">
+        <!-- Inline simple logo: longhouse + headstock hybrid -->
+        <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="o" x1="0" x2="1">
+              <stop offset="0" stop-color="#FF8200"/>
+              <stop offset="1" stop-color="#C7A64B"/>
+            </linearGradient>
+          </defs>
+          <path d="M8 30 L32 10 L56 30 V56 H8 Z" fill="url(#o)" stroke="#2a2a2a"/>
+          <rect x="29" y="6" width="6" height="10" rx="2" fill="#FF8200"/>
+          <circle cx="32" cy="6" r="3" fill="#C7A64B"/>
+        </svg>
+        <div>
+          <div class="brand-title">VOLHOLLA</div>
+          <div class="brand-sub">Bed & Breakfast • Smoky Mountains</div>
+        </div>
+      </div>
+      <nav class="menu" aria-label="Sections">
+        <a href="#book">Book</a>
+        <a href="#rooms">Rooms</a>
+        <a href="#xp">Experiences</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <button class="cta" onclick="document.getElementById('book').scrollIntoView({behavior:'smooth'})">Check Dates</button>
+    </div>
+  </header>
+
+  <section class="hero" aria-label="Hero">
+    <div class="bg" aria-hidden="true"></div>
+    <div class="wrap">
+      <span class="kicker">Viking stays • Tennessee grit • Folk wisdom</span>
+      <h1 class="headline">Raise Your Horns. Rest Like a Viking. Wake Like a Vol.</h1>
+      <p class="sub">A Viking‑branded bed & breakfast stitched into Maryville, Townsend, and Walland — shield‑domes, mead‑hall breakfasts, and firelit tales under the Smoky Mountain sky.</p>
+      <div class="hero-cta">
+        <a class="btn" href="#book">Book Your Stay</a>
+        <a class="btn alt" href="#xp">See Experiences</a>
+        <span class="pill" aria-label="rating"><span class="stars" aria-hidden="true">★★★★★</span> 4.9/5 • Guest Favorite</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="book" class="wrap booking" aria-labelledby="book-h2">
+    <h2 id="book-h2">Book Volholla</h2>
+    <p class="lead">Choose your dates and a hall to call your own. Our system checks real‑time rules, applies folk‑wisdom discounts, and confirms in seconds.</p>
+
+    <div class="grid">
+      <div class="card" style="grid-column:span 12">
+        <form id="bookingForm" aria-describedby="book-help">
+          <div class="row">
+            <div>
+              <label for="checkin">Check‑in</label>
+              <input type="date" id="checkin" name="checkin" required />
+            </div>
+            <div>
+              <label for="checkout">Check‑out</label>
+              <input type="date" id="checkout" name="checkout" required />
+            </div>
+            <div>
+              <label for="guests">Guests</label>
+              <select id="guests" name="guests">
+                <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+              </select>
+            </div>
+            <div>
+              <label for="room">Hall / Cabin</label>
+              <select id="room" name="room">
+                <option>Shield Dome (Maryville)</option>
+                <option>Viking Cabin (Walland)</option>
+                <option>Mead Hall Suite (Townsend)</option>
+                <option>Raiders’ Pavilion (Riverside)</option>
+              </select>
+            </div>
+          </div>
+          <p id="book-help" class="helper">Tip: Weeknights save 10%. Stays of 3+ nights unlock the <em>Longship</em> rate.</p>
+          <div class="row">
+            <button type="submit" class="btn">Check Availability</button>
+            <button type="button" class="btn alt" id="clearForm">Clear</button>
+          </div>
+          <div id="bookResult" class="notice" role="status" aria-live="polite" style="display:none"></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section id="rooms" class="wrap rooms" aria-labelledby="rooms-h2">
+    <h2 id="rooms-h2">Halls & Cabins</h2>
+    <p class="lead">From cozy shield‑domes to the big‑table Mead Hall, each space blends Norse myth, Volunteers pride, and Smoky Mountain craft.</p>
+    <div class="grid">
+      <article class="card">
+        <div class="room-img" role="img" aria-label="Shield Dome under stars">
+          <svg viewBox="0 0 1200 675" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#0a0f1a"/>
+                <stop offset="100%" stop-color="#0a0a0a"/>
+              </linearGradient>
+            </defs>
+            <rect fill="url(#sky)" width="1200" height="675"/>
+            <g fill="#fff" opacity=".6">
+              <circle cx="150" cy="120" r="2"/><circle cx="280" cy="60" r="1"/><circle cx="900" cy="110" r="2"/>
+              <circle cx="1040" cy="200" r="1"/><circle cx="600" cy="80" r="1.5"/>
+            </g>
+            <ellipse cx="600" cy="520" rx="380" ry="100" fill="#111"/>
+            <circle cx="600" cy="420" r="140" fill="#1b1b1b" stroke="#2a2a2a" stroke-width="8"/>
+            <circle cx="600" cy="420" r="120" fill="#111" stroke="#FF8200" stroke-width="6"/>
+            <rect x="560" y="370" width="80" height="50" fill="#FF8200"/>
+          </svg>
+        </div>
+        <h3>Shield Dome</h3>
+        <p>Geodesic flair, king bed, private deck. Built for star‑watchers and fire‑circle philosophers.</p>
+        <div class="flex">
+          <span class="badge">Sleeps 2–3</span>
+          <span class="badge">Private Bath</span>
+          <span class="badge">Mountain View</span>
+        </div>
+      </article>
+      <article class="card">
+        <div class="room-img" role="img" aria-label="Viking Cabin among pines">
+          <svg viewBox="0 0 1200 675" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+            <rect width="1200" height="675" fill="#0f0f0f"/>
+            <rect x="400" y="320" width="400" height="180" fill="#1d1d1d" stroke="#2a2a2a" stroke-width="8"/>
+            <polygon points="400,320 600,220 800,320" fill="#222" stroke="#2a2a2a" stroke-width="8"/>
+            <rect x="560" y="360" width="80" height="60" fill="#FF8200"/>
+            <rect x="460" y="380" width="60" height="60" fill="#131313"/>
+            <rect x="680" y="380" width="60" height="60" fill="#131313"/>
+          </svg>
+        </div>
+        <h3>Viking Cabin</h3>
+        <p>Timber warmth, queen bed, kitchenette, and a porch built for guitars at golden hour.</p>
+        <div class="flex">
+          <span class="badge">Sleeps 2–4</span>
+          <span class="badge">Kitchenette</span>
+          <span class="badge">Porch & Firepit</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="xp" class="wrap xp" aria-labelledby="xp-h2">
+    <h2 id="xp-h2">Experiences</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Mead‑Hall Breakfast</h3>
+        <p>Farm eggs, skillet biscuits, local honey. Coffee served strong enough to wake Odin.</p>
+      </div>
+      <div class="card">
+        <h3>Firepit of Legends</h3>
+        <p>Nightly story circle with folk wisdom and rock‑n‑roll covers. Horns up, voices out.</p>
+      </div>
+      <div class="card">
+        <h3>Peaceful Side Trails</h3>
+        <p>Direct access to Smokies gateways in Townsend and Walland. Maps & tips provided.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap reviews" aria-labelledby="rv-h2">
+    <h2 id="rv-h2">What Guests Say</h2>
+    <div class="grid">
+      <div class="card" style="grid-column:span 12">
+        <blockquote>
+          <div class="stars" aria-hidden="true">★★★★★</div>
+          “Like a Norse saga told by a Tennessee uncle. Best sleep I’ve had in years.” — <strong>Reese P.</strong>
+        </blockquote>
+      </div>
+    </div>
+  </section>
+
+  <section id="gallery" class="wrap" aria-labelledby="gal-h2">
+    <h2 id="gal-h2">Gallery</h2>
+    <div class="gallery" role="list">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 3'><rect width='4' height='3' fill='%23111111'/><circle cx='2' cy='1.5' r='0.9' fill='%23FF8200'/></svg>" alt="Shield Dome badge" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 3'><rect width='4' height='3' fill='%23121212'/><rect x='0.6' y='1.2' width='2.8' height='1.2' fill='%23222222'/></svg>" alt="Cabin facade" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 3'><rect width='4' height='3' fill='%23101010'/><rect x='0.4' y='0.4' width='3.2' height='2.2' fill='%23191919'/></svg>" alt="Mead hall table" role="listitem">
+      <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 3'><rect width='4' height='3' fill='%23141414'/><circle cx='2' cy='1.5' r='1.2' fill='%231b1b1b'/></svg>" alt="Firepit night" role="listitem">
+    </div>
+  </section>
+
+  <section id="contact" class="wrap" aria-labelledby="ct-h2">
+    <h2 id="ct-h2">Find Us • Talk to Us</h2>
+    <div class="grid">
+      <div class="card" style="grid-column:span 12">
+        <p><strong>Areas:</strong> Maryville • Townsend • Walland, Tennessee (Blount County)</p>
+        <p><strong>Email:</strong> <a href="mailto:stay@volholla.stay">stay@volholla.stay</a> &nbsp; <strong>Phone:</strong> <a href="tel:+18655550123">(865) 555‑0123</a></p>
+        <p class="helper">We’ll share precise directions after booking. Parking provided. Quiet hours honored.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="flex" style="justify-content:space-between;flex-wrap:wrap">
+        <div>&copy; <span id="yr"></span> Volholla — Bed & Breakfast • Smoky Mountains</div>
+        <div class="helper">Raise your horns. Rest your bones.</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Simple booking logic: validate dates, compute nights, apply basic discounts
+    const form = document.getElementById('bookingForm');
+    const res = document.getElementById('bookResult');
+    const clearBtn = document.getElementById('clearForm');
+    const yr = document.getElementById('yr');
+    yr.textContent = new Date().getFullYear();
+
+    function fmtUSD(n){return n.toLocaleString(undefined,{style:'currency',currency:'USD'});}
+
+    form.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const cin = new Date(form.checkin.value);
+      const cout = new Date(form.checkout.value);
+      if(!(cin instanceof Date) || isNaN(cin) || !(cout instanceof Date) || isNaN(cout)){
+        show('Please choose valid dates.');return;
+      }
+      if(cout <= cin){show('Check‑out must be after check‑in.');return;}
+      const nights = Math.round((cout - cin)/(1000*60*60*24));
+      // base ADR by room
+      const baseMap = {
+        'Shield Dome (Maryville)': 225,
+        'Viking Cabin (Walland)': 195,
+        'Mead Hall Suite (Townsend)': 285,
+        'Raiders’ Pavilion (Riverside)': 155
+      };
+      const room = form.room.value;
+      let adr = baseMap[room] || 199;
+      // Weeknight discount 10%
+      let disc = 0;
+      for(let i=0;i<nights;i++){
+        const d = new Date(cin); d.setDate(d.getDate()+i);
+        const wd = d.getDay(); // 0 Sun .. 6 Sat
+        if(wd>=1 && wd<=4) disc += .10*adr; // not cumulative per night; a crude proxy
+      }
+      // Longship rate for 3+ nights: extra 8%
+      let longship = nights>=3 ? 0.08*adr*nights : 0;
+      const subtotal = adr*nights - disc - longship;
+      const fees = Math.max(25, Math.round(subtotal*0.07)); // simple service/clean blend
+      const taxes = Math.round(subtotal*0.095);
+      const total = subtotal + fees + taxes;
+      show(`✅ <strong>Available</strong> — ${nights} night(s) in <strong>${room}</strong>\n\
+        Base ADR: ${fmtUSD(adr)} • Discounts: ${fmtUSD(disc+longship)} • Fees: ${fmtUSD(fees)} • Taxes: ${fmtUSD(taxes)}\n\
+        <strong>Total:</strong> ${fmtUSD(total)}. <br><em>Folk wisdom:</em> Weeknights and longer sails save coin.`);
+    });
+
+    clearBtn.addEventListener('click',()=>{
+      form.reset(); res.style.display='none'; res.textContent='';
+    });
+
+    function show(html){res.style.display='block'; res.innerHTML = html;}
+  </script>
+</body>
+</html>

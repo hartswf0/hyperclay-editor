@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VOLHOLLA — The Hall</title>
+  <!-- Shield favicon (inline SVG) -->
+  <link rel="icon" href='data:image/svg+xml;utf8,
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+      <path d="M100 20 Q140 40 170 60 Q170 120 140 160 Q100 180 60 160 Q30 120 30 60 Q60 40 100 20 Z" fill="%230E0E0E" stroke="%23FF8A00" stroke-width="10"/>
+    </svg>' />
+  <style>
+    :root {
+      --bg: #121212;         /* Night */
+      --fire: #ff6a00;       /* Fire */
+      --ember: #ffb157;      /* Warm accent */
+      --steel: #c0c0c0;      /* Steel */
+      --line: #000;          /* Border shadow base */
+      --ink: #f4f1ea;        /* Pale text */
+    }
+
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background:
+        radial-gradient(1200px 800px at 50% -20%, rgba(255,106,0,0.25), transparent 60%),
+        linear-gradient(180deg, #1b1b1b 0%, #0e0e0e 100%);
+      color: var(--ink);
+      overflow-x: hidden;
+      cursor: crosshair;
+      letter-spacing: 0.2px;
+    }
+
+    .intro { 
+      position: fixed; inset: 0; display: grid; place-items: center; z-index: 1000;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(3px);
+      transition: opacity .5s ease, transform .5s ease;
+    }
+    .intro.playing{background: transparent; backdrop-filter: none}
+    .intro.hidden { opacity: 0; pointer-events: none; transform: scale(.98); }
+
+    .intro-card {
+      background: #171717;
+      border: 2px solid rgba(255,106,0,.8);
+      border-radius: 18px;
+      padding: 1.5rem;
+      width: min(92vw, 420px);
+      box-shadow: 0 10px 0 rgba(255,106,0,0.15);
+      text-align: center;
+    }
+    .intro h1 { font-size: 1.3rem; letter-spacing: 0.18em; margin-bottom: .35rem; text-transform: uppercase; }
+    .intro .crest{display:none}
+    @keyframes pulse-glow{0%,100%{opacity:.65}50%{opacity:1}}
+    .intro p { font-size: .95rem; opacity: .92; line-height: 1.45; margin-bottom: .6rem; }
+    .intro .sub { font-size: .8rem; opacity: .85; margin-bottom: 1rem; letter-spacing:.06em }
+    .intro button {
+      background: var(--fire);
+      border: 2px solid #000;
+      color: #140a00;
+      padding: .6rem 1.2rem;
+      border-radius: 999px;
+      font-weight: 700; letter-spacing:.06em;
+      cursor: pointer; transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .intro button:hover { transform: translateY(-1px); box-shadow: 4px 4px 0 #000; }
+
+    /* Saul Bass / Whitney stage */
+    .bass-stage{position:fixed;inset:0;z-index:-1;display:grid;place-items:center;overflow:hidden}
+    .bars{position:absolute;inset:0;display:grid;grid-template-columns:repeat(7,1fr);gap:3vw;opacity:0.0;transition:opacity .6s ease}
+    .play .bars{opacity:0.85}
+    .bar{align-self:end;justify-self:center;width:8vw;height:6vh;background:#ff8a00;border:2px solid #000;box-shadow:6px 6px 0 #00000055;transform:translateY(40vh) rotate(0.0001deg)}
+    .play .bar{animation:bar-rise 1.8s cubic-bezier(.2,.7,.1,1) forwards}
+    .play .bar:nth-child(odd){animation-delay:.2s}
+    .play .bar:nth-child(3n){background:#ffb157;animation-delay:.35s}
+    @keyframes bar-rise{0%{transform:translateY(40vh)}100%{transform:translateY(0)}}
+
+    .rings{position:absolute;width:60vmin;height:60vmin;border-radius:50%;border:6px solid #ff8a00;box-shadow:6px 6px 0 #00000065;mix-blend-mode:normal;opacity:0;transform:scale(.6)}
+    .play .rings{animation:ripple 2.2s ease-out .9s forwards}
+    .rings::after{content:"";position:absolute;inset:12%;border-radius:50%;border:6px solid #ffb157}
+    @keyframes ripple{0%{opacity:0;transform:scale(.6)}60%{opacity:1}100%{opacity:.7;transform:scale(1)}}
+
+    /* VOLHOLLA letters (separate, falling) */
+    .title-cut{position:absolute;top:12vh;left:12vw;display:flex;gap:.8vmin;font-weight:900;letter-spacing:.08em;color:#111}
+    .title-cut span{display:inline-block;padding:.6vmin 1.1vmin;background:#ff8a00;border:2px solid #000;box-shadow:6px 6px 0 #00000065;opacity:0;transform:translateY(-18vh) rotate(-6deg)}
+    .title-cut span.drop{animation:fall-in .9s cubic-bezier(.25,.75,.2,1) forwards}
+    @keyframes fall-in{to{opacity:1;transform:translateY(0) rotate(0deg)}}
+
+    /* Blackout veil for ceremonial reveal */
+    .blackout{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:1500;transition:opacity .6s ease}
+    .blackout.go{opacity:1}
+    .blackout.fadeout{opacity:0}
+
+    .fadeout{position:fixed;inset:0;background:radial-gradient(80vmin 80vmin at 50% 60%,rgba(0,0,0,.0),rgba(0,0,0,.75));opacity:0;pointer-events:none}
+    .play .fadeout{animation:veil 3s ease-in 7.8s forwards}
+    @keyframes veil{0%{opacity:0}100%{opacity:1}}
+
+    .intro-controls{display:flex;gap:8px;justify-content:center;align-items:center;margin-top:.6rem}
+    .mute{background:#1a1a1a;color:#fff;border:2px solid #000;border-radius:999px;padding:.4rem .8rem;font-weight:800;cursor:pointer}
+
+    /* Raven flock */
+    .ravens{position:absolute;inset:0;pointer-events:none;opacity:0}
+    .play .ravens{opacity:1}
+    .bird{position:absolute;width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:14px solid #111;transform:rotate(20deg);filter:drop-shadow(3px 3px 0 #00000065)}
+    .bird::after{content:"";position:absolute;left:-16px;top:-2px;width:32px;height:8px;background:linear-gradient(90deg,#111 50%,transparent 50%);transform:rotate(-20deg)}
+    .bird.b1{left:-5vw;top:18vh;animation:fly 6.5s linear .8s forwards}
+    .bird.b2{left:-10vw;top:26vh;animation:fly 7s linear 1.2s forwards}
+    .bird.b3{left:-8vw;top:34vh;animation:fly 6.2s linear 1.6s forwards}
+    @keyframes fly{to{transform:translateX(120vw) rotate(10deg)}}
+
+    /* Rotating T-glyph */
+    .tglyph{position:absolute;right:8vw;top:14vh;width:64px;height:64px;border:6px solid #ff8a00;box-shadow:6px 6px 0 #00000065;background:#ff8a00}
+    .tglyph::before{content:"";position:absolute;left:50%;top:-14px;transform:translateX(-50%);width:72px;height:14px;background:#ffb157;border:2px solid #000}
+    .tglyph::after{content:"";position:absolute;left:50%;top:0;transform:translateX(-50%);width:12px;height:58px;background:#111;border-left:2px solid #000;border-right:2px solid #000}
+    .tglyph{opacity:0}
+    .play .tglyph{animation:spinT 2.4s ease-in-out .9s forwards}
+    @keyframes spinT{0%{opacity:0;transform:rotate(-90deg) scale(.8)}100%{opacity:1;transform:rotate(0deg) scale(1)}}
+
+    /* Shield outline draw (story beat) */
+    .shield-draw{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:44vmin;height:44vmin;opacity:0}
+    .shield-draw svg{width:100%;height:100%}
+    .play .shield-draw{animation:showShield .3s linear .9s forwards}
+    @keyframes showShield{to{opacity:1}}
+    .shield-draw path{fill:none;stroke:#ff8a00;stroke-width:8;stroke-linejoin:round;stroke-linecap:round;stroke-dasharray:800;stroke-dashoffset:800;}
+    .play .shield-draw path{animation:dash 3.2s ease-in-out 1.0s forwards}
+    @keyframes dash{to{stroke-dashoffset:0}}
+
+    /* Glyph cycle (center stage, subtle) */
+    .glyphs{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:36vmin;height:36vmin;display:grid;place-items:center;opacity:.6}
+    .glyphs svg{position:absolute;width:100%;height:100%;opacity:0}
+    .play .glyphs .g1{animation:gc 6s linear .4s infinite}
+    .play .glyphs .g2{animation:gc 6s linear 2.4s infinite}
+    .play .glyphs .g3{animation:gc 6s linear 4.4s infinite}
+    @keyframes gc{0%{opacity:0}10%{opacity:1}30%{opacity:.2}35%{opacity:0}100%{opacity:0}}
+
+    /* Orange orb path to brand */
+    .orange-orb{position:absolute;width:16px;height:16px;border-radius:50%;background:#ff8a00;box-shadow:0 0 16px #ff8a00, 2px 2px 0 #000;left:50%;top:64%;transform:translate(-50%,-50%);opacity:0}
+    .play .orange-orb{animation:toBrand 3.2s ease-in-out 10.6s forwards}
+    @keyframes toBrand{
+      0%{opacity:.0; transform:translate(-50%,-50%) scale(.5)}
+      10%{opacity:1}
+      60%{left:30%; top:30%;}
+      100%{left:28px; top:26px; transform:translate(0,0) scale(1)}
+    }
+
+    /* Saul Bass style intro mountains */
+    .mountains{position:fixed;inset:0;z-index:-1;overflow:hidden}
+    .mnt{position:absolute;bottom:-10vh;left:var(--x,0);width:0;height:0;border-left:12vw solid transparent;border-right:12vw solid transparent;border-bottom:22vh solid #ff8a00;opacity:.9;transform:translateY(0) rotate(0.0001deg);animation:rise 2.8s ease-out forwards}
+    .mnt:nth-child(2){--x:12vw;border-bottom-color:#ffb157;animation-delay:.2s}
+    .mnt:nth-child(3){--x:28vw;animation-delay:.4s}
+    .mnt:nth-child(4){--x:46vw;border-bottom-color:#ffb157;animation-delay:.6s}
+    .mnt:nth-child(5){--x:64vw;animation-delay:.8s}
+    .mnt:nth-child(6){--x:80vw;border-bottom-color:#ffb157;animation-delay:1s}
+    @keyframes rise{0%{transform:translateY(30vh)}100%{transform:translateY(0)}}
+
+    /* Fixed brand (top-left) */
+    .site-brand{position:fixed;top:10px;left:12px;z-index:4000;display:flex;align-items:center;gap:.5rem;background:rgba(18,18,18,.75);border:1px solid rgba(255,255,255,.06);padding:.35rem .6rem;border-radius:10px;backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .6s ease}
+    .site-brand.show{opacity:1;pointer-events:auto}
+    .site-brand .dot{width:8px;height:8px;border-radius:50%;background:var(--fire);box-shadow:0 0 10px var(--fire)}
+    .site-brand .word{font-weight:800;letter-spacing:.12em}
+
+    .grove { /* grid of relics */
+      display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem; padding: 2rem 1rem 4rem; max-width: 1200px; margin: 0 auto;
+      transition: opacity .8s ease, filter .8s ease;
+    }
+    .grove.pre-reveal{opacity:0; filter:blur(2px); pointer-events:none}
+
+    .relic { position: relative; width: 200px; height: 220px; margin: 0 auto; }
+    .shadow { position:absolute; bottom:-10px; left:50%; transform:translateX(-50%);
+      width: 150px; height: 20px; background: rgba(0,0,0,.35); border-radius:50%; filter: blur(4px);
+      transition: transform .3s ease; }
+    .relic:hover .shadow { transform: translateX(-50%) scale(1.08); }
+
+    .sigil-svg { position:absolute; inset:0; width:100%; height:100%; }
+
+    /* default shield */
+    .shield-group { opacity: 1; transition: opacity .3s ease; }
+    .relic:hover .shield-group { opacity: 0; }
+
+    .shield-body { fill: #1a1a1a; stroke: var(--fire); stroke-width: 3; filter: drop-shadow(0 6px 0 rgba(0,0,0,.4)); }
+
+    /* rune reveal */
+    .rune-group { opacity: 0; transition: opacity .3s ease; }
+    .relic:hover .rune-group { opacity: 1; }
+    .rune-disc { fill: #1a1a1a; stroke: var(--ember); stroke-width: 3; }
+    .rune-line { stroke: var(--ember); stroke-width: 2; stroke-linecap: round; }
+
+    /* interactive runes (dots) */
+    .runes { position:absolute; inset:0; display:block; opacity:0; pointer-events:none; transition:opacity .25s ease; }
+    .relic:hover .runes { opacity:1; pointer-events:auto; }
+    .rune-dot { position:absolute; width:56px; height:56px; border-radius:50%;
+      background: var(--fire); border: 2px solid #000; display:flex; align-items:center; justify-content:center;
+      font-size:.7rem; color:#140a00; font-weight:800; box-shadow: 2px 2px 0 #000; transition: transform .2s ease, box-shadow .2s ease, background .2s ease, outline .2s ease; }
+    .rune-dot.hidden { display:none; }
+    .rune-dot:hover { transform: scale(1.07); box-shadow: 4px 4px 0 #000; background: var(--ember); }
+    .rune-dot.active { background:#ffd08a; outline:3px solid #000; }
+
+    .label { position:absolute; bottom:-38px; left:50%; transform:translateX(-50%);
+      width:100%; text-align:center; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; color:#d9d4cb; opacity:.95; }
+
+    .modal { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; background: rgba(10,10,10,.84); opacity:0; pointer-events:none; transition: opacity .4s ease; z-index:1000; }
+    .modal.active { opacity: 1; pointer-events:auto; }
+    .modal-content { width:min(92vw, 540px); max-height:80vh; overflow:auto; background:#141414; border:2px solid var(--ember); border-radius:18px; padding:1.2rem; position:relative; transform: scale(.98); transition: transform .3s ease; display:flex; flex-direction:column; }
+    .modal.active .modal-content { transform: scale(1); }
+
+    .close-btn { position:absolute; top:.8rem; right:.8rem; width:40px; height:40px; border-radius:50%; background:var(--fire); border:2px solid #000; color:#140a00; font-weight:900; display:grid; place-items:center; cursor:pointer; }
+    .close-btn:hover { transform: rotate(90deg); }
+    .modal h3 { font-size:1.1rem; letter-spacing:.1em; text-transform:uppercase; margin:.2rem 2.2rem 0 .2rem; }
+    .modal h4 { margin-top:.6rem; font-size:.9rem; letter-spacing:.1em; opacity:.85; text-transform:uppercase; }
+    .modal p { margin:.6rem 0 1rem; line-height:1.55; opacity:.92; }
+    .modal pre { background:#0f0f0f; color:#e9e4dc; border:1px solid #272727; border-radius:10px; padding:1rem; font-size:.78rem; overflow-x:auto; }
+    .modal img { width:100%; border-radius:10px; border:1px solid #272727; margin:.8rem 0; }
+
+    /* Data tables (for CSV segments) */
+    .table-wrap{position:relative;width:100%;max-width:100%;overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x;border:1px solid #2a2a2a;border-radius:10px;background:#151515;margin:.6rem 0}
+    .table-wrap::-webkit-scrollbar{height:8px}
+    .table-wrap::-webkit-scrollbar-thumb{background:#333;border-radius:999px}
+    table.data{width:100%;border-collapse:separate;border-spacing:0;min-width:960px;background:#121212;color:#e9e4dc}
+    table.data th, table.data td{border-bottom:1px solid #2a2a2a;padding:.45rem .6rem;white-space:nowrap;font-size:.85rem;vertical-align:top}
+    table.data th{position:sticky;top:0;background:#181818;color:#ffb157;border-bottom:2px solid #333;z-index:1}
+
+    /* Markdown preview styling */
+    .md{color:#e9e4dc;line-height:1.6}
+    .md h1,.md h2,.md h3{margin:1rem 0 .5rem;color:#ffb157}
+    .md p{margin:.6rem 0}
+    .md code{background:#0f0f0f;border:1px solid #272727;border-radius:6px;padding:0 .25rem}
+    .md pre{background:#0f0f0f;border:1px solid #272727;border-radius:10px;padding:1rem;overflow:auto}
+    .md a{color:#ffb157}
+    .md ul,.md ol{margin:.4rem 0 .8rem;padding-left:1.2rem}
+
+    .dots { display:flex; gap:8px; justify-content:center; padding-top:1rem; border-top:1px dashed rgba(255,255,255,.08); }
+    .dot { width:12px; height:12px; border-radius:50%; background: #2a2a2a; border:1px solid #000; cursor:pointer; }
+    .dot.active { background: var(--fire); box-shadow: 0 0 8px var(--fire); }
+
+    @media (max-width: 768px) {
+      .grove { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; padding-bottom: 5rem; }
+      .relic { width: 160px; height: 180px; }
+      .rune-dot { width:44px; height:44px; font-size:.62rem; }
+      .label { bottom: -30px; font-size:.7rem; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed brand, always top-left -->
+  <div class="site-brand"><span class="dot"></span><span class="word">VOLHOLLA</span></div>
+
+  <div class="intro" id="intro">
+    <div class="intro-card">
+      <span class="crest" aria-hidden="true"></span>
+      <h1>RAISE YOUR HORNS</h1>
+      <p>Step past the gate. Choose a relic. Claim its rune.</p>
+      <p class="sub">Knowledge is earned at the fire — not skimmed in the dark.</p>
+      <div class="intro-controls">
+        <button onclick="startSequence()" aria-label="Begin the sequence and enter">Light the Fire</button>
+        <button class="mute" onclick="skipSequence()" aria-label="Skip intro">Skip</button>
+      </div>
+    </div>
+    <div class="mountains" aria-hidden="true">
+      <div class="mnt"></div><div class="mnt"></div><div class="mnt"></div>
+      <div class="mnt"></div><div class="mnt"></div><div class="mnt"></div>
+    </div>
+    <div class="bass-stage" id="bassStage" aria-hidden="true">
+      <div class="bars">
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        <div class="bar"></div>
+      </div>
+      <div class="rings"></div>
+      <div class="ravens" aria-hidden="true"><div class="bird b1"></div><div class="bird b2"></div><div class="bird b3"></div></div>
+      <div class="tglyph" aria-hidden="true"></div>
+      <div class="shield-draw" aria-hidden="true">
+        <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><path d="M100 20 Q140 40 170 60 Q170 120 140 160 Q100 180 60 160 Q30 120 30 60 Q60 40 100 20 Z"/></svg>
+      </div>
+      <div class="glyphs" aria-hidden="true">
+        <svg class="g1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="#ffb157" stroke-width="10"><line x1="30" y1="100" x2="170" y2="100"/><line x1="100" y1="30" x2="100" y2="170"/></g></svg>
+        <svg class="g2" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="56" fill="none" stroke="#ff8a00" stroke-width="10"/></svg>
+        <svg class="g3" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="#ffb157" stroke-width="10"><polyline points="60,130 100,90 140,130"/><polyline points="60,100 100,60 140,100"/></g></svg>
+      </div>
+      <div class="orange-orb" aria-hidden="true"></div>
+      <div class="title-cut" aria-hidden="true">
+        <span>V</span><span>O</span><span>L</span><span>H</span><span>O</span><span>L</span><span>L</span><span>A</span>
+      </div>
+      <!-- title-cut removed per request -->
+      <div class="fadeout"></div>
+    </div>
+  </div>
+
+  <!-- Blackout layer for ceremonial reveal -->
+  <div class="blackout" id="blackout" aria-hidden="true"></div>
+
+
+
+  <main class="grove" id="relics" aria-live="polite"></main>
+
+  <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <button class="close-btn" aria-label="Close" onclick="closeModal()">×</button>
+      <h3 id="modal-title"></h3>
+      <audio id="themeAudio" preload="auto"></audio>
+      <div id="modal-body"></div>
+      <div class="dots" id="modal-dots"></div>
+    </div>
+  </div>
+
+  <script>
+    // CSV sources embedded from exported-assets
+    const CSV = {
+      structure: `Market,Structure Type,CAPEX ($),Annual OPEX ($),Gross Revenue ($),Net Revenue ($),Payback (years),IRR Approx (%),Quality Score,Total 2yr Cost ($),Price Index,Bang for Buck,BFB Rank\nMaryville,Yurt,48000,4380,25550,20403.5,2.3525,42.5073,7.3,56760,7.2750,5.7368,1\nMaryville,Barndominium,140000,9180,25550,15603.5,8.9723,11.1454,8.26,158360,1.0,4.3474,6\nMaryville,Quonset Hut,68000,6540,25550,18243.5,3.7274,26.8287,6.82,81080,5.7730,4.7937,4\nMaryville,Geodesic Dome,59000,5100,25550,19683.5,2.9974,33.3619,7.59,69200,6.5067,5.6250,2\nMaryville,Tiny House,90000,6060,25550,18723.5,4.8068,20.8039,7.19,102120,4.4735,4.6308,5\nMaryville,Safari Tent,25200,3300,25550,21483.5,1.1730,85.2520,6.19,31800,8.8166,5.5350,3\nMaryville,FEMA Tent,8800,1920,25550,22863.5,0.3849,259.8125,4.29,12640,10.0,4.29,7\nTownsend,Yurt,48000,4380,33215,27838.55,1.7242,58.0,7.3,56760,7.2750,5.7368,1\nTownsend,Geodesic Dome,59000,5100,33215,27118.55,2.1756,45.9636,7.59,69200,6.5067,5.6250,2\nTownsend,Safari Tent,25200,3300,33215,28918.55,0.8714,114.7562,6.19,31800,8.8166,5.5350,3\nTownsend,Quonset Hut,68000,6540,33215,25678.55,2.6481,37.7626,6.82,81080,5.7730,4.7937,4\nTownsend,Tiny House,90000,6060,33215,26158.55,3.4406,29.0651,7.19,102120,4.4735,4.6308,5\nTownsend,Barndominium,140000,9180,33215,23038.55,6.0768,16.4561,8.26,158360,1.0,4.3474,6\nTownsend,FEMA Tent,8800,1920,33215,30298.55,0.2904,344.3017,4.29,12640,10.0,4.29,7\nWalland,Yurt,48000,4380,30295,25006.15,1.9195,52.0961,7.3,56760,7.2750,5.7368,1\nWalland,Geodesic Dome,59000,5100,30295,24286.15,2.4294,41.1630,7.59,69200,6.5067,5.6250,2\nWalland,Safari Tent,25200,3300,30295,26086.15,0.9660,103.5165,6.19,31800,8.8166,5.5350,3\nWalland,Quonset Hut,68000,6540,30295,22846.15,2.9764,33.5973,6.82,81080,5.7730,4.7937,4\nWalland,Tiny House,90000,6060,30295,23326.15,3.8583,25.9180,7.19,102120,4.4735,4.6308,5\nWalland,Barndominium,140000,9180,30295,20206.15,6.9286,14.4330,8.26,158360,1.0,4.3474,6\nWalland,FEMA Tent,8800,1920,30295,27466.15,0.3204,312.1153,4.29,12640,10.0,4.29,7\n`,
+      market: `Location,Avg_ADR,Occupancy_Rate,Annual_Revenue,Market_Type,RevPAR\nMaryville TN,220,55,44000,Gateway to GSMNP,121.0\nTownsend TN,310,43,48700,Peaceful Side Smokies,133.3\nWalland TN (Blackberry Farm area),400,60,87600,Luxury Halo,240.0\nSevierville TN,375,58,79500,Tourist Hub,217.5\nGatlinburg TN,335,55,67200,Mountain Town,184.25\nPigeon Forge TN,326,53,63100,Attraction Center,172.78\n`,
+      opex: `Type,Annual_Utilities,Cleaning_Laundry,Maintenance_Repairs,Insurance,Platform_Fees_15pct,Property_Tax,Total_OPEX\nYurt (Shield Dome),1800,3600,1500,2000,6600,800,16300\nBarndominium (Mead Hall),4000,6000,4000,4500,11925,2000,32425\nQuonset Hut (Iron Longhouse),3500,5500,3000,3500,7310,1500,24310\nGeodesic Dome (Odin's Eye Dome),2000,4000,1200,2200,13140,600,23140\nTiny House (Viking Cabin),3000,4500,2500,3000,11925,1500,26425\nSafari Tent (Raiders' Pavilion),1500,3000,2000,1800,7310,400,16010\nFEMA/Military Tent (Traveler's Shelter),1000,2500,1500,1200,13140,200,19540\n`,
+      regulatory: `Jurisdiction,Building Permit Required,Zoning Approval,Septic/Sewer,STR License,Occupancy Tax,Min Insurance\nBlount County,Yes,Required,Site dependent,$20 home occupation,County rate,$500K liability\nMaryville,Yes,Required,Municipal available,Business license req,City + County,$500K liability\nTownsend,Yes,Required,Limited municipal,Business license req,City + County,$500K liability\nWalland,Yes,Required,Septic required,Business license req,County rate,$500K liability\n`,
+      deps: `Structure Type,Critical Dependencies,Risk Level,Key Mitigations\nYurt,"Platform, snow load cert, insulation, septic",Medium,"Engineered platform, proper insulation liner"\nGeodesic Dome,"Platform, glazing cert, snow load, HVAC",Medium-High,"Professional glazing, certified snow load design"\nSafari Tent,"Heavy frame, platform, weather protection",Medium,"Quality frame system, seasonal maintenance plan"\nQuonset Hut,"Slab foundation, insulation, moisture control",Medium,"Proper vapor barrier, interior framing"\nTiny House,"Foundation/wheels decision, zoning variance",High,Pre-approved tiny house community\nBarndominium,"Full foundation, code compliance, HVAC",High,"Full architectural plans, professional construction"\nFEMA Tent,"Weatherproofing upgrades, aesthetic improvements",High,Major upgrades for durability and aesthetics\n`
+    };
+    // ——— Data: VOLHOLLA Relics (myth-first, operative) ———
+    const relics = [
+      {
+        id: 1,
+        title: "MEAD HALL — Landing",
+        segments: [
+          { id: "01", type: "link", content: { href: './index.html', label: 'Brand Identity Spec (index.html)' } },
+          { id: "02", type: "link", content: { href: './analysis.html', label: 'Analysis Deck (analysis.html)' } },
+          { id: "03", type: "page", content: { src: './exported-assets (10)/index.html', title: 'Brand Site Export' } }
+        ]
+      },
+      {
+        id: 2,
+        title: "RELIC GRID — Catalog",
+        segments: [
+          { id: "01", type: "link", content: { href: './volholla_single_file_b_b_website_index.html', label: 'Single-file B&B site' } },
+          { id: "02", type: "link", content: { href: './volholla_single_file_b_b_website_index (1).html', label: 'B&B site (alt)' } },
+          { id: "03", type: "page", content: { src: './vol.html', title: 'Asset Deck' } }
+        ]
+      },
+      {
+        id: 3,
+        title: "THE SAGA — About",
+        segments: [
+          { id: "01", type: "link", content: { href: './Glamping Market Analysis_ Walland, Maryville, and.md', label: 'Glamping Market Analysis (MD)' } },
+          { id: "02", type: "link", content: { href: './Glamping Structure CBA & SWOT Analysis_ Tennessee.md', label: 'Structure CBA & SWOT (MD)' } },
+          { id: "03", type: "image", content: ringSvg('#ff6a00', '#ffb157') }
+        ]
+      },
+      {
+        id: 4,
+        title: "HUNT LODGE — Townsend/Walland",
+        segments: [
+          { id: "01", type: "text", content: "Site ideas: timber frame longhouse, stone hearth, copper roof." },
+          { id: "02", type: "text", content: "Study: Theodore Roosevelt lodge, Wrightian modernism, rural studios." },
+          { id: "03", type: "image", content: badgeSvg('#ff6a00') }
+        ]
+      },
+      {
+        id: 5,
+        title: "RUNE ENGINE — CMS Rules",
+        segments: [
+          { id: "01", type: "text", content: "Sections are rites. Blocks are runes. Content is ritual." },
+          { id: "02", type: "code", content: `const rite = (name, act) => ({ name, act });` },
+          { id: "03", type: "text", content: "Template: Gate → Relics → Saga → Horde → Raven." }
+        ]
+      },
+      {
+        id: 6,
+        title: "THE HORDE — Community",
+        segments: [
+          { id: "01", type: "text", content: "Collect proofs: builds, stays, field photos. Minimal feed." },
+          { id: "02", type: "image", content: ringSvg('#ffb157', '#ff6a00') },
+          { id: "03", type: "text", content: "Submission CTA: Send your proof. We feature deeds, not likes." }
+        ]
+      },
+      {
+        id: 7,
+        title: "RAVEN — Contact",
+        segments: [
+          { id: "01", type: "text", content: "Simple form. One rune button. Reply promise: 48 hours." },
+          { id: "02", type: "code", content: `function sendRaven(payload){ /* POST to your backend */ }` },
+          { id: "03", type: "text", content: "Copy: Send a Raven. We answer with fire." }
+        ]
+      },
+      {
+        id: 8,
+        title: "PAYOFF — CBA & SWOT",
+        segments: [
+          { id: "01", type: "image", content: './exported-assets (8)/chart.png' },
+          { id: "02", type: "image", content: './exported-assets (9)/payback_chart.png' },
+          { id: "03", type: "image", content: './exported-assets (9)/scatter_plot.png' },
+          { id: "04", type: "link", content: { href: './exported-assets (8)/glamping-structure-analysis-report.pdf', label: 'PDF: Glamping Structure Analysis Report' } }
+        ]
+      },
+      {
+        id: 11,
+        title: "STRUCTURE ANALYSIS — Tables",
+        segments: [
+          { id: "01", type: "table", content: CSV.structure },
+          { id: "02", type: "link", content: { href: './exported-assets (8)/glamping_structure_analysis.csv', label: 'Download: glamping_structure_analysis.csv' } },
+          { id: "03", type: "link", content: { href: './exported-assets (9)/volholla_structure_costs.csv', label: 'Download: volholla_structure_costs.csv' } }
+        ]
+      },
+      {
+        id: 12,
+        title: "MARKET & OPEX — Tables",
+        segments: [
+          { id: "01", type: "table", content: CSV.market },
+          { id: "02", type: "table", content: CSV.opex },
+          { id: "03", type: "link", content: { href: './exported-assets (9)/volholla_market_data.csv', label: 'Download: volholla_market_data.csv' } },
+          { id: "04", type: "link", content: { href: './exported-assets (9)/volholla_opex_data.csv', label: 'Download: volholla_opex_data.csv' } }
+        ]
+      },
+      {
+        id: 13,
+        title: "REGULATORY — Matrix",
+        segments: [
+          { id: "01", type: "table", content: CSV.regulatory },
+          { id: "02", type: "table", content: CSV.deps },
+          { id: "03", type: "link", content: { href: './exported-assets (8)/regulatory_matrix.csv', label: 'Download: regulatory_matrix.csv' } },
+          { id: "04", type: "link", content: { href: './exported-assets (8)/dependencies_risk.csv', label: 'Download: dependencies_risk.csv' } }
+        ]
+      },
+      {
+        id: 14,
+        title: "BRAND SITE — Pages",
+        segments: [
+          { id: "01", type: "page", content: { src: './exported-assets (10)/index.html', title: 'Exported Brand Site' } },
+          { id: "02", type: "link", content: { href: './exported-assets (10)/style.css', label: 'style.css' } },
+          { id: "03", type: "link", content: { href: './exported-assets (10)/app.js', label: 'app.js' } },
+          { id: "04", type: "link", content: { href: './exported-assets (10)/volholla-brand-site.zip.zip', label: 'ZIP: volholla-brand-site.zip.zip' } }
+        ]
+      },
+      {
+        id: 15,
+        title: "REPORT — PDF",
+        segments: [
+          { id: "01", type: "link", content: { href: './exported-assets (8)/glamping-structure-analysis-report.pdf', label: 'Open PDF Report' } }
+        ]
+      },
+      {
+        id: 9,
+        title: "BRAND LORE — Tokens",
+        segments: [
+          { id: "01", type: "text", content: "Color: Fire, Night, Steel. Type: Blackletter heads + clean body." },
+          { id: "02", type: "image", content: paletteSvg() },
+          { id: "03", type: "code", content: `const tokens = { fire:'#ff6a00', night:'#121212', steel:'#c0c0c0' };` }
+        ]
+      },
+      {
+        id: 10,
+        title: "OPERATIONS — Stack",
+        segments: [
+          { id: "01", type: "text", content: "Shopify if selling. Webflow if myth-led. Single-page ritual works." },
+          { id: "02", type: "text", content: "Email: Claim your place in the Hall. SEO: myth + location." },
+          { id: "03", type: "code", content: `const stack = ['Host','CMS','Checkout','Email'];` }
+        ]
+      }
+    ];
+
+    // ——— SVG helpers ———
+    function svgTile(bg = '#1a1a1a', stroke = '#ff6a00') {
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='${bg}'/><g stroke='${stroke}' stroke-width='3' fill='none'><path d='M20 20L180 20L180 180L20 180Z'/><path d='M20 60H180M20 100H180M20 140H180'/></g></svg>`)}`;
+    }
+    function ringSvg(a = '#ff6a00', b = '#ffb157') {
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><defs><radialGradient id='g' cx='50%' cy='50%'><stop offset='0%' stop-color='${a}'/><stop offset='100%' stop-color='${b}'/></radialGradient></defs><circle cx='100' cy='100' r='72' fill='none' stroke='url(#g)' stroke-width='10'/><circle cx='100' cy='100' r='6' fill='${a}'/></svg>`)}`;
+    }
+    function badgeSvg(c = '#ff6a00') {
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><polygon points='100,20 170,70 145,160 55,160 30,70' fill='none' stroke='${c}' stroke-width='6'/><circle cx='100' cy='100' r='26' fill='${c}'/></svg>`)}`;
+    }
+    function chartSvg(){
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='#0f0f0f'/><g stroke='#444' stroke-width='1'><path d='M20 170H180'/><path d='M20 130H180'/><path d='M20 90H180'/><path d='M20 50H180'/></g><polyline fill='none' stroke='#ff6a00' stroke-width='3' points='20,160 60,120 100,110 140,70 180,60'/></svg>`)}`;
+    }
+    function paletteSvg(){
+      return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='#0f0f0f'/><rect x='20' y='30' width='40' height='140' fill='#ff6a00'/><rect x='80' y='30' width='40' height='140' fill='#ffb157'/><rect x='140' y='30' width='40' height='140' fill='#c0c0c0'/></svg>`)}`;
+    }
+
+    // ——— Factory: Relic (shield + runes) ———
+    function createRelic(item){
+      const wrap = document.createElement('div');
+      wrap.className = 'relic';
+      wrap.dataset.projectId = item.id;
+
+      // build rune dots (6)
+      let dots = '';
+      for(let i=0;i<6;i++){
+        const seg = item.segments[i];
+        const hidden = seg ? '' : 'hidden';
+        const label = seg ? seg.id : '';
+        dots += `<div class="rune-dot ${hidden}" data-seg="${i}" onclick="openSegment(${item.id}, ${i})">${label}</div>`;
+      }
+
+      wrap.innerHTML = `
+        <div class="shadow"></div>
+        <svg class="sigil-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <g class="shield-group">
+            <path class="shield-body" d="M100 20 Q140 40 170 60 Q170 120 140 160 Q100 180 60 160 Q30 120 30 60 Q60 40 100 20 Z" />
+          </g>
+          <g class="rune-group">
+            <circle class="rune-disc" cx="100" cy="100" r="78" />
+            ${buildRuneLines(6)}
+            ${crestSVG(item._crest ?? item.id)}
+          </g>
+        </svg>
+        <div class="runes">${dots}</div>
+        <div class="label">RELIC ${String(item.id).padStart(2,'0')} — ${item.title}</div>
+      `;
+
+      return wrap;
+    }
+
+    function buildRuneLines(n){
+      const rIn = 24, rOut = 78; let lines = '';
+      for(let i=0;i<n;i++){
+        const a = (i*(360/n))*Math.PI/180;
+        const x1 = 100 + rIn*Math.cos(a), y1 = 100 + rIn*Math.sin(a);
+        const x2 = 100 + rOut*Math.cos(a), y2 = 100 + rOut*Math.sin(a);
+        lines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="rune-line"/>`;
+      }
+      return lines;
+    }
+
+    // Distinct crest per relic (simple inline SVG motifs)
+    function crestSVG(id){
+      const i = Number(id)%6;
+      switch(i){
+        case 0: // shield cross
+          return `<g stroke="var(--ember)" stroke-width="3" opacity="0.9"><line x1="100" y1="34" x2="100" y2="166"/><line x1="34" y1="100" x2="166" y2="100"/></g>`;
+        case 1: // ring
+          return `<circle cx="100" cy="100" r="44" fill="none" stroke="var(--fire)" stroke-width="5" opacity="0.9"/>`;
+        case 2: // chevrons
+          return `<g fill="none" stroke="var(--ember)" stroke-width="4" opacity="0.9"><path d="M60 120 L100 80 L140 120"/><path d="M60 100 L100 60 L140 100"/></g>`;
+        case 3: // hammer rune (T)
+          return `<g fill="none" stroke="var(--fire)" stroke-width="5" opacity="0.9"><line x1="70" y1="80" x2="130" y2="80"/><line x1="100" y1="80" x2="100" y2="140"/></g>`;
+        case 4: // ledger bars
+          return `<g fill="none" stroke="var(--ember)" stroke-width="6" opacity="0.9"><line x1="70" y1="120" x2="90" y2="120"/><line x1="90" y1="100" x2="120" y2="100"/><line x1="80" y1="80" x2="140" y2="80"/></g>`;
+        default: // raven mark (simple V)
+          return `<path d="M60 80 L100 130 L140 80" fill="none" stroke="var(--fire)" stroke-width="5" opacity="0.9"/>`;
+      }
+    }
+
+    function positionRunes(){
+      document.querySelectorAll('.relic').forEach(rel => {
+        const box = rel.getBoundingClientRect();
+        const radius = box.width/2 * 0.62; // inner circle
+        rel.querySelectorAll('.rune-dot').forEach((dot, i) => {
+          const total = 6, step = (Math.PI*2)/total;
+          const angle = (i*step) + (step/2) - Math.PI/2; // start at top, centered
+          const x = Math.cos(angle)*radius, y = Math.sin(angle)*radius;
+          dot.style.left = `calc(50% + ${x}px)`;
+          dot.style.top  = `calc(50% + ${y}px)`;
+          dot.style.transform = 'translate(-50%, -50%)';
+        });
+      });
+    }
+
+    // ——— Modal Controls ———
+    let currentItem = null, currentSegIndex = 0;
+
+    function openSegment(id, idx){
+      currentItem = relics.find(r => r.id === id);
+      currentSegIndex = idx;
+      if(!currentItem || !currentItem.segments[idx]) return;
+      // Visual feedback: mark selected segment node active within this relic
+      const relicEl = document.querySelector(`.relic[data-project-id='${id}']`);
+      if(relicEl){
+        relicEl.querySelectorAll('.rune-dot').forEach(d=>d.classList.remove('active'));
+        const node = relicEl.querySelector(`.rune-dot[data-seg='${idx}']`);
+        if(node) node.classList.add('active');
+      }
+      renderModal();
+      document.getElementById('modal').classList.add('active');
+      clickTone();
+    }
+
+    function renderModal(){
+      const seg = currentItem.segments[currentSegIndex];
+      document.getElementById('modal-title').textContent = `RELIC ${String(currentItem.id).padStart(2,'0')} — ${currentItem.title}`;
+      const body = document.getElementById('modal-body');
+      let html = '';
+      if(seg){
+        if(seg.type === 'text') html = `<h4>RUNE ${seg.id}</h4><p>${seg.content}</p>`;
+        if(seg.type === 'image') html = `<h4>RUNE ${seg.id}</h4><img alt="${seg.id}" src="${seg.content}">`;
+        if(seg.type === 'code') html = `<h4>RUNE ${seg.id}</h4><pre><code>${escapeHtml(seg.content)}</code></pre>`;
+        if(seg.type === 'table') html = `<h4>RUNE ${seg.id}</h4>${renderCSVTable(seg.content)}`;
+        if(seg.type === 'link'){
+          const href = seg.content.href; const label = escapeHtml(seg.content.label||href);
+          const lower = href.toLowerCase();
+          if(lower.endsWith('.pdf')){
+            html = `<h4>RUNE ${seg.id}</h4>
+              <p><a class="btn-open" href="${href}" target="_blank" rel="noopener">${label} ↗</a></p>
+              <div class="table-wrap" style="height:60vh"><iframe src="${href}" title="PDF Preview" style="width:100%;height:100%;border:0"></iframe></div>`;
+          } else if(lower.endsWith('.csv')){
+            const cid = `csv_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            html = `<h4>RUNE ${seg.id}</h4>
+              <p><a class="btn-open" href="${href}" target="_blank" rel="noopener">${label} ↗</a></p>
+              <div id="${cid}" class="table-wrap"><div style="padding:.6rem;color:#ccc">Loading preview…</div></div>`;
+            setTimeout(()=>loadAndRenderCSV(href, document.getElementById(cid)),0);
+          } else if(lower.endsWith('.md')){
+            const mid = `md_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            html = `<h4>RUNE ${seg.id}</h4>
+              <p><a class=\"btn-open\" href=\"${href}\" target=\"_blank\" rel=\"noopener\">${label} ↗</a></p>
+              <div id=\"${mid}\" class=\"table-wrap\"><div style=\"padding:.6rem;color:#ccc\">Loading preview…</div></div>`;
+            setTimeout(()=>loadAndRenderMD(href, document.getElementById(mid)),0);
+          } else if(lower.endsWith('.html')){
+            html = `<h4>RUNE ${seg.id}</h4>
+              <p><a class="btn-open" href="${href}" target="_blank" rel="noopener">${label} ↗</a></p>
+              <div class="table-wrap" style="height:60vh"><iframe src="${href}" title="HTML Preview" style="width:100%;height:100%;border:0"></iframe></div>`;
+          } else {
+            html = `<h4>RUNE ${seg.id}</h4><p><a class="btn-open" href="${href}" target="_blank" rel="noopener">${label} ↗</a></p>`;
+          }
+        }
+        if(seg.type === 'page') html = `<h4>RUNE ${seg.id}</h4>
+          <p><a class="btn-open" href="${seg.content.src}" target="_blank" rel="noopener">Open ${escapeHtml(seg.content.title||'Page')} ↗</a></p>
+          <div class="table-wrap" style="height:60vh"><iframe src="${seg.content.src}" title="${escapeHtml(seg.content.title||'Page')}" style="width:100%;height:100%;border:0"></iframe></div>`;
+      }
+      body.innerHTML = html || '<p>No content.</p>';
+
+      const dots = document.getElementById('modal-dots');
+      dots.innerHTML = '';
+      currentItem.segments.forEach((_, i) => {
+        const d = document.createElement('span');
+        d.className = 'dot' + (i === currentSegIndex ? ' active' : '');
+        d.onclick = () => { currentSegIndex = i; renderModal(); clickTone(); };
+        dots.appendChild(d);
+      });
+    }
+
+    function closeModal(){
+      document.getElementById('modal').classList.remove('active');
+      currentItem = null; currentSegIndex = 0;
+    }
+
+    let audioMuted=false; // reserved if needed later
+
+    function startSequence(){
+      // Stage plays while intro is visible, then we fade intro and continue audio quietly
+      const stage=document.getElementById('bassStage'); stage.classList.add('play');
+      // remove card/backdrop so animation is unobstructed
+      const intro=document.getElementById('intro');
+      intro.classList.add('playing');
+      const card=intro.querySelector('.intro-card'); if(card) card.style.display='none';
+      // Start audio
+      try{
+        const audio = document.getElementById('themeAudio');
+        audio.src = encodeURI('./Volholla, Volunteer remix v2.2.mp3');
+        audio.currentTime = 0;
+        audio.volume = 0.9; audio.muted=audioMuted;
+        const p = audio.play(); if(p && p.catch){ p.catch(()=>{}); }
+        // Sequence (calm, crisp):
+        // 0s bars start; 2.8s shield draw; 6.0s hold; 6.8s ripple; 8.0s start audio fade; 8.6s orb; 8.8s blackout up; 9.2s grid render; 9.6s blackout down; 10.0s hide intro
+        // Prime grid but keep fully hidden
+        (function primeGrid(){
+          if(!GRID_READY.length){
+            const highValueTypes = new Set(['image','table','link','page']);
+            GRID_READY = relics.filter(r => r.segments && r.segments.some(s => highValueTypes.has(s.type)));
+            GRID_READY.forEach((r,i)=>{ r._crest = i; });
+          }
+        })();
+        // Drop VOLHOLLA letters in sync with early shield/bar beats
+        (function dropLetters(){
+          const letters = Array.from(document.querySelectorAll('.title-cut span'));
+          const beats = [400, 850, 1300, 1750, 2200, 2650, 3100, 3550]; // ms from start
+          letters.forEach((el, i)=>{
+            const t = beats[i] ?? (400 + i*420);
+            setTimeout(()=>{ el.classList.add('drop'); }, t);
+          });
+        })();
+        const host=document.getElementById('relics');
+        host.classList.add('pre-reveal');
+        // Audio fade begins a touch early
+        setTimeout(()=>{ const f=setInterval(()=>{ audio.volume=Math.max(0.0,audio.volume-0.05); if(audio.volume<=0.02){clearInterval(f); audio.pause();}},180);}, 8000);
+        // Blackout up
+        setTimeout(()=>{ document.getElementById('blackout').classList.add('go'); }, 8800);
+        // Render grid under blackout
+        setTimeout(()=>{ if(!host.children.length) renderGrid(); }, 9200);
+        // Blackout down (reveal grid gently) and remove blur
+        setTimeout(()=>{ host.classList.remove('pre-reveal'); const b=document.getElementById('blackout'); b.classList.remove('go'); b.classList.add('fadeout'); }, 9600);
+        // Brand fades in just after shields are visible
+        setTimeout(()=>{ const brand=document.querySelector('.site-brand'); if(brand){ brand.classList.add('show'); } }, 9750);
+        // Hide intro layer
+        setTimeout(()=>{ intro.classList.add('hidden'); }, 10000);
+      }catch(e){ document.getElementById('intro').classList.add('hidden'); }
+    }
+
+    function skipSequence(){
+      try{ const a=document.getElementById('themeAudio'); a.pause(); }catch(e){}
+      const intro=document.getElementById('intro');
+      // hide card immediately and remove backdrop so animations can still play if desired
+      const card=intro.querySelector('.intro-card'); if(card) card.style.display='none';
+      intro.classList.add('playing');
+      // Render grid now and hide everything
+      renderGrid();
+      intro.classList.add('hidden');
+    }
+
+    // Robust CSV parser and renderer
+    function parseCSV(text){
+      const rows=[]; let row=[]; let field=''; let inQuotes=false; let i=0;
+      while(i<text.length){
+        const ch=text[i];
+        if(inQuotes){
+          if(ch==='"'){
+            if(text[i+1]==='"'){ field+='"'; i+=2; continue; }
+            inQuotes=false; i++; continue;
+          } else { field+=ch; i++; continue; }
+        } else {
+          if(ch==='"'){ inQuotes=true; i++; continue; }
+          if(ch===','){ row.push(field); field=''; i++; continue; }
+          if(ch==='\n' || ch==='\r'){
+            if(ch==='\r' && text[i+1]==='\n') i++;
+            row.push(field); field='';
+            if(row.some(c=>c!=='')) rows.push(row);
+            row=[]; i++; continue;
+          }
+          field+=ch; i++; continue;
+        }
+      }
+      row.push(field); if(row.some(c=>c!=='')) rows.push(row);
+      return rows;
+    }
+    function renderCSVTable(csv){
+      const m = parseCSV(csv.trim()); if(!m.length) return '<p>Empty</p>';
+      const h = m[0]; const d = m.slice(1);
+      const thead = `<thead><tr>${h.map(x=>`<th>${escapeHtml(x)}</th>`).join('')}</tr></thead>`;
+      const tbody = `<tbody>${d.map(r=>`<tr>${r.map(c=>`<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+      return `<div class="table-wrap"><table class="data">${thead}${tbody}</table></div>`;
+    }
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+
+    // Fetch a CSV by URL and render into a target element; fall back to iframe if fetch fails
+    async function loadAndRenderCSV(url, mount){
+      try{
+        const res = await fetch(url);
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const text = await res.text();
+        mount.innerHTML = renderCSVTable(text);
+      }catch(e){
+        mount.innerHTML = `<div class=\"table-wrap\" style=\"height:60vh\"><iframe src=\"${url}\" title=\"CSV\" style=\"width:100%;height:100%;border:0\"></iframe></div>`;
+      }
+    }
+
+    // Tiny synth click
+    function clickTone(){
+      const Ctx = window.AudioContext || window.webkitAudioContext; const ctx = new Ctx();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = 740; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.06, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      o.start(); o.stop(ctx.currentTime + 0.15);
+    }
+
+    // ——— Init ———
+    let GRID_READY = [];
+    function renderGrid(){
+      const host = document.getElementById('relics');
+      host.innerHTML = '';
+      GRID_READY.forEach(r => host.appendChild(createRelic(r)));
+      positionRunes();
+    }
+
+    (function init(){
+      const highValueTypes = new Set(['image','table','link','page']);
+      GRID_READY = relics.filter(r => r.segments && r.segments.some(s => highValueTypes.has(s.type)));
+      GRID_READY.forEach((r,i)=>{ r._crest = i; });
+      // Do NOT render yet; wait until intro fade begins
+    })();
+
+    // Close modal on backdrop or ESC
+    document.getElementById('modal').addEventListener('click', (e) => { if(e.target.id === 'modal') closeModal(); });
+    document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeModal(); });
+    window.addEventListener('resize', positionRunes);
+  </script>
+</body>
+</html>

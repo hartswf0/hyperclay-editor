@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volholla - Raise Your Horns. Rest Like a Viking. Wake Like a Vol.</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Cinzel:wght@400;500;600&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2>⚔️ VOLHOLLA</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#hero" class="nav-link">Home</a></li>
+                <li><a href="#story" class="nav-link">Story</a></li>
+                <li><a href="#accommodations" class="nav-link">Halls</a></li>
+                <li><a href="#firepit" class="nav-link">Firepit</a></li>
+                <li><a href="#booking" class="nav-link">Book Now</a></li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero">
+        <div class="hero-content">
+            <div class="hero-logo">
+                <div class="logo-symbol">⚔️🎸⚡</div>
+                <h1 class="hero-title">VOLHOLLA</h1>
+            </div>
+            <p class="hero-tagline">Raise Your Horns. Rest Like a Viking. Wake Like a Vol.</p>
+            <p class="hero-subtitle">Where Tennessee grit meets Viking saga — a Smoky Mountain stronghold for rebels, storytellers, and rock-n-roll dreamers.</p>
+            <button class="cta-button" onclick="playHornSound()">
+                🔥 Begin Your Saga 🔥
+            </button>
+            <div class="scroll-indicator">
+                <span>Scroll to Enter Valhalla</span>
+                <div class="scroll-arrow">⬇</div>
+            </div>
+        </div>
+        <div class="hero-background"></div>
+    </section>
+
+    <!-- Brand Story Section -->
+    <section id="story" class="story-section">
+        <div class="container">
+            <div class="story-content">
+                <div class="rune-decoration">ᚠᚢᚦᚨᚱᚲ</div>
+                <h2 class="section-title">The Legend Begins</h2>
+                <p class="story-text">
+                    Not a campground. Not a hotel. A saga written in smoke and fire — welcome to Volholla.
+                </p>
+                <p class="story-description">
+                    In the heart of the Smoky Mountains, where Tennessee pride runs as deep as mountain roots, 
+                    we've built something legendary. A place where Viking warriors would feel at home tailgating 
+                    before battle, where folk wisdom flows like mountain streams, and where every sunset 
+                    sounds like a rock anthem echoing through the pines.
+                </p>
+                <blockquote class="wisdom-quote">
+                    "Better to light a bonfire than curse the dark"
+                </blockquote>
+            </div>
+        </div>
+    </section>
+
+    <!-- Accommodations Section -->
+    <section id="accommodations" class="accommodations-section">
+        <div class="container">
+            <h2 class="section-title">Choose Your Hall</h2>
+            <p class="section-subtitle">Each dwelling tells its own tale of adventure</p>
+            
+            <div class="accommodations-grid">
+                <!-- Shield Dome -->
+                <div class="accommodation-card">
+                    <div class="card-header">
+                        <h3>Shield Dome</h3>
+                        <span class="card-type">Odin's Eye Dome</span>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">Where stargazing meets saga-telling under a dome blessed by the All-Father</p>
+                        <ul class="features-list">
+                            <li>360° mountain views</li>
+                            <li>Fire pit</li>
+                            <li>Carved rune details</li>
+                            <li>Premium bedding</li>
+                        </ul>
+                        <div class="card-price">$275/night</div>
+                    </div>
+                </div>
+
+                <!-- Mead Hall -->
+                <div class="accommodation-card featured">
+                    <div class="featured-badge">⚡ FLAGSHIP ⚡</div>
+                    <div class="card-header">
+                        <h3>Mead Hall</h3>
+                        <span class="card-type">Barndominium</span>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">The flagship hall where legends gather, feast, and make memories louder than thunder</p>
+                        <ul class="features-list">
+                            <li>Sleeps 8-12</li>
+                            <li>Full kitchen</li>
+                            <li>Great room with fireplace</li>
+                            <li>Event space</li>
+                        </ul>
+                        <div class="card-price">$400/night</div>
+                    </div>
+                </div>
+
+                <!-- Viking Cabin -->
+                <div class="accommodation-card">
+                    <div class="card-header">
+                        <h3>Viking Cabin</h3>
+                        <span class="card-type">Tiny House</span>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">Compact warrior's retreat with all the comforts and none of the compromise</p>
+                        <ul class="features-list">
+                            <li>Full amenities</li>
+                            <li>Mountain views</li>
+                            <li>Private deck</li>
+                            <li>Hot tub</li>
+                        </ul>
+                        <div class="card-price">$225/night</div>
+                    </div>
+                </div>
+
+                <!-- Raiders' Pavilion -->
+                <div class="accommodation-card">
+                    <div class="card-header">
+                        <h3>Raiders' Pavilion</h3>
+                        <span class="card-type">Safari Tent</span>
+                    </div>
+                    <div class="card-content">
+                        <p class="card-description">Canvas and timber shelter for the bold traveler seeking authentic adventure</p>
+                        <ul class="features-list">
+                            <li>Authentic tent design</li>
+                            <li>Shared bathhouse</li>
+                            <li>Community fire pit</li>
+                            <li>Viking styling</li>
+                        </ul>
+                        <div class="card-price">$175/night</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Firepit of Legends Section -->
+    <section id="firepit" class="firepit-section">
+        <div class="container">
+            <div class="firepit-content">
+                <h2 class="section-title">The Firepit of Legends</h2>
+                <p class="firepit-description">
+                    Where stories are born and legends grow. Every evening, warriors gather 'round the sacred flames 
+                    to share tales that echo louder than Neyland Stadium on a Saturday night.
+                </p>
+                
+                <div class="firepit-features">
+                    <div class="feature">
+                        <div class="feature-icon">🎸</div>
+                        <h4>Live Music Nights</h4>
+                        <p>Rock anthems under the stars</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">📚</div>
+                        <h4>Storytelling Circle</h4>
+                        <p>Folk wisdom and tall tales</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">🍯</div>
+                        <h4>Mead & Moonshine</h4>
+                        <p>Drinks worthy of Valhalla</p>
+                    </div>
+                </div>
+
+                <div class="wisdom-quotes-section">
+                    <h3>Folk Wisdom from the Hall</h3>
+                    <div class="quotes-grid">
+                        <div class="quote-card">"Raise your horns, rest your bones"</div>
+                        <div class="quote-card">"Even Odin would tailgate here"</div>
+                        <div class="quote-card">"Every cabin tells a tale"</div>
+                        <div class="quote-card">"Sleep under the stars, but do it like a warrior"</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Booking Section -->
+    <section id="booking" class="booking-section">
+        <div class="container">
+            <div class="booking-content">
+                <h2 class="section-title">Begin Your Saga</h2>
+                <p class="booking-subtitle">Ready to raise your horns in the Smoky Mountains?</p>
+                
+                <div class="booking-info">
+                    <div class="location-info">
+                        <h4>📍 Location</h4>
+                        <p>Townsend, Tennessee<br>The Peaceful Side of the Smokies</p>
+                    </div>
+                    <div class="contact-info">
+                        <h4>⚔️ Reserve Your Hall</h4>
+                        <p>Call: (865) VOLHOLLA</p>
+                        <p>Email: legends@volholla.com</p>
+                    </div>
+                </div>
+
+                <div class="cta-section">
+                    <button class="cta-button large">
+                        🔥 Book Your Adventure Now 🔥
+                    </button>
+                    <p class="cta-note">Average stay: 2-3 nights | Occupancy: 70% year-round</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h3>⚔️ VOLHOLLA</h3>
+                    <p>"Where Tennessee grit meets Viking saga"</p>
+                </div>
+                <div class="footer-links">
+                    <h4>The Hall</h4>
+                    <ul>
+                        <li><a href="#accommodations">Accommodations</a></li>
+                        <li><a href="#firepit">Firepit of Legends</a></li>
+                        <li><a href="#booking">Reservations</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Follow the Saga</h4>
+                    <div class="social-links">
+                        <a href="#" target="_blank">📘 Facebook</a>
+                        <a href="#" target="_blank">📸 Instagram</a>
+                        <a href="#" target="_blank">🐦 Twitter</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 Volholla. All rights reserved. | Licensed by the Gods of Rock and Thunder</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
