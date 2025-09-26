@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue Foot — Glamping Comps Analysis</title>
+    <style>
+        :root {
+            --color-parchment: #F7F3EC;
+            --color-granite: #5A5A5A;
+            --color-ink: #0E0E10;
+            --color-orbital-blue: #2B4D82;
+            --color-maple-red: #C32F27;
+            --color-safety-yellow: #FFD447;
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+            --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --radius-sm: 2px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-parchment);
+            color: var(--color-ink);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        /* Header Strip */
+        .header-strip {
+            background-color: var(--color-ink);
+            color: var(--color-parchment);
+            padding: 0.75rem 1rem;
+            border-bottom: 3px solid var(--color-orbital-blue);
+        }
+        .header-strip h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .header-strip p {
+            font-size: 0.8rem;
+            color: var(--color-granite);
+            font-family: var(--font-mono);
+        }
+
+        /* KPI Row */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .kpi-tile {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-subtle);
+            text-align: center;
+        }
+        .kpi-value {
+            font-family: var(--font-mono);
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--color-orbital-blue);
+            line-height: 1.1;
+        }
+        .kpi-label {
+            font-size: 0.8rem;
+            color: var(--color-granite);
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        /* Action Row */
+        .action-row {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #fff;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-subtle);
+        }
+        .search-filter-group, .toggle-sort-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        
+        input[type="search"], select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-main);
+            font-size: 1rem;
+            background-color: #fff;
+            flex-grow: 1;
+        }
+        input[type="search"] { min-width: 150px; }
+        select { min-width: 120px; }
+
+        .toggle-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .chip {
+            padding: 0.3rem 0.75rem;
+            font-size: 0.85rem;
+            border-radius: 1rem;
+            cursor: pointer;
+            border: 1px solid var(--color-granite);
+            background-color: transparent;
+            color: var(--color-granite);
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .chip[aria-pressed="true"] {
+            background-color: var(--color-orbital-blue);
+            color: white;
+            border-color: var(--color-orbital-blue);
+        }
+
+        .reset-pill {
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 1rem;
+            cursor: pointer;
+            border: none;
+            background-color: var(--color-maple-red);
+            color: white;
+        }
+
+        /* Comps Table / Cards */
+        .results-container {
+            overflow-x: auto;
+            background: #fff;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .comps-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comps-table th, .comps-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            white-space: nowrap;
+        }
+
+        .comps-table thead {
+            position: sticky;
+            top: 0;
+            background-color: #f8f8f8;
+            z-index: 10;
+        }
+
+        .comps-table th {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-granite);
+            text-transform: uppercase;
+        }
+        
+        .listing-link {
+            color: var(--color-orbital-blue);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .listing-link:hover {
+            text-decoration: underline;
+        }
+        td[data-label="Structure"] {
+            white-space: normal;
+        }
+
+        .mono-cell {
+            font-family: var(--font-mono);
+            font-weight: 600;
+        }
+
+        .amenity-chip {
+            display: inline-block;
+            background-color: #e8eaf6;
+            color: #3f51b5;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            margin: 0.1rem;
+            white-space: nowrap;
+        }
+
+        .drawer {
+            background-color: #f9f9f9;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            white-space: normal;
+        }
+        .drawer p {
+            margin-bottom: 0.25rem;
+            color: var(--color-granite);
+        }
+        .drawer strong {
+            font-family: var(--font-mono);
+            color: var(--color-ink);
+        }
+
+        tr.result-row:hover {
+            background-color: var(--color-parchment);
+        }
+
+        .empty-state {
+            padding: 3rem 1rem;
+            text-align: center;
+            color: var(--color-granite);
+        }
+
+        /* Insights, Method, Export, Footer */
+        .report-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #fff;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-subtle);
+        }
+        .report-section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--color-orbital-blue);
+            padding-bottom: 0.5rem;
+        }
+        .report-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .report-section li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .report-section li::before {
+            content: '›';
+            position: absolute;
+            left: 0;
+            top: -2px;
+            color: var(--color-orbital-blue);
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .method-note p, .footer-links a {
+            font-size: 0.9rem;
+            color: var(--color-granite);
+        }
+
+        .export-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .export-row button {
+            padding: 0.6rem 1.2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            border: 1px solid var(--color-orbital-blue);
+            background-color: var(--color-orbital-blue);
+            color: white;
+            transition: all 0.2s ease;
+        }
+        .export-row button:hover {
+            opacity: 0.9;
+        }
+        
+        .footer-links ul {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 0.5rem 1.5rem;
+        }
+        .footer-links a {
+             text-decoration: none;
+        }
+        .footer-links a:hover {
+             text-decoration: underline;
+        }
+
+        @media (min-width: 768px) {
+            .action-row {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .search-filter-group {
+                flex: 2;
+            }
+            .toggle-sort-group {
+                flex: 3;
+            }
+        }
+
+        @media print {
+            body {
+                background-color: #fff;
+                color: #000;
+            }
+            .header-strip, .action-row, .export-row, .footer-links {
+                display: none;
+            }
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+            .report-section, .results-container {
+                box-shadow: none;
+                border: 1px solid #ccc;
+                page-break-inside: avoid;
+            }
+            .comps-table thead {
+                position: static;
+                background-color: #eee;
+            }
+            .listing-link {
+                color: #000;
+                text-decoration: none;
+                font-weight: normal;
+            }
+            .drawer { display: none; }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="home-ribbon" style="position:sticky;top:0;z-index:1000;background:#eef3fb;border-bottom:1px solid #cdd7ea;padding:6px 0;">
+        <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+            <a href="index.html" style="text-decoration:none;font-weight:600;color:#2B4D82;">← Home: Blue Foot Index</a>
+            <span style="font-size:.8rem;color:#5A5A5A;">Glamping Comps Analysis</span>
+        </div>
+    </div>
+
+    <header class="header-strip">
+        <div class="container">
+            <h1 id="report-title">Blue Foot — Glamping Comps Analysis</h1>
+            <p>Public scan / indicative only / timestamped for field use: <span id="timestamp"></span></p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="kpi-row" aria-label="Key Performance Indicators">
+            <div class="kpi-tile">
+                <div id="kpi-count" class="kpi-value">-</div>
+                <div class="kpi-label">Inventory Count</div>
+            </div>
+            <div class="kpi-tile">
+                <div id="kpi-adr" class="kpi-value">-</div>
+                <div class="kpi-label">ADR Range</div>
+            </div>
+            <div class="kpi-tile">
+                <div id="kpi-bfb" class="kpi-value">-</div>
+                <div class="kpi-label">Avg. BFB Ratio</div>
+            </div>
+        </section>
+
+        <section class="action-row" aria-label="Filters and Controls">
+            <div class="search-filter-group">
+                <input type="search" id="search-input" placeholder="Search listings..." aria-label="Search listings">
+                <select id="type-select" aria-label="Filter by structure type">
+                    <option value="">All Types</option>
+                </select>
+                <select id="location-select" aria-label="Filter by location">
+                    <option value="">All Locations</option>
+                </select>
+            </div>
+            <div class="toggle-sort-group">
+                <div class="toggle-chips" role="group" aria-label="Toggle filters">
+                    <button class="chip" role="switch" aria-checked="false" data-filter="has_hvac">HVAC</button>
+                    <button class="chip" role="switch" aria-checked="false" data-filter="has_ensuite">Ensuite Bath</button>
+                    <button class="chip" role="switch" aria-checked="false" data-filter="has_hot_tub">Hot Tub</button>
+                </div>
+                 <select id="sort-select" aria-label="Sort listings">
+                    <option value="default">Default Sort</option>
+                    <option value="adr_desc">ADR (High-Low)</option>
+                    <option value="adr_asc">ADR (Low-High)</option>
+                    <option value="quality_desc">Quality (High-Low)</option>
+                    <option value="bfb_desc">BFB (High-Low)</option>
+                </select>
+                <button id="reset-filters" class="reset-pill">Reset</button>
+            </div>
+        </section>
+
+        <section class="results-container" aria-live="polite">
+            <table class="comps-table">
+                <thead id="comps-table-head">
+                    <tr>
+                        <th>Structure</th>
+                        <th>Type</th>
+                        <th>ADR</th>
+                        <th>Quality</th>
+                        <th>BFB</th>
+                        <th>Amenities</th>
+                    </tr>
+                </thead>
+                <tbody id="comps-table-body">
+                    <!-- JS will render rows here -->
+                </tbody>
+            </table>
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <p>No matches found. Try clearing filters.</p>
+            </div>
+        </section>
+
+        <section id="insights-panel" class="report-section insights-panel">
+            <h2>Key Insights</h2>
+            <ul id="insights-list">
+                <!-- JS will generate insights here -->
+            </ul>
+        </section>
+
+        <section class="report-section method-note">
+            <h2>Method Note</h2>
+            <p>ADR (Average Daily Rate) values are public card prices at capture time; actual revenue may vary due to fees, taxes, and dynamic pricing. BFB (Bang-for-Buck) is a derived metric (Quality Score / ADR * 100 for scaling). Verify all permits, utility access, and local Short-Term Rental (STR) ordinances before making capital commitments.</p>
+        </section>
+        
+        <section class="report-section">
+            <div class="export-row">
+                <button id="export-csv">Download CSV</button>
+                <button id="print-pdf">Print / Save PDF</button>
+            </div>
+        </section>
+
+        <footer class="report-section footer-links">
+             <h2>References</h2>
+             <ul>
+                 <li><a href="https://airbtics.com/annual-airbnb-revenue-in-boone-north-carolina-usa/" target="_blank" rel="noopener noreferrer">Airbtics Boone Market Data</a></li>
+                 <li><a href="https://glampblueridgega.com" target="_blank" rel="noopener noreferrer">Glamp Blue Ridge GA</a></li>
+                 <li><a href="https://www.wataugalakevacations.com" target="_blank" rel="noopener noreferrer">Watauga Lake Vacations</a></li>
+                 <li><a href="https://www.johnsoncountytn.gov/newcomer-information" target="_blank" rel="noopener noreferrer">Johnson County, TN Regulations</a></li>
+                 <li><a href="https://aconybell.com" target="_blank" rel="noopener noreferrer">Acony Bell Tiny Homes</a></li>
+                 <li><a href="https://awning.com/post/tennessee-short-term-rental-laws" target="_blank" rel="noopener noreferrer">TN STR Laws</a></li>
+                 <li><a href="https://www.tn.gov/environment/permit-permits/water-permits1/septic-systems-permits.html" target="_blank" rel="noopener noreferrer">TN Septic Permits</a></li>
+                 <li><a href="http://wataugacounty.org/App_Pages/Dept/Planning/Home.aspx" target="_blank" rel="noopener noreferrer">Watauga County, NC Planning</a></li>
+             </ul>
+        </footer>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- 4. DATA MODEL (with corrected URLs) ---
+            const data = [
+                { id: 1, listing: "Glamp Blue Ridge Dome", type: "Geodesic Dome", location: "Blue Ridge, GA", distance: 45, adr_number: 325, quality_score: 8.1, bfb: 2.49, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 210, guest_favorite: true, url: "https://glampblueridgega.com" },
+                { id: 2, listing: "Tree Top Lodge Cabin", type: "Cabin", location: "Boone, NC", distance: 30, adr_number: 295, quality_score: 8.3, bfb: 2.81, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 180, guest_favorite: true, url: "https://www.airbnb.com/watauga-county-nc/stays" },
+                { id: 3, listing: "Overlook Watauga Lake", type: "Geodesic Dome", location: "Butler, TN", distance: 5, adr_number: 275, quality_score: 7.7, bfb: 2.80, has_hvac: true, has_ensuite: true, has_hot_tub: false, reviews_count: 145, guest_favorite: true, url: "https://www.vrbo.com/vacation-rentals/usa/tennessee/east/watauga-lake" },
+                { id: 4, listing: "Secluded Yurt Sugar Mountain", type: "Yurt", location: "Sugar Mountain, NC", distance: 40, adr_number: 260, quality_score: 7.2, bfb: 2.77, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 120, guest_favorite: false, url: "https://www.airbnb.com/western-north-carolina-nc/stays/yurts" },
+                { id: 5, listing: "Windsong Tree Yurt", type: "Yurt", location: "Deep Gap, NC", distance: 35, adr_number: 245, quality_score: 7.0, bfb: 2.86, has_hvac: true, has_ensuite: true, has_hot_tub: false, reviews_count: 95, guest_favorite: true, url: "https://www.airbnb.com/rooms/1445656442838680206" },
+                { id: 6, listing: "Luxury Safari Tent", type: "Safari Tent", location: "Banner Elk, NC", distance: 38, adr_number: 280, quality_score: 6.5, bfb: 2.32, has_hvac: false, has_ensuite: true, has_hot_tub: true, reviews_count: 88, guest_favorite: false, url: "https://www.airbnb.com/blue-ridge-mountains/stays/tents" },
+                { id: 7, listing: "The Smoky Mountain Barndo", type: "Barndominium", location: "Sevierville, TN", distance: 75, adr_number: 450, quality_score: 8.5, bfb: 1.89, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 50, guest_favorite: true, url: "https://bnbbreeze.co/rentals/the-smoky-mountain-barndominium" },
+                { id: 8, listing: "Acony Bell Tiny Home", type: "Tiny House", location: "Mills River, NC", distance: 60, adr_number: 195, quality_score: 7.1, bfb: 3.64, has_hvac: true, has_ensuite: true, has_hot_tub: false, reviews_count: 155, guest_favorite: true, url: "https://aconybell.com" },
+                { id: 9, listing: "Fox Den Tiny", type: "Tiny House", location: "Asheville, NC", distance: 65, adr_number: 189, quality_score: 6.9, bfb: 3.65, has_hvac: true, has_ensuite: true, has_hot_tub: false, reviews_count: 130, guest_favorite: true, url: "https://www.airbnb.com/blue-ridge-mountains/stays/tiny-houses" },
+                { id: 10, listing: "Eagles Nest Tiny", type: "Tiny House", location: "Waynesville, NC", distance: 70, adr_number: 192, quality_score: 7.0, bfb: 3.65, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 140, guest_favorite: true, url: "https://www.mountainviewadventureswnc.com/mountain-view-tiny-home-rentals/" },
+                { id: 11, listing: "Highland A-Frame", type: "A-Frame", location: "Beech Mountain, NC", distance: 42, adr_number: 220, quality_score: 6.5, bfb: 2.95, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 110, guest_favorite: false, url: "https://www.airbnb.com/rooms/928938191420621724" },
+                { id: 12, listing: "Budget Geodesic Dome", type: "Geodesic Dome", location: "Boone, NC", distance: 30, adr_number: 118, quality_score: 5.0, bfb: 4.24, has_hvac: false, has_ensuite: false, has_hot_tub: false, reviews_count: 75, guest_favorite: false, url: "https://www.hipcamp.com/en-US/d/united-states/north-carolina/camping/dome" },
+                { id: 13, listing: "The Starling A-Frame", type: "A-Frame", location: "Todd, NC", distance: 25, adr_number: 165, quality_score: 5.8, bfb: 3.52, has_hvac: true, has_ensuite: true, has_hot_tub: false, reviews_count: 90, guest_favorite: true, url: "https://www.airbnb.com/rooms/862027823325755165" },
+                { id: 14, listing: "Riverside Tiny House", type: "Tiny House", location: "Valle Crucis, NC", distance: 32, adr_number: 193, quality_score: 6.8, bfb: 3.52, has_hvac: true, has_ensuite: true, has_hot_tub: false, reviews_count: 160, guest_favorite: true, url: "https://www.vrbo.com/3087320" },
+                { id: 15, listing: "Mountain View Yurt", type: "Yurt", location: "Burnsville, NC", distance: 55, adr_number: 233, quality_score: 6.8, bfb: 2.92, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 105, guest_favorite: false, url: "https://www.airbnb.com/north-carolina-united-states/stays/yurts" },
+                { id: 16, listing: "Asheville Glamping Dome", type: "Geodesic Dome", location: "Asheville, NC", distance: 65, adr_number: 271, quality_score: 6.8, bfb: 2.51, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 190, guest_favorite: true, url: "https://www.airbnb.com/appalachian-mountains/stays/domes" },
+                { id: 17, listing: "Lakeside Cabin", type: "Cabin", location: "Butler, TN", distance: 10, adr_number: 278, quality_score: 7.5, bfb: 2.70, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 135, guest_favorite: true, url: "https://www.vrbo.com/vacation-rentals/cabins/usa/tennessee/east/butler" },
+                { id: 18, listing: "Forest Treehouse", type: "Treehouse", location: "Blowing Rock, NC", distance: 35, adr_number: 310, quality_score: 7.8, bfb: 2.52, has_hvac: true, has_ensuite: true, has_hot_tub: false, reviews_count: 85, guest_favorite: true, url: "https://www.vrbo.com/3617276" },
+                { id: 19, listing: "Creekside Safari Tent", type: "Safari Tent", location: "Elizabethton, TN", distance: 20, adr_number: 150, quality_score: 4.5, bfb: 3.00, has_hvac: false, has_ensuite: false, has_hot_tub: false, reviews_count: 60, guest_favorite: false, url: "https://www.airbnb.com/western-north-carolina-nc/stays/tents" },
+                { id: 20, listing: "Luxury Mountain Dome", type: "Geodesic Dome", location: "Banner Elk, NC", distance: 38, adr_number: 425, quality_score: 8.8, bfb: 2.07, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 45, guest_favorite: true, url: "https://broadrivercampgroundnc.com/glamping-domes/" },
+                { id: 21, listing: "Camp 4 West Container", type: "Container Home", location: "West Jefferson, NC", distance: 45, adr_number: 215, quality_score: 6.2, bfb: 2.88, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 70, guest_favorite: false, url: "https://www.stayblueridge.com/camp-4-west-jefferson" },
+                { id: 22, listing: "Simple Yurt Experience", type: "Yurt", location: "Todd, NC", distance: 25, adr_number: 175, quality_score: 5.5, bfb: 3.18, has_hvac: false, has_ensuite: false, has_hot_tub: false, reviews_count: 100, guest_favorite: false, url: "https://www.vrbo.com/9588759ha" },
+                { id: 23, listing: "Appalachian Trail Tiny", type: "Tiny House", location: "Roan Mountain, TN", distance: 22, adr_number: 180, quality_score: 6.5, bfb: 3.61, has_hvac: true, has_ensuite: true, has_hot_tub: false, reviews_count: 115, guest_favorite: true, url: "https://www.airbnb.com/western-north-carolina-nc/stays/tiny-houses" },
+                { id: 24, listing: "Vintage Airstream", type: "Airstream", location: "Boone, NC", distance: 30, adr_number: 145, quality_score: 5.2, bfb: 3.63, has_hvac: true, has_ensuite: true, has_hot_tub: false, reviews_count: 125, guest_favorite: true, url: "https://www.airbnb.com/rooms/45557210" },
+                { id: 25, listing: "Hilltop Geodesic Dome", type: "Geodesic Dome", location: "Johnson City, TN", distance: 28, adr_number: 290, quality_score: 7.4, bfb: 2.55, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 98, guest_favorite: true, url: "https://glampinghub.com/rentalsearch/luxury-camping-accommodations-near-boone-nc-north-carolina/" },
+                { id: 26, listing: "Pastoral Cabin", type: "Cabin", location: "Valle Crucis, NC", distance: 32, adr_number: 315, quality_score: 8.0, bfb: 2.54, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 165, guest_favorite: true, url: "https://www.vrbo.com/3640618" },
+                { id: 27, listing: "Basic Safari Tent", type: "Safari Tent", location: "Butler, TN", distance: 8, adr_number: 125, quality_score: 4.0, bfb: 3.13, has_hvac: false, has_ensuite: false, has_hot_tub: false, reviews_count: 40, guest_favorite: false, url: "https://www.airbnb.com/north-carolina-united-states/stays/tents" },
+                { id: 28, listing: "Family-sized Yurt", type: "Yurt", location: "Blowing Rock, NC", distance: 35, adr_number: 299, quality_score: 7.1, bfb: 2.37, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 80, guest_favorite: false, url: "https://www.airbnb.com/blue-ridge-mountains/stays/yurts" },
+                { id: 29, listing: "Off-Grid Tiny Cabin", type: "Tiny House", location: "Deep Gap, NC", distance: 35, adr_number: 135, quality_score: 5.5, bfb: 4.07, has_hvac: false, has_ensuite: false, has_hot_tub: false, reviews_count: 99, guest_favorite: true, url: "https://www.airbnb.com/rooms/1020495434772890516" },
+                { id: 30, listing: "The Sky House Treehouse", type: "Treehouse", location: "Banner Elk, NC", distance: 38, adr_number: 380, quality_score: 8.2, bfb: 2.16, has_hvac: true, has_ensuite: true, has_hot_tub: true, reviews_count: 77, guest_favorite: true, url: "https://www.airbnb.com/rooms/670000000000000000" }
+            ];
+
+            // --- 5. BEHAVIORS ---
+            
+            let currentFilters = { search: '', type: '', location: '', has_hvac: false, has_ensuite: false, has_hot_tub: false };
+            let currentSort = 'default';
+            let parsedData = data; 
+
+            const tableBody = document.getElementById('comps-table-body');
+            const searchInput = document.getElementById('search-input');
+            const typeSelect = document.getElementById('type-select');
+            const locationSelect = document.getElementById('location-select');
+            const sortSelect = document.getElementById('sort-select');
+            const toggleChips = document.querySelectorAll('.chip');
+            const resetBtn = document.getElementById('reset-filters');
+            const emptyState = document.getElementById('empty-state');
+            
+            function init() {
+                document.getElementById('timestamp').textContent = new Date().toLocaleString();
+                populateFilters();
+                addEventListeners();
+                render();
+            }
+
+            function populateFilters() {
+                const types = [...new Set(parsedData.map(item => item.type))].sort();
+                const locations = [...new Set(parsedData.map(item => item.location))].sort();
+                types.forEach(type => {
+                    typeSelect.appendChild(new Option(type, type));
+                });
+                locations.forEach(location => {
+                    locationSelect.appendChild(new Option(location, location));
+                });
+            }
+
+            function addEventListeners() {
+                searchInput.addEventListener('input', debounce(e => {
+                    currentFilters.search = e.target.value.toLowerCase();
+                    render();
+                }, 300));
+
+                [typeSelect, locationSelect].forEach(select => {
+                    select.addEventListener('change', e => {
+                        currentFilters[select.id.split('-')[0]] = e.target.value;
+                        render();
+                    });
+                });
+
+                sortSelect.addEventListener('change', e => {
+                    currentSort = e.target.value;
+                    render();
+                });
+                
+                toggleChips.forEach(chip => {
+                    chip.addEventListener('click', () => {
+                        const isActive = chip.getAttribute('aria-pressed') === 'true';
+                        chip.setAttribute('aria-pressed', !isActive);
+                        currentFilters[chip.dataset.filter] = !isActive;
+                        render();
+                    });
+                });
+
+                resetBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    typeSelect.value = '';
+                    locationSelect.value = '';
+                    sortSelect.value = 'default';
+                    toggleChips.forEach(chip => chip.setAttribute('aria-pressed', 'false'));
+                    currentFilters = { search: '', type: '', location: '', has_hvac: false, has_ensuite: false, has_hot_tub: false };
+                    currentSort = 'default';
+                    render();
+                });
+
+                document.getElementById('export-csv').addEventListener('click', exportCSV);
+                document.getElementById('print-pdf').addEventListener('click', () => window.print());
+            }
+
+            function render() {
+                const filtered = applyFiltersAndSort();
+                renderTable(filtered);
+                updateKPIs(filtered);
+                generateInsights(filtered);
+                emptyState.style.display = filtered.length === 0 ? 'block' : 'none';
+            }
+
+            function applyFiltersAndSort() {
+                let result = parsedData.filter(item => 
+                    (currentFilters.search ? Object.values(item).some(val => String(val).toLowerCase().includes(currentFilters.search)) : true) &&
+                    (currentFilters.type ? item.type === currentFilters.type : true) &&
+                    (currentFilters.location ? item.location === currentFilters.location : true) &&
+                    (currentFilters.has_hvac ? item.has_hvac : true) &&
+                    (currentFilters.has_ensuite ? item.has_ensuite : true) &&
+                    (currentFilters.has_hot_tub ? item.has_hot_tub : true)
+                );
+
+                switch (currentSort) {
+                    case 'adr_desc': result.sort((a, b) => b.adr_number - a.adr_number); break;
+                    case 'adr_asc': result.sort((a, b) => a.adr_number - b.adr_number); break;
+                    case 'quality_desc': result.sort((a, b) => b.quality_score - a.quality_score); break;
+                    case 'bfb_desc': result.sort((a, b) => b.bfb - a.bfb); break;
+                }
+                
+                return result;
+            }
+
+            function renderTable(items) {
+                tableBody.innerHTML = '';
+                items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = 'result-row';
+                    row.setAttribute('role', 'row');
+
+                    const amenitiesHtml = `
+                        ${item.has_hvac ? '<span class="amenity-chip">HVAC</span>' : ''}
+                        ${item.has_ensuite ? '<span class="amenity-chip">Ensuite</span>' : ''}
+                        ${item.has_hot_tub ? '<span class="amenity-chip">Hot Tub</span>' : ''}
+                        ${item.guest_favorite ? '<span class="amenity-chip" style="background-color: #fffde7; color: #f57f17;">Favorite</span>' : ''}
+                    `;
+                    
+                    row.innerHTML = `
+                        <td data-label="Structure"><a href="${item.url}" target="_blank" rel="noopener noreferrer" class="listing-link">${item.listing}</a></td>
+                        <td data-label="Type">${item.type}</td>
+                        <td data-label="ADR" class="mono-cell">$${item.adr_number}</td>
+                        <td data-label="Quality" class="mono-cell">${item.quality_score.toFixed(1)}</td>
+                        <td data-label="BFB" class="mono-cell">${item.bfb.toFixed(2)}</td>
+                        <td data-label="Amenities">${amenitiesHtml}</td>
+                    `;
+                    
+                    const drawerRow = document.createElement('tr');
+                    drawerRow.className = 'drawer-row';
+                    drawerRow.innerHTML = `<td colspan="6" class="drawer">
+                        <p><strong>${item.location}</strong> (${item.distance} mi) | <strong>${item.reviews_count}</strong> Reviews</p>
+                    </td>`;
+                    
+                    tableBody.appendChild(row);
+                    tableBody.appendChild(drawerRow);
+                });
+            }
+
+            function updateKPIs(items) {
+                document.getElementById('kpi-count').textContent = items.length;
+                if (items.length > 0) {
+                    const adrs = items.map(i => i.adr_number);
+                    const bfbs = items.map(i => i.bfb);
+                    document.getElementById('kpi-adr').textContent = `$${Math.min(...adrs)}-$${Math.max(...adrs)}`;
+                    document.getElementById('kpi-bfb').textContent = (bfbs.reduce((a, b) => a + b, 0) / bfbs.length).toFixed(2);
+                } else {
+                    document.getElementById('kpi-adr').textContent = '-';
+                    document.getElementById('kpi-bfb').textContent = '-';
+                }
+            }
+
+            function generateInsights(items) {
+                const list = document.getElementById('insights-list');
+                list.innerHTML = '';
+                if (items.length < 2) {
+                    list.innerHTML = '<li>Insufficient data for deep insights. Try broadening filters.</li>';
+                    return;
+                }
+                
+                const insights = [];
+                const avgADR = items.reduce((sum, i) => sum + i.adr_number, 0) / items.length;
+                
+                const withHvac = items.filter(i => i.has_hvac);
+                const withoutHvac = items.filter(i => !i.has_hvac);
+                if(withHvac.length > 1 && withoutHvac.length > 1) {
+                    const avgHvac = withHvac.reduce((s, i) => s + i.adr_number, 0) / withHvac.length;
+                    const avgNoHvac = withoutHvac.reduce((s, i) => s + i.adr_number, 0) / withoutHvac.length;
+                    const hvacPremium = avgHvac - avgNoHvac;
+                    if (hvacPremium > 20) insights.push(`Calculates an average ADR premium of +$${hvacPremium.toFixed(0)} for properties with HVAC.`);
+                }
+                
+                const withEnsuite = items.filter(i => i.has_ensuite);
+                const withoutEnsuite = items.filter(i => !i.has_ensuite);
+                 if(withEnsuite.length > 1 && withoutEnsuite.length > 1) {
+                    const avgEnsuite = withEnsuite.reduce((s, i) => s + i.adr_number, 0) / withEnsuite.length;
+                    const avgNoEnsuite = withoutEnsuite.reduce((s, i) => s + i.adr_number, 0) / withoutEnsuite.length;
+                    const ensuitePremium = avgEnsuite - avgNoEnsuite;
+                    if (ensuitePremium > 20) insights.push(`Identifies ensuite bathrooms as a key quality differentiator, commanding a +$${ensuitePremium.toFixed(0)} premium.`);
+                }
+                
+                const sortedByBfb = [...items].sort((a,b) => b.bfb - a.bfb);
+                insights.push(`Highlights ${sortedByBfb[0].type} and ${sortedByBfb[1].type} structures as top value opportunities based on BFB ratio.`);
+
+                const adrClusters = items.reduce((acc, item) => {
+                    if (item.adr_number < 200) acc.budget++;
+                    else if (item.adr_number <= 300) acc.mid++;
+                    else acc.premium++;
+                    return acc;
+                }, { budget: 0, mid: 0, premium: 0 });
+                const dominantCluster = Object.keys(adrClusters).reduce((a, b) => adrClusters[a] > adrClusters[b] ? a : b);
+                insights.push(`Confirms the market's sweet spot is in the ${dominantCluster} tier, with ${Math.round(adrClusters[dominantCluster]/items.length*100)}% of listings.`);
+
+                const localPremium = items.filter(i => i.distance <= 15);
+                if (localPremium.length > 1) {
+                    const localAvg = localPremium.reduce((s, i) => s + i.adr_number, 0) / localPremium.length;
+                     if(localAvg > avgADR * 1.05) insights.push(`Detects a hyperlocal premium of $${(localAvg - avgADR).toFixed(0)} for listings within 15 miles of the target site.`);
+                }
+
+                insights.slice(0, 5).forEach(text => {
+                    const li = document.createElement('li');
+                    li.textContent = text;
+                    list.appendChild(li);
+                });
+            }
+
+            function exportCSV() {
+                const items = applyFiltersAndSort();
+                if (items.length === 0) { alert('No data to export.'); return; }
+                const headers = ['Listing', 'Type', 'Location', 'Distance', 'ADR', 'Quality_Score', 'BFB', 'Has_HVAC', 'Has_Ensuite', 'Has_Hot_Tub', 'Reviews', 'Guest_Favorite', 'URL'];
+                const rows = items.map(item => [
+                    `"${item.listing.replace(/"/g, '""')}"`, item.type, item.location, item.distance, item.adr_number, item.quality_score, item.bfb,
+                    item.has_hvac, item.has_ensuite, item.has_hot_tub, item.reviews_count, item.guest_favorite, item.url
+                ]);
+                const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                const link = document.createElement('a');
+                link.setAttribute('href', encodeURI(csvContent));
+                link.setAttribute('download', 'bluefoot_glamping_comps.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            function debounce(func, delay) {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), delay);
+                };
+            }
+
+            init();
+        });
+    </script>
+
+</body>
+</html>

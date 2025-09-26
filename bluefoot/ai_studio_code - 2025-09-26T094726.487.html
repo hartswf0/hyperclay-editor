@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue Foot — High Country STR Comps</title>
+    <style>
+        :root {
+            --parchment: #F7F3EC;
+            --granite: #5A5A5A;
+            --ink-black: #0E0E10;
+            --orbital-blue: #2B4D82;
+            --maple-red: #C32F27;
+            --safety-yellow: #FFD447;
+            --parchment-light: #fbf8f2;
+            --border-color: #e0dace;
+            --shadow-color: rgba(0, 0, 0, 0.06);
+
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--parchment);
+            color: var(--ink-black);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        a {
+            color: var(--orbital-blue);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Mobile First Base Styles --- */
+
+        /* Header */
+        .site-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .site-header h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        .site-header .timestamp {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--granite);
+            flex-shrink: 0;
+        }
+
+        /* KPIs */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .kpi-tile {
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+            padding: 1rem;
+            box-shadow: 0 1px 2px var(--shadow-color);
+        }
+        .kpi-tile .label {
+            font-size: 0.8rem;
+            color: var(--granite);
+            margin-bottom: 0.25rem;
+        }
+        .kpi-tile .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            line-height: 1.2;
+        }
+        .kpi-tile .sub-value {
+            font-size: 0.8rem;
+            color: var(--granite);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Controls: Stacked vertically on mobile */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid var(--border-color);
+            background-color: #fff;
+            border-radius: 2px;
+            font-family: inherit;
+            font-size: 1rem; /* iOS zoom fix */
+        }
+        .reset-pill {
+            padding: 0.6rem 1rem;
+            border: 1px solid var(--maple-red);
+            color: var(--maple-red);
+            background-color: transparent;
+            border-radius: 99px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-align: center;
+        }
+        .reset-pill:hover {
+            background-color: var(--maple-red);
+            color: white;
+        }
+        
+        /* Layout: Single column on mobile */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        /* Table Section */
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+            background-color: #fff;
+            box-shadow: 0 1px 3px var(--shadow-color);
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .results-table thead {
+            position: -webkit-sticky; /* Safari */
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: var(--parchment-light);
+        }
+        .results-table th, .results-table td {
+            padding: 0.6rem 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+        .results-table th {
+            font-weight: 600;
+            color: var(--granite);
+            cursor: pointer;
+            user-select: none;
+        }
+        .results-table th:hover {
+            color: var(--ink-black);
+        }
+        .results-table th .sort-indicator {
+            display: inline-block;
+            width: 1em;
+            text-align: center;
+        }
+        .results-table tbody tr:hover {
+            background-color: var(--parchment-light);
+        }
+        .results-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .empty-state td {
+            text-align: center;
+            padding: 2rem;
+            color: var(--granite);
+            white-space: normal;
+        }
+
+        /* Badges/Chips */
+        .amenity-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+        .chip {
+            font-size: 0.7rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 2px;
+            background-color: var(--parchment);
+            border: 1px solid var(--border-color);
+            color: var(--granite);
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+        }
+        .chip.guest-favorite { background-color: var(--safety-yellow); border-color: #e6c041; color: var(--ink-black); }
+        .chip.hot-tub { background-color: var(--orbital-blue); border-color: #244472; color: white; }
+        .chip.new { background-color: var(--maple-red); border-color: #b22b24; color: white; }
+
+        /* Sidebar & Panels */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .panel {
+            background-color: var(--parchment-light);
+            border: 1px solid var(--border-color);
+            border-radius: 2px;
+            padding: 1.25rem;
+        }
+        .panel h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        .panel ul {
+            list-style: none;
+        }
+        .panel ul li {
+            position: relative;
+            padding-left: 1.2em;
+            margin-bottom: 0.5rem;
+        }
+        .panel ul li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--orbital-blue);
+        }
+        .panel p {
+            font-size: 0.85rem;
+            color: var(--granite);
+        }
+
+        /* Export buttons */
+        .export-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .export-btn {
+            padding: 0.6rem 1rem;
+            border: 1px solid var(--orbital-blue);
+            color: var(--orbital-blue);
+            background-color: transparent;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .export-btn:hover {
+            background-color: var(--orbital-blue);
+            color: white;
+        }
+
+        /* Footer */
+        .site-footer {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .footer-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        /* --- Tablet & Desktop Overrides --- */
+
+        /* Controls move to a horizontal row */
+        @media (min-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+            .controls {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+            .control-group {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                flex-grow: 1;
+            }
+            .control-group input[type="search"] {
+                min-width: 200px;
+                flex-grow: 1;
+            }
+            .control-group input, .control-group select {
+                width: auto;
+                font-size: 0.9rem;
+            }
+            .export-buttons {
+                flex-direction: row;
+            }
+            .footer-links {
+                flex-direction: row;
+                justify-content: center;
+                gap: 1.5rem;
+            }
+        }
+
+        /* Main layout becomes 2-column */
+        @media (min-width: 992px) {
+            .container {
+                padding: 2rem;
+            }
+            .results-table {
+                font-size: 0.9rem;
+            }
+             .results-table th, .results-table td {
+                padding: 0.75rem 1rem;
+            }
+            .main-layout {
+                grid-template-columns: 2fr 1fr;
+                align-items: start;
+            }
+            .sidebar {
+                position: -webkit-sticky;
+                position: sticky;
+                top: 1.5rem;
+            }
+        }
+
+        /* --- Print Styles --- */
+        @media print {
+            body {
+                background-color: #fff;
+                color: #000;
+                font-size: 10pt;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+            .site-header {
+                background-color: transparent;
+                border-bottom: 1px solid #ccc;
+                padding: 0 0 0.5rem 0;
+                margin-bottom: 1rem;
+            }
+            .main-layout {
+                display: block;
+            }
+            .panel, .table-container {
+                border: 1px solid #ccc;
+                box-shadow: none;
+                background-color: transparent;
+                padding: 1rem;
+                break-inside: avoid;
+                margin-bottom: 1rem;
+            }
+            .results-table thead {
+                position: static;
+                background-color: #eee;
+            }
+            .results-table {
+                font-size: 9pt;
+            }
+            .results-table td, .results-table th {
+                padding: 0.4rem;
+                white-space: normal;
+            }
+            a {
+                color: #000;
+                text-decoration: none;
+            }
+            .results-table a::after {
+                content: " [" attr(href) "]";
+                font-size: 8pt;
+                color: #555;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="home-ribbon" style="position:sticky;top:0;z-index:1000;background:#eef3fb;border-bottom:1px solid #cdd7ea;padding:6px 0;">
+        <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+            <a href="index.html" style="text-decoration:none;font-weight:600;color:#2B4D82;">← Home: Blue Foot Index</a>
+            <span style="font-size:.8rem;color:#5A5A5A;">High Country STR Comps</span>
+        </div>
+    </div>
+    <div class="container">
+        <header class="site-header">
+            <h1>Blue Foot — High Country STR Report</h1>
+            <span id="timestamp" class="timestamp no-print"></span>
+        </header>
+
+        <main>
+            <section class="kpi-grid" id="kpi-container">
+                <!-- KPI tiles will be rendered here by JS -->
+            </section>
+
+            <section class="controls no-print">
+                <div class="control-group">
+                    <input type="search" id="search-input" placeholder="Search listings, type, location...">
+                    <select id="type-filter" aria-label="Filter by type">
+                        <option value="">All Types</option>
+                    </select>
+                    <select id="location-filter" aria-label="Filter by location region">
+                        <option value="">All Locations</option>
+                    </select>
+                    <select id="amenities-filter" aria-label="Filter by amenities">
+                        <option value="">All Amenities</option>
+                        <option value="has_hot_tub">Has Hot Tub</option>
+                        <option value="guest_favorite">Guest Favorite</option>
+                    </select>
+                    <select id="sort-control" aria-label="Sort listings">
+                        <option value="adr_number-desc">Sort by: ADR (High-Low)</option>
+                        <option value="adr_number-asc">Sort by: ADR (Low-High)</option>
+                        <option value="reviews_count-desc">Sort by: Reviews (High-Low)</option>
+                        <option value="type-asc">Sort by: Type (A-Z)</option>
+                        <option value="location-asc">Sort by: Location (A-Z)</option>
+                    </select>
+                </div>
+                <button id="reset-filters" class="reset-pill">Reset filters</button>
+            </section>
+            
+            <p style="font-size: 0.85rem; color: var(--granite); margin: -0.5rem 0 1.5rem 0;">
+                Public card scan within ~75mi of Boone / Watauga Lake / Butler — date-sensitive; indicative only.
+            </p>
+
+            <div class="main-layout">
+                <section class="table-section">
+                    <div class="table-container">
+                        <table class="results-table">
+                            <thead id="table-header">
+                                <!-- Table header will be rendered here by JS -->
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Table rows will be rendered here by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <aside class="sidebar">
+                    <div class="panel">
+                        <h2>Derived Insights</h2>
+                        <ul id="insights-panel">
+                           <!-- Insights will be generated here -->
+                        </ul>
+                    </div>
+                    <div class="panel">
+                        <h2>Method & Safety Notes</h2>
+                        <p><strong>Method:</strong> ADR values are the public card price at capture time; fees/taxes vary by dates. These are public card snapshots; treat ADRs as indicative.</p>
+                        <p style="margin-top: 1rem;"><strong>Safety:</strong> Verify permits, utilities, and local STR ordinances prior to capital commitments.</p>
+                    </div>
+                    <div class="panel no-print">
+                        <h2>Actions</h2>
+                        <div class="export-buttons">
+                            <button id="export-csv" class="export-btn">Download CSV</button>
+                            <button id="print-pdf" class="export-btn">Print / Save PDF</button>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </main>
+        <footer class="site-footer">
+            <ul class="footer-links">
+                <li><a href="https://www.airbnb.com/west-jefferson-nc/stays?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">West Jefferson comps</a></li>
+                <li><a href="https://www.wataugacounty.org/App_Pages/Dept/Tax/roomtax.aspx?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Watauga County Room Tax</a></li>
+                <li><a href="https://www.airbnb.com/rooms/867345919794199105?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Banner Elk Winery Dome</a></li>
+            </ul>
+        </footer>
+    </div>
+
+    <script id="comps-data" type="application/json">
+    [
+        {"listing":"Lakeview Safari Glamping Tent","type":"Safari tent","location":"Butler, TN (Watauga Lake)","price_snippet":"$129 shown","amenities":"Deck setting, lake-adjacent; “glamping”","notes":"New listing; seasonal ops likely.","url":"https://www.airbnb.com/rooms/1412314641191446931?utm_source=chatgpt.com"},
+        {"listing":"North Star Dome","type":"Geodesic dome","location":"Laurel Bloomery, TN","price_snippet":"n/a","amenities":"Climate-controlled dome; outdoor shower (seasonal)","notes":"Guest favorite; 4.95 (158).","url":"https://www.airbnb.com/laurel-bloomery-tn/stays?utm_source=chatgpt.com"},
+        {"listing":"Secluded Yurt on Sugar Mountain (hot tub)","type":"Yurt (20′)","location":"Newland/Sugar Mountain, NC","price_snippet":"n/a","amenities":"Full bath, hot tub, HVAC, wood stove","notes":"Guest favorite; 4.98 (359).","url":"https://www.airbnb.com/banner-elk-nc/stays/hot-tub?utm_source=chatgpt.com"},
+        {"listing":"Secluded Yurt on Sugar Mountain (alt card)","type":"Yurt","location":"Banner Elk area","price_snippet":"n/a","amenities":"Same property surfaced in nearby filters","notes":"Confirms visibility in Banner Elk searches.","url":"https://www.airbnb.com/grandfather-mountain-state-park-banner-elk-nc/stays?utm_source=chatgpt.com"},
+        {"listing":"Yurt – Sugar Mountain (alt)","type":"Yurt","location":"Sugar Mountain, NC","price_snippet":"n/a","amenities":"Furnished kitchen, full bath","notes":"Beech/Banner Elk ski-adjacent.","url":"https://www.airbnb.com/rooms/49655293?utm_source=chatgpt.com"},
+        {"listing":"Luxury Geodome • Appalachian Mountain Dream","type":"Geodesic dome","location":"West Jefferson, NC","price_snippet":"$185 shown","amenities":"Full kitchen/bath, HVAC; creek/forest","notes":"Guest favorite; ~4.99 (105–106).","url":"https://www.airbnb.com/rooms/1023750053618023861?utm_source=chatgpt.com"},
+        {"listing":"Cozy Fall Dome (hot tub)","type":"Geodesic dome","location":"West Jefferson area, NC","price_snippet":"n/a","amenities":"Hot tub, views","notes":"Newer dome; seasonal angle.","url":"https://www.airbnb.com/rooms/1221227125345463721?utm_source=chatgpt.com"},
+        {"listing":"Tiny Geopod – Hot Tub, Views","type":"Micro dome/pod","location":"Todd, NC (near Boone)","price_snippet":"$250 shown","amenities":"Hot tub, walkable to town","notes":"Featured on A&E; high novelty.","url":"https://www.airbnb.com/rooms/45557210?utm_source=chatgpt.com"},
+        {"listing":"Tiny home – 1 mi to App State/Main St","type":"Tiny house","location":"Boone, NC","price_snippet":"n/a","amenities":"Kitchenette, separate full bath","notes":"In-town demand signal.","url":"https://www.airbnb.com/rooms/48030427?utm_source=chatgpt.com"},
+        {"listing":"Sunset Ridge – Brand New Tiny","type":"Tiny house","location":"Boone/Blowing Rock, NC","price_snippet":"n/a","amenities":"“Luxury tiny”; near Boone/BR","notes":"New, finishes-forward.","url":"https://www.airbnb.com/rooms/607905035163013648?utm_source=chatgpt.com"},
+        {"listing":"Tiny House – Secluded, near town","type":"Tiny house","location":"Boone/Blowing Rock corridor","price_snippet":"$150 shown","amenities":"Blue Ridge setting","notes":"Newer listing traction.","url":"https://www.airbnb.com/rooms/1151470566192100136?utm_source=chatgpt.com"},
+        {"listing":"Lil Dahlia – Private Tiny","type":"Tiny house","location":"Near Boone, NC","price_snippet":"$108 shown","amenities":"Nature-forward micro","notes":"Value option; price anchor.","url":"https://www.airbnb.com/rooms/1321840342196796108?utm_source=chatgpt.com"},
+        {"listing":"Fawn’s View Roundhouse (Beech Mtn)","type":"Roundhouse/dome-adjacent","location":"Beech Mountain, NC","price_snippet":"n/a","amenities":"Vintage octagon chalet vibe","notes":"Niche architectural comp.","url":"https://www.airbnb.com/rooms/45842026?utm_source=chatgpt.com"},
+        {"listing":"Luxury Geodome – Winery View (hot tub)","type":"Geodesic dome","location":"Banner Elk (Winery)","price_snippet":"$259 shown","amenities":"Private hot tub; vineyard views","notes":"Premium ADR signal in same micro-market.","url":"https://www.airbnb.com/rooms/867345919794199105?utm_source=chatgpt.com"},
+        {"listing":"Tiny “Hobbit House” (views)","type":"Tiny house","location":"Elk Park, NC","price_snippet":"n/a","amenities":"200 sq ft, W/D combo, soaking tub","notes":"Guest favorite; 4.94 (304).","url":"https://www.airbnb.com/elk-park-nc/stays?utm_source=chatgpt.com"},
+        {"listing":"Tiny Elk House (new 1BR+loft)","type":"Tiny house","location":"Banner Elk, NC","price_snippet":"$150 shown","amenities":"Family-friendly loft","notes":"Fresh stock near ski corridor.","url":"https://www.airbnb.com/rooms/572045644013932126?utm_source=chatgpt.com"},
+        {"listing":"Ruby Skies RV Retreat (glamp camper)","type":"Glamp RV","location":"Butler, TN","price_snippet":"n/a","amenities":"Remodeled camper; valley near lake","notes":"Budget “glamp” alternative near your site.","url":"https://www.airbnb.com/rooms/1481115270657483584?utm_source=chatgpt.com"},
+        {"listing":"Epic Views on Lake Watauga (3BR)","type":"Cabin/home","location":"Butler, TN","price_snippet":"n/a","amenities":"Dock, hot tub, multi-deck","notes":"Area ADR ceiling/context comp.","url":"https://www.airbnb.com/butler-tn/stays?utm_source=chatgpt.com"},
+        {"listing":"“On the Rocks” Geodome mention card","type":"Geodesic dome","location":"Watauga Co. filters","price_snippet":"n/a","amenities":"Full kitchen/bath HVAC","notes":"Dome shows across Watauga filters.","url":"https://www.airbnb.com/powderhorn-mountain-nc/stays?utm_source=chatgpt.com"},
+        {"listing":"Patio filter card (Vilas cabin + dome card)","type":"Cabin + dome card","location":"Watauga Co.","price_snippet":"n/a","amenities":"Hot tub, upscale cabin; dome copy","notes":"Confirms demand for dome/cabin hybrids.","url":"https://www.airbnb.com/watauga-county-nc/stays/patio?utm_source=chatgpt.com"},
+        {"listing":"Glamping Tent near Boone (AC)","type":"Safari tent","location":"Deep Gap, NC","price_snippet":"n/a","amenities":"AC/heat, king bed, fire pit","notes":"VRBO tent near Boone; good analog.","url":"https://www.vrbo.com/4077505?utm_source=chatgpt.com"},
+        {"listing":"Spring Ridge Luxury Yurt (hot tub)","type":"Yurt","location":"Western NC (reachable)","price_snippet":"n/a","amenities":"2 BR yurt with full bath","notes":"Yurt family-sized comp.","url":"https://www.vrbo.com/en-nz/holiday-accommodation/p3313726vb?utm_source=chatgpt.com"},
+        {"listing":"McBeary Luxury Yurt (hot tub)","type":"Yurt","location":"Western NC (reachable)","price_snippet":"n/a","amenities":"Hot tub, glamping interior","notes":"“Luxury yurt” positioning.","url":"https://www.vrbo.com/2176526?utm_source=chatgpt.com"},
+        {"listing":"TreePod – Big Views (dome + hot tub)","type":"Dome/tree-pod hybrid","location":"Blowing Rock, NC","price_snippet":"n/a","amenities":"Private dome nook + hot tub","notes":"High Instagram factor near Boone.","url":"https://www.vrbo.com/en-nz/holiday-accommodation/p4037548vb?utm_source=chatgpt.com"},
+        {"listing":"Treetops Yurt (Beech Mtn)","type":"Yurt/cabin hybrid","location":"Beech Mountain, NC","price_snippet":"n/a","amenities":"Deck, mountain view","notes":"Ski-adjacent, yurt-themed.","url":"https://www.vrbo.com/3061828?utm_source=chatgpt.com"},
+        {"listing":"Tiny House in the Trees (Foscoe)","type":"Tiny house","location":"Foscoe/Seven Devils, NC","price_snippet":"n/a","amenities":"528 sf; full kitchen/bath","notes":"Between Boone/Banner Elk.","url":"https://www.vrbo.com/2752368?utm_source=chatgpt.com"}
+    ]
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = {
+                // --- DATA & STATE ---
+                data: [],
+                filteredData: [],
+                state: {
+                    searchQuery: '',
+                    filters: {
+                        type: '',
+                        location: '',
+                        amenities: '',
+                    },
+                    sort: {
+                        key: 'adr_number',
+                        direction: 'desc'
+                    }
+                },
+                
+                // --- DOM ELEMENTS ---
+                elements: {
+                    timestamp: document.getElementById('timestamp'),
+                    kpiContainer: document.getElementById('kpi-container'),
+                    searchInput: document.getElementById('search-input'),
+                    typeFilter: document.getElementById('type-filter'),
+                    locationFilter: document.getElementById('location-filter'),
+                    amenitiesFilter: document.getElementById('amenities-filter'),
+                    sortControl: document.getElementById('sort-control'),
+                    resetButton: document.getElementById('reset-filters'),
+                    tableHeader: document.getElementById('table-header'),
+                    tableBody: document.getElementById('table-body'),
+                    insightsPanel: document.getElementById('insights-panel'),
+                    exportCsvButton: document.getElementById('export-csv'),
+                    printPdfButton: document.getElementById('print-pdf'),
+                },
+                
+                // --- INITIALIZATION ---
+                init() {
+                    this.setTimestamp();
+                    this.loadAndProcessData();
+                    this.populateFilters();
+                    this.attachEventListeners();
+                    this.generateInsights();
+                    this.render();
+                },
+                
+                setTimestamp() {
+                    this.elements.timestamp.textContent = new Date().toLocaleString();
+                },
+
+                // --- DATA PROCESSING ---
+                loadAndProcessData() {
+                    const rawData = JSON.parse(document.getElementById('comps-data').textContent);
+                    this.data = rawData.map(item => {
+                        const fullText = `${item.listing} ${item.type} ${item.location} ${item.amenities} ${item.notes}`.toLowerCase();
+                        
+                        // ADR
+                        const adrMatch = item.price_snippet.match(/\$(\d+)/);
+                        const adr_number = adrMatch ? parseInt(adrMatch[1], 10) : null;
+                        
+                        // Reviews
+                        const reviewsCountMatch = item.notes.match(/\((\d+)\)/);
+                        const reviews_count = reviewsCountMatch ? parseInt(reviewsCountMatch[1], 10) : null;
+                        
+                        const reviewAvgMatch = item.notes.match(/(\d\.\d+)/);
+                        const review_avg = reviewAvgMatch ? parseFloat(reviewAvgMatch[1]) : null;
+
+                        // Flags
+                        const has_hot_tub = /hot tub/i.test(fullText);
+                        const guest_favorite = /Guest favorite/i.test(item.notes);
+                        const is_new = /new listing|new,/i.test(fullText);
+                        
+                        // Amenity flags
+                        const amenities_flags = {
+                            hvac: /hvac|ac\/heat/i.test(fullText),
+                            kitchen: /kitchen/i.test(fullText),
+                            full_bath: /full bath/i.test(fullText),
+                            outdoor_shower: /outdoor shower/i.test(fullText),
+                            water_access: /lake|waterfront|dock|creek/i.test(fullText),
+                            views: /view/i.test(fullText)
+                        };
+
+                        return {
+                            ...item,
+                            fullText,
+                            adr_number,
+                            reviews_count,
+                            review_avg,
+                            has_hot_tub,
+                            guest_favorite,
+                            is_new,
+                            amenities_flags
+                        };
+                    });
+                },
+
+                populateFilters() {
+                    const types = [...new Set(this.data.map(d => d.type))].sort();
+                    const locations = [...new Set(this.data.map(d => d.location.split(/[,(]/)[0].trim()))].sort();
+                    
+                    types.forEach(type => {
+                        this.elements.typeFilter.add(new Option(type, type));
+                    });
+                    
+                    locations.forEach(loc => {
+                        this.elements.locationFilter.add(new Option(loc, loc));
+                    });
+                },
+                
+                // --- EVENT HANDLING ---
+                attachEventListeners() {
+                    this.elements.searchInput.addEventListener('input', this.debounce(e => {
+                        this.state.searchQuery = e.target.value.toLowerCase();
+                        this.render();
+                    }, 300));
+                    
+                    [this.elements.typeFilter, this.elements.locationFilter, this.elements.amenitiesFilter].forEach(el => {
+                        el.addEventListener('change', e => {
+                            const filterKey = el.id.split('-')[0];
+                            this.state.filters[filterKey] = e.target.value;
+                            this.render();
+                        });
+                    });
+
+                    this.elements.sortControl.addEventListener('change', e => {
+                        const [key, direction] = e.target.value.split('-');
+                        this.state.sort = { key, direction };
+                        this.render();
+                    });
+
+                    this.elements.resetButton.addEventListener('click', () => {
+                        this.state.searchQuery = '';
+                        this.state.filters = { type: '', location: '', amenities: '' };
+                        this.state.sort = { key: 'adr_number', direction: 'desc' };
+                        
+                        this.elements.searchInput.value = '';
+                        this.elements.typeFilter.value = '';
+                        this.elements.locationFilter.value = '';
+                        this.elements.amenitiesFilter.value = '';
+                        this.elements.sortControl.value = 'adr_number-desc';
+                        
+                        this.render();
+                    });
+                    
+                    this.elements.exportCsvButton.addEventListener('click', () => this.exportToCsv());
+                    this.elements.printPdfButton.addEventListener('click', () => window.print());
+                },
+                
+                // --- RENDER PIPELINE ---
+                render() {
+                    this.applyFiltersAndSort();
+                    this.renderKPIs();
+                    this.renderTable();
+                },
+
+                applyFiltersAndSort() {
+                    const { searchQuery, filters, sort } = this.state;
+                    
+                    let data = this.data;
+                    
+                    // Filter
+                    if (searchQuery) data = data.filter(item => item.fullText.includes(searchQuery));
+                    if (filters.type) data = data.filter(item => item.type === filters.type);
+                    if (filters.location) data = data.filter(item => item.location.startsWith(filters.location));
+                    if (filters.amenities) data = data.filter(item => !!item[filters.amenities]);
+                    
+                    // Sort
+                    data.sort((a, b) => {
+                        let valA = a[sort.key];
+                        let valB = b[sort.key];
+                        
+                        if (typeof valA === 'number' || valA === null) {
+                            valA = valA ?? (sort.direction === 'asc' ? Infinity : -Infinity);
+                            valB = valB ?? (sort.direction === 'asc' ? Infinity : -Infinity);
+                            return sort.direction === 'asc' ? valA - valB : valB - valA;
+                        }
+                        
+                        return sort.direction === 'asc' 
+                            ? String(valA).localeCompare(String(valB)) 
+                            : String(valB).localeCompare(String(valA));
+                    });
+                    
+                    this.filteredData = data;
+                },
+
+                renderKPIs() {
+                    const data = this.data; // KPIs are based on the total dataset
+                    const guestFavorites = data.filter(d => d.guest_favorite);
+                    const withADR = data.filter(d => d.adr_number !== null);
+                    
+                    const adrRange = withADR.length > 0
+                        ? `$${Math.min(...withADR.map(d => d.adr_number))} – $${Math.max(...withADR.map(d => d.adr_number))}`
+                        : 'N/A';
+                    
+                    const typeCounts = data.reduce((acc, d) => {
+                        acc[d.type] = (acc[d.type] || 0) + 1; return acc;
+                    }, {});
+                    const topTypes = Object.entries(typeCounts).sort(([,a],[,b]) => b-a).slice(0, 3).map(([k,v]) => `${k} (${v})`).join(', ');
+
+                    const guestFavoriteShare = data.length > 0 ? `${(guestFavorites.length / data.length * 100).toFixed(0)}%` : '0%';
+
+                    this.elements.kpiContainer.innerHTML = `
+                        <div class="kpi-tile">
+                            <div class="label">Count by Type</div><div class="value">${data.length}</div><div class="sub-value">${topTypes}</div>
+                        </div>
+                        <div class="kpi-tile">
+                            <div class="label">Shown ADR Range</div><div class="value">${adrRange}</div><div class="sub-value">${withADR.length} listings w/ ADR</div>
+                        </div>
+                        <div class="kpi-tile">
+                            <div class="label">"Guest Favorite" Share</div><div class="value">${guestFavoriteShare}</div><div class="sub-value">${guestFavorites.length} of ${data.length} listings</div>
+                        </div>`;
+                },
+                
+                renderTable() {
+                    if(!this.elements.tableHeader.innerHTML) {
+                        this.elements.tableHeader.innerHTML = `
+                        <tr>
+                            <th>Listing</th><th>Type</th><th>Location</th><th>Price/ADR</th><th>Amenities/Hooks</th><th>Calendar/Notes</th>
+                        </tr>`;
+                    }
+                    
+                    if (this.filteredData.length === 0) {
+                        this.elements.tableBody.innerHTML = `<tr class="empty-state"><td colspan="6">No matches. Try clearing filters.</td></tr>`;
+                        return;
+                    }
+                    
+                    this.elements.tableBody.innerHTML = this.filteredData.map(item => `
+                        <tr>
+                            <td><a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.listing}</a></td>
+                            <td>${item.type}</td>
+                            <td>${item.location}</td>
+                            <td>${item.price_snippet}</td>
+                            <td>
+                                <div class="amenity-chips">
+                                    ${item.guest_favorite ? '<span class="chip guest-favorite" aria-label="Guest Favorite">Guest Favorite</span>' : ''}
+                                    ${item.has_hot_tub ? '<span class="chip hot-tub" aria-label="Has Hot Tub">Hot Tub</span>' : ''}
+                                    ${item.is_new ? '<span class="chip new" aria-label="New Listing">New</span>' : ''}
+                                    ${item.amenities_flags.hvac ? '<span class="chip" aria-label="Has HVAC">HVAC</span>' : ''}
+                                    ${item.amenities_flags.kitchen ? '<span class="chip" aria-label="Has Kitchen">Kitchen</span>' : ''}
+                                </div>
+                            </td>
+                            <td>${item.notes}</td>
+                        </tr>`).join('');
+                },
+                
+                generateInsights() {
+                    const data = this.data;
+                    const insights = [];
+
+                    const gfTypes = data.filter(d => d.guest_favorite && ['Geodesic dome', 'Yurt', 'Tiny house'].some(t => d.type.includes(t)));
+                    if (gfTypes.length > 0) {
+                        const gfWithAdr = gfTypes.filter(d => d.adr_number).slice(0, 1).map(d => `(e.g., at $${d.adr_number})`).join(' ');
+                        insights.push(`${gfTypes.length} domes, yurts, & tiny homes are "Guest favorite" ${gfWithAdr}.`);
+                    }
+
+                    const domes = data.filter(d => /dome|pod/i.test(d.type) && d.adr_number);
+                    if (domes.length > 1) {
+                        const minAdr = Math.min(...domes.map(d => d.adr_number));
+                        const maxAdr = Math.max(...domes.map(d => d.adr_number));
+                        insights.push(`Premium domes show card ADRs from $${minAdr} to $${maxAdr}, signaling headroom.`);
+                    }
+                    
+                    const localComps = data.filter(d => /butler|watauga/i.test(d.location));
+                    if (localComps.length > 0) {
+                        const localTypes = [...new Set(localComps.map(d => d.type.replace(/ \(.*/, '')))];
+                        insights.push(`The Butler/Watauga market shows validation for ${localTypes.slice(0,2).join('/')} glamping concepts.`);
+                    }
+
+                    this.elements.insightsPanel.innerHTML = insights.map(i => `<li>${i}</li>`).join('') || '<li>No specific insights generated.</li>';
+                },
+                
+                // --- UTILITIES ---
+                debounce(func, delay) {
+                    let timeout;
+                    return (...args) => {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => func.apply(this, args), delay);
+                    };
+                },
+                
+                exportToCsv() {
+                    const data = this.filteredData;
+                    if (data.length === 0) { alert('No data to export.'); return; }
+
+                    const headers = ['listing', 'type', 'location', 'price_snippet', 'adr_number', 'amenities', 'notes', 'url', 'guest_favorite', 'has_hot_tub', 'is_new', 'reviews_count', 'review_avg'];
+                    const csvRows = [headers.join(',')];
+
+                    for (const row of data) {
+                        const values = headers.map(header => {
+                            const val = row[header] === null || row[header] === undefined ? '' : row[header];
+                            const escaped = ('' + val).replace(/"/g, '""');
+                            return `"${escaped}"`;
+                        });
+                        csvRows.push(values.join(','));
+                    }
+
+                    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `blue-foot-str-comps-${new Date().toISOString().split('T')[0]}.csv`;
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            };
+            
+            app.init();
+        });
+    </script>
+</body>
+</html>

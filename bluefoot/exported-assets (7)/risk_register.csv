@@ -1,0 +1,8 @@
+Risk_Category,Probability,Impact,Risk_Level,Mitigation_Strategy
+Permitting Delays,Medium,High,High,"Pre-application meetings, local contacts"
+Weather/Seasonal,High,Medium,Medium,"Seasonal pricing, weather-resistant designs"
+Utilities Access,Low,High,Medium,"Site survey, utility easements"
+Site Constraints,Medium,Medium,Medium,"Geotechnical assessment, flexible layouts"
+Market Demand,Low,High,Medium,"Market research, phased development"
+Regulatory Changes,Medium,Medium,Medium,"Industry monitoring, compliance buffer"
+Construction Costs,High,Medium,Medium,"Fixed-price contracts, material pre-buy"

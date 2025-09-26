@@ -1,0 +1,5 @@
+Jurisdiction,Building_Permits,Septic_Requirements,STR_Licensing,Fire_Safety,Setbacks,Occupancy_Limits
+"Johnson County, TN",Not required for most structures,Required if plumbing,Business license required,Basic requirements,Standard property line,"2 per bedroom, 12 max typical"
+"Watauga County, NC",Required >800 sq ft tent,Required if plumbing,Permit required,Permit >800 sq ft tent,20 ft structures/vehicles,"44"" egress width"
+North Carolina State,Required permanent structures,NSF-41 composting toilets OK,Local ordinance dependent,NFPA 701 flame retardant,Varies by structure type,Varies by classification
+Tennessee State,Varies by county,NSF-41 composting toilets OK,Favorable state law,Local fire marshal,Local zoning dependent,Health dept oversight

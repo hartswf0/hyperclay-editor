@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glamping & Alternative Lodging Investment Analysis</title>
+    <style>
+        /* --- 1. Global Styles & Variables --- */
+        :root {
+            --color-primary: #003366; /* Deep McKinsey Blue */
+            --color-secondary: #4A90E2; /* Lighter Accent Blue */
+            --color-text: #333333;
+            --color-text-light: #666666;
+            --color-background: #f8f9fa;
+            --color-card-bg: #ffffff;
+            --color-border: #dee2e6;
+            --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            --border-radius: 8px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 80px; /* Offset for sticky nav */
+        }
+
+        body {
+            font-family: var(--font-family-sans);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-background);
+            margin: 0;
+            font-size: 16px;
+        }
+
+        /* --- 2. Layout & Containers --- */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        main {
+            padding: 2rem 0;
+        }
+
+        section {
+            margin-bottom: 3rem;
+            background-color: var(--color-card-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 2rem;
+        }
+
+        /* --- 3. Typography --- */
+        h1, h2, h3, h4 {
+            font-weight: 600;
+            color: var(--color-primary);
+            margin-top: 0;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+        
+        h1 { font-size: 2.5rem; text-align: center; }
+        h2 { font-size: 2rem; border-bottom: 2px solid var(--color-secondary); padding-bottom: 0.5rem; }
+        h3 { font-size: 1.5rem; color: var(--color-secondary); }
+        h4 { font-size: 1.2rem; }
+
+        p { margin-top: 0; margin-bottom: 1rem; }
+        a { color: var(--color-secondary); text-decoration: none; transition: opacity 0.2s; }
+        a:hover { text-decoration: underline; opacity: 0.8; }
+        strong, b { font-weight: 600; color: var(--color-primary); }
+
+        /* --- 4. Header & Navigation --- */
+        .site-header {
+            background-color: var(--color-card-bg);
+            padding: 2rem 1rem;
+            text-align: center;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .site-header .subtitle {
+            font-size: 1.1rem;
+            color: var(--color-text-light);
+            max-width: 700px;
+            margin: 0.5rem auto 0;
+        }
+
+        .main-nav {
+            position: sticky;
+            top: 0;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--color-border);
+            box-shadow: var(--box-shadow);
+        }
+        .main-nav .nav-links {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .main-nav a {
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+        }
+        .main-nav a:hover {
+            background-color: var(--color-background);
+            text-decoration: none;
+        }
+
+        /* --- 5. Tables --- */
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+        th {
+            background-color: var(--color-background);
+            font-weight: 600;
+            color: var(--color-primary);
+            white-space: nowrap;
+        }
+        tbody tr:nth-child(even) {
+            background-color: var(--color-background);
+        }
+        tbody tr:hover {
+            background-color: #e9ecef;
+        }
+        .price-col { text-align: right; }
+        .table-wrapper::-webkit-scrollbar { height: 8px; }
+        .table-wrapper::-webkit-scrollbar-track { background: #f1f1f1; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+        .table-wrapper::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+
+        /* --- 6. Specific Components --- */
+        .executive-take, .callout {
+            background-color: #e7f3ff;
+            border-left: 5px solid var(--color-secondary);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        }
+        .executive-take ul, .callout ul {
+            padding-left: 20px;
+            margin-bottom: 0;
+        }
+        .executive-take li, .callout li {
+            margin-bottom: 0.5rem;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .product-card {
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            background-color: var(--color-background);
+            display: flex;
+            flex-direction: column;
+        }
+        .product-card h4 {
+            margin-bottom: 0.5rem;
+            color: var(--color-primary);
+            font-size: 1.1rem;
+        }
+        .product-card .price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-secondary);
+            margin: 0.5rem 0;
+        }
+        .product-card .tag {
+            font-size: 0.8rem;
+            color: var(--color-text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .product-card a {
+            margin-top: auto;
+            display: inline-block;
+            font-weight: 600;
+        }
+        .product-card a::after {
+            content: ' →';
+        }
+
+        .accordion .accordion-item {
+            border-bottom: 1px solid var(--color-border);
+        }
+        .accordion .accordion-item:first-child {
+            border-top: 1px solid var(--color-border);
+        }
+        .accordion-header {
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            padding: 1rem 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+        .accordion-header:hover {
+            background-color: var(--color-background);
+        }
+        .accordion-header::after {
+            content: '+';
+            font-size: 2rem;
+            font-weight: 300;
+            color: var(--color-secondary);
+            transform: rotate(0deg);
+            transition: transform 0.3s ease;
+        }
+        .accordion-item.active .accordion-header::after {
+            content: '−';
+            transform: rotate(180deg);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out, padding 0.4s ease-out;
+            padding: 0 1.5rem;
+        }
+        .accordion-item.active .accordion-content {
+            padding: 1.5rem;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--color-primary);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 1001;
+        }
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .back-to-top:hover {
+            background-color: var(--color-secondary);
+            text-decoration: none;
+        }
+
+        /* --- 7. Responsive Design --- */
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.75rem; }
+            section { padding: 1.5rem; }
+            .main-nav .nav-links {
+                gap: 0.5rem;
+                justify-content: space-around;
+            }
+            .main-nav a {
+                padding: 0.5rem;
+            }
+            .back-to-top {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="home-ribbon" style="position:sticky;top:0;z-index:1000;background:#eef3fb;border-bottom:1px solid #cdd7ea;padding:6px 0;">
+        <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+            <a href="index.html" style="text-decoration:none;font-weight:600;color:#2B4D82;">← Home: Blue Foot Index</a>
+            <span style="font-size:.8rem;color:#5A5A5A;">Investment Analysis</span>
+        </div>
+    </div>
+
+    <header class="site-header">
+        <div class="container">
+            <h1>Glamping & Alternative Lodging</h1>
+            <p class="subtitle">Investment Analysis & Strategic Recommendations for the Boone / Watauga Lake Market</p>
+        </div>
+    </header>
+
+    <nav class="main-nav" id="main-nav">
+        <div class="container">
+            <ul class="nav-links">
+                <li><a href="#executive-summary">Executive Summary</a></li>
+                <li><a href="#competitive-landscape">Comps Table</a></li>
+                <li><a href="#capex-analysis">CAPEX Analysis</a></li>
+                <li><a href="#next-steps">Next Steps</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        
+        <!-- SECTION 1: EXECUTIVE SUMMARY (POML) -->
+        <section id="executive-summary">
+            <h2>Executive Summary & Strategic POML</h2>
+            
+            <div class="executive-take">
+                <h3>Executive Take</h3>
+                <ul>
+                    <li><strong>Top near-term “bang-for-buck”:</strong> A <strong>safari/glamping canvas tent on an engineered deck</strong> with a heater and dedicated bathhouse access. Lowest CAPEX path to “true glamping,” quickest to deploy, and easy to iterate.</li>
+                    <li><strong>All-season mid-tier:</strong> A <strong>24′ yurt on a platform</strong> with insulation liner + mini-split; reliable “glamping” experience, durable in High Country shoulder seasons, broad guest appeal.</li>
+                    <li><strong>Flagship / beyond-glamping:</strong> A <strong>6m geodesic dome</strong> with ensuite and view deck/hot-tub; highly Instagrammable and ADR-expanding, but requires stronger engineering and moisture management.</li>
+                </ul>
+                <p>Local rules tilt in your favor (state-level constraints on heavy municipal crackdowns + county occupancy tax clarity), but <strong>site-specific building, septic, and fire/life-safety</strong> still decide the build details. (<a href="https://www.ncleg.gov/Sessions/2025/Bills/Senate/PDF/S291v1.pdf?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">North Carolina General Assembly</a>)</p>
+            </div>
+
+            <h3>Market Scan (Boone / Watauga Lake area)</h3>
+            <ul>
+                <li><strong>Types & proof of demand nearby:</strong> Tiny pods, quonset-style huts, tiny houses and domes/yurts appear in the Boone area listings; these reinforce guest familiarity and pricing headroom for distinctive units. (<a href="https://www.airbnb.com/rooms/45557210?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Airbnb Example</a>)</li>
+                <li><strong>3rd-party STR pulse:</strong> Watauga County has an active STR market with low county-level restrictions per recent aggregator notes (verify locally). (<a href="https://www.airroi.com/report/world/united-states/north-carolina/watauga-county?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">AirRoi Data</a>)</li>
+            </ul>
+
+            <h3>Regulatory & Taxes (What Actually Bites)</h3>
+            <ul>
+                <li><strong>NC Environment:</strong> 2025 NC Senate Bill 291 (first edition) proposes <strong>limits on cities restricting STRs</strong>. Local rules still apply for safety/permits, but macro-risk is reduced. (<a href="https://www.ncleg.gov/Sessions/2025/Bills/Senate/PDF/S291v1.pdf?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">NC S291</a>)</li>
+                <li><strong>Watauga County Occupancy Tax:</strong> <strong>6%</strong> on stays < 90 days; monthly filing. (<a href="https://www.wataugacounty.org/App_Pages/Dept/Tax/roomtax.aspx?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Watauga County</a>)</li>
+                <li><strong>Avery County (adjacent):</strong> Building/inspections under <strong>NC State Building Code</strong>. (<a href="https://www.averycountync.gov/departments/planning_department.php?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Avery County</a>)</li>
+                <li><strong>Tennessee side (Butler / Johnson Co.):</strong> TN’s <strong>Short-Term Rental Unit Act</strong> governs municipal regulation. Your gating items are <strong>septic/graywater, fire separation, platform engineering, wind/snow loads, and bathhouse vs. ensuite</strong> approvals. (<a href="https://www.mtas.tennessee.edu/reference/summary-short-term-rental-unit-act?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">MTAS</a>)</li>
+            </ul>
+            
+            <h3>Quick Payoff Matrix</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Quality (0–10)</th>
+                            <th>Cost (relative)</th>
+                            <th>Bang-for-buck (Q/Cost)</th>
+                            <th>Notes & Sources</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Safari tent (deck + bathhouse)</td>
+                            <td>6.5</td>
+                            <td><strong>1.0</strong></td>
+                            <td><strong>6.5</strong></td>
+                            <td>Fastest live; strong ADR lift vs camping. (<a href="https://www.davistent.com/glamping/?srsltid=AfmBOorb7su6FjPt5Ev9xakUQV4ghx8e0e_cOfq7NS9PqMkRTVJuka5n&utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Davis Tent</a>)</td>
+                        </tr>
+                        <tr>
+                            <td>24′ Yurt (insulated, mini-split)</td>
+                            <td>8.0</td>
+                            <td>2.2</td>
+                            <td>3.6</td>
+                            <td>All-season viability; classic glamping look. (<a href="https://yurtspaces.com/yurt-prices-buying-guide-how-much-does-a-yurt-cost-in-2025/?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Yurtspaces</a>)</td>
+                        </tr>
+                        <tr>
+                            <td>6 m Dome (ensuite)</td>
+                            <td>8.8</td>
+                            <td>2.6</td>
+                            <td>3.4</td>
+                            <td>Highest wow; moisture/fit-out discipline required. (<a href="https://www.glampingdomestore.com/?srsltid=AfmBOootVJDJxZDNGYPkRZEnq-I6DvdWAEiDykD-ejzi2eWk8o1wXXZb&utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Glamping Dome Store</a>)</td>
+                        </tr>
+                        <tr>
+                            <td>Quonset hut (30×40 shell + fit-out)</td>
+                            <td>7.5</td>
+                            <td>3.0</td>
+                            <td>2.5</td>
+                            <td>Great if multi-unit; higher base costs. (<a href="https://www.buildingsguide.com/quonset-huts/prices/?srsltid=AfmBOooz-keeCXNkP0cXBp6Ka7wJJVxTN4IauxpfL33x_Ze_KmiySXHb&utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">BuildingsGuide</a>)</td>
+                        </tr>
+                        <tr>
+                            <td>Tiny-home shell (kit)</td>
+                            <td>7.8</td>
+                            <td>2.8</td>
+                            <td>2.8</td>
+                            <td>Code/MEP upgrades swing cost; reliable UX. (<a href="https://www.bhg.com/allwood-sommersby-tiny-house-garden-kit-amazon-may-2025-11739482?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">BH&G</a>)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 2: COMPS TABLE -->
+        <section id="competitive-landscape">
+            <h2>Competitive Landscape (Comps Table)</h2>
+            <p>Publicly viewable listings within ~75 miles of Boone / Watauga Lake / Butler. Prices on Airbnb/VRBO are date-sensitive and indicative. <strong>Scroll table horizontally on small screens.</strong></p>
+            
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Listing</th>
+                            <th>Type</th>
+                            <th>Location (Region)</th>
+                            <th class="price-col">Price/ADR Snippet*</th>
+                            <th>Amenities / Hooks</th>
+                            <th>Calendar Proxy / Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><a href="https://www.airbnb.com/rooms/1412314641191446931?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Lakeview Safari Glamping Tent</a></td><td>Safari tent</td><td>Butler, TN (Watauga Lake)</td><td class="price-col">$129 shown</td><td>Deck setting, lake-adjacent; “glamping”</td><td>New listing; seasonal ops likely.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/laurel-bloomery-tn/stays?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">North Star Dome</a></td><td>Geodesic dome</td><td>Laurel Bloomery, TN</td><td class="price-col">n/a</td><td>Climate-controlled dome; outdoor shower (seasonal)</td><td>Guest favorite; 4.95 (158).</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/banner-elk-nc/stays/hot-tub?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Secluded Yurt on Sugar Mountain (hot tub)</a></td><td>Yurt (20′)</td><td>Newland/Sugar Mountain, NC</td><td class="price-col">n/a</td><td>Full bath, hot tub, HVAC, wood stove</td><td>Guest favorite; 4.98 (359).</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/grandfather-mountain-state-park-banner-elk-nc/stays?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Secluded Yurt on Sugar Mountain (alt card)</a></td><td>Yurt</td><td>Banner Elk area</td><td class="price-col">n/a</td><td>Same property surfaced in nearby filters</td><td>Confirms visibility in Banner Elk searches.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/49655293?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Yurt – Sugar Mountain (alt)</a></td><td>Yurt</td><td>Sugar Mountain, NC</td><td class="price-col">n/a</td><td>Furnished kitchen, full bath</td><td>Beech/Banner Elk ski-adjacent.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/1023750053618023861?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Luxury Geodome • Appalachian Mountain Dream</a></td><td>Geodesic dome</td><td>West Jefferson, NC</td><td class="price-col">$185 shown</td><td>Full kitchen/bath, HVAC; creek/forest</td><td>Guest favorite; ~4.99 (105–106).</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/1221227125345463721?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Cozy Fall Dome (hot tub)</a></td><td>Geodesic dome</td><td>West Jefferson area, NC</td><td class="price-col">n/a</td><td>Hot tub, views</td><td>Newer dome; seasonal angle.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/45557210?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Tiny Geopod – Hot Tub, Views</a></td><td>Micro dome/pod</td><td>Todd, NC (near Boone)</td><td class="price-col">$250 shown</td><td>Hot tub, walkable to town</td><td>Featured on A&E; high novelty.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/48030427?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Tiny home – 1 mi to App State/Main St</a></td><td>Tiny house</td><td>Boone, NC</td><td class="price-col">n/a</td><td>Kitchenette, separate full bath</td><td>In-town demand signal.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/607905035163013648?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Sunset Ridge – Brand New Tiny</a></td><td>Tiny house</td><td>Boone/Blowing Rock, NC</td><td class="price-col">n/a</td><td>“Luxury tiny”; near Boone/BR</td><td>New, finishes-forward.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/1151470566192100136?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Tiny House – Secluded, near town</a></td><td>Tiny house</td><td>Boone/Blowing Rock corridor</td><td class="price-col">$150 shown</td><td>Blue Ridge setting</td><td>Newer listing traction.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/1321840342196796108?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Lil Dahlia – Private Tiny</a></td><td>Tiny house</td><td>Near Boone, NC</td><td class="price-col">$108 shown</td><td>Nature-forward micro</td><td>Value option; price anchor.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/45842026?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Fawn’s View Roundhouse (Beech Mtn)</a></td><td>Roundhouse/dome-adjacent</td><td>Beech Mountain, NC</td><td class="price-col">n/a</td><td>Vintage octagon chalet vibe</td><td>Niche architectural comp.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/867345919794199105?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Luxury Geodome – Winery View (hot tub)</a></td><td>Geodesic dome</td><td>Banner Elk (Winery)</td><td class="price-col">$259 shown</td><td>Private hot tub; vineyard views</td><td>Premium ADR signal in same micro-market.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/elk-park-nc/stays?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Tiny “Hobbit House” (views)</a></td><td>Tiny house</td><td>Elk Park, NC</td><td class="price-col">n/a</td><td>200 sq ft, W/D combo, soaking tub</td><td>Guest favorite; 4.94 (304).</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/572045644013932126?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Tiny Elk House (new 1BR+loft)</a></td><td>Tiny house</td><td>Banner Elk, NC</td><td class="price-col">$150 shown</td><td>Family-friendly loft</td><td>Fresh stock near ski corridor.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/rooms/1481115270657483584?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Ruby Skies RV Retreat (glamp camper)</a></td><td>Glamp RV</td><td>Butler, TN</td><td class="price-col">n/a</td><td>Remodeled camper; valley near lake</td><td>Budget “glamp” alternative near your site.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/butler-tn/stays?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Epic Views on Lake Watauga (3BR)</a></td><td>Cabin/home</td><td>Butler, TN</td><td class="price-col">n/a</td><td>Dock, hot tub, multi-deck</td><td>Area ADR ceiling/context comp.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/powderhorn-mountain-nc/stays?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">“On the Rocks” Geodome mention card</a></td><td>Geodesic dome</td><td>Watauga Co. filters</td><td class="price-col">n/a</td><td>Full kitchen/bath HVAC</td><td>Dome shows across Watauga filters.</td></tr>
+                        <tr><td><a href="https://www.airbnb.com/watauga-county-nc/stays/patio?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Patio filter card (Vilas cabin + dome card)</a></td><td>Cabin + dome card</td><td>Watauga Co.</td><td class="price-col">n/a</td><td>Hot tub, upscale cabin; dome copy</td><td>Confirms demand for dome/cabin hybrids.</td></tr>
+                        <tr><td><a href="https://www.vrbo.com/4077505?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Glamping Tent near Boone (AC)</a></td><td>Safari tent</td><td>Deep Gap, NC</td><td class="price-col">n/a</td><td>AC/heat, king bed, fire pit</td><td>VRBO tent near Boone; good analog.</td></tr>
+                        <tr><td><a href="https://www.vrbo.com/en-nz/holiday-accommodation/p3313726vb?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Spring Ridge Luxury Yurt (hot tub)</a></td><td>Yurt</td><td>Western NC (reachable)</td><td class="price-col">n/a</td><td>2 BR yurt with full bath</td><td>Yurt family-sized comp.</td></tr>
+                        <tr><td><a href="https://www.vrbo.com/2176526?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">McBeary Luxury Yurt (hot tub)</a></td><td>Yurt</td><td>Western NC (reachable)</td><td class="price-col">n/a</td><td>Hot tub, glamping interior</td><td>“Luxury yurt” positioning.</td></tr>
+                        <tr><td><a href="https://www.vrbo.com/en-nz/holiday-accommodation/p4037548vb?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">TreePod – Big Views (dome + hot tub)</a></td><td>Dome/tree-pod hybrid</td><td>Blowing Rock, NC</td><td class="price-col">n/a</td><td>Private dome nook + hot tub</td><td>High Instagram factor near Boone.</td></tr>
+                        <tr><td><a href="https://www.vrbo.com/3061828?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Treetops Yurt (Beech Mtn)</a></td><td>Yurt/cabin hybrid</td><td>Beech Mountain, NC</td><td class="price-col">n/a</td><td>Deck, mountain view</td><td>Ski-adjacent, yurt-themed.</td></tr>
+                        <tr><td><a href="https://www.vrbo.com/2752368?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">Tiny House in the Trees (Foscoe)</a></td><td>Tiny house</td><td>Foscoe/Seven Devils, NC</td><td class="price-col">n/a</td><td>528 sf; full kitchen/bath</td><td>Between Boone/Banner Elk.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="callout">
+                <h3>Quick Read: What This Data Says</h3>
+                <ul>
+                    <li><strong>Dome/yurt/tiny</strong> inventory is clearly present and performing (multiple “Guest favorite” + high review counts), supporting guest familiarity and willingness to pay.</li>
+                    <li><strong>Butler/Watauga Lake</strong> has <strong>direct glamping supply</strong> now (safari tent; glamp camper), validating the concept <strong>at your address’ lake micro-market</strong>.</li>
+                    <li><strong>Premium dome</strong> examples show ADR headroom from <strong>~$185–$259+</strong> in nearby, brand-relevant locations.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- SECTION 3: CAPEX ANALYSIS -->
+        <section id="capex-analysis">
+            <h2>Structure Cost & CAPEX Breakdowns</h2>
+            <p>These are estimates and guides for budgeting purposes; always validate locally with vendors and contractors.</p>
+
+            <h3>Common CAPEX Components Across All Structures</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CAPEX Component</th>
+                            <th>What it includes / considerations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Structure shell / kit</strong></td><td>Frame, cladding, coverings, windows, doors, hardware, insulation / liner.</td></tr>
+                        <tr><td><strong>Platform / foundation / deck</strong></td><td>Structural deck, footers, piers, site leveling, retaining walls, frost depth, snow bearing.</td></tr>
+                        <tr><td><strong>Engineering / permits / inspections</strong></td><td>Drawings, structural load (snow, wind), code compliance, stamped designs.</td></tr>
+                        <tr><td><strong>Utilities & MEP rough-in</strong></td><td>Electrical, plumbing, HVAC (or heating/cooling), water, sewer / septic / composting, ventilation.</td></tr>
+                        <tr><td><strong>Interior finish & furnishings</strong></td><td>Flooring, walls, ceilings, fixtures, kitchen / kitchenette, appliances, furniture.</td></tr>
+                        <tr><td><strong>Exterior / landscaping / site work</strong></td><td>Walkways, stairs, railings, grading, landscaping, drainage, path lighting.</td></tr>
+                        <tr><td><strong>Contingency & markups</strong></td><td>10–20% buffer, contractor markup, freight / shipping, mobilization.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>Deep Dive by Structure Type</h3>
+            <div class="accordion">
+                <!-- Accordion Item 1: Safari Tent -->
+                <div class="accordion-item">
+                    <button class="accordion-header">1. Safari / Glamping Tent</button>
+                    <div class="accordion-content">
+                        <p>A robust path to market with the lowest initial CAPEX.</p>
+                        <h4>Estimated CAPEX Ballpark: ≈ $30,000</h4>
+                        <ul>
+                            <li><strong>Tent kit:</strong> $4,000</li>
+                            <li><strong>Deck/platform:</strong> $12,000</li>
+                            <li><strong>Utilities & MEP:</strong> $4,000</li>
+                            <li><strong>Interiors & furnishings:</strong> $6,000</li>
+                            <li><strong>Site work / exterior:</strong> $2,000</li>
+                            <li><strong>Engineering & permits:</strong> $2,000</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Accordion Item 2: Yurt -->
+                <div class="accordion-item">
+                    <button class="accordion-header">2. Yurt (Insulated, All-Season)</button>
+                    <div class="accordion-content">
+                        <p>A classic, reliable four-season glamping structure with strong guest appeal.</p>
+                        <h4>Estimated CAPEX Ballpark: ≈ $63,500</h4>
+                        <ul>
+                            <li><strong>Yurt kit + shell:</strong> $18,000</li>
+                            <li><strong>Deck / platform:</strong> $25,000</li>
+                            <li><strong>Utilities / MEP:</strong> $6,000</li>
+                            <li><strong>Interior + furnishings:</strong> $8,000</li>
+                            <li><strong>Site work & exterior:</strong> $3,000</li>
+                            <li><strong>Engineering & permits:</strong> $3,500</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Accordion Item 3: Geodesic Dome -->
+                <div class="accordion-item">
+                    <button class="accordion-header">3. Geodesic Dome</button>
+                    <div class="accordion-content">
+                        <p>High "wow-factor" and ADR potential. Requires careful engineering for moisture and climate control.</p>
+                        <h4>Estimated CAPEX Ballpark: ≈ $49,500</h4>
+                        <ul>
+                            <li><strong>Shell kit:</strong> $12,000</li>
+                            <li><strong>Platform / deck:</strong> $12,000</li>
+                            <li><strong>Engineering / permits:</strong> $3,000</li>
+                            <li><strong>MEP & utilities:</strong> $6,500</li>
+                            <li><strong>Interior & finishes:</strong> $9,000</li>
+                            <li><strong>Site work / exterior:</strong> $3,000</li>
+                            <li><strong>Contingency / freight etc:</strong> $4,000</li>
+                        </ul>
+                        <p>A higher-end “glass dome” could push this into the $70,000+ territory.</p>
+
+                        <h4>Product Examples & Vendor Links</h4>
+                        <div class="product-grid">
+                            <div class="product-card">
+                                <span class="tag">Shell Only</span>
+                                <h4>6m Aluminum-Frame Dome</h4>
+                                <p class="price">$9,500</p>
+                                <a href="https://www.raxtent.com/products/6m-cheap-factory-price-dome-house-prefabricated-with-aluminum-frame?variant=42465683996783&utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">View at RaxTent</a>
+                            </div>
+                            <div class="product-card">
+                                <span class="tag">Large Kit</span>
+                                <h4>30 ft Full Dome Kit</h4>
+                                <p class="price">$39,500</p>
+                                <a href="https://ekodome.com/store/ekodome-stellar-30-ft-dome-full-kit/?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">View at EkoDome</a>
+                            </div>
+                            <div class="product-card">
+                                <span class="tag">Frame Only</span>
+                                <h4>Galvanized Steel Frame</h4>
+                                <p class="price">$8,599</p>
+                                <a href="https://www.glampingdomestore.com/products/galvanized-steel-geodesic-dome-frame?variant=34896553246874&country=US&currency=USD&utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">View at GlampingDomeStore</a>
+                            </div>
+                             <div class="product-card">
+                                <span class="tag">Kit</span>
+                                <h4>25′ 3-V Dome Kit</h4>
+                                <p class="price">$1,225</p>
+                                <a href="https://www.ziptiedomes.com/geodesic-dome-kits/25-3v-38-geodesic-dome-kit.htm?utm_source=chatgpt.com" target="_blank" rel="noopener noreferrer">View at ZipTieDomes</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Accordion Item 4: Quonset Hut -->
+                <div class="accordion-item">
+                    <button class="accordion-header">4. Quonset / Arch Steel Hut</button>
+                    <div class="accordion-content">
+                        <p>A durable, low-maintenance shell with a unique industrial-modern aesthetic potential.</p>
+                        <h4>Estimated CAPEX Ballpark: ≈ $48,500</h4>
+                        <ul>
+                            <li><strong>Shell kit + framing:</strong> $12,000</li>
+                            <li><strong>Slab/foundation:</strong> $9,000</li>
+                            <li><strong>Insulation + interior walls:</strong> $6,000</li>
+                            <li><strong>MEP & utilities:</strong> $7,000</li>
+                            <li><strong>Interiors / furnishings:</strong> $8,000</li>
+                            <li><strong>Permitting/engineering:</strong> $3,000</li>
+                            <li><strong>Site work, exterior:</strong> $3,500</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Accordion Item 5: Tiny House -->
+                <div class="accordion-item">
+                    <button class="accordion-header">5. Tiny House / Shell</button>
+                    <div class="accordion-content">
+                        <p>Familiar to guests and can meet full residential code, but kits often exclude significant MEP and finishing costs.</p>
+                        <h4>Estimated CAPEX Ballpark: ≈ $42,000</h4>
+                        <ul>
+                            <li><strong>Shell kit:</strong> $12,000</li>
+                            <li><strong>Foundation:</strong> $6,500</li>
+                            <li><strong>MEP & utilities:</strong> $8,000</li>
+                            <li><strong>Interior finishes & furnishings:</strong> $10,000</li>
+                            <li><strong>Engineering / permits:</strong> $2,500</li>
+                            <li><strong>Site / exterior:</strong> $3,000</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Accordion Item 6: Barndominium -->
+                <div class="accordion-item">
+                    <button class="accordion-header">6. Barndominium</button>
+                    <div class="accordion-content">
+                        <p>The most conventional structure, approaching full residential dwelling costs. Ideal for larger, multi-purpose builds.</p>
+                        <h4>Estimated CAPEX Ballpark: ≈ $113,000</h4>
+                        <ul>
+                            <li><strong>Shell & structure:</strong> $45,000</li>
+                            <li><strong>Foundation/slab:</strong> $20,000</li>
+                            <li><strong>MEP & utilities:</strong> $18,000</li>
+                            <li><strong>Interior finish & furnishing:</strong> $20,000</li>
+                            <li><strong>Engineering / permits:</strong> $5,000</li>
+                            <li><strong>Exterior site / landscaping:</strong> $5,000</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Comparative CAPEX Summary</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Approx CAPEX Range*</th>
+                            <th>Key Cost Drivers / Variability</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>Canvas/glamping tent (on deck)</td><td><strong>$25,000 – $40,000</strong></td><td>Deck strength, MEP, quality of canvas, bathroom logistics.</td></tr>
+                        <tr><td>Yurt (insulated)</td><td><strong>$50,000 – $75,000</strong></td><td>Insulation, snow/wind upgrades, decking, engineering.</td></tr>
+                        <tr><td>Dome (mid / glamping)</td><td><strong>$40,000 – $70,000+</strong></td><td>Glazing, structural engineering, HVAC and condensation control.</td></tr>
+                        <tr><td>Quonset hut / arch</td><td><strong>$40,000 – $60,000</strong></td><td>Shell cost, slab, insulation, fitout.</td></tr>
+                        <tr><td>Tiny house / shell</td><td><strong>$30,000 – $50,000</strong></td><td>Full plumbing/MEP costs, code compliance, interior finishes.</td></tr>
+                        <tr><td>Barndominium</td><td><strong>$80,000 – $130,000+</strong></td><td>Full building code compliance, finishes, utilities, complexity.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p><small>*These are rough ballpark single-unit numbers. In remote or steep terrain, add 10–30% for mobilization, access, and site complexity.</small></p>
+
+        </section>
+
+        <!-- SECTION 4: NEXT STEPS -->
+        <section id="next-steps">
+            <h2>Next Steps & Priority Actions</h2>
+            <p>Based on this initial analysis, we recommend the following fast upgrades to harden the business case.</p>
+            <div class="callout">
+                <h3>Recommended Actions</h3>
+                <ul>
+                    <li><strong>Distance column:</strong> Compute drive miles from <strong>10120 US-321, Butler</strong> to each listing and flag within 25/50/75-mile rings.</li>
+                    <li><strong>Amenity vector:</strong> Use binary vectors (deck, hot tub, etc.) to run a <strong>Bang-for-Buck</strong> scatter plot (Quality vs Price).</li>
+                    <li><strong>Calendar proxy hardening:</strong> Sample calendar blocks and review cadence for 10 anchor comps to estimate Occupancy bands.</li>
+                    <li><strong>CSV export:</strong> Clean the comps table for your financial model.</li>
+                </ul>
+                <p>If you want to prioritize a <strong>specific structure path</strong> (e.g., “6m dome with hot tub”), I will filter the comps to that template and produce a tight 10-pack with notes.</p>
+            </div>
+
+        </section>
+
+    </main>
+
+    <a href="#" class="back-to-top" aria-label="Back to top">▲</a>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        // --- Accordion Functionality ---
+        const accordionItems = document.querySelectorAll('.accordion-item');
+        accordionItems.forEach(item => {
+            const header = item.querySelector('.accordion-header');
+            const content = item.querySelector('.accordion-content');
+            
+            header.addEventListener('click', () => {
+                const isActive = item.classList.contains('active');
+                
+                // Close all other items
+                accordionItems.forEach(otherItem => {
+                    if (otherItem !== item) {
+                        otherItem.classList.remove('active');
+                        otherItem.querySelector('.accordion-content').style.maxHeight = null;
+                        otherItem.querySelector('.accordion-content').style.padding = '0 1.5rem';
+                    }
+                });
+                
+                // Toggle current item
+                if (isActive) {
+                    item.classList.remove('active');
+                    content.style.maxHeight = null;
+                    content.style.padding = '0 1.5rem';
+
+                } else {
+                    item.classList.add('active');
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    content.style.padding = '1.5rem';
+                }
+            });
+        });
+
+        // --- Back to Top Button ---
+        const backToTopButton = document.querySelector('.back-to-top');
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                backToTopButton.classList.add('visible');
+            } else {
+                backToTopButton.classList.remove('visible');
+            }
+        });
+        backToTopButton.addEventListener('click', e => {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+    });
+    </script>
+</body>
+</html>

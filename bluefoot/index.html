@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blue Foot — Glamping Market Brief</title>
+  <meta name="description" content="Executive briefing for Boone / Watauga / Butler: KPIs, payoff matrix, and recommended moves." />
+  <meta name="theme-color" content="#2B4D82" />
+  <link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="%232B4D82"/><stop offset="100%" stop-color="%231c3152"/></linearGradient></defs><circle cx="32" cy="32" r="30" fill="url(%23g)"/><path d="M24 44c-3-5 2-9 6-12 5-4 6-8 4-11-2-3-7-3-11 0-4 3-6 8-6 13 0 5 2 8 7 10z" fill="white" opacity="0.95"/></svg>' />
+  <meta property="og:title" content="Blue Foot — Glamping Market Brief" />
+  <meta property="og:description" content="Executive briefing for Boone / Watauga / Butler: KPIs, payoff matrix, and recommended moves." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/370b045cecdb99593d25782665adf938/dddaf27a-0f5c-4b85-bbf2-210c3ad6644d/010e3cac.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Blue Foot — Glamping Market Brief" />
+  <meta name="twitter:description" content="Executive briefing for Boone / Watauga / Butler: KPIs, payoff matrix, and recommended moves." />
+  <meta name="twitter:image" content="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/370b045cecdb99593d25782665adf938/dddaf27a-0f5c-4b85-bbf2-210c3ad6644d/010e3cac.png" />
+  <style>
+    :root{
+      --parchment:#F7F3EC;
+      --granite:#5A5A5A;
+      --orbital:#2B4D82;
+      --maple:#C32F27;
+      --safety:#FFD447;
+      --ink:#0E0E10;
+      --shadow:0 2px 8px rgba(0,0,0,0.08);
+      --radius:12px;
+      --gap:12px;
+    }
+    html,body{margin:0;padding:0;background:var(--parchment);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,"Apple Color Emoji","Segoe UI Emoji";line-height:1.5}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+
+    /* Header Strip + Top Nav */
+    header.header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg, rgba(247,243,236,0.98), rgba(247,243,236,0.92));backdrop-filter:saturate(1.2) blur(6px);border-bottom:1px solid #e3ded4}
+    .header .bar{display:flex;align-items:center;gap:12px;padding:10px 16px}
+    .mark{width:36px;height:36px;border-radius:50%;background:var(--orbital);box-shadow:inset 0 -6px 12px rgba(0,0,0,.15)}
+    .title{font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--orbital)}
+    .subtitle{color:var(--granite);font-size:.95rem}
+    .meta{margin-left:auto;color:var(--granite);font-size:.85rem}
+    .badge{display:inline-block;margin-left:8px;padding:4px 8px;border-radius:999px;background:#eef3fb;color:var(--orbital);border:1px solid #cdd7ea;font-size:.75rem;font-weight:700;text-decoration:none}
+    .header .bar{border-bottom:1px solid #e3ded4}
+    /* Top quick nav */
+    .topnav{border-top:1px solid #e3ded4}
+    .topnav .wrap{display:flex;align-items:center;gap:10px;padding:8px 16px}
+    .burger{margin-left:auto;cursor:pointer;border:1px solid #d6d1c7;border-radius:8px;padding:6px 10px;background:#fff;box-shadow:var(--shadow);font-weight:600}
+    .menu{display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border-bottom:1px solid #e3ded4;box-shadow:0 6px 14px rgba(0,0,0,.06)}
+    .menu.open{display:block}
+    .menu .row{display:flex;flex-wrap:wrap;gap:8px;padding:10px 16px}
+    .menu a{display:inline-block;padding:8px 10px;text-decoration:none;color:var(--ink);border:1px solid #eee;border-radius:8px;background:#fafafa}
+
+    /* Export strip (footer) */
+    .export{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;border-top:1px solid #e3ded4;background:#fff}
+    .btn{appearance:none;border:1px solid #d6d1c7;background:#fff;color:var(--ink);padding:8px 12px;border-radius:10px;font-weight:600;letter-spacing:.02em;box-shadow:var(--shadow);cursor:pointer}
+    .btn.primary{background:var(--orbital);color:#fff;border-color:var(--orbital)}
+    .btn.warn{background:var(--safety);border-color:#e6c33f}
+
+    /* Layout */
+    .grid{display:grid;grid-template-columns:1fr;gap:var(--gap)}
+    @media(min-width:900px){
+      .grid-2{grid-template-columns:1.2fr .8fr}
+    }
+
+    /* KPI tiles */
+    .kpis{display:grid;grid-template-columns:repeat(1, minmax(0,1fr));gap:var(--gap);margin:16px 0}
+    @media(min-width:700px){.kpis{grid-template-columns:repeat(3, minmax(0,1fr))}}
+    .kpi{background:#fff;border:1px solid #e5e2db;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+    .kpi .label{color:var(--granite);font-size:.85rem;letter-spacing:.06em;text-transform:uppercase}
+    .kpi .val{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-size:1.6rem;font-weight:700}
+    .kpi .note{color:var(--granite);font-size:.9rem}
+
+    /* Cards */
+    .card{background:#fff;border:1px solid #e5e2db;border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card .head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #eee}
+    .card .head h3{margin:0;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--orbital);font-size:1rem}
+    .card .body{padding:14px}
+    .tags{display:flex;flex-wrap:wrap;gap:6px}
+    .tag{display:inline-flex;align-items:center;gap:6px;border:1px solid #e0e0e0;border-radius:999px;padding:4px 8px;font-size:.8rem;background:#fafafa}
+    .tag.blue{border-color:#cdd7ea;background:#eef3fb;color:var(--orbital)}
+    .tag.red{border-color:#f1c1bd;background:#fdecea;color:var(--maple)}
+    .tag.yellow{border-color:#ffe5a3;background:#fff7d1}
+
+    /* Section */
+    section{scroll-margin-top:80px}
+    section > h2{margin:24px 0 8px 0;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+    .muted{color:var(--granite)}
+    /* Featured */
+    .feature{background:#fff;border:2px solid var(--orbital);border-radius:14px;box-shadow:0 6px 18px rgba(43,77,130,.15)}
+    .feature .head h3{color:var(--ink)}
+    .cta{display:inline-block;margin-top:8px;padding:10px 14px;border-radius:10px;background:var(--orbital);color:#fff;text-decoration:none;font-weight:700;letter-spacing:.02em;box-shadow:var(--shadow)}
+    .cta:hover{opacity:.92}
+
+    /* Images */
+    figure{margin:0;padding:0}
+    figure img{display:block;max-width:100%;height:auto;border-radius:10px;border:1px solid #e5e2db;box-shadow:var(--shadow)}
+    figcaption{font-size:.85rem;color:var(--granite);margin-top:6px}
+    /* Natural zoom affordance */
+    .zoomable{cursor:zoom-in}
+    .lightbox{position:fixed;inset:0;background:rgba(14,14,16,.92);display:none;align-items:center;justify-content:center;z-index:1000}
+    .lightbox.open{display:flex}
+    .lightbox .pan{max-width:100vw;max-height:100vh;overflow:auto}
+    .lightbox img{display:block;max-width:none;max-height:none}
+    .lightbox .close{position:fixed;top:10px;right:10px}
+    .lightbox .close .btn{background:#fff}
+
+    /* Insight list */
+    ul.tight{margin:8px 0 0 18px}
+    ul.tight li{margin:4px 0}
+
+    /* Nav */
+    .nav{position:sticky;top:64px}
+    .nav .card{position:relative}
+    .nav a{display:block;padding:10px 12px;color:var(--ink);text-decoration:none;border-radius:8px}
+    .nav a:hover{background:#f3efe6}
+
+    /* Method note */
+    .note{background:#fff;border-left:4px solid var(--safety);padding:10px 12px;border-radius:8px;box-shadow:var(--shadow)}
+
+    /* Table scaffolding (if needed later) */
+    table{border-collapse:collapse;width:100%;background:#fff;border:1px solid #e5e2db;border-radius:12px;overflow:hidden}
+    th,td{padding:10px;border-bottom:1px solid #eee}
+    th{background:#f7f7f7;text-transform:uppercase;letter-spacing:.06em;font-size:.85rem}
+
+    /* Print-friendly (informed by your prior print CSS preference) */
+    @media print{
+      header.header{position:static;border-bottom:none}
+      .export{display:none !important}
+      .nav{display:none}
+      body{background:#fff;color:#000}
+      a{text-decoration:underline;color:#000}
+      .card,.kpi{break-inside:avoid}
+      figure{break-inside:avoid}
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="bar wrap">
+      <div class="mark" aria-hidden="true"></div>
+      <div>
+        <div class="title">Blue Foot — Glamping Market Brief</div>
+        <div class="subtitle">Boone / Watauga / Butler</div>
+      </div>
+      <div class="meta" id="ts">—</div>
+    </div>
+    <!-- Top Quick Nav with hamburger -->
+    <div class="topnav">
+      <div class="wrap">
+        <nav class="quick">
+          <a href="#market-overview">Market</a>
+          <a href="#structure-performance">Structures</a>
+          <a href="#payoff-matrix">Payoff</a>
+          <a href="#recs">Recs</a>
+          <a href="#insights">Insights</a>
+          <a href="#method">Method</a>
+        </nav>
+        <button class="burger" id="burger" aria-expanded="false" aria-controls="menu">Menu</button>
+      </div>
+      <div class="menu" id="menu" aria-hidden="true">
+        <div class="row" style="flex-direction:column;align-items:flex-start">
+          <strong class="muted" style="margin-bottom:6px">Other reports:</strong>
+          <a href="ai_studio_code - 2025-09-26T094607.661.html" target="_blank" rel="noopener">
+            <div><strong>Glamping Comps Analysis</strong> — report 661</div>
+            <div class="muted" style="font-size:.85rem;max-width:70ch">Interactive comps table with filters/sorts, ADR/BFB KPIs, and auto-generated insights for 30 listings.</div>
+          </a>
+          <a href="ai_studio_code - 2025-09-26T094726.487.html" target="_blank" rel="noopener">
+            <div><strong>High Country STR Comps</strong> — report 487</div>
+            <div class="muted" style="font-size:.85rem;max-width:70ch">High Country public scan (~75mi) with KPI tiles, advanced filters, and derived insights panel.</div>
+          </a>
+          <a href="ai_studio_code - 2025-09-26T095445.597.html" target="_blank" rel="noopener">
+            <div><strong>Investment Analysis</strong> — report 597</div>
+            <div class="muted" style="font-size:.85rem;max-width:70ch">Executive strategy with payoff matrix and detailed CAPEX breakdowns; vendor/product links included.</div>
+          </a>
+        </div>
+        <div class="row">
+          <strong class="muted">Jump to:</strong>
+          <a href="#distance-amenities">Distance</a>
+          <a href="#cba-swot">CBA/SWOT</a>
+          <a href="#provenance">Provenance</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap grid grid-2">
+    <!-- Left: Body -->
+    <div>
+      <!-- Entry Splash -->
+      <section id="splash">
+        <div class="card" style="background:linear-gradient(180deg,#ffffff, #f6f2ea)">
+          <div class="head">
+            <h3>Market Brief</h3>
+            <div class="tags"><span class="tag blue">Blue Foot</span><span class="tag">Boone/Watauga/Butler</span></div>
+          </div>
+          <div class="body">
+            <p class="muted">Executive snapshot of current glamping pricing and structure options across the Boone / Watauga / Butler corridor. Clear KPIs, payoff view, and recommended moves.</p>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- Featured: Report 597 -->
+      <section id="featured-597">
+        <div class="card feature">
+          <div class="head">
+            <h3>Featured: Investment Analysis (report 597)</h3>
+            <div class="tags"><span class="tag blue">executive</span><span class="tag yellow">capex & payoff</span></div>
+          </div>
+          <div class="body">
+            <p><strong>Why it matters:</strong> Crisp executive strategy with payoff matrix and detailed CAPEX breakdowns; vendor/product links included. This is the clearest path to decisions.</p>
+            <a class="cta" href="ai_studio_code - 2025-09-26T095445.597.html" target="_blank" rel="noopener">Open Investment Analysis (597)</a>
+          </div>
+        </div>
+      </section>
+      <!-- KPI Row -->
+      <div class="kpis">
+        <div class="kpi">
+          <div class="label">ADR range (market)</div>
+          <div class="val">$118 – $450</div>
+          <div class="note muted">Median $258 · Avg $262</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Top quartile threshold</div>
+          <div class="val">$314+</div>
+          <div class="note muted">Premium glamping tier</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Best BFB (structure)</div>
+          <div class="val">5.96</div>
+          <div class="note muted">Geodesic dome (≈1.3 yr payback)</div>
+        </div>
+      </div>
+
+      <!-- Market Overview (from Comps Analysis) -->
+      <section id="market-overview">
+        <h2>Market Overview</h2>
+        <div class="card">
+          <div class="head">
+            <h3>Boone / Watauga / Butler Market</h3>
+            <div class="tags">
+              <span class="tag blue">read: comps</span>
+              <span class="tag">radius: 75 mi</span>
+            </div>
+          </div>
+          <div class="body">
+            <p>The analysis of 30 active short-term rental comparables within 75 miles of Butler, TN shows healthy demand across price tiers, with a sweet spot around the $200–$300 range and premium capacity above $314.</p>
+            <figure>
+              <img alt="ADR Distribution for Glamping Accommodations within 75 Miles of Butler, TN" src="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/370b045cecdb99593d25782665adf938/48472237-b9d4-40fe-ac9c-7c7ff72fcbc7/7d850d6e.png" />
+              <figcaption>ADR distribution (Butler 75mi) — median $258, avg $262.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      
+
+      <!-- Structure Type Performance (from Comps Analysis) -->
+      <section id="structure-performance">
+        <h2>Structure Type Performance</h2>
+        <div class="card">
+          <div class="head">
+            <h3>Bang-for-Buck leaders</h3>
+            <div class="tags">
+              <span class="tag blue">ratios</span>
+              <span class="tag">supply signals</span>
+            </div>
+          </div>
+          <div class="body">
+            <ul class="tight">
+              <li><strong>A-Frame</strong> — $165 ADR · 5.8 quality · limited supply, high value</li>
+              <li><strong>Tiny House</strong> — $193 ADR · 6.8 quality · strong market appeal</li>
+              <li><strong>Geodesic Dome</strong> — $271 ADR · 6.8 quality · premium positioning</li>
+              <li><strong>Yurt</strong> — $233 ADR · 6.8 quality · proven model</li>
+            </ul>
+            <figure style="margin-top:12px">
+              <img alt="Quality vs Price Scatter Plot with Bang-for-Buck Analysis for Glamping Structures" src="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/370b045cecdb99593d25782665adf938/a6dfc4f2-07f9-41b9-bdaa-5c3228b164f5/cc342e32.png" />
+              <figcaption>Quality vs Price — domes span budget to luxury; tiny houses cluster high-quality/moderate-price.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Payoff Matrix (from Comps + CBA/SWOT) -->
+      <section id="payoff-matrix">
+        <h2>Payoff Matrix</h2>
+        <div class="card">
+          <div class="head">
+            <h3>Quality × Price / Cost</h3>
+            <div class="tags">
+              <span class="tag blue">sweet spot</span>
+              <span class="tag yellow">investment quadrant</span>
+            </div>
+          </div>
+          <div class="body">
+            <figure>
+              <img alt="Glamping Structure Payoff Matrix: Quality vs Price Positioning" src="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/370b045cecdb99593d25782665adf938/dddaf27a-0f5c-4b85-bbf2-210c3ad6644d/010e3cac.png" />
+              <figcaption>Sweet spot: high quality + medium price (avg BFB ≈ 2.75); best value: high quality + low price (avg BFB ≈ 3.65).</figcaption>
+            </figure>
+            <figure style="margin-top:12px">
+              <img alt="Glamping Structure Payoff Matrix: Quality vs Cost with Payback Period Analysis" src="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/0c8cfc1b9e1e5b850fef0a90b7b37bba/33c9f8ee-3aea-4b6a-9378-4b18f36ba804/d3336c51.png" />
+              <figcaption>Cost-anchored view: payback period highlights dome, tiny house, yurt efficiency frontier.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Distance Impact + Amenity premiums (from Comps) -->
+      <section id="distance-amenities">
+        <h2>Distance & Amenities</h2>
+        <div class="card">
+          <div class="head">
+            <h3>Proximity and premiums</h3>
+            <div class="tags">
+              <span class="tag">0–50+ mi bands</span>
+              <span class="tag yellow">amenity impacts</span>
+            </div>
+          </div>
+          <div class="body">
+            <ul class="tight">
+              <li><strong>0–15 mi:</strong> $278 ADR (hyperlocal premium)</li>
+              <li><strong>15–30 mi:</strong> $281 ADR (optimal balance)</li>
+              <li><strong>30–50 mi:</strong> $223 ADR (regional value)</li>
+              <li><strong>50+ mi:</strong> $260 ADR (destination pricing)</li>
+            </ul>
+            <ul class="tight" style="margin-top:8px">
+              <li><strong>HVAC:</strong> +$106 (64% premium)</li>
+              <li><strong>Ensuite bath:</strong> +$90 (48% premium)</li>
+              <li><strong>Hot tub:</strong> +$32 (13% premium)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <div class="head"><h3>Raw reports (view / download)</h3></div>
+          <div class="body">
+            <ul class="tight">
+              <li><a href="Glamping Structure CBA & SWOT Analysis_ Boone, NC.md" target="_blank" rel="noopener">Glamping Structure CBA & SWOT Analysis_ Boone, NC.md</a></li>
+              <li><a href="Glamping Comps Analysis — Boone_Watauga_Butler Mar.md" target="_blank" rel="noopener">Glamping Comps Analysis — Boone_Watauga_Butler Mar.md</a></li>
+              <li><a href="exported-assets (7)/glamping-cba-swot-boone-nc.pdf" target="_blank" rel="noopener">glamping-cba-swot-boone-nc.pdf</a></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recommendations (from Comps + CBA/SWOT) -->
+      <section id="recs">
+        <h2>Investment Recommendations</h2>
+        <div class="card">
+          <div class="head">
+            <h3>Positioning options</h3>
+            <div class="tags">
+              <span class="tag blue">budget</span>
+              <span class="tag blue">premium</span>
+              <span class="tag blue">luxury</span>
+            </div>
+          </div>
+          <div class="body">
+            <ul class="tight">
+              <li><strong>Best BFB:</strong> Dome (budget) — $118 ADR, BFB 4.71</li>
+              <li><strong>Tiny House:</strong> $189–$195 ADR, BFB 3.6–3.8</li>
+              <li><strong>A-Frame:</strong> $165 ADR, BFB 3.53</li>
+            </ul>
+            <ul class="tight" style="margin-top:8px">
+              <li><strong>Budget tier ($150–$225):</strong> dome or tiny house, basic amenities</li>
+              <li><strong>Premium tier ($275–$350):</strong> full amenities, unique design</li>
+              <li><strong>Luxury ($350+):</strong> limited competition, exceptional site/finish</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- CBA / SWOT Highlights -->
+      <section id="cba-swot">
+        <h2>Structure CBA & SWOT — Boone Area</h2>
+        <div class="card">
+          <div class="head">
+            <h3>Executive findings</h3>
+            <div class="tags">
+              <span class="tag blue">CBA</span>
+              <span class="tag">SWOT</span>
+              <span class="tag yellow">payback</span>
+            </div>
+          </div>
+          <div class="body">
+            <p><strong>Top 3 structures:</strong> Geodesic dome ($61K CAPEX, ~$57K revenue, ~1.3y payback), Tiny house kit ($57K CAPEX, ~$48K revenue), Yurt ($44K CAPEX, ~$44K revenue).</p>
+            <figure>
+              <img alt="Quality vs Price Analysis for Glamping Structures with Bang-for-Buck Optimization" src="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/0c8cfc1b9e1e5b850fef0a90b7b37bba/403c41d2-0464-4a49-9cab-9d0b06a31573/cc342e32.png" />
+              <figcaption>Efficiency frontier — dome, tiny, yurt.</figcaption>
+            </figure>
+            <figure style="margin-top:12px">
+              <img alt="Glamping Structure Setup Timeline: Lead Times and Project Phases" src="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/0c8cfc1b9e1e5b850fef0a90b7b37bba/921cb9a0-84d4-431b-b2f9-464070314a1e/1c349487.png" />
+              <figcaption>Setup timeline — deployment speed vs complexity.</figcaption>
+            </figure>
+            <div class="note" style="margin-top:12px">
+              Site specifics (10120 US‑321, Butler): strong access, minimal permits; consider septic, terrain, noise mitigation, flood assessment.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Insight Panel -->
+      <section id="insights">
+        <h2>Insights</h2>
+        <div class="card">
+          <div class="head"><h3>Read-back</h3><div class="tags"><span class="tag red">action flags</span></div></div>
+          <div class="body">
+            <ul class="tight">
+              <li>Premium domes cluster near $185–$259 ADR; luxury variants extend to $425.</li>
+              <li>Butler/Watauga has active glamp comps; review velocity is strongest occupancy proxy.</li>
+              <li>Tiny house ADR band shows demand resilience; strong BFB at sub-$200 ADR.</li>
+              <li>HVAC and ensuite deliver outsized premiums; hot tub adds but is not decisive.</li>
+              <li>Geodesic domes, tiny homes, yurts trace the efficiency frontier in payoff.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Method Note -->
+      <section id="method">
+        <h2>Method Note</h2>
+        <div class="note">
+          Market scan from two sources: comps within 75mi of Butler, TN, and structure-level CBA/SWOT for Boone area. Data indicative and time‑sensitive; ADRs, BFB, and payback synthesized from listings and vendor sources. See CSV and references in source analyses for detail.
+        </div>
+      </section>
+
+      <!-- Prompts (POML/MD) -->
+      <section id="prompts">
+        <h2>Prompts (POML/MD)</h2>
+        <div class="card">
+          <div class="head"><h3>Blueprints to regenerate reports</h3></div>
+          <div class="body">
+            <ul class="tight">
+              <li>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                  <strong>bf01.md</strong>
+                  <a href="bf01.md" target="_blank" rel="noopener" class="btn">Open</a>
+                  <button class="btn" data-load-prompt="bf01.md">Show prompt</button>
+                  <button class="btn" data-copy-prompt="bf01.md" disabled>Copy</button>
+                </div>
+                <details style="margin-top:8px"><summary class="muted">View contents</summary>
+                  <pre style="white-space:pre-wrap;word-break:break-word"><code id="prompt-bf01.md">(click "Show prompt" to load)</code></pre>
+                </details>
+              </li>
+              <li>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                  <strong>bf00.md</strong>
+                  <a href="bf00.md" target="_blank" rel="noopener" class="btn">Open</a>
+                  <button class="btn" data-load-prompt="bf00.md">Show prompt</button>
+                  <button class="btn" data-copy-prompt="bf00.md" disabled>Copy</button>
+                </div>
+                <details style="margin-top:8px"><summary class="muted">View contents</summary>
+                  <pre style="white-space:pre-wrap;word-break:break-word"><code id="prompt-bf00.md">(click "Show prompt" to load)</code></pre>
+                </details>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Provenance & Citations -->
+      <section id="provenance">
+        <h2>Provenance & Citations</h2>
+        <div class="card">
+          <div class="head"><h3>Comps Analysis — Sources</h3></div>
+          <div class="body">
+            <details>
+              <summary>Show all citations (Comps)</summary>
+              <pre style="white-space:pre-wrap;word-break:break-all">
+https://www.airbnb.com/blue-ridge-mountains/stays/yurts
+https://www.vrbo.com/vacation-rentals/cabins/usa/tennessee/east/butler
+https://www.stayblueridge.com/camp-4-west-jefferson
+https://www.airbnb.com/western-north-carolina-nc/stays/yurts
+https://www.vrbo.com/9588759ha
+https://aconybell.com
+https://www.instagram.com/glampingunplugged/
+https://www.vrbo.com/vacation-rentals/usa/tennessee/butler/watauga-lake-winery
+https://www.airbnb.com/western-north-carolina-nc/stays/tiny-houses
+https://glampinghub.com/rentalsearch/unique-and-unusual-rentals-north-carolina/
+https://www.vrbo.com/vacation-rentals/usa/tennessee/east/watauga-lake
+https://www.vrbo.com/vacation-rentals/lake/usa/tennessee/east/butler
+https://www.vrbo.com/3087320
+https://www.rentbyowner.com/property/glamping-unplugged-dome-on-trout-stream-boone-nc/AB-35618984
+https://bnbbreeze.co/tennessee
+https://glampblueridgega.com
+https://www.airbnb.com/appalachian-mountains/stays/domes
+https://bnbbreeze.co/rentals/the-smoky-mountain-barndominium
+https://glampblueridge.com/en/dome-6-jane
+https://www.airbnb.com/watauga-county-nc/stays/patio
+https://www.vacationcottage.com/property/barndominium-private-paradise/HA-3213576865
+https://www.airbnb.com/blue-ridge-mountains/stays/tents
+https://www.airbnb.com/watauga-county-nc/stays
+https://bosshogbarndos.com/barndominium-vacation-homes/
+https://glampblueridge.com
+https://www.airbnb.com/boone-nc/stays/patio
+https://www.airbnb.com/western-north-carolina-nc/stays/barns
+https://exploregeorgia.org/blue-ridge/outdoors-nature/camping/glamp-blue-ridge
+https://www.airbnb.com/rooms/1020495434772890516
+https://www.vrbo.com/3617276
+https://glampinghub.com/unitedstatesofamerica/southeast/georgia/blueridge/
+https://www.vrbo.com/3640618
+https://www.airbnb.com/powderhorn-mountain-nc/stays
+https://www.airbnb.com/watauga-county-nc/stays/family-friendly
+https://www.hipcamp.com/en-US/d/united-states/georgia/blue-ridge/camping/glamping-and-hot-tub
+https://www.airbnb.com/tennessee-united-states/stays/barns
+https://www.tandfonline.com/doi/pdf/10.1080/1331677X.2021.1962380?needAccess=true
+https://www.mdpi.com/0718-1876/16/4/35/pdf
+https://www.mdpi.com/2071-1050/12/11/4710/pdf
+https://linkinghub.elsevier.com/retrieve/pii/S0261517723000201
+https://arxiv.org/pdf/2308.06929.pdf
+https://arxiv.org/ftp/arxiv/papers/1805/1805.12101.pdf
+https://www.mdpi.com/2071-1050/13/1/292/pdf
+https://journals.sagepub.com/doi/pdf/10.1177/13548166231191551
+http://arxiv.org/pdf/2407.01555.pdf
+https://linkinghub.elsevier.com/retrieve/pii/S0160791X24001349
+https://www.mdpi.com/2071-1050/10/12/4596/pdf
+https://www.tandfonline.com/doi/full/10.1080/1331677X.2022.2108478
+https://www.airbnb.com/western-north-carolina-nc/stays/tents
+https://broadrivercampgroundnc.com/glamping-domes/
+https://www.airbnb.com/north-carolina-united-states/stays/tents
+https://www.vrbo.com/vacation-rentals/houses/usa/tennessee/east/butler
+https://www.vrbo.com/vacation-rentals/country-houses/usa/tennessee/east/butler
+https://www.vacationrenter.com/p/402705416
+https://www.airbnb.com/rooms/862027823325755165
+https://www.vrbo.com/vacation-rentals/usa/tennessee/johnson-county
+https://glampinghub.com/rentalsearch/luxury-camping-accommodations-near-boone-nc-north-carolina/
+https://www.airbnb.com/rooms/928938191420621724
+https://www.airbnb.com/rooms/1445656442838680206
+https://www.vrbo.com/en-sg/holiday-accommodation/united-states/tennessee/johnson-county/butler
+https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/370b045cecdb99593d25782665adf938/6539c12b-8147-4e1b-a786-d928091d8688/1b39496a.csv
+              </pre>
+            </details>
+          </div>
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="head"><h3>CBA & SWOT — Sources</h3></div>
+          <div class="body">
+            <details>
+              <summary>Show all citations (CBA & SWOT)</summary>
+              <pre style="white-space:pre-wrap;word-break:break-all">
+https://airbtics.com/annual-airbnb-revenue-in-boone-north-carolina-usa/
+https://www.wataugalakevacations.com
+https://exploregeorgia.org/blue-ridge/outdoors-nature/camping/glamp-blue-ridge
+https://www.johnsoncountytn.gov/newcomer-information
+https://awning.com/post/tennessee-short-term-rental-laws
+https://www.gosummer.com/post/tennessee-short-term-rental-laws
+https://www.tn.gov/environment/permit-permits/water-permits1/septic-systems-permits/ssp/permit-water-septic-system-construction-permit.html
+http://www.cartercountyhistory.com/watauga-lake-reaches-record-high-water-level.html
+https://www.semanticscholar.org/paper/f9308e5bd0b21f31065d77e4a467ebfc2d95631a
+https://digitalcommons.uri.edu/oa_diss/842
+https://www.tandfonline.com/doi/pdf/10.1080/1331677X.2021.1962380?needAccess=true
+https://arxiv.org/pdf/1701.01645.pdf
+https://www.mdpi.com/1911-8074/13/8/161/pdf
+https://www.mdpi.com/0718-1876/16/4/35/pdf
+https://ejtr.vumk.eu/index.php/about/article/download/2142/518
+https://www.mdpi.com/2071-1050/13/3/1185/pdf
+https://linkinghub.elsevier.com/retrieve/pii/S0160738319300647
+https://arxiv.org/pdf/2501.10535.pdf
+https://pmc.ncbi.nlm.nih.gov/articles/PMC9584234/
+https://www.tandfonline.com/doi/full/10.1080/02673037.2023.2176829
+https://www.emerald.com/insight/content/doi/10.1108/IJTC-03-2023-0056/full/pdf?title=exploring-bibliometric-evidence-of-airbnbs-influence-on-urban-destinations-emotional-solidarity-airbnb-supply-moral-economy-and-digital-future
+https://www.mdpi.com/2071-1050/10/12/4596/pdf
+https://www.tandfonline.com/doi/pdf/10.1080/21681376.2019.1592699?needAccess=true
+https://arxiv.org/pdf/1711.09196.pdf
+https://pmc.ncbi.nlm.nih.gov/articles/PMC11480409/
+https://pmc.ncbi.nlm.nih.gov/articles/PMC10849255/
+https://www.mdpi.com/2071-1050/9/9/1635/pdf?version=1505387081
+https://vtechworks.lib.vt.edu/bitstream/10919/106823/1/00472875211042670.pdf
+https://mtnsprings.com/yurts/
+https://airbtics.com/average-rent-boone-nc-us/
+https://host.redawning.com/vacation-rental-management/tennessee/butler-tennessee-vacation-rental-management
+https://www.airbnb.com/blue-ridge-mountains/stays/yurts
+https://www.airdna.co/vacation-rental-data/app/us/north-carolina/boone/overview
+https://www.airbnb.com/watauga-lake-tn/stays/monthly
+https://www.airbnb.com/rooms/1445656442838680206
+https://www.vrbo.com/vacation-rentals/lake/usa/tennessee/east/butler
+https://blueridgeyurts.com/our-yurts/
+https://www.airbnb.com/boone-nc/stays
+https://www.cozycozy.com/us/watauga-lake-tn-vacation-rentals
+https://glampinghub.com/unitedstatesofamerica/southeast/georgia/blueridgemountains/
+https://www.airbnb.com/rooms/50226475
+https://www.vrbo.com/vacation-rentals/usa/tennessee/east/butler
+https://gastateparks.org/UniqueAccommodations
+https://www.airbnb.com/rooms/45557210
+https://www.expedia.com/Butler-Vacation-Rentals.d181395.Travel-Guide-VacationRentals
+https://www.tripadvisor.com/VacationRentalsNear-g54929-d3745949-Watauga_Lake_Winery-Butler_Tennessee.html
+https://glampinghub.com/unitedstatesofamerica/midatlantic/virginia/fancygap/yurt-with-hot-tub-virginia/
+https://trilliumdomes.com
+https://jumei-glamping.com/blog/how-to-choose-the-best-safari-tent-for-your-glamping-business/
+https://www.steelmasterusa.com/news/man-constructs-energy-efficient-quonset-hut/
+https://www.glampingdomestore.com/products/geodesic-dome-tent-30ft-9m
+https://glitzcamp.com/buying-a-glamping-tent-cost/
+https://www.buildingsguide.com/quonset-huts/prices/
+https://shelter-dome.com/blogs/best-dome-house-kits/
+https://lunaglamping.com/shop/aurora-i-safari-tent/
+https://info.fbibuildings.com/blog/reskinning-quonset-huts
+https://hypedome.com/shop/hypedome-l-clear/
+https://www.glamptuary.com/blog/spotlight-on-glamping-structures-safari-tents
+https://www.insulation4less.com/quonset-hut-insulation
+https://www.ziptiedomes.com
+https://sheltent.com/products/elite-safari-tent
+https://www.steelmasterusa.com/quonset-huts/parts-and-accessories/insulation/
+https://landscamper.com/products/premium-geodesic-dome-kit-for-retreats-adu-glamping-guest-house-yoga-studio-getaway-home
+https://www.yalacanvaslodges.com/what-does-a-safari-tent-cost/
+https://www.alibaba.com/showroom/the-quonset-hut.html
+https://lunaglamping.com/shop/10m-stargazer-geodesic-dome/
+https://www.reddit.com/r/Glamping/comments/1fmw7ba/considering_putting_a_tent_or_2_on_my_4_acres_for/
+https://www.thetinyhomeconcepts.com/tiny-house-kits-under-20000/
+https://www.jm-ind.com/sub-category/disaster-roof-tarps
+https://bosshogbarndos.com/barndominium-pricing/
+https://www.youtube.com/watch?v=dIOv-bvhH8c
+https://americantent.com/blogs/best-in-tents/waterproof-canopy
+https://homeguide.com/costs/barndominium-cost
+https://www.travelandleisure.com/amazon-tiny-house-allwood-diy-cabin-kit-11812733
+https://midwestcanvas.com/why-american-made-tarps-matter-in-industry/
+https://tennesseebarndominiumpros.com/barndominium-cost-to-build-tennessee/
+https://conestogalogcabins.com/specialty-log-cabins/tiny-houses-and-tiny-log-homes/
+https://www.pomoly.com/How-to-Enhance-the-Durability-of-Your-Tarp-Shelter-a714123.html
+https://www.buildingsguide.com/products/barndominium/30x40-barndominium/
+https://www.reddit.com/r/OffGridCabins/comments/w5ibif/price_range_on_making_a_cabin/
+https://jtserviceco.com/customizing-your-storm-shelter-for-ultimate-comfort-and-safety/
+https://buildmax.com/north-carolina-barndominium-floor-plans
+https://www.fieldmag.com/articles/best-pre-fab-a-frame-cabin-kit-usa
+https://www.wbdg.org/FFC/DHS/fema453.pdf
+https://www.buildingsguide.com/metal-building-kits/barndominium-kits/
+https://www.dwell.com/article/jupe-prefab-tent-glamping-cabin-1a911932
+https://gettent.com/our-blog?p=what-is-a-fema-tent-and-why-it-matters-in-emergency-response
+https://www.constructelements.com/post/average-cost-to-build-a-barndominium
+https://www.doa.nc.gov/documents/files/sco-facilities-temporary-tents-membrane-structures-2018-nc-fire-prevention-code-requirements-pdf/open
+https://www.tnlds.com/need-perc-test/
+https://www.northcarolina.edu/wp-content/uploads/2013/10/nc_fire_prevention_code_for_tents_and_canopies.pdf
+https://www.mtas.tennessee.edu/reference/summary-short-term-rental-unit-act
+http://www.wataugacounty.org/App_Pages/Dept/FMEM/Forms/Tent_permit.pdf
+https://www.tn.gov/environment/permit-permits/water-permits1/septic-systems-permits/ssp/wr-sds-regulations-to-govern-subsurface-sewage-disposal-systems.html
+https://tri-citiestnhome.com/short-term-rental-tri-cities-tn/
+https://www.ncosfm.gov/1936-north-carolina-building-code/open
+http://onsite.tennessee.edu/1200-01-06.pdf
+https://www.zookcabins.com/regulations/adu-regulations-in-tennessee
+http://wataugacounty.org/App_Pages/Dept/Planning/Forms/Plan%20Specs.pdf
+http://onsite.tennessee.edu/1200-01-06.20091208.pdf
+https://www.ncosfm.gov/2017-2022-approved-amendments-220614fire-code/open
+https://www.law.cornell.edu/regulations/tennessee/title-0400/subtitle-0400-48/chapter-0400-48-01
+https://www.ncleg.net/enactedlegislation/statutes/html/bysection/chapter_143/gs_143-138.html
+https://www.doa.nc.gov/divisions/facility-management/using-public-grounds
+https://www.ncleg.gov/Sessions/2013/Bills/House/PDF/H774v4.pdf
+https://digitalcommons.uri.edu/cgi/viewcontent.cgi?article=1556&context=theses
+https://www.int-arch-photogramm-remote-sens-spatial-inf-sci.net/XLIV-4-W1-2020/41/2020/isprs-archives-XLIV-4-W1-2020-41-2020.pdf
+https://www.qeios.com/read/QQDA07/pdf
+https://www.frontiersin.org/articles/10.3389/fpubh.2016.00071/pdf
+https://www.tn.gov/content/dam/tn/megasite/documents/MAWT_Zoning%20Regulations_2022-11-17_Rev.%202022-12-13.pdf
+https://elizabethton.com/2024/10/01/watauga-river-reaches-highest-flood-level-since-1940-in-elizabethton/
+https://www.mtas.tennessee.edu/mknowledge/setback-requirements-residential-property-subdivision
+https://www.tn.gov/commerce/fire/residential-permits.html
+https://comptroller.tn.gov/content/dam/cot/pa/documents/landuse/COTLandUseCodes.pdf
+https://www.yahoo.com/news/rivers-below-douglas-watauga-dams-201511884.html
+https://en.wikipedia.org/wiki/Watauga_Lake
+https://library.municode.com/tn/johnson_city/codes/zoning?nodeId=ZOCO_ARTXVIPERE
+https://water.noaa.gov/gauges/wtgt1
+https://www.mtas.tennessee.edu/system/files/codes/combined/JohnsonCity-code.pdf
+https://watauga.uslakes.info/Level.asp
+https://www.tn.gov/commerce/fire/codes-enforcement.html
+https://www.tn.gov/content/dam/tn/environment/water/watershed-planning/wqm-plans/wr-ws_watershed-plan-watauga-2002.pdf
+https://www.mtas.tennessee.edu/system/files/codes/combined/MountainCity-code.pdf
+https://water.noaa.gov/gauges/ezbt1
+https://lawinfo.ru/articles/8243/k-voprosu-o-straxovoi-summe-v-dogovore-straxovaniya-predprinimatelskogo-riska
+https://link.springer.com/10.1057/s41288-023-00304-x
+https://naic.soutronglobal.net/Portal/Public/en-GB/RecordView/Index/26453
+https://ieeexplore.ieee.org/document/11129444/
+https://ageconsearch.umn.edu/record/241102
+https://www.semanticscholar.org/paper/076fb431f442570af88f873ea4daecc45f8593e0
+http://prostir.pdaba.dp.ua/index.php/journal/article/view/1413
+https://revistas.comillas.edu/index.php/revistaicade/article/view/15009
+https://www.semanticscholar.org/paper/cba093dceccc5513f5102bdef1faf7bc5bea81e4
+https://www.semanticscholar.org/paper/49745435c6d19688d1eb1e412f775445702c0095
+https://www.leavitt.com/lrh/ins/glamping-insurance
+https://www.law.cornell.edu/regulations/tennessee/Tenn-Comp-R-Regs-0400-48-01-.17
+https://www.tidewaterenergy.com/commercial/temporary-construction-heat/
+              </pre>
+            </details>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right: Navigation / Quick Filters -->
+    <aside class="nav">
+      <div class="card">
+        <div class="head"><h3>Quick Nav</h3></div>
+        <div class="body">
+          <nav>
+            <a href="#market-overview">Market Overview</a>
+            <a href="#structure-performance">Structure Performance</a>
+            <a href="#payoff-matrix">Payoff Matrix</a>
+            <a href="#distance-amenities">Distance & Amenities</a>
+            <a href="#recs">Recommendations</a>
+            <a href="#cba-swot">CBA & SWOT</a>
+            <a href="#insights">Insights</a>
+            <a href="#method">Method Note</a>
+          </nav>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="head"><h3>Signals</h3></div>
+        <div class="body">
+          <div class="tags">
+            <span class="tag">guest favorite</span>
+            <span class="tag">new listing</span>
+            <span class="tag">hot tub</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    <div class="export wrap">
+      <button class="btn primary" onclick="window.print()">Print / PDF</button>
+      <button class="btn" id="downloadHtml">Download HTML</button>
+      <a class="btn" href="https://ppl-ai-code-interpreter-files.s3.amazonaws.com/web/direct-files/370b045cecdb99593d25782665adf938/6539c12b-8147-4e1b-a786-d928091d8688/1b39496a.csv" target="_blank" rel="noopener">Open CSV</a>
+    </div>
+  </footer>
+
+  <!-- Lightbox for natural zoom -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <div class="pan">
+      <img alt="Zoomed image" id="lightboxImg" />
+    </div>
+    <div class="close"><button class="btn" id="lightboxClose">Close</button></div>
+  </div>
+
+  <script>
+    // Timestamp in header
+    (function(){
+      const ts = document.getElementById('ts');
+      // Inject IDE-provided current time as a static string for reproducibility
+      ts.textContent = new Date('2025-09-26T10:37:30-04:00').toLocaleString([], {dateStyle:'medium', timeStyle:'short'});
+    })();
+
+    // Download current HTML as a single file
+    (function(){
+      const btn = document.getElementById('downloadHtml');
+      if(!btn) return;
+      btn.addEventListener('click', () => {
+        const blob = new Blob([document.documentElement.outerHTML], {type: 'text/html;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'blue-foot-glamping-report.html';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url), 1000);
+      });
+    })();
+
+    // Load and copy prompt files (Markdown)
+    (function(){
+      function enableCopy(id){
+        const copyBtn = document.querySelector(`[data-copy-prompt="${id}"]`);
+        if(copyBtn) copyBtn.disabled = false;
+      }
+      function attachHandlers(name){
+        const loadBtn = document.querySelector(`[data-load-prompt="${name}"]`);
+        const copyBtn = document.querySelector(`[data-copy-prompt="${name}"]`);
+        const codeEl = document.getElementById(`prompt-${name}`);
+        if(!loadBtn || !codeEl) return;
+        loadBtn.addEventListener('click', async ()=>{
+          try{
+            const res = await fetch(name);
+            if(!res.ok) throw new Error('Failed to load');
+            const text = await res.text();
+            codeEl.textContent = text;
+            enableCopy(name);
+          }catch(e){
+            codeEl.textContent = '(Could not load file)';
+          }
+        });
+        if(copyBtn){
+          copyBtn.addEventListener('click', async ()=>{
+            try{
+              const text = codeEl.textContent || '';
+              await navigator.clipboard.writeText(text);
+              copyBtn.textContent = 'Copied';
+              setTimeout(()=>copyBtn.textContent='Copy',1200);
+            }catch(e){
+              copyBtn.textContent = 'Copy failed';
+              setTimeout(()=>copyBtn.textContent='Copy',1200);
+            }
+          });
+        }
+      }
+      ['bf01.md','bf00.md'].forEach(attachHandlers);
+    })();
+    // Hamburger menu toggle
+    (function(){
+      const burger = document.getElementById('burger');
+      const menu = document.getElementById('menu');
+      if(!burger || !menu) return;
+      const toggle = () => {
+        const open = menu.classList.toggle('open');
+        burger.setAttribute('aria-expanded', String(open));
+        menu.setAttribute('aria-hidden', String(!open));
+      };
+      burger.addEventListener('click', toggle);
+      document.addEventListener('click', (e)=>{
+        if(menu.classList.contains('open')){
+          const path = e.composedPath ? e.composedPath() : [];
+          if(path.indexOf && path.indexOf(menu)===-1 && path.indexOf(burger)===-1){
+            toggle();
+          }
+        }
+      });
+    })();
+
+    // Natural image zoom: tap to open lightbox; pinch-zoom & pan supported by native browser
+    (function(){
+      const imgs = Array.from(document.querySelectorAll('figure img'));
+      const lb = document.getElementById('lightbox');
+      const lbImg = document.getElementById('lightboxImg');
+      const lbClose = document.getElementById('lightboxClose');
+      if(!lb || !lbImg) return;
+      imgs.forEach(img => {
+        img.classList.add('zoomable');
+        img.addEventListener('click', () => {
+          lbImg.src = img.currentSrc || img.src;
+          lb.classList.add('open');
+          lb.setAttribute('aria-hidden','false');
+          // Prevent background scroll while open
+          document.body.style.overflow='hidden';
+        });
+      });
+      function close(){
+        lb.classList.remove('open');
+        lb.setAttribute('aria-hidden','true');
+        lbImg.removeAttribute('src');
+        document.body.style.overflow='';
+      }
+      lb.addEventListener('click', (e)=>{
+        if(e.target === lb) close();
+      });
+      if(lbClose) lbClose.addEventListener('click', close);
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && lb.classList.contains('open')) close(); });
+    })();
+  </script>
+</body>
+</html>

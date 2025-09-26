@@ -1,0 +1,8 @@
+Structure_Type,Kit_Cost_Low,Kit_Cost_High,Platform_Foundation,Utilities_Setup,Interior_Fitout,Labor_Cost,Total_CAPEX_Low,Total_CAPEX_High,Snow_Load_Rating,Wind_Rating,Setup_Time_Days
+Safari Tent,1500,15000,5000,3000,8000,3000,20500,56000,Moderate,Good,3
+Geodesic Dome,2500,50000,8000,4000,15000,8000,37500,85000,Excellent,Excellent,14
+Yurt,8000,25000,6000,4000,12000,5000,35000,52000,Good,Good,7
+Quonset Hut,12000,30000,15000,8000,20000,12000,67000,85000,Excellent,Excellent,21
+Tiny House Kit,15000,35000,8000,6000,10000,8000,47000,67000,Good,Good,14
+Barndominium,80000,160000,25000,15000,40000,25000,185000,265000,Excellent,Excellent,90
+FEMA Tent Upgraded,500,2000,2000,1500,3000,1000,8000,9500,Poor,Poor,1
