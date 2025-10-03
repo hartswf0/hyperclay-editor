@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default" data-motion="calm">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Surreal OS × Victor Toolkit</title>
+<meta name="description" content="Seven worlds exploring impossible computing primitives through interactive media." />
+<meta name="theme-color" content="#0D1B2A" />
+<style>
+/* Minimal System */
+:root {
+  --gap: 20px;
+  --r: 16px;
+  --bg: #0D1B2A;
+  --ink: #F9F9F9;
+  --muted: #8A95A0;
+  --rule: rgba(255,255,255,.12);
+  --accent: #36CFC9;
+  --tile: #162334;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--accent), var(--warn), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 1.3rem;
+  opacity: 0.9;
+  margin-bottom: 48px;
+  font-style: italic;
+}
+
+.intro {
+  background: rgba(54, 207, 201, 0.1);
+  border-left: 4px solid var(--accent);
+  padding: 24px;
+  border-radius: 8px;
+  margin-bottom: 48px;
+}
+
+.intro h2 {
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.principles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 32px 0;
+}
+
+.principle {
+  background: rgba(255, 180, 0, 0.1);
+  border: 2px solid var(--warn);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.principle-title {
+  font-weight: 700;
+  color: var(--warn);
+  margin-bottom: 6px;
+}
+
+.worlds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+  margin-top: 48px;
+}
+
+.world-card {
+  background: rgba(13, 27, 42, 0.8);
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.world-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(54, 207, 201, 0.3);
+  border-color: var(--warn);
+}
+
+.world-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to right, var(--accent), var(--warn));
+}
+
+.world-number {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--accent);
+  opacity: 0.3;
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.world-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.world-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: var(--fg);
+}
+
+.world-subtitle {
+  font-size: 0.95rem;
+  color: var(--warn);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.world-desc {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 16px;
+}
+
+.features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.feature-tag {
+  background: rgba(54, 207, 201, 0.2);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.launch-btn {
+  background: var(--accent);
+  color: #0D1B2A;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.launch-btn:hover {
+  background: var(--warn);
+  transform: scale(1.02);
+}
+
+.footer {
+  text-align: center;
+  margin-top: 64px;
+  padding: 32px;
+  border-top: 1px solid rgba(54, 207, 201, 0.3);
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .worlds {
+    grid-template-columns: 1fr;
+  }
+  
+  .principles {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Surreal OS × Victor Toolkit</h1>
+  <p class="subtitle">Seven Worlds Transformed into Media for Thinking the Unthinkable</p>
+  
+  <div class="intro">
+    <h2>🎯 What Is This?</h2>
+    <p>
+      Each Surreal OS world breaks one fundamental assumption about computing or reality. 
+      These demos apply <strong>Bret Victor's six principles</strong> to transform each world from a 
+      <em>demonstrable anomaly</em> into an <strong>explorable medium for thinking</strong> about impossible relationships.
+    </p>
+    <p style="margin-top: 16px; padding: 16px; background: rgba(255,180,0,0.1); border-left: 4px solid #FFB400; border-radius: 6px;">
+      <strong>🎬 NEW:</strong> Each world now features a <strong>cinematic title sequence</strong> inspired by Saul Bass, 
+      with procedurally-generated audio and choreographed camera movements. Click the <strong>"▶ Play Intro"</strong> 
+      button in each demo to experience the surreal break as visual poetry.
+    </p>
+  </div>
+  
+  <div class="principles">
+    <div class="principle">
+      <div class="principle-title">1. Surface the Invisible</div>
+      <div>Expose hidden state & data flows with live visualizations</div>
+    </div>
+    <div class="principle">
+      <div class="principle-title">2. Overcome Cognitive Limits</div>
+      <div>Augment sensory bounds with measurement tools</div>
+    </div>
+    <div class="principle">
+      <div class="principle-title">3. Multiple Modes of Thought</div>
+      <div>Interactive, Visual, and Symbolic views</div>
+    </div>
+    <div class="principle">
+      <div class="principle-title">4. Rapid What-If Exploration</div>
+      <div>Immediate parameter feedback with sliders</div>
+    </div>
+    <div class="principle">
+      <div class="principle-title">5. Link Perspectives</div>
+      <div>Synchronize multiple views for insight</div>
+    </div>
+    <div class="principle">
+      <div class="principle-title">6. Abstract & Generalize</div>
+      <div>Save, share, and remix configurations</div>
+    </div>
+  </div>
+  
+  <div class="worlds">
+    <div class="world-card" onclick="window.location='mirror-os-victor-demo.html'">
+      <div class="world-number">01</div>
+      <div class="world-icon">🌙</div>
+      <div class="world-title">MirrorOS</div>
+      <div class="world-subtitle">The Reflection Engine</div>
+      <div class="world-desc">
+        Synchronized moons challenge the boundary between local and global state. 
+        Explore distributed synchronization with live sync particles and desync sliders.
+      </div>
+      <div class="features">
+        <span class="feature-tag">Sync Visualizer</span>
+        <span class="feature-tag">Latency Ruler</span>
+        <span class="feature-tag">3 Views</span>
+      </div>
+      <button class="launch-btn">Launch Demo →</button>
+    </div>
+    
+    <div class="world-card" onclick="window.location='tempo-os-victor-demo.html'">
+      <div class="world-number">02</div>
+      <div class="world-icon">🐢</div>
+      <div class="world-title">TempoOS</div>
+      <div class="world-subtitle">The Rhythm Mediator</div>
+      <div class="world-desc">
+        Turtles create "slow zones" where time dilates. 
+        See the time field heatmap and measure local vs global time divergence.
+      </div>
+      <div class="features">
+        <span class="feature-tag">Time Field Heatmap</span>
+        <span class="feature-tag">Time Ruler</span>
+        <span class="feature-tag">Speed Graph</span>
+      </div>
+      <button class="launch-btn">Launch Demo →</button>
+    </div>
+    
+    <div class="world-card" onclick="window.location='scale-os-victor-demo.html'">
+      <div class="world-number">03</div>
+      <div class="world-icon">🚚</div>
+      <div class="world-title">ScaleOS</div>
+      <div class="world-subtitle">The Recursive Zoomer</div>
+      <div class="world-desc">
+        Trucks shrink with distance but keep their mass. 
+        Decouple visual size from physical properties and explore scaling laws.
+      </div>
+      <div class="features">
+        <span class="feature-tag">Property Panel</span>
+        <span class="feature-tag">Scaling Law Editor</span>
+        <span class="feature-tag">Scale Graph</span>
+      </div>
+      <button class="launch-btn">Launch Demo →</button>
+    </div>
+    
+    <div class="world-card" onclick="window.location='morph-os-victor-demo.html'">
+      <div class="world-number">04</div>
+      <div class="world-icon">🦅→🧍</div>
+      <div class="world-title">MorphOS</div>
+      <div class="world-subtitle">The Shape-Shifter</div>
+      <div class="world-desc">
+        Bird morphs into human in continuous transformation. 
+        Scrub through the morph timeline and explore the parameter space.
+      </div>
+      <div class="features">
+        <span class="feature-tag">Morph Scrubber</span>
+        <span class="feature-tag">Parameter Curves</span>
+        <span class="feature-tag">2D Space Map</span>
+      </div>
+      <button class="launch-btn">Launch Demo →</button>
+    </div>
+    
+    <div class="world-card" onclick="window.location='anomaly-os-victor-demo.html'">
+      <div class="world-number">05</div>
+      <div class="world-icon">🎳</div>
+      <div class="world-title">AnomalyOS</div>
+      <div class="world-subtitle">The Rhythm Breaker</div>
+      <div class="world-desc">
+        Trigger ruptures from the ceiling ball and watch chaos propagate. 
+        Manage your chaos budget and view system stress over time.
+      </div>
+      <div class="features">
+        <span class="feature-tag">Rupture Trigger</span>
+        <span class="feature-tag">Chaos Budget</span>
+        <span class="feature-tag">Event Log</span>
+      </div>
+      <button class="launch-btn">Launch Demo →</button>
+    </div>
+    
+    <div class="world-card" onclick="window.location='light-os-victor-demo.html'">
+      <div class="world-number">06</div>
+      <div class="world-icon">🗼</div>
+      <div class="world-title">LightOS</div>
+      <div class="world-subtitle">The Tangible Intangible</div>
+      <div class="world-desc">
+        Lighthouse beam becomes solid and walkable, revealing metadata rooms. 
+        Navigate information architecture as 3D explorable space.
+      </div>
+      <div class="features">
+        <span class="feature-tag">Rotating Beam</span>
+        <span class="feature-tag">Metadata Rooms</span>
+        <span class="feature-tag">Density Chart</span>
+      </div>
+      <button class="launch-btn">Launch Demo →</button>
+    </div>
+    
+    <div class="world-card" onclick="window.location='archive-os-victor-demo.html'">
+      <div class="world-number">07</div>
+      <div class="world-icon">📚</div>
+      <div class="world-title">ArchiveOS</div>
+      <div class="world-subtitle">The Capsule Preserver</div>
+      <div class="world-desc">
+        Books are capsules containing complete micro-worlds. 
+        Time-travel through versions and explore provenance chains.
+      </div>
+      <div class="features">
+        <span class="feature-tag">Time Scrubber</span>
+        <span class="feature-tag">Provenance Tree</span>
+        <span class="feature-tag">Version Diff</span>
+      </div>
+      <button class="launch-btn">Launch Demo →</button>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p>
+      <strong>Additional Resources:</strong><br>
+      📄 <a href="inception-prompt.md" style="color: var(--accent);">Inception Prompt Documentation</a><br>
+      🛠️ <a href="victor-toolkit.js" style="color: var(--accent);">Victor Toolkit Library</a>
+    </p>
+    <p style="margin-top: 16px; font-style: italic;">
+      "The purpose of a medium is not to express ideas that human beings have already had,<br>
+      but to help them think ideas they could have never had before." — Bret Victor
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

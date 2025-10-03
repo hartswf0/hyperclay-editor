@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MirrorOS + Victor Toolkit Demo</title>
+<style>
+:root {
+  --bg: #0D1B2A;
+  --fg: #F9F9F9;
+  --accent: #36CFC9;
+  --warn: #FFB400;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', -apple-system, sans-serif;
+  overflow: hidden;
+}
+
+#canvas {
+  position: fixed;
+  inset: 0;
+}
+
+.victor-ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.view-switcher {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.view-switcher button {
+  background: rgba(54, 207, 201, 0.2);
+  border: 2px solid var(--accent);
+  color: var(--fg);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.view-switcher button.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.view-switcher button:hover {
+  transform: translateY(-2px);
+}
+
+.controls-panel {
+  position: absolute;
+  top: 80px;
+  left: 20px;
+  background: rgba(13, 27, 42, 0.95);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 20px;
+  width: 300px;
+  pointer-events: auto;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+
+.panel-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.parameter-scrubber {
+  margin-bottom: 20px;
+}
+
+.parameter-scrubber label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--warn);
+}
+
+.scrubber-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.scrubber-controls input[type="range"] {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(54, 207, 201, 0.3);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.scrubber-controls input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.scrubber-controls input[type="number"] {
+  width: 60px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--accent);
+  color: var(--fg);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.measurement-ruler {
+  background: rgba(255, 180, 0, 0.1);
+  border-left: 4px solid var(--warn);
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.ruler-label {
+  font-weight: 700;
+  color: var(--warn);
+  margin-bottom: 8px;
+}
+
+.ruler-values {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.ruler-values .divergence.warning {
+  color: #ff6b35;
+  font-weight: 700;
+}
+
+.ruler-bar {
+  position: relative;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.expected-mark, .actual-mark {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 16px;
+  background: var(--accent);
+}
+
+.expected-mark {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.sync-metrics {
+  background: rgba(54, 207, 201, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 16px;
+}
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.metric-label {
+  opacity: 0.8;
+}
+
+.metric-value {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.view-container {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  width: 400px;
+  background: rgba(13, 27, 42, 0.95);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 20px;
+  pointer-events: auto;
+  display: none;
+}
+
+.view-container.active {
+  display: block;
+}
+
+.symbolic-view pre {
+  background: rgba(0, 0, 0, 0.6);
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.symbolic-view .keyword { color: #ff6b35; }
+.symbolic-view .variable { color: #36cfc9; }
+.symbolic-view .number { color: #ffb400; }
+
+.graph-view canvas {
+  width: 100%;
+  height: 200px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+}
+
+.export-btn {
+  background: var(--warn);
+  color: var(--bg);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 200;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(54, 207, 201, 0.4);
+}
+
+.intro-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 200;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(54, 207, 201, 0.4);
+}
+
+.intro-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(54, 207, 201, 0.6);
+}
+.intro-btn.playing {
+  background: #ff6b35;
+}
+.intro-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent);
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.intro-overlay.hidden {
+  opacity: 0;
+}
+
+.export-btn:hover {
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .view-switcher {
+    flex-wrap: wrap;
+    width: calc(100% - 40px);
+  }
+  
+  .view-switcher button {
+    flex: 1;
+    min-width: 80px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+  
+  .controls-panel {
+    top: 140px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: 40vh;
+  }
+  
+  .view-container {
+    top: auto;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    max-height: 50vh;
+  }
+  
+  .panel-title {
+    font-size: 1rem;
+  }
+  
+  .parameter-scrubber label {
+    font-size: 0.9rem;
+  }
+  
+  .scrubber-controls input[type="number"] {
+    width: 60px;
+    font-size: 0.85rem;
+  }
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="victor-ui">
+  <button class="intro-btn" id="play-intro">▶ Play Intro</button>
+  
+  <div class="view-switcher">
+    <button class="active" data-view="visual">Visual</button>
+    <button data-view="symbolic">Symbolic</button>
+    <button data-view="graphical">Graphical</button>
+  </div>
+  
+  <div class="controls-panel">
+    <div class="panel-title">🎛️ MirrorOS Controls</div>
+    
+    <div id="brightness-scrubber"></div>
+    <div id="phase-scrubber"></div>
+    <div id="desync-scrubber"></div>
+    
+    <div id="time-ruler"></div>
+    
+    <div class="sync-metrics">
+      <div class="metric">
+        <span class="metric-label">Particles in Flight:</span>
+        <span class="metric-value" id="particles">0</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Avg Latency:</span>
+        <span class="metric-value" id="latency">0ms</span>
+      </div>
+      <div class="metric">
+        <span class="metric-label">Sync Health:</span>
+        <span class="metric-value" id="health">good</span>
+      </div>
+    </div>
+    
+    <button class="export-btn" id="export-btn">📦 Export Configuration</button>
+  </div>
+  
+  <div class="view-container" data-view="symbolic">
+    <div class="panel-title">📝 Symbolic View</div>
+    <div class="symbolic-view" id="symbolic-content"></div>
+  </div>
+  
+  <div class="view-container" data-view="graphical">
+    <div class="panel-title">📊 Graphical View</div>
+    <div class="graph-view">
+      <canvas id="graph-canvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ===== SCENE SETUP =====
+const canvas = document.getElementById('canvas');
+const scene = new THREE.Scene();
+// Billout-inspired restrained palette: deep blue-black background
+scene.background = new THREE.Color(0x0a0e1a);
+// Denser fog for deadpan surrealism atmosphere
+scene.fog = new THREE.FogExp2(0x0a0e1a, 0.018);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(8, 6, 14);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+
+// ===== BUILD MIRROR OS SCENE =====
+// Ground
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(100, 100),
+  new THREE.MeshStandardMaterial({ color: 0x0d1520, roughness: 0.9 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Water
+const water = new THREE.Mesh(
+  new THREE.PlaneGeometry(100, 100, 64, 64),
+  new THREE.MeshStandardMaterial({ 
+    color: 0x1a2a3a,
+    transparent: true,
+    opacity: 0.7,
+    roughness: 0.1,
+    metalness: 0.8
+  })
+);
+water.rotation.x = -Math.PI / 2;
+water.position.y = -0.3;
+water.receiveShadow = true;
+scene.add(water);
+
+// Car
+const car = new THREE.Group();
+const body = new THREE.Mesh(
+  new THREE.BoxGeometry(2.4, 1, 4),
+  new THREE.MeshStandardMaterial({ color: 0xd0d0d0, roughness: 0.3, metalness: 0.7 })
+);
+body.position.y = 1;
+body.castShadow = true;
+car.add(body);
+
+const cabin = new THREE.Mesh(
+  new THREE.BoxGeometry(2, 0.8, 2),
+  new THREE.MeshStandardMaterial({ 
+    color: 0x36cfc9,
+    transparent: true,
+    opacity: 0.3,
+    emissive: 0x36cfc9,
+    emissiveIntensity: 0.4
+  })
+);
+cabin.position.set(0, 1.7, -0.3);
+cabin.castShadow = true;
+car.add(cabin);
+
+// INNER MOON
+const innerMoon = new THREE.Mesh(
+  new THREE.SphereGeometry(0.4, 32, 32),
+  new THREE.MeshStandardMaterial({ 
+    color: 0xffb400, 
+    emissive: 0xffb400, 
+    emissiveIntensity: 0.8,
+    roughness: 0.3
+  })
+);
+innerMoon.position.set(0, 1.7, -0.3);
+innerMoon.userData.isMoon = true;
+innerMoon.userData.isInner = true;
+car.add(innerMoon);
+
+car.position.set(0, 0, 2);
+scene.add(car);
+
+// OUTER MOON
+const outerMoon = new THREE.Mesh(
+  new THREE.SphereGeometry(1.5, 32, 32),
+  new THREE.MeshStandardMaterial({ 
+    color: 0xffb400, 
+    emissive: 0xffb400, 
+    emissiveIntensity: 0.6,
+    roughness: 0.4
+  })
+);
+outerMoon.position.set(-10, 15, -20);
+outerMoon.userData.isMoon = true;
+outerMoon.userData.isOuter = true;
+scene.add(outerMoon);
+
+// Lights
+// Minimal ambient - Billout keeps shadows deep
+scene.add(new THREE.AmbientLight(0x1a2a3a, 0.2));
+scene.add(new THREE.HemisphereLight(0x2a3a4a, 0x0a0e1a, 0.3));
+
+// Main key light - warm gold (Billout's restrained palette)
+const dirLight = new THREE.DirectionalLight(0xffb400, 1.5);
+dirLight.position.set(-10, 15, -20);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+scene.add(dirLight);
+
+// Dramatic rim light from opposite side (cyan accent)
+const rimLight = new THREE.DirectionalLight(0x36cfc9, 0.8);
+rimLight.position.set(15, 8, 10);
+scene.add(rimLight);
+
+// Subtle fill light from below for that poster-like flatness
+const fillLight = new THREE.DirectionalLight(0x4a5a6a, 0.4);
+fillLight.position.set(0, -10, 0);
+scene.add(fillLight);
+
+// ===== VICTOR TOOLKIT INTEGRATION =====
+
+// State
+const state = {
+  brightness: 0.7,
+  phase: 0,
+  desyncMs: 0,
+  time: 0
+};
+
+// Sync Visualizer (Principle 1: Surface the Invisible)
+const syncParticles = [];
+function updateSyncVisualization() {
+  if (Math.random() < 0.05 && state.desyncMs < 100) {
+    syncParticles.push({
+      pos: outerMoon.position.clone(),
+      target: innerMoon.getWorldPosition(new THREE.Vector3()),
+      progress: 0
+    });
+  }
+  
+  for (let i = syncParticles.length - 1; i >= 0; i--) {
+    const p = syncParticles[i];
+    p.progress += 0.02;
+    
+    if (p.progress >= 1) {
+      syncParticles.splice(i, 1);
+      continue;
+    }
+    
+    const currentPos = new THREE.Vector3().lerpVectors(p.pos, p.target, p.progress);
+    renderSyncParticle(currentPos);
+  }
+}
+
+function renderSyncParticle(pos) {
+  const geometry = new THREE.SphereGeometry(0.08, 8, 8);
+  const material = new THREE.MeshBasicMaterial({ 
+    color: 0x36cfc9,
+    transparent: true,
+    opacity: 0.8
+  });
+  const particle = new THREE.Mesh(geometry, material);
+  particle.position.copy(pos);
+  scene.add(particle);
+  
+  setTimeout(() => scene.remove(particle), 50);
+}
+
+// Measurement Ruler (Principle 2: Overcome Cognitive Limits)
+function createMeasurementRuler(container) {
+  container.innerHTML = `
+    <div class="measurement-ruler">
+      <div class="ruler-label">Time Divergence</div>
+      <div class="ruler-values">
+        <span class="expected">Expected: synchronized</span>
+        <span class="actual">Actual: <span id="actual-sync">0ms</span> lag</span>
+        <span class="divergence" id="divergence-display">Δ 0%</span>
+      </div>
+      <div class="ruler-bar">
+        <div class="expected-mark" style="left: 20%"></div>
+        <div class="actual-mark" id="actual-mark" style="left: 20%"></div>
+      </div>
+    </div>
+  `;
+}
+
+// Parameter Scrubbers (Principle 4: What-If Exploration)
+function createScrubber(container, label, min, max, initialValue, onChange) {
+  const scrubber = document.createElement('div');
+  scrubber.className = 'parameter-scrubber';
+  
+  scrubber.innerHTML = `
+    <label>${label}</label>
+    <div class="scrubber-controls">
+      <input type="range" min="${min}" max="${max}" step="${(max - min) / 100}" value="${initialValue}">
+      <input type="number" min="${min}" max="${max}" step="${(max - min) / 100}" value="${initialValue}">
+    </div>
+  `;
+  
+  const slider = scrubber.querySelector('input[type="range"]');
+  const number = scrubber.querySelector('input[type="number"]');
+  
+  const handleChange = (e) => {
+    const value = parseFloat(e.target.value);
+    slider.value = value;
+    number.value = value;
+    onChange(value);
+  };
+  
+  slider.addEventListener('input', handleChange);
+  number.addEventListener('input', handleChange);
+  
+  container.appendChild(scrubber);
+}
+
+// Symbolic View (Principle 3: Multiple Modes)
+function updateSymbolicView() {
+  const code = `
+<span class="keyword">const</span> <span class="variable">outerMoon</span> = {
+  brightness: <span class="number">${state.brightness.toFixed(2)}</span>,
+  phase: <span class="number">${state.phase.toFixed(2)}</span>
+};
+
+<span class="keyword">const</span> <span class="variable">innerMoon</span> = {
+  brightness: <span class="number">${(state.brightness * (1 - state.desyncMs / 1000)).toFixed(2)}</span>,
+  phase: <span class="number">${(state.phase + state.desyncMs / 1000).toFixed(2)}</span>
+};
+
+<span class="keyword">const</span> <span class="variable">syncLatency</span> = <span class="number">${state.desyncMs}</span>ms;
+<span class="keyword">const</span> <span class="variable">isSynchronized</span> = ${state.desyncMs < 50};
+  `;
+  
+  document.getElementById('symbolic-content').innerHTML = `<pre>${code}</pre>`;
+}
+
+// Graph View
+const graphCanvas = document.getElementById('graph-canvas');
+const graphCtx = graphCanvas.getContext('2d');
+graphCanvas.width = 360;
+graphCanvas.height = 200;
+
+const brightnessHistory = { outer: [], inner: [] };
+const maxHistory = 100;
+
+function updateGraphView() {
+  const outerBrightness = state.brightness;
+  const innerBrightness = state.brightness * (1 - state.desyncMs / 1000);
+  
+  brightnessHistory.outer.push(outerBrightness);
+  brightnessHistory.inner.push(innerBrightness);
+  
+  if (brightnessHistory.outer.length > maxHistory) {
+    brightnessHistory.outer.shift();
+    brightnessHistory.inner.shift();
+  }
+  
+  // Clear
+  graphCtx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  graphCtx.fillRect(0, 0, 360, 200);
+  
+  // Grid
+  graphCtx.strokeStyle = 'rgba(54, 207, 201, 0.2)';
+  graphCtx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = i * 50;
+    graphCtx.beginPath();
+    graphCtx.moveTo(0, y);
+    graphCtx.lineTo(360, y);
+    graphCtx.stroke();
+  }
+  
+  // Draw lines
+  function drawLine(history, color) {
+    graphCtx.strokeStyle = color;
+    graphCtx.lineWidth = 2;
+    graphCtx.beginPath();
+    
+    history.forEach((value, i) => {
+      const x = (i / maxHistory) * 360;
+      const y = 200 - (value * 180 + 10);
+      
+      if (i === 0) graphCtx.moveTo(x, y);
+      else graphCtx.lineTo(x, y);
+    });
+    
+    graphCtx.stroke();
+  }
+  
+  drawLine(brightnessHistory.outer, '#ffb400');
+  drawLine(brightnessHistory.inner, '#36cfc9');
+  
+  // Legend
+  graphCtx.font = '12px Inter';
+  graphCtx.fillStyle = '#ffb400';
+  graphCtx.fillText('Outer Moon', 10, 20);
+  graphCtx.fillStyle = '#36cfc9';
+  graphCtx.fillText('Inner Moon', 10, 35);
+}
+
+// View Switcher (Principle 3: Multiple Modes)
+document.querySelectorAll('.view-switcher button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const viewName = btn.dataset.view;
+    
+    // Update buttons
+    document.querySelectorAll('.view-switcher button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Update containers
+    document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active'));
+    const container = document.querySelector(`.view-container[data-view="${viewName}"]`);
+    if (container) container.classList.add('active');
+  });
+});
+
+// Template Exporter (Principle 6: Abstract & Generalize)
+document.getElementById('export-btn').addEventListener('click', () => {
+  const config = {
+    format: 'mirror',
+    version: '1.0.0',
+    brightness: state.brightness,
+    phase: state.phase,
+    desyncMs: state.desyncMs,
+    timestamp: Date.now()
+  };
+  
+  const dataStr = JSON.stringify(config, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'mirror-config.json';
+  a.click();
+  
+  URL.revokeObjectURL(url);
+});
+
+// Initialize controls
+createScrubber(
+  document.getElementById('brightness-scrubber'),
+  'Brightness',
+  0, 1, state.brightness,
+  (val) => { state.brightness = val; }
+);
+
+createScrubber(
+  document.getElementById('phase-scrubber'),
+  'Phase Offset',
+  0, Math.PI * 2, state.phase,
+  (val) => { state.phase = val; }
+);
+
+createScrubber(
+  document.getElementById('desync-scrubber'),
+  'Desync Latency (ms)',
+  0, 2000, state.desyncMs,
+  (val) => { state.desyncMs = val; }
+);
+
+createMeasurementRuler(document.getElementById('time-ruler'));
+
+// ===== ANIMATION LOOP =====
+function animate() {
+  requestAnimationFrame(animate);
+  
+  state.time += 0.016;
+  
+  // Update moons
+  const pulse = state.brightness * (0.5 + Math.sin(state.time * 1.5 + state.phase) * 0.3);
+  outerMoon.material.emissiveIntensity = pulse;
+  
+  // Apply desync
+  const innerPulse = state.brightness * (0.5 + Math.sin((state.time - state.desyncMs / 1000) * 1.5 + state.phase) * 0.3);
+  innerMoon.material.emissiveIntensity = innerPulse;
+  
+  // Update visualizations
+  updateSyncVisualization();
+  updateSymbolicView();
+  updateGraphView();
+  
+  // Update metrics
+  document.getElementById('particles').textContent = syncParticles.length;
+  document.getElementById('latency').textContent = `${state.desyncMs.toFixed(0)}ms`;
+  document.getElementById('health').textContent = state.desyncMs < 100 ? 'good' : 'degraded';
+  
+  // Update ruler
+  document.getElementById('actual-sync').textContent = `${state.desyncMs.toFixed(0)}ms`;
+  const divergencePercent = (state.desyncMs / 2000) * 100;
+  document.getElementById('divergence-display').textContent = `Δ ${divergencePercent.toFixed(1)}%`;
+  document.getElementById('divergence-display').className = divergencePercent > 10 ? 'divergence warning' : 'divergence';
+  document.getElementById('actual-mark').style.left = `${20 + divergencePercent * 0.6}%`;
+  
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ===== AUDIO SYSTEM =====
+class SoundEngine {
+  constructor() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  
+  play(freq, duration, type = 'sine', volume = 0.3) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    
+    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    
+    osc.start(this.ctx.currentTime);
+    osc.stop(this.ctx.currentTime + duration);
+  }
+  
+  sweep(startFreq, endFreq, duration, volume = 0.2) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, this.ctx.currentTime + duration);
+    
+    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+    
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    
+    osc.start(this.ctx.currentTime);
+    osc.stop(this.ctx.currentTime + duration);
+  }
+}
+
+const sound = new SoundEngine();
+
+// ===== TITLE SEQUENCE SYSTEM =====
+class TitleSequence {
+  constructor(camera, scene, duration = 12) {
+    this.camera = camera;
+    this.scene = scene;
+    this.duration = duration;
+    this.isPlaying = false;
+    this.originalCameraPos = camera.position.clone();
+    this.originalCameraRot = camera.rotation.clone();
+    this.textSprites = [];
+    this.geometricShapes = [];
+  }
+  
+  createTextSprite(text, color = '#36CFC9', size = 120) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1024;
+    canvas.height = 256;
+    ctx.font = `600 ${size}px 'Helvetica Neue', 'Futura', 'Arial', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 8;
+    ctx.strokeText(text, 512, 128);
+    ctx.fillStyle = color;
+    ctx.fillText(text, 512, 128);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    
+    const sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0 })
+    );
+    sprite.scale.set(10, 2.5, 1);
+    this.scene.add(sprite);
+    this.textSprites.push(sprite);
+    return sprite;
+  }
+  
+  addGeometricLine(start, end, color = 0x36CFC9) {
+    const points = [start, end];
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color, linewidth: 3, transparent: true, opacity: 0 });
+    const line = new THREE.Line(geometry, material);
+    this.scene.add(line);
+    this.geometricShapes.push(line);
+    return line;
+  }
+  
+  lerp(a, b, t) { return a + (b - a) * t; }
+  easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  
+  play() {
+    if (this.isPlaying) return;
+    this.isPlaying = true;
+    
+    const playBtn = document.getElementById('play-intro');
+    playBtn.classList.add('playing');
+    playBtn.textContent = '⏸ Playing...';
+    
+    document.querySelector('.view-switcher').style.opacity = '0';
+    document.querySelector('.controls-panel').style.opacity = '0';
+    const controlsEnabled = controls.enabled;
+    controls.enabled = false;
+    
+    this.runMirrorOSSequence(() => {
+      this.isPlaying = false;
+      playBtn.classList.remove('playing');
+      playBtn.textContent = '▶ Play Intro';
+      document.querySelector('.view-switcher').style.opacity = '1';
+      document.querySelector('.controls-panel').style.opacity = '1';
+      controls.enabled = controlsEnabled;
+      this.textSprites.forEach(s => this.scene.remove(s));
+      this.geometricShapes.forEach(s => this.scene.remove(s));
+      this.textSprites = [];
+      this.geometricShapes = [];
+      camera.position.copy(this.originalCameraPos);
+      camera.rotation.copy(this.originalCameraRot);
+    });
+  }
+  
+  runMirrorOSSequence(onComplete) {
+    const startTime = Date.now();
+    const duration = this.duration * 1000;
+    
+    const text1 = this.createTextSprite('PERSPECTIVE', '#36CFC9', 130);
+    const text2 = this.createTextSprite('SHIFTS', '#FFB400', 120);
+    const text3 = this.createTextSprite('REALITY', '#36CFC9', 130);
+    
+    // Lissajous curve line
+    const curvePoints = [];
+    for (let i = 0; i <= 100; i++) {
+      const t = (i / 100) * Math.PI * 2;
+      curvePoints.push(new THREE.Vector3(
+        Math.sin(3 * t) * 8,
+        Math.cos(2 * t) * 6,
+        Math.sin(t) * 4
+      ));
+    }
+    const curveGeometry = new THREE.BufferGeometry().setFromPoints(curvePoints);
+    const curveMaterial = new THREE.LineBasicMaterial({ color: 0x36CFC9, transparent: true, opacity: 0 });
+    const curveLine = new THREE.Line(curveGeometry, curveMaterial);
+    this.scene.add(curveLine);
+    this.geometricShapes.push(curveLine);
+    
+    // Sound: opening sweep
+    setTimeout(() => sound.sweep(200, 800, 2), 0);
+    setTimeout(() => sound.play(400, 0.3, 'sine'), 3000);
+    setTimeout(() => sound.play(600, 0.3, 'sine'), 6000);
+    setTimeout(() => sound.sweep(800, 200, 2), 9000);
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      
+      // ACT 1: Spiral around moons (0-3s)
+      if (t < 0.25) {
+        const t1 = t / 0.25;
+        const angle = t1 * Math.PI * 2;
+        const radius = this.lerp(20, 15, t1);
+        camera.position.set(
+          Math.cos(angle) * radius,
+          this.lerp(5, 10, t1),
+          Math.sin(angle) * radius
+        );
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        
+        text1.position.set(0, 12, 0);
+        text1.material.opacity = t1;
+        text1.scale.setScalar(this.lerp(0.5, 1, t1) * 10);
+        
+        curveLine.material.opacity = t1 * 0.5;
+      }
+      // ACT 2: Zoom between moons (3-6s)
+      else if (t < 0.5) {
+        const t2 = (t - 0.25) / 0.25;
+        camera.position.set(
+          0,
+          this.lerp(10, 0, t2),
+          this.lerp(15, 25, t2)
+        );
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        
+        text1.position.set(0, this.lerp(12, 8, t2), 0);
+        text1.material.opacity = 1;
+        
+        text2.position.set(0, 0, 0);
+        text2.material.opacity = t2;
+        text2.scale.setScalar(this.lerp(0.5, 1, t2) * 8);
+      }
+      // ACT 3: Pull back reveal symmetry (6-9s)
+      else if (t < 0.75) {
+        const t3 = (t - 0.5) / 0.25;
+        camera.position.set(
+          0,
+          this.lerp(0, 15, t3),
+          this.lerp(25, 30, t3)
+        );
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        
+        text1.material.opacity = 1 - t3;
+        text2.material.opacity = 1 - t3;
+        
+        text3.position.set(0, -8, 0);
+        text3.material.opacity = t3;
+        text3.scale.setScalar(this.lerp(0.5, 1, t3) * 9);
+        
+        curveLine.material.opacity = 0.8;
+      }
+      // ACT 4: Final (9-12s)
+      else {
+        const t4 = (t - 0.75) / 0.25;
+        camera.position.set(0, 12, 25);
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        
+        text3.material.opacity = 1;
+        
+        if (t > 0.95) {
+          const fadeOut = (t - 0.95) / 0.05;
+          text3.material.opacity = 1 - fadeOut;
+          curveLine.material.opacity = 0.8 * (1 - fadeOut);
+        }
+      }
+      
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        this.scene.remove(curveLine);
+        onComplete();
+      }
+    };
+    animate();
+  }
+}
+
+const titleSequence = new TitleSequence(camera, scene, 12);
+document.getElementById('play-intro').onclick = () => titleSequence.play();
+
+// ===== END TITLE SEQUENCE =====
+
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+
+</body>
+</html>

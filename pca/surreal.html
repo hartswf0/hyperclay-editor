@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Surreal OS Collection</title>
+<style>
+:root {
+  --bg: #0D1B2A;
+  --fg: #F9F9F9;
+  --accent: #36CFC9;
+  --warn: #FFB400;
+  --deep: #0B1020;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#launcher {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 24px;
+  background: linear-gradient(135deg, #0D1B2A 0%, #1a2744 100%);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+#launcher.hidden {
+  display: none;
+}
+
+.launcher-title {
+  font-size: clamp(2rem, 6vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  text-align: center;
+  background: linear-gradient(135deg, #36CFC9, #FFB400);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+
+.launcher-subtitle {
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  opacity: 0.8;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.world-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.world-card {
+  background: rgba(54, 207, 201, 0.1);
+  backdrop-filter: blur(12px);
+  border: 2px solid rgba(54, 207, 201, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.world-card:hover {
+  transform: translateY(-4px);
+  background: rgba(54, 207, 201, 0.2);
+  border-color: rgba(54, 207, 201, 0.6);
+  box-shadow: 0 12px 40px rgba(54, 207, 201, 0.3);
+}
+
+.world-card:active {
+  transform: translateY(-2px);
+}
+
+.world-number {
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.world-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.world-tagline {
+  font-size: 0.95rem;
+  opacity: 0.7;
+  font-style: italic;
+  margin-bottom: 12px;
+}
+
+.world-break {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  line-height: 1.4;
+}
+
+#canvas {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  display: block;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#ui.hidden {
+  display: none;
+}
+
+.hero {
+  position: absolute;
+  top: env(safe-area-inset-top, 24px);
+  left: env(safe-area-inset-left, 24px);
+  right: env(safe-area-inset-right, 24px);
+  pointer-events: auto;
+}
+
+.hero h1 {
+  font-size: clamp(1.75rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.6);
+}
+
+.hero h2 {
+  font-size: clamp(0.95rem, 2.5vw, 1.25rem);
+  font-weight: 400;
+  opacity: 0.85;
+  letter-spacing: 0.01em;
+}
+
+.back-btn {
+  position: absolute;
+  top: env(safe-area-inset-top, 24px);
+  right: env(safe-area-inset-right, 24px);
+  background: rgba(255, 180, 0, 0.9);
+  color: var(--deep);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+.back-btn:hover {
+  transform: scale(1.05);
+}
+
+.cards {
+  position: absolute;
+  bottom: env(safe-area-inset-bottom, 24px);
+  left: env(safe-area-inset-left, 16px);
+  right: env(safe-area-inset-right, 16px);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  pointer-events: auto;
+  max-width: 600px;
+}
+
+.card {
+  background: rgba(54, 207, 201, 0.95);
+  backdrop-filter: blur(12px);
+  color: var(--deep);
+  border: none;
+  border-radius: 14px;
+  padding: 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  text-align: left;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(54, 207, 201, 0.3);
+}
+
+.card-title {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.card-body {
+  opacity: 0.8;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .world-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="launcher">
+  <h1 class="launcher-title">Surreal OS Collection</h1>
+  <p class="launcher-subtitle">Seven worlds. Seven impossible breaks.</p>
+  
+  <div class="world-grid">
+    <div class="world-card" data-world="mirror">
+      <div class="world-number">01</div>
+      <div class="world-name">MirrorOS</div>
+      <div class="world-tagline">The Reflection Engine</div>
+      <div class="world-break">A second moon rendered inside the car cabin—interior sky mirrors exterior.</div>
+    </div>
+    
+    <div class="world-card" data-world="tempo">
+      <div class="world-number">02</div>
+      <div class="world-name">TempoOS</div>
+      <div class="world-tagline">The Rhythm Mediator</div>
+      <div class="world-break">Highway traffic replaced by turtles that slow time within their radius.</div>
+    </div>
+    
+    <div class="world-card" data-world="scale">
+      <div class="world-number">03</div>
+      <div class="world-name">ScaleOS</div>
+      <div class="world-tagline">The Recursive Zoomer</div>
+      <div class="world-break">Beach trucks shrink as you approach yet keep their physical weight.</div>
+    </div>
+    
+    <div class="world-card" data-world="morph">
+      <div class="world-number">04</div>
+      <div class="world-name">MorphOS</div>
+      <div class="world-tagline">The Shape-Shifter</div>
+      <div class="world-break">A bird mesh morphs into a human silhouette on an endless loop.</div>
+    </div>
+    
+    <div class="world-card" data-world="anomaly">
+      <div class="world-number">05</div>
+      <div class="world-name">AnomalyOS</div>
+      <div class="world-tagline">The Rhythm Breaker</div>
+      <div class="world-break">One bowling ball sits embedded in the ceiling—tap to spawn ruptures.</div>
+    </div>
+    
+    <div class="world-card" data-world="light">
+      <div class="world-number">06</div>
+      <div class="world-name">LightOS</div>
+      <div class="world-tagline">The Tangible Intangible</div>
+      <div class="world-break">Lighthouse beam is a solid walkable mesh that reveals metadata rooms.</div>
+    </div>
+    
+    <div class="world-card" data-world="archive">
+      <div class="world-number">07</div>
+      <div class="world-name">ArchiveOS</div>
+      <div class="world-tagline">The Capsule Preserver</div>
+      <div class="world-break">Each book is a capsule that opens to a tiny scene with its own mini-break.</div>
+    </div>
+  </div>
+</div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<div id="ui" class="hidden">
+  <div class="hero">
+    <h1 id="worldTitle"></h1>
+    <h2 id="worldSubtitle"></h2>
+  </div>
+  
+  <button class="back-btn" id="backBtn">← All Worlds</button>
+  
+  <div class="cards" id="cardsContainer"></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+console.log('Script loaded');
+
+// ===== WORLD CONFIGS =====
+const worlds = {
+  mirror: {
+    name: 'MirrorOS',
+    title: 'As Above, So Below.',
+    subtitle: 'Every node has a twin.',
+    palette: { bg: 0x0D1B2A, fg: 0xF9F9F9, accent: 0x36CFC9, warn: 0xFFB400, deep: 0x0B1020 },
+    cards: [
+      { title: 'Echo Node', body: 'Local ↔ Global' },
+      { title: 'MirrorFS', body: 'Paired partitions' }
+    ]
+  },
+  tempo: {
+    name: 'TempoOS',
+    title: 'Speed Has Layers.',
+    subtitle: 'Fast paths, deliberate pauses.',
+    palette: { bg: 0x10141A, fg: 0xF9F9F9, accent: 0xFF6B35, warn: 0x36CFC9, deep: 0x0A0D12 },
+    cards: [
+      { title: 'Tempo Tag', body: 'instant | dwell | bloom' },
+      { title: 'Rhythm Hooks', body: 'modulate time flow' }
+    ]
+  },
+  scale: {
+    name: 'ScaleOS',
+    title: 'Infinite Zoom. Same Truth.',
+    subtitle: 'Micro ↔ Macro recursion.',
+    palette: { bg: 0x0C1A13, fg: 0xE9FFFA, accent: 0x36CFC9, warn: 0xFFB400, deep: 0x08130F },
+    cards: [
+      { title: 'Pinch-to-Ontology', body: 'zoom swaps schema' },
+      { title: 'FractalFS', body: 'scale-invariant structure' }
+    ]
+  },
+  morph: {
+    name: 'MorphOS',
+    title: 'Form Follows Mutation.',
+    subtitle: 'Files as transformations.',
+    palette: { bg: 0x0E0B1A, fg: 0xF9F9F9, accent: 0xB46CFF, warn: 0x36CFC9, deep: 0x120F1D },
+    cards: [
+      { title: 'Morph Path', body: 'click = transform' },
+      { title: 'Type Alchemy', body: 'registers transformations' }
+    ]
+  },
+  anomaly: {
+    name: 'AnomalyOS',
+    title: 'Break the Rhythm—On Purpose.',
+    subtitle: 'Sacred glitches, designed.',
+    palette: { bg: 0x1A0E0E, fg: 0xFFF9F2, accent: 0xFF6B35, warn: 0x00E0A4, deep: 0x120909 },
+    cards: [
+      { title: 'Rupture Node', body: 'the designed exception' },
+      { title: 'Anomaly Hooks', body: 'interrupt patterns' }
+    ]
+  },
+  light: {
+    name: 'LightOS',
+    title: 'Walk the Metadata.',
+    subtitle: 'Make the invisible navigable.',
+    palette: { bg: 0x001424, fg: 0xE6F7FF, accent: 0x36CFC9, warn: 0xFF6B35, deep: 0x00101B },
+    cards: [
+      { title: 'Meta Rooms', body: 'tags as spaces' },
+      { title: 'LightPath', body: 'solid illumination' }
+    ]
+  },
+  archive: {
+    name: 'ArchiveOS',
+    title: 'Capsule the Culture.',
+    subtitle: 'Every file a scene.',
+    palette: { bg: 0x121212, fg: 0xFAFAFA, accent: 0xFFB400, warn: 0x36CFC9, deep: 0x0B0B0B },
+    cards: [
+      { title: 'Provenance Chain', body: 'verify lineage' },
+      { title: 'Museum Mode', body: 'focused curation' }
+    ]
+  }
+};
+
+// ===== SCENE SETUP =====
+let scene, camera, renderer, controls, animationId;
+let currentWorld = null;
+
+const canvas = document.getElementById('canvas');
+const ui = document.getElementById('ui');
+const launcher = document.getElementById('launcher');
+
+function initScene(worldKey) {
+  console.log('Initializing scene for:', worldKey);
+  
+  const config = worlds[worldKey];
+  currentWorld = worldKey;
+  
+  // Setup renderer
+  if (!renderer) {
+    renderer = new THREE.WebGLRenderer({ 
+      canvas, 
+      antialias: false, 
+      alpha: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  }
+  
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  
+  // Clear previous scene
+  if (scene) {
+    scene.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach(mat => mat.dispose());
+        } else {
+          obj.material.dispose();
+        }
+      }
+    });
+  }
+  
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(config.palette.bg);
+  scene.fog = new THREE.Fog(config.palette.bg, 20, 80);
+  
+  camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.position.set(8, 6, 14);
+  
+  if (controls) controls.dispose();
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.maxPolarAngle = Math.PI * 0.48;
+  controls.minDistance = 4;
+  controls.maxDistance = 35;
+  
+  // Update UI
+  document.getElementById('worldTitle').textContent = config.title;
+  document.getElementById('worldSubtitle').textContent = config.subtitle;
+  
+  const cardsContainer = document.getElementById('cardsContainer');
+  cardsContainer.innerHTML = '';
+  config.cards.forEach(card => {
+    const btn = document.createElement('button');
+    btn.className = 'card';
+    btn.innerHTML = `<span class="card-title">${card.title}</span><span class="card-body">${card.body}</span>`;
+    cardsContainer.appendChild(btn);
+  });
+  
+  // Build world
+  console.log('Building world:', worldKey);
+  switch(worldKey) {
+    case 'mirror': buildMirrorOS(config); break;
+    case 'tempo': buildTempoOS(config); break;
+    case 'scale': buildScaleOS(config); break;
+    case 'morph': buildMorphOS(config); break;
+    case 'anomaly': buildAnomalyOS(config); break;
+    case 'light': buildLightOS(config); break;
+    case 'archive': buildArchiveOS(config); break;
+  }
+  
+  // Show canvas & UI
+  launcher.classList.add('hidden');
+  canvas.style.display = 'block';
+  ui.classList.remove('hidden');
+  
+  console.log('Starting animation');
+  // Start animation
+  if (animationId) cancelAnimationFrame(animationId);
+  animate();
+}
+
+// ===== WORLD BUILDERS =====
+
+function buildMirrorOS(config) {
+  // Dramatic night sky with stars
+  const skyGeo = new THREE.SphereGeometry(80, 32, 32);
+  const skyMat = new THREE.MeshBasicMaterial({ 
+    color: 0x0a0e1a, 
+    side: THREE.BackSide 
+  });
+  scene.add(new THREE.Mesh(skyGeo, skyMat));
+  scene.fog = new THREE.Fog(0x0a0e1a, 30, 70);
+  
+  // Stars
+  const starGeo = new THREE.BufferGeometry();
+  const starPositions = [];
+  for (let i = 0; i < 500; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos((Math.random() * 2) - 1);
+    const r = 70;
+    starPositions.push(
+      r * Math.sin(phi) * Math.cos(theta),
+      r * Math.sin(phi) * Math.sin(theta),
+      r * Math.cos(phi)
+    );
+  }
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+  const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15 }));
+  scene.add(stars);
+  
+  // Dark ground
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100),
+    new THREE.MeshStandardMaterial({ color: 0x0d1520, roughness: 0.9, metalness: 0.1 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+  
+  // Reflective water with animation
+  const water = new THREE.Mesh(
+    new THREE.PlaneGeometry(100, 100, 64, 64),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x1a2a3a,
+      transparent: true,
+      opacity: 0.7,
+      roughness: 0.1,
+      metalness: 0.8
+    })
+  );
+  water.rotation.x = -Math.PI / 2;
+  water.position.y = -0.3;
+  water.receiveShadow = true;
+  water.userData.isWater = true;
+  scene.add(water);
+  
+  // Car with dramatic lighting
+  const car = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(2.4, 1, 4),
+    new THREE.MeshStandardMaterial({ color: 0xd0d0d0, roughness: 0.3, metalness: 0.7 })
+  );
+  body.position.y = 1;
+  body.castShadow = true;
+  car.add(body);
+  
+  // Glowing cabin
+  const cabin = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 0.8, 2),
+    new THREE.MeshStandardMaterial({ 
+      color: config.palette.accent,
+      transparent: true,
+      opacity: 0.3,
+      emissive: config.palette.accent,
+      emissiveIntensity: 0.4,
+      roughness: 0.2
+    })
+  );
+  cabin.position.set(0, 1.7, -0.3);
+  cabin.castShadow = true;
+  car.add(cabin);
+  
+  // SURREAL BREAK: Inner Moon (mirrors outer moon)
+  const innerMoon = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 32, 32),
+    new THREE.MeshStandardMaterial({ 
+      color: config.palette.warn, 
+      emissive: config.palette.warn, 
+      emissiveIntensity: 0.8,
+      roughness: 0.3
+    })
+  );
+  innerMoon.position.set(0, 1.7, -0.3);
+  innerMoon.userData.isSurrealBreak = true;
+  innerMoon.userData.isMoon = true;
+  car.add(innerMoon);
+  
+  // Inner moon glow
+  const innerGlow = new THREE.PointLight(config.palette.warn, 2, 8);
+  innerGlow.position.set(0, 1.7, -0.3);
+  car.add(innerGlow);
+  
+  car.position.set(0, 0, 2);
+  scene.add(car);
+  
+  // Outer Moon (larger, same color)
+  const outerMoon = new THREE.Mesh(
+    new THREE.SphereGeometry(1.5, 32, 32),
+    new THREE.MeshStandardMaterial({ 
+      color: config.palette.warn, 
+      emissive: config.palette.warn, 
+      emissiveIntensity: 0.6,
+      roughness: 0.4
+    })
+  );
+  outerMoon.position.set(-10, 15, -20);
+  outerMoon.userData.isMoon = true;
+  scene.add(outerMoon);
+  
+  // Outer moon light
+  const moonLight = new THREE.PointLight(config.palette.warn, 3, 50);
+  moonLight.position.copy(outerMoon.position);
+  moonLight.castShadow = true;
+  moonLight.shadow.mapSize.width = 1024;
+  moonLight.shadow.mapSize.height = 1024;
+  scene.add(moonLight);
+  
+  // Atmospheric lighting
+  scene.add(new THREE.AmbientLight(0x1a2a3a, 0.3));
+  scene.add(new THREE.HemisphereLight(0x2a3a4a, 0x0a0e1a, 0.4));
+  
+  // Moonlight
+  const dirLight = new THREE.DirectionalLight(config.palette.warn, 1.2);
+  dirLight.position.set(-10, 15, -20);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  dirLight.shadow.camera.left = -20;
+  dirLight.shadow.camera.right = 20;
+  dirLight.shadow.camera.top = 20;
+  dirLight.shadow.camera.bottom = -20;
+  scene.add(dirLight);
+  
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+}
+
+function buildTempoOS(config) {
+  // Sunset gradient sky
+  const skyGeo = new THREE.SphereGeometry(80, 32, 32);
+  const skyMat = new THREE.MeshBasicMaterial({ 
+    color: 0x1a2030, 
+    side: THREE.BackSide 
+  });
+  scene.add(new THREE.Mesh(skyGeo, skyMat));
+  scene.fog = new THREE.Fog(0xff6b35, 40, 80);
+  
+  // Highway with better material
+  const highway = new THREE.Mesh(
+    new THREE.PlaneGeometry(12, 100),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x1a1a1a,
+      roughness: 0.8,
+      metalness: 0.2
+    })
+  );
+  highway.rotation.x = -Math.PI / 2;
+  highway.receiveShadow = true;
+  scene.add(highway);
+  
+  // Lane lines with emissive glow
+  for (let i = -40; i < 40; i += 8) {
+    const line = new THREE.Mesh(
+      new THREE.BoxGeometry(0.3, 0.05, 3),
+      new THREE.MeshStandardMaterial({ 
+        color: config.palette.warn,
+        emissive: config.palette.warn,
+        emissiveIntensity: 0.5
+      })
+    );
+    line.position.set(0, 0.05, i);
+    scene.add(line);
+  }
+  
+  // SURREAL BREAK: Glowing Tempo Turtles with shells
+  for (let i = 0; i < 10; i++) {
+    const turtle = new THREE.Group();
+    
+    // Shell
+    const shell = new THREE.Mesh(
+      new THREE.SphereGeometry(0.6, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshStandardMaterial({ 
+        color: config.palette.accent,
+        emissive: config.palette.accent,
+        emissiveIntensity: 0.6,
+        roughness: 0.4,
+        metalness: 0.3
+      })
+    );
+    shell.rotation.x = Math.PI;
+    turtle.add(shell);
+    
+    // Body
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 16, 16),
+      new THREE.MeshStandardMaterial({ 
+        color: 0x2a5a5a,
+        roughness: 0.6
+      })
+    );
+    body.position.y = -0.2;
+    turtle.add(body);
+    
+    // Glow aura
+    const turtleLight = new THREE.PointLight(config.palette.accent, 2, 10);
+    turtleLight.position.set(0, 0.5, 0);
+    turtle.add(turtleLight);
+    
+    turtle.position.set(
+      (Math.random() - 0.5) * 10,
+      0.6,
+      (Math.random() - 0.5) * 70
+    );
+    turtle.userData.speed = 0.008 + Math.random() * 0.015;
+    turtle.userData.phase = Math.random() * Math.PI * 2;
+    turtle.userData.bobSpeed = 0.5 + Math.random() * 0.5;
+    turtle.userData.isSurrealBreak = true;
+    turtle.userData.isTurtle = true;
+    turtle.castShadow = true;
+    scene.add(turtle);
+  }
+  
+  // Dramatic lighting
+  scene.add(new THREE.AmbientLight(0xff9966, 0.4));
+  scene.add(new THREE.HemisphereLight(0xff6b35, 0x1a2030, 0.8));
+  
+  // Sunset key light
+  const sunLight = new THREE.DirectionalLight(0xff8844, 1.5);
+  sunLight.position.set(20, 10, -30);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.width = 1024;
+  sunLight.shadow.mapSize.height = 1024;
+  scene.add(sunLight);
+  
+  renderer.shadowMap.enabled = true;
+}
+
+function buildScaleOS(config) {
+  // Bright cyan sky
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(80, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x87CEEB, side: THREE.BackSide })
+  ));
+  scene.fog = new THREE.Fog(0x87CEEB, 50, 100);
+  
+  // Green cliff
+  const cliff = new THREE.Mesh(
+    new THREE.BoxGeometry(40, 12, 40),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x2a5a3a,
+      roughness: 0.9,
+      metalness: 0.1
+    })
+  );
+  cliff.position.set(0, -6, -10);
+  cliff.receiveShadow = true;
+  scene.add(cliff);
+  
+  // Sandy beach
+  const beach = new THREE.Mesh(
+    new THREE.PlaneGeometry(80, 80),
+    new THREE.MeshStandardMaterial({ 
+      color: 0xf4e4c1,
+      roughness: 0.95,
+      metalness: 0
+    })
+  );
+  beach.rotation.x = -Math.PI / 2;
+  beach.position.y = -0.1;
+  beach.receiveShadow = true;
+  scene.add(beach);
+  
+  // Vivid ocean with waves
+  const sea = new THREE.Mesh(
+    new THREE.PlaneGeometry(120, 120, 64, 64),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x1a7a9a,
+      transparent: true,
+      opacity: 0.8,
+      roughness: 0.2,
+      metalness: 0.6
+    })
+  );
+  sea.rotation.x = -Math.PI / 2;
+  sea.position.set(0, -0.3, 50);
+  sea.userData.isWater = true;
+  scene.add(sea);
+  
+  // SURREAL BREAK: Trucks that shrink with distance but keep mass
+  const truckColors = [0xff6b35, 0xffb400, 0x36cfc9, 0xff3366, 0x9966ff];
+  
+  for (let i = 0; i < 7; i++) {
+    const truck = new THREE.Group();
+    
+    // Truck body
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(2, 1.2, 3.5),
+      new THREE.MeshStandardMaterial({ 
+        color: truckColors[i % truckColors.length],
+        roughness: 0.4,
+        metalness: 0.6
+      })
+    );
+    body.position.y = 0.6;
+    body.castShadow = true;
+    truck.add(body);
+    
+    // Cab
+    const cab = new THREE.Mesh(
+      new THREE.BoxGeometry(2, 0.8, 1.5),
+      new THREE.MeshStandardMaterial({ 
+        color: 0x2a2a2a,
+        roughness: 0.3,
+        metalness: 0.7
+      })
+    );
+    cab.position.set(0, 1.4, -1);
+    cab.castShadow = true;
+    truck.add(cab);
+    
+    // Wheels
+    for (let w = 0; w < 4; w++) {
+      const wheel = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.3, 0.3, 0.2, 16),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a1a })
+      );
+      wheel.rotation.z = Math.PI / 2;
+      wheel.position.set(
+        w % 2 ? 1.1 : -1.1,
+        0.3,
+        w < 2 ? -1 : 0.5
+      );
+      truck.add(wheel);
+    }
+    
+    const baseDistance = 8 + i * 6;
+    truck.position.set(
+      (Math.random() - 0.5) * 25,
+      0,
+      -baseDistance
+    );
+    truck.userData.isSurrealBreak = true;
+    truck.userData.isTruck = true;
+    truck.userData.baseDistance = baseDistance;
+    truck.userData.baseScale = 1;
+    scene.add(truck);
+  }
+  
+  // Bright sunny lighting
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  scene.add(new THREE.HemisphereLight(0x87CEEB, 0xf4e4c1, 0.8));
+  
+  // Strong sun
+  const sunLight = new THREE.DirectionalLight(0xffffee, 2.0);
+  sunLight.position.set(30, 40, -20);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.width = 2048;
+  sunLight.shadow.mapSize.height = 2048;
+  sunLight.shadow.camera.left = -50;
+  sunLight.shadow.camera.right = 50;
+  sunLight.shadow.camera.top = 50;
+  sunLight.shadow.camera.bottom = -50;
+  scene.add(sunLight);
+  
+  renderer.shadowMap.enabled = true;
+}
+
+function buildMorphOS(config) {
+  // Purple twilight sky
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(80, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x1a0e2a, side: THREE.BackSide })
+  ));
+  scene.fog = new THREE.Fog(0x1a0e2a, 20, 60);
+  
+  // City rooftop
+  const building = new THREE.Mesh(
+    new THREE.BoxGeometry(20, 0.8, 20),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x2a2a3a,
+      roughness: 0.8,
+      metalness: 0.3
+    })
+  );
+  building.position.y = 0;
+  building.receiveShadow = true;
+  scene.add(building);
+  
+  // Rooftop details
+  for (let i = 0; i < 4; i++) {
+    const vent = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1.5, 1),
+      new THREE.MeshStandardMaterial({ color: 0x3a3a4a, roughness: 0.7 })
+    );
+    const angle = (i / 4) * Math.PI * 2;
+    vent.position.set(Math.cos(angle) * 6, 1.15, Math.sin(angle) * 6);
+    vent.castShadow = true;
+    scene.add(vent);
+  }
+  
+  // SURREAL BREAK: Morphing Bird-Human Silhouette
+  const morph = new THREE.Group();
+  
+  // Core body
+  const body = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8, 32, 32),
+    new THREE.MeshStandardMaterial({ 
+      color: config.palette.accent,
+      emissive: config.palette.accent,
+      emissiveIntensity: 0.5,
+      roughness: 0.4
+    })
+  );
+  morph.add(body);
+  
+  // Wings/Arms that morph
+  const wingGeo = new THREE.BoxGeometry(3, 0.15, 1.2);
+  const wingMat = new THREE.MeshStandardMaterial({ 
+    color: config.palette.warn,
+    emissive: config.palette.warn,
+    emissiveIntensity: 0.4,
+    roughness: 0.5
+  });
+  const leftWing = new THREE.Mesh(wingGeo, wingMat);
+  leftWing.position.set(-2, 0, 0);
+  leftWing.castShadow = true;
+  morph.add(leftWing);
+  
+  const rightWing = new THREE.Mesh(wingGeo, wingMat);
+  rightWing.position.set(2, 0, 0);
+  rightWing.castShadow = true;
+  morph.add(rightWing);
+  
+  // Legs that appear/disappear
+  const legGeo = new THREE.CylinderGeometry(0.15, 0.12, 1.5);
+  const legMat = new THREE.MeshStandardMaterial({ 
+    color: config.palette.accent,
+    roughness: 0.6
+  });
+  const leftLeg = new THREE.Mesh(legGeo, legMat);
+  leftLeg.position.set(-0.3, -1.2, 0);
+  leftLeg.visible = false;
+  morph.add(leftLeg);
+  
+  const rightLeg = new THREE.Mesh(legGeo, legMat);
+  rightLeg.position.set(0.3, -1.2, 0);
+  rightLeg.visible = false;
+  morph.add(rightLeg);
+  
+  morph.position.set(0, 4, 0);
+  morph.userData.morphTime = 0;
+  morph.userData.isSurrealBreak = true;
+  morph.userData.isMorph = true;
+  morph.castShadow = true;
+  scene.add(morph);
+  
+  // Morph spotlight
+  const morphLight = new THREE.SpotLight(config.palette.accent, 3, 20, Math.PI / 6);
+  morphLight.position.set(0, 8, 5);
+  morphLight.target = morph;
+  morphLight.castShadow = true;
+  scene.add(morphLight);
+  
+  // Atmospheric lighting
+  scene.add(new THREE.AmbientLight(0x4a2a6a, 0.4));
+  scene.add(new THREE.HemisphereLight(0xb46cff, 0x1a0e2a, 0.6));
+  
+  // Moon
+  const moonLight = new THREE.DirectionalLight(0x8a6aaa, 0.8);
+  moonLight.position.set(-15, 20, -10);
+  moonLight.castShadow = true;
+  scene.add(moonLight);
+  
+  renderer.shadowMap.enabled = true;
+}
+
+function buildAnomalyOS(config) {
+  // Dark atmospheric sky
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(80, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x120909, side: THREE.BackSide })
+  ));
+  scene.fog = new THREE.Fog(0x120909, 15, 50);
+  
+  // Bowling lanes with glossy finish
+  for (let i = -3; i <= 3; i++) {
+    const lane = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 35),
+      new THREE.MeshStandardMaterial({ 
+        color: i % 2 ? 0x8b7355 : 0x7a6348,
+        roughness: 0.2,
+        metalness: 0.4
+      })
+    );
+    lane.rotation.x = -Math.PI / 2;
+    lane.position.x = i * 2.2;
+    lane.receiveShadow = true;
+    scene.add(lane);
+  }
+  
+  // White pins
+  const pinGeo = new THREE.CylinderGeometry(0.12, 0.18, 0.8, 12);
+  const pinMat = new THREE.MeshStandardMaterial({ 
+    color: 0xffffff,
+    roughness: 0.3,
+    metalness: 0.1
+  });
+  
+  for (let i = -2; i <= 2; i++) {
+    const pin = new THREE.Mesh(pinGeo, pinMat);
+    pin.position.set(i * 0.5, 0.4, -14);
+    pin.castShadow = true;
+    pin.receiveShadow = true;
+    scene.add(pin);
+  }
+  
+  // SURREAL BREAK: Glowing Ceiling Ball (embedded in ceiling)
+  const ceilingBall = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8, 32, 32),
+    new THREE.MeshStandardMaterial({ 
+      color: config.palette.warn,
+      emissive: config.palette.warn,
+      emissiveIntensity: 0.8,
+      roughness: 0.2,
+      metalness: 0.7
+    })
+  );
+  ceilingBall.position.set(3, 7.3, -10);
+  ceilingBall.userData.isSurrealBreak = true;
+  ceilingBall.userData.isAnomaly = true;
+  ceilingBall.castShadow = true;
+  scene.add(ceilingBall);
+  
+  // Ball's anomaly glow
+  const anomalyLight = new THREE.PointLight(config.palette.warn, 4, 15);
+  anomalyLight.position.copy(ceilingBall.position);
+  anomalyLight.castShadow = true;
+  scene.add(anomalyLight);
+  
+  // Rupture rings (spawn point indicators)
+  for (let i = 0; i < 3; i++) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.8 + i * 0.3, 0.05, 16, 32),
+      new THREE.MeshStandardMaterial({
+        color: 0x00e0a4,
+        emissive: 0x00e0a4,
+        emissiveIntensity: 0.5,
+        transparent: true,
+        opacity: 0.4 - i * 0.1
+      })
+    );
+    ring.position.copy(ceilingBall.position);
+    ring.rotation.x = Math.PI / 2;
+    ring.userData.isRuptureRing = true;
+    ring.userData.ringIndex = i;
+    scene.add(ring);
+  }
+  
+  // Ceiling with embedded ball cutout effect
+  const ceiling = new THREE.Mesh(
+    new THREE.PlaneGeometry(24, 35),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x2a2a2a,
+      roughness: 0.9,
+      metalness: 0.1
+    })
+  );
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.y = 8;
+  ceiling.receiveShadow = true;
+  scene.add(ceiling);
+  
+  // Dramatic bowling alley lighting
+  scene.add(new THREE.AmbientLight(0xff6b35, 0.2));
+  scene.add(new THREE.HemisphereLight(0xff6b35, 0x120909, 0.4));
+  
+  // Overhead lane lights
+  for (let i = -2; i <= 2; i++) {
+    const laneLight = new THREE.SpotLight(0xffffff, 1.5, 25, Math.PI / 8);
+    laneLight.position.set(i * 2.2, 7, 0);
+    laneLight.castShadow = true;
+    scene.add(laneLight);
+  }
+  
+  renderer.shadowMap.enabled = true;
+}
+
+function buildLightOS(config) {
+  // Night ocean sky
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(80, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x001424, side: THREE.BackSide })
+  ));
+  scene.fog = new THREE.Fog(0x001424, 30, 80);
+  
+  // Dark ocean with waves
+  const sea = new THREE.Mesh(
+    new THREE.PlaneGeometry(150, 150, 64, 64),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x0a1a2a,
+      transparent: true,
+      opacity: 0.9,
+      roughness: 0.3,
+      metalness: 0.7
+    })
+  );
+  sea.rotation.x = -Math.PI / 2;
+  sea.position.y = -1.5;
+  sea.receiveShadow = true;
+  sea.userData.isWater = true;
+  scene.add(sea);
+  
+  // Wooden pier
+  const pier = new THREE.Mesh(
+    new THREE.BoxGeometry(3.5, 0.5, 25),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x5a4a3a,
+      roughness: 0.9,
+      metalness: 0
+    })
+  );
+  pier.position.set(0, 0, -8);
+  pier.castShadow = true;
+  pier.receiveShadow = true;
+  scene.add(pier);
+  
+  // Pier posts
+  for (let i = 0; i < 6; i++) {
+    const post = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.15, 0.15, 2, 8),
+      new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.8 })
+    );
+    post.position.set((i % 2 ? 1.5 : -1.5), -1, -5 - i * 3);
+    post.castShadow = true;
+    scene.add(post);
+  }
+  
+  // Lighthouse base
+  const lighthouse = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.2, 1.4, 10, 24),
+    new THREE.MeshStandardMaterial({ 
+      color: 0xf0f0f0,
+      roughness: 0.4,
+      metalness: 0.2
+    })
+  );
+  lighthouse.position.set(0, 5, -18);
+  lighthouse.castShadow = true;
+  lighthouse.receiveShadow = true;
+  scene.add(lighthouse);
+  
+  // Red stripe
+  const stripe = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.25, 1.35, 2, 24),
+    new THREE.MeshStandardMaterial({ 
+      color: 0xff3333,
+      roughness: 0.3
+    })
+  );
+  stripe.position.set(0, 6, -18);
+  scene.add(stripe);
+  
+  // Light housing
+  const lightTop = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.3, 1.3, 1.5, 16),
+    new THREE.MeshStandardMaterial({ 
+      color: config.palette.warn,
+      emissive: config.palette.warn,
+      emissiveIntensity: 0.8,
+      roughness: 0.2,
+      metalness: 0.8
+    })
+  );
+  lightTop.position.set(0, 10.5, -18);
+  lightTop.castShadow = true;
+  scene.add(lightTop);
+  
+  // SURREAL BREAK: Solid Rotating Light Beam (walkable)
+  const lightBeam = new THREE.Group();
+  lightBeam.position.set(0, 10, -18);
+  
+  const beamMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5, 3, 25, 16, 1, false),
+    new THREE.MeshStandardMaterial({ 
+      color: config.palette.accent,
+      transparent: true,
+      opacity: 0.75,
+      emissive: config.palette.accent,
+      emissiveIntensity: 0.7,
+      side: THREE.DoubleSide,
+      roughness: 0.3,
+      metalness: 0.5
+    })
+  );
+  beamMesh.rotation.x = Math.PI / 2;
+  beamMesh.position.z = 12;
+  beamMesh.castShadow = true;
+  lightBeam.add(beamMesh);
+  
+  // Metadata room indicators (glowing cubes along beam)
+  for (let i = 1; i <= 4; i++) {
+    const metaRoom = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 0.8, 0.8),
+      new THREE.MeshStandardMaterial({
+        color: 0xffaa00,
+        emissive: 0xffaa00,
+        emissiveIntensity: 0.6,
+        transparent: true,
+        opacity: 0.7
+      })
+    );
+    metaRoom.position.set(0, 0, i * 5);
+    metaRoom.userData.isMetaRoom = true;
+    lightBeam.add(metaRoom);
+  }
+  
+  lightBeam.userData.isSurrealBreak = true;
+  lightBeam.userData.isLightBeam = true;
+  scene.add(lightBeam);
+  
+  // Rotating spotlight from lighthouse
+  const beamLight = new THREE.SpotLight(config.palette.accent, 8, 40, Math.PI / 8, 0.5);
+  beamLight.position.set(0, 10, -18);
+  beamLight.castShadow = true;
+  beamLight.shadow.mapSize.width = 1024;
+  beamLight.shadow.mapSize.height = 1024;
+  scene.add(beamLight);
+  scene.add(beamLight.target);
+  
+  // Atmospheric lighting
+  scene.add(new THREE.AmbientLight(0x1a2a3a, 0.3));
+  scene.add(new THREE.HemisphereLight(0x36cfc9, 0x001424, 0.5));
+  
+  // Moon
+  const moonLight = new THREE.DirectionalLight(0x6a8a9a, 0.6);
+  moonLight.position.set(-20, 25, -30);
+  moonLight.castShadow = true;
+  scene.add(moonLight);
+  
+  renderer.shadowMap.enabled = true;
+}
+
+function buildArchiveOS(config) {
+  // Warm library interior sky
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(80, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0x0a0a0a, side: THREE.BackSide })
+  ));
+  scene.fog = new THREE.Fog(0x0a0a0a, 20, 50);
+  
+  // Polished floor
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(50, 50),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x2a2a2a,
+      roughness: 0.3,
+      metalness: 0.5
+    })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+  
+  // Wooden shelving units
+  for (let i = -2; i <= 2; i++) {
+    // Shelf surface
+    const shelf = new THREE.Mesh(
+      new THREE.BoxGeometry(14, 0.3, 1.8),
+      new THREE.MeshStandardMaterial({ 
+        color: 0x4a3a2a,
+        roughness: 0.7,
+        metalness: 0.1
+      })
+    );
+    shelf.position.set(0, 2 + i * 1.8, -9);
+    shelf.castShadow = true;
+    shelf.receiveShadow = true;
+    scene.add(shelf);
+    
+    // Shelf backing
+    const backing = new THREE.Mesh(
+      new THREE.BoxGeometry(14, 0.1, 0.5),
+      new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.9 })
+    );
+    backing.position.set(0, 2 + i * 1.8, -9.7);
+    scene.add(backing);
+  }
+  
+  // SURREAL BREAK: Glowing Capsule Books
+  const bookColors = [0xffb400, 0x36cfc9, 0xff6b35, 0x9966ff, 0x00e0a4];
+  
+  for (let row = -2; row <= 2; row++) {
+    for (let col = 0; col < 9; col++) {
+      const book = new THREE.Mesh(
+        new THREE.BoxGeometry(0.7, 1.3, 0.35),
+        new THREE.MeshStandardMaterial({ 
+          color: bookColors[(row + col) % bookColors.length],
+          emissive: bookColors[(row + col) % bookColors.length],
+          emissiveIntensity: 0.3,
+          roughness: 0.4,
+          metalness: 0.2
+        })
+      );
+      book.position.set(
+        -5.5 + col * 1.25,
+        2.15 + row * 1.8,
+        -8.85
+      );
+      book.rotation.y = (Math.random() - 0.5) * 0.15;
+      book.userData.miniScene = true;
+      book.userData.isBook = true;
+      book.userData.pulsePhase = Math.random() * Math.PI * 2;
+      book.castShadow = true;
+      scene.add(book);
+    }
+  }
+  
+  // SURREAL BREAK: Open Capsule Diorama (floating)
+  const openCapsule = new THREE.Group();
+  openCapsule.position.set(4, 4, -3);
+  openCapsule.userData.isSurrealBreak = true;
+  openCapsule.userData.isCapsule = true;
+  
+  // Glowing platform
+  const capsuleBase = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.5, 1.5, 0.15, 32),
+    new THREE.MeshStandardMaterial({ 
+      color: config.palette.warn,
+      emissive: config.palette.warn,
+      emissiveIntensity: 0.5,
+      roughness: 0.2,
+      metalness: 0.8
+    })
+  );
+  capsuleBase.castShadow = true;
+  openCapsule.add(capsuleBase);
+  
+  // Dome cover (half open)
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(1.5, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2),
+    new THREE.MeshStandardMaterial({
+      color: 0x36cfc9,
+      transparent: true,
+      opacity: 0.4,
+      emissive: 0x36cfc9,
+      emissiveIntensity: 0.3,
+      roughness: 0.1,
+      metalness: 0.9,
+      side: THREE.DoubleSide
+    })
+  );
+  dome.position.y = 0.8;
+  dome.rotation.z = Math.PI / 6; // Tilted open
+  openCapsule.add(dome);
+  
+  // Mini scene inside capsule
+  const miniTree = new THREE.Mesh(
+    new THREE.ConeGeometry(0.35, 1, 12),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x2a6a2a,
+      roughness: 0.8
+    })
+  );
+  miniTree.position.set(0.5, 0.6, 0.5);
+  miniTree.castShadow = true;
+  openCapsule.add(miniTree);
+  
+  const miniHouse = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.5, 0.5),
+    new THREE.MeshStandardMaterial({ 
+      color: 0x9a7a5a,
+      roughness: 0.7
+    })
+  );
+  miniHouse.position.set(-0.4, 0.3, -0.4);
+  miniHouse.castShadow = true;
+  openCapsule.add(miniHouse);
+  
+  // Miniature person
+  const miniPerson = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8),
+    new THREE.MeshStandardMaterial({ color: 0xff6b35 })
+  );
+  miniPerson.position.set(0, 0.25, 0);
+  miniPerson.castShadow = true;
+  openCapsule.add(miniPerson);
+  
+  scene.add(openCapsule);
+  
+  // Capsule spotlight
+  const capsuleLight = new THREE.PointLight(config.palette.warn, 3, 10);
+  capsuleLight.position.set(4, 5, -3);
+  capsuleLight.castShadow = true;
+  scene.add(capsuleLight);
+  
+  // Warm library lighting
+  scene.add(new THREE.AmbientLight(0xffcc99, 0.5));
+  scene.add(new THREE.HemisphereLight(0xffb400, 0x0a0a0a, 0.6));
+  
+  // Reading lamps
+  for (let i = -1; i <= 1; i++) {
+    const lamp = new THREE.SpotLight(0xffcc88, 2, 15, Math.PI / 6, 0.8);
+    lamp.position.set(i * 4, 8, -5);
+    lamp.castShadow = true;
+    scene.add(lamp);
+  }
+  
+  renderer.shadowMap.enabled = true;
+}
+
+// ===== ANIMATION =====
+let time = 0;
+
+function animate() {
+  animationId = requestAnimationFrame(animate);
+  
+  time += 0.016;
+  
+  if (!scene || !camera || !renderer) return;
+  
+  // === MirrorOS: Synchronized pulsing moons ===
+  if (currentWorld === 'mirror') {
+    scene.traverse(obj => {
+      // Pulse both moons in sync
+      if (obj.userData.isMoon && obj.material && obj.material.emissive) {
+        const pulse = 0.5 + Math.sin(time * 1.5) * 0.3;
+        obj.material.emissiveIntensity = pulse;
+      }
+      // Animate water
+      if (obj.userData.isWater && obj.geometry && obj.geometry.attributes.position) {
+        const positions = obj.geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          const x = positions.getX(i);
+          const z = positions.getZ(i);
+          const wave = Math.sin(x * 0.2 + time) * 0.1 + Math.cos(z * 0.15 + time * 0.8) * 0.08;
+          positions.setY(i, wave);
+        }
+        positions.needsUpdate = true;
+      }
+    });
+  }
+  
+  // === TempoOS: Slow turtles with time dilation ===
+  if (currentWorld === 'tempo') {
+    scene.traverse(obj => {
+      if (obj.userData.isTurtle) {
+        // Slow forward movement
+        obj.position.z += obj.userData.speed;
+        // Gentle bobbing
+        obj.position.y = 0.6 + Math.sin(time * obj.userData.bobSpeed + obj.userData.phase) * 0.15;
+        // Subtle rotation
+        obj.rotation.y += 0.002;
+        // Loop back
+        if (obj.position.z > 40) obj.position.z = -40;
+        
+        // Pulse shell glow
+        obj.children.forEach(child => {
+          if (child.material && child.material.emissive) {
+            child.material.emissiveIntensity = 0.4 + Math.sin(time * 2 + obj.userData.phase) * 0.3;
+          }
+        });
+      }
+    });
+  }
+  
+  // === ScaleOS: Trucks shrink with distance to camera ===
+  if (currentWorld === 'scale') {
+    scene.traverse(obj => {
+      if (obj.userData.isTruck) {
+        // Calculate distance from camera
+        const distToCam = camera.position.distanceTo(obj.position);
+        // Scale inversely with distance (surreal effect)
+        const scale = Math.max(0.2, 2 / (1 + distToCam * 0.15));
+        obj.scale.set(scale, scale, scale);
+        
+        // Subtle rocking
+        obj.rotation.z = Math.sin(time * 0.5 + obj.position.x) * 0.02;
+      }
+      // Ocean waves
+      if (obj.userData.isWater && obj.geometry && obj.geometry.attributes.position) {
+        const positions = obj.geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          const x = positions.getX(i);
+          const z = positions.getZ(i);
+          const wave = Math.sin(x * 0.1 + time * 0.5) * 0.2 + Math.cos(z * 0.08 + time * 0.6) * 0.15;
+          positions.setY(i, wave);
+        }
+        positions.needsUpdate = true;
+      }
+    });
+  }
+  
+  // === MorphOS: Bird ↔ Human transformation ===
+  if (currentWorld === 'morph') {
+    scene.traverse(obj => {
+      if (obj.userData.isMorph) {
+        obj.userData.morphTime = (obj.userData.morphTime || 0) + 0.008;
+        const t = (Math.sin(obj.userData.morphTime) + 1) / 2; // 0 = bird, 1 = human
+        
+        // Body morphs from round (bird) to tall (human)
+        obj.children[0].scale.y = 1 + t * 0.8; // Stretch vertically
+        obj.children[0].scale.x = 1 - t * 0.4; // Compress horizontally
+        obj.children[0].scale.z = 1 - t * 0.4;
+        
+        // Wings retract into arms
+        obj.children.forEach((child, i) => {
+          if (i === 1 || i === 2) { // Wings
+            child.scale.x = 1 - t * 0.8; // Shrink wingspan
+            child.rotation.z = (child.position.x < 0 ? -1 : 1) * (Math.PI / 4 * (1 - t)); // Fold down
+          }
+          if (i === 3 || i === 4) { // Legs
+            child.visible = t > 0.5; // Legs appear when more human
+            if (child.visible) child.scale.y = (t - 0.5) * 2; // Grow in
+          }
+        });
+        
+        // Hover motion
+        obj.position.y = 4 + Math.sin(time * 0.8) * 0.3;
+        obj.rotation.y = Math.sin(time * 0.5) * 0.4;
+      }
+    });
+  }
+  
+  // === AnomalyOS: Ceiling ball pulses, rupture rings expand ===
+  if (currentWorld === 'anomaly') {
+    scene.traverse(obj => {
+      if (obj.userData.isAnomaly) {
+        // Pulsing anomaly ball
+        const pulse = 0.6 + Math.sin(time * 2.5) * 0.3;
+        if (obj.material && obj.material.emissive) {
+          obj.material.emissiveIntensity = pulse;
+        }
+        // Slight levitation
+        obj.position.y = 7.3 + Math.sin(time * 1.2) * 0.15;
+      }
+      // Expanding rupture rings
+      if (obj.userData.isRuptureRing) {
+        const ringPhase = time * 1.5 + obj.userData.ringIndex * 0.8;
+        const expand = 1 + Math.sin(ringPhase) * 0.2;
+        obj.scale.set(expand, expand, expand);
+        if (obj.material) {
+          obj.material.opacity = 0.3 + Math.sin(ringPhase) * 0.2;
+        }
+      }
+    });
+  }
+  
+  // === LightOS: Rotating solid light beam ===
+  if (currentWorld === 'light') {
+    scene.traverse(obj => {
+      if (obj.userData.isLightBeam) {
+        // Rotate the entire beam group
+        obj.rotation.y = time * 0.4;
+        
+        // Pulse beam intensity
+        obj.children.forEach(child => {
+          if (child.material && child.material.emissive) {
+            child.material.emissiveIntensity = 0.5 + Math.sin(time * 2) * 0.3;
+          }
+          // Metadata rooms bob
+          if (child.userData.isMetaRoom) {
+            child.rotation.x = time * 0.8;
+            child.rotation.y = time * 1.2;
+          }
+        });
+      }
+      // Ocean waves
+      if (obj.userData.isWater && obj.geometry && obj.geometry.attributes.position) {
+        const positions = obj.geometry.attributes.position;
+        for (let i = 0; i < positions.count; i++) {
+          const x = positions.getX(i);
+          const z = positions.getZ(i);
+          const wave = Math.sin(x * 0.08 + time * 0.7) * 0.3 + Math.cos(z * 0.06 + time * 0.5) * 0.25;
+          positions.setY(i, wave);
+        }
+        positions.needsUpdate = true;
+      }
+    });
+  }
+  
+  // === ArchiveOS: Pulsing books, floating capsule ===
+  if (currentWorld === 'archive') {
+    scene.traverse(obj => {
+      // Capsule books pulse individually
+      if (obj.userData.isBook && obj.material && obj.material.emissive) {
+        const pulse = 0.2 + Math.sin(time * 1.5 + obj.userData.pulsePhase) * 0.15;
+        obj.material.emissiveIntensity = pulse;
+      }
+      // Floating capsule diorama
+      if (obj.userData.isCapsule) {
+        obj.position.y = 4 + Math.sin(time * 0.6) * 0.25;
+        obj.rotation.y = time * 0.2;
+        // Dome lid breathes
+        obj.children.forEach(child => {
+          if (child.geometry && child.geometry.type === 'SphereGeometry') {
+            child.rotation.z = Math.PI / 6 + Math.sin(time * 0.8) * 0.1;
+          }
+        });
+      }
+    });
+  }
+  
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ===== LAUNCHER INTERACTION =====
+document.querySelectorAll('.world-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const worldKey = card.dataset.world;
+    console.log('World card clicked:', worldKey);
+    initScene(worldKey);
+  });
+});
+
+document.getElementById('backBtn').addEventListener('click', () => {
+  console.log('Back button clicked');
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+  
+  canvas.style.display = 'none';
+  ui.classList.add('hidden');
+  launcher.classList.remove('hidden');
+  
+  currentWorld = null;
+});
+
+// ===== RESIZE =====
+function onResize() {
+  if (!camera || !renderer) return;
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+}
+
+window.addEventListener('resize', onResize);
+
+// ===== VISIBILITY =====
+document.addEventListener('visibilitychange', () => {
+  if (controls) {
+    controls.enableDamping = document.visibilityState === 'visible';
+  }
+});
+
+// ===== BATTERY MANAGEMENT =====
+if ('getBattery' in navigator) {
+  navigator.getBattery().then(battery => {
+    function updatePowerMode() {
+      if (!renderer) return;
+      if (battery.level < 0.2 && !battery.charging) {
+        renderer.setPixelRatio(1);
+      } else {
+        renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio));
+      }
+    }
+    
+    battery.addEventListener('levelchange', updatePowerMode);
+    battery.addEventListener('chargingchange', updatePowerMode);
+    updatePowerMode();
+  });
+}
+
+console.log('All event listeners attached');
+</script>
+
+</body>
+</html>

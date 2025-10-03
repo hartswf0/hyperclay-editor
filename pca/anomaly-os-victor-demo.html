@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AnomalyOS + Victor Toolkit Demo</title>
+<style>
+:root { --bg: #0D1B2A; --fg: #F9F9F9; --accent: #00E0A4; --warn: #FF6B35; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; overflow: hidden; }
+#canvas { position: fixed; inset: 0; }
+.victor-ui { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+.view-switcher { position: absolute; top: 20px; left: 20px; display: flex; gap: 8px; pointer-events: auto; }
+.view-switcher button { background: rgba(0, 224, 164, 0.2); border: 2px solid var(--accent); color: var(--fg); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.view-switcher button.active { background: var(--accent); color: var(--bg); }
+.controls-panel { position: absolute; top: 80px; left: 20px; background: rgba(13, 27, 42, 0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 20px; width: 320px; pointer-events: auto; }
+.panel-title { font-size: 1.2rem; font-weight: 800; color: var(--accent); margin-bottom: 16px; }
+.parameter-scrubber { margin-bottom: 20px; }
+.parameter-scrubber label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--warn); }
+input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: rgba(0, 224, 164, 0.3); outline: none; -webkit-appearance: none; appearance: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+input[type="number"] { width: 70px; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--accent); color: var(--fg); padding: 4px 8px; border-radius: 4px; font-size: 0.9rem; }
+.scrubber-controls { display: flex; gap: 8px; align-items: center; }
+.trigger-btn { background: var(--warn); color: var(--bg); border: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 1.1rem; margin-bottom: 16px; transition: transform 0.1s; }
+.trigger-btn:active { transform: scale(0.95); }
+.chaos-budget { background: rgba(255, 107, 53, 0.1); border: 2px solid var(--warn); border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+.budget-bar { height: 20px; background: rgba(0, 0, 0, 0.4); border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.budget-fill { height: 100%; background: linear-gradient(to right, var(--warn), var(--accent)); transition: width 0.3s; }
+.view-container { position: absolute; top: 80px; right: 20px; width: 400px; background: rgba(13, 27, 42, 0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 20px; pointer-events: auto; display: none; max-height: calc(100vh - 100px); overflow-y: auto; }
+.view-container.active { display: block; }
+.event-log { font-family: 'Courier New', monospace; font-size: 0.85rem; max-height: 300px; overflow-y: auto; }
+.log-entry { padding: 6px; border-bottom: 1px solid rgba(0, 224, 164, 0.2); }
+.log-time { color: var(--accent); }
+.log-message { opacity: 0.9; }
+canvas.graph { width: 100%; height: 200px; background: rgba(0, 0, 0, 0.4); border-radius: 6px; }
+.export-btn { background: #FFB400; color: var(--bg); border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 16px; width: 100%; }
+.intro-btn { position: absolute; top: 20px; right: 20px; background: #00E0A4; color: var(--bg); border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 1.1rem; cursor: pointer; pointer-events: auto; z-index: 200; transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,224,164,0.4); }
+.intro-btn:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(0,224,164,0.6); }
+.intro-btn.playing { background: #ff6b35; }
+
+@media (max-width: 768px) {
+  .view-switcher { flex-wrap: wrap; width: calc(100% - 40px); }
+  .view-switcher button { flex: 1; min-width: 75px; padding: 6px 10px; font-size: 0.85rem; }
+  .controls-panel { top: 140px; left: 10px; right: 10px; width: auto; max-height: 42vh; }
+  .view-container { top: auto; bottom: 10px; left: 10px; right: 10px; width: auto; max-height: 45vh; }
+  .panel-title { font-size: 1rem; }
+  .trigger-btn { padding: 10px 16px; font-size: 1rem; }
+  .chaos-budget { font-size: 0.9rem; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="victor-ui">
+  <button class="intro-btn" id="play-intro">▶ Play Intro</button>
+  
+  <div class="view-switcher">
+    <button class="active" data-view="visual">Visual</button>
+    <button data-view="log">Event Log</button>
+    <button data-view="graph">Stress Graph</button>
+  </div>
+  
+  <div class="controls-panel">
+    <div class="panel-title">🎳 AnomalyOS Controls</div>
+    
+    <button class="trigger-btn" id="trigger-rupture">⚡ TRIGGER RUPTURE</button>
+    
+    <div id="intensity-scrubber"></div>
+    <div id="radius-scrubber"></div>
+    <div id="recovery-scrubber"></div>
+    
+    <div class="chaos-budget">
+      <div style="font-weight: 700; color: var(--warn); margin-bottom: 8px;">Chaos Budget</div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+        <span>Available:</span>
+        <span id="budget-value">100 / 100</span>
+      </div>
+      <div class="budget-bar">
+        <div class="budget-fill" id="budget-fill" style="width: 100%;"></div>
+      </div>
+    </div>
+    
+    <button class="export-btn" id="export-btn">📦 Export Config</button>
+  </div>
+  
+  <div class="view-container" data-view="log">
+    <div class="panel-title">📋 Event Log</div>
+    <div class="event-log" id="event-log"></div>
+  </div>
+  
+  <div class="view-container" data-view="graph">
+    <div class="panel-title">📊 System Stress</div>
+    <canvas id="stress-canvas" class="graph"></canvas>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const canvas = document.getElementById('canvas');
+const scene = new THREE.Scene();
+// Billout-style dark, theatrical bowling alley
+scene.background = new THREE.Color(0x0f0808);
+// Heavier fog for ominous ceiling atmosphere
+scene.fog = new THREE.FogExp2(0x0f0808, 0.025);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 5, 10);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+
+const state = {
+  intensity: 1,
+  radius: 5,
+  recovery: 2,
+  budget: 100,
+  maxBudget: 100,
+  recoveryRate: 5
+};
+
+const eventLog = [];
+const stressHistory = [];
+
+// Bowling lanes
+for (let i = -3; i <= 3; i++) {
+  const lane = new THREE.Mesh(new THREE.PlaneGeometry(2, 35), new THREE.MeshStandardMaterial({ color: i % 2 ? 0x8b7355 : 0x7a6348, roughness: 0.2, metalness: 0.4 }));
+  lane.rotation.x = -Math.PI / 2;
+  lane.position.x = i * 2.2;
+  lane.receiveShadow = true;
+  scene.add(lane);
+}
+
+// Ceiling ball
+const anomalyBall = new THREE.Mesh(new THREE.SphereGeometry(0.8, 32, 32), new THREE.MeshStandardMaterial({ color: 0xff6b35, emissive: 0xff6b35, emissiveIntensity: 0.8, roughness: 0.2, metalness: 0.7 }));
+anomalyBall.position.set(3, 7.3, -10);
+anomalyBall.castShadow = true;
+scene.add(anomalyBall);
+
+const anomalyLight = new THREE.PointLight(0xff6b35, 4, 15);
+anomalyLight.position.copy(anomalyBall.position);
+scene.add(anomalyLight);
+
+// Rupture rings
+const ruptureRings = [];
+for (let i = 0; i < 3; i++) {
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.8 + i * 0.3, 0.05, 16, 32), new THREE.MeshStandardMaterial({ color: 0x00e0a4, emissive: 0x00e0a4, emissiveIntensity: 0.5, transparent: true, opacity: 0.4 - i * 0.1 }));
+  ring.position.copy(anomalyBall.position);
+  ring.rotation.x = Math.PI / 2;
+  ring.userData.ringIndex = i;
+  ring.userData.baseScale = 1;
+  scene.add(ring);
+  ruptureRings.push(ring);
+}
+
+// Minimal ambient for deep shadows
+scene.add(new THREE.AmbientLight(0x2a1a1a, 0.15));
+scene.add(new THREE.HemisphereLight(0x3a2a2a, 0x0f0808, 0.25));
+
+// Dramatic spotlight on anomaly ball (key light)
+const ballSpot = new THREE.SpotLight(0xff6b35, 2.5, 30, Math.PI / 6, 0.5, 1);
+ballSpot.position.set(3, 12, -10);
+ballSpot.target.position.copy(anomalyBall.position);
+ballSpot.castShadow = true;
+scene.add(ballSpot);
+scene.add(ballSpot.target);
+
+// Bowling lane strip lights (cyan accent)
+const laneLight1 = new THREE.PointLight(0x00e0a4, 0.6, 20);
+laneLight1.position.set(-5, 6, 0);
+scene.add(laneLight1);
+
+const laneLight2 = new THREE.PointLight(0x00e0a4, 0.6, 20);
+laneLight2.position.set(5, 6, 0);
+scene.add(laneLight2);
+
+// Warm backlight for depth
+const backLight = new THREE.DirectionalLight(0xffb400, 0.4);
+backLight.position.set(0, 8, 15);
+scene.add(backLight);
+
+// Controls
+function createScrubber(container, label, min, max, value, onChange) {
+  const div = document.createElement('div');
+  div.className = 'parameter-scrubber';
+  div.innerHTML = `<label>${label}</label><div class="scrubber-controls"><input type="range" min="${min}" max="${max}" step="${(max-min)/100}" value="${value}"><input type="number" min="${min}" max="${max}" step="${(max-min)/100}" value="${value}"></div>`;
+  const [slider, number] = div.querySelectorAll('input');
+  const handle = e => { slider.value = number.value = e.target.value; onChange(+e.target.value); };
+  slider.oninput = number.oninput = handle;
+  container.appendChild(div);
+}
+
+createScrubber(document.getElementById('intensity-scrubber'), 'Rupture Intensity', 0.5, 3, state.intensity, v => state.intensity = v);
+createScrubber(document.getElementById('radius-scrubber'), 'Rupture Radius', 2, 15, state.radius, v => state.radius = v);
+createScrubber(document.getElementById('recovery-scrubber'), 'Recovery Time (s)', 0.5, 5, state.recovery, v => state.recovery = v);
+
+// Trigger rupture
+function triggerRupture() {
+  const cost = 20 * state.intensity;
+  if (state.budget < cost) {
+    logEvent('REJECTED', 'Insufficient chaos budget');
+    return;
+  }
+  
+  state.budget -= cost;
+  logEvent('RUPTURE', `Triggered at intensity ${state.intensity.toFixed(1)}, radius ${state.radius.toFixed(1)}m`);
+  
+  // Visual effect
+  const shockwave = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshBasicMaterial({ color: 0x00e0a4, transparent: true, opacity: 0.8 }));
+  shockwave.position.copy(anomalyBall.position);
+  scene.add(shockwave);
+  
+  let expand = 0;
+  const expandInterval = setInterval(() => {
+    expand += 0.5;
+    shockwave.scale.setScalar(expand);
+    shockwave.material.opacity = 0.8 - (expand / state.radius);
+    
+    if (expand >= state.radius) {
+      clearInterval(expandInterval);
+      scene.remove(shockwave);
+    }
+  }, 50);
+}
+
+document.getElementById('trigger-rupture').onclick = triggerRupture;
+
+// Event log
+function logEvent(type, message) {
+  const time = new Date().toLocaleTimeString();
+  eventLog.unshift({ time, type, message });
+  if (eventLog.length > 50) eventLog.pop();
+  
+  const logEl = document.getElementById('event-log');
+  logEl.innerHTML = eventLog.map(e => 
+    `<div class="log-entry"><span class="log-time">${e.time}</span> [${e.type}] <span class="log-message">${e.message}</span></div>`
+  ).join('');
+}
+
+// Stress graph
+const stressCanvas = document.getElementById('stress-canvas');
+const stressCtx = stressCanvas.getContext('2d');
+stressCanvas.width = 360;
+stressCanvas.height = 200;
+
+function updateStressGraph() {
+  const stress = (state.maxBudget - state.budget) / state.maxBudget;
+  stressHistory.push(stress);
+  if (stressHistory.length > 100) stressHistory.shift();
+  
+  stressCtx.fillStyle = 'rgba(0,0,0,0.4)';
+  stressCtx.fillRect(0, 0, 360, 200);
+  
+  // Grid
+  stressCtx.strokeStyle = 'rgba(0, 224, 164, 0.2)';
+  for (let i = 0; i <= 4; i++) {
+    stressCtx.beginPath();
+    stressCtx.moveTo(0, i * 50);
+    stressCtx.lineTo(360, i * 50);
+    stressCtx.stroke();
+  }
+  
+  // Stress line
+  stressCtx.strokeStyle = '#ff6b35';
+  stressCtx.lineWidth = 2;
+  stressCtx.beginPath();
+  
+  stressHistory.forEach((s, i) => {
+    const x = (i / 100) * 360;
+    const y = 200 - s * 180;
+    i === 0 ? stressCtx.moveTo(x, y) : stressCtx.lineTo(x, y);
+  });
+  
+  stressCtx.stroke();
+  
+  // Danger threshold
+  stressCtx.strokeStyle = '#ff3366';
+  stressCtx.setLineDash([5, 5]);
+  stressCtx.beginPath();
+  stressCtx.moveTo(0, 40);
+  stressCtx.lineTo(360, 40);
+  stressCtx.stroke();
+  stressCtx.setLineDash([]);
+}
+
+document.getElementById('export-btn').onclick = () => {
+  const blob = new Blob([JSON.stringify({ intensity: state.intensity, radius: state.radius, recovery: state.recovery, eventLog: eventLog.slice(0, 10) }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'anomaly-config.json';
+  a.click();
+};
+
+document.querySelectorAll('.view-switcher button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.view-switcher button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active'));
+    const vc = document.querySelector(`.view-container[data-view="${btn.dataset.view}"]`);
+    if (vc) vc.classList.add('active');
+  };
+});
+
+let time = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  time += 0.016;
+  
+  // Recover budget
+  if (state.budget < state.maxBudget) {
+    state.budget = Math.min(state.maxBudget, state.budget + state.recoveryRate * 0.016);
+  }
+  
+  document.getElementById('budget-value').textContent = `${Math.floor(state.budget)} / ${state.maxBudget}`;
+  document.getElementById('budget-fill').style.width = `${(state.budget / state.maxBudget) * 100}%`;
+  
+  // Animate anomaly
+  anomalyBall.position.y = 7.3 + Math.sin(time * 1.2) * 0.15;
+  anomalyLight.intensity = 4 + Math.sin(time * 2.5) * 1.5;
+  
+  // Animate rings
+  ruptureRings.forEach(ring => {
+    const phase = time * 1.5 + ring.userData.ringIndex * 0.8;
+    const expand = 1 + Math.sin(phase) * 0.2;
+    ring.scale.setScalar(expand);
+    ring.material.opacity = 0.3 + Math.sin(phase) * 0.2;
+  });
+  
+  updateStressGraph();
+  
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+logEvent('SYSTEM', 'AnomalyOS initialized');
+
+// ===== AUDIO + TITLE SEQUENCE =====
+class SoundEngine {
+  constructor() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+  play(f, d, t = 'sine', v = 0.3) {
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = t; o.frequency.setValueAtTime(f, this.ctx.currentTime);
+    g.gain.setValueAtTime(v, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + d);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(this.ctx.currentTime); o.stop(this.ctx.currentTime + d);
+  }
+  explosion() {
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => this.play(50 + Math.random() * 100, 0.1, 'square', 0.3), i * 50);
+    }
+  }
+}
+const sound = new SoundEngine();
+
+class TitleSequence {
+  constructor(cam, scn, dur = 12) {
+    this.cam = cam; this.scn = scn; this.dur = dur; this.playing = false;
+    this.origPos = cam.position.clone(); this.origRot = cam.rotation.clone();
+    this.sprites = [];
+  }
+  makeTxt(txt, col = '#FF6B35', sz = 120) {
+    const c = document.createElement('canvas'), x = c.getContext('2d');
+    c.width = 1024; c.height = 256;
+    x.font = `600 ${sz}px 'Helvetica Neue', 'Futura', 'Arial', sans-serif`;
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.strokeStyle = '#000'; x.lineWidth = 8; x.strokeText(txt, 512, 128);
+    x.fillStyle = col; x.fillText(txt, 512, 128);
+    const tex = new THREE.CanvasTexture(c); tex.needsUpdate = true;
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0 }));
+    spr.scale.setScalar(10, 2.5, 1); this.scn.add(spr); this.sprites.push(spr); return spr;
+  }
+  lerp(a, b, t) { return a + (b - a) * t; }
+  play() {
+    if (this.playing) return; this.playing = true;
+    const btn = document.getElementById('play-intro');
+    btn.classList.add('playing'); btn.textContent = '⏸ Playing...';
+    document.querySelector('.view-switcher').style.opacity = '0';
+    document.querySelector('.controls-panel').style.opacity = '0';
+    const ce = controls.enabled; controls.enabled = false;
+    
+    const start = Date.now(), dur = this.dur * 1000;
+    const t1 = this.makeTxt('CHAOS', '#FF6B35', 140);
+    const t2 = this.makeTxt('WAITS', '#00E0A4', 130);
+    const t3 = this.makeTxt('ABOVE', '#FFB400', 120);
+    const t4 = this.makeTxt('ORDER', '#FF6B35', 140);
+    
+    setTimeout(() => sound.play(80, 1, 'triangle', 0.2), 0);
+    setTimeout(() => sound.play(60, 1, 'triangle', 0.2), 3000);
+    setTimeout(() => sound.explosion(), 6000);
+    setTimeout(() => sound.play(40, 2, 'triangle', 0.2), 9000);
+    
+    const anim = () => {
+      const el = Date.now() - start, t = Math.min(el / dur, 1);
+      
+      if (t < 0.25) {
+        const t1v = t / 0.25;
+        camera.position.set(0, this.lerp(3, 6, t1v), this.lerp(8, 3, t1v));
+        camera.lookAt(anomalyBall.position);
+        t1.position.copy(anomalyBall.position); t1.position.y -= 5;
+        t1.material.opacity = t1v; t1.scale.setScalar(this.lerp(0.5, 1, t1v) * 11);
+      } else if (t < 0.5) {
+        const t2v = (t - 0.25) / 0.25;
+        camera.position.set(0, this.lerp(6, 8, t2v), this.lerp(3, 8, t2v));
+        camera.lookAt(anomalyBall.position);
+        t1.material.opacity = 1 - t2v;
+        t2.position.copy(anomalyBall.position); t2.position.y -= 3;
+        t2.material.opacity = t2v; t2.scale.setScalar(this.lerp(0.5, 1, t2v) * 10);
+      } else if (t < 0.75) {
+        const t3v = (t - 0.5) / 0.25;
+        camera.position.set(this.lerp(0, 1, t3v), this.lerp(8, 5, t3v), this.lerp(8, 12, t3v));
+        camera.lookAt(new THREE.Vector3(2, 7, -8));
+        t2.material.opacity = 1 - t3v;
+        t3.position.set(0, 8, -5); t3.material.opacity = t3v;
+        t3.scale.setScalar(this.lerp(0.5, 1, t3v) * 9);
+      } else {
+        const t4v = (t - 0.75) / 0.25;
+        camera.position.set(this.lerp(1, 2, t4v), this.lerp(5, 4, t4v), this.lerp(12, 15, t4v));
+        camera.lookAt(new THREE.Vector3(2, 7, -8));
+        t3.material.opacity = 1; t3.position.y = 8;
+        t4.position.set(0, this.lerp(-5, 2, t4v), 0);
+        t4.material.opacity = t4v; t4.scale.setScalar(this.lerp(0.5, 1, t4v) * 11);
+        if (t > 0.95) {
+          const fo = (t - 0.95) / 0.05;
+          t3.material.opacity = 1 - fo; t4.material.opacity = 1 - fo;
+        }
+      }
+      
+      if (t < 1) requestAnimationFrame(anim);
+      else {
+        this.playing = false; btn.classList.remove('playing'); btn.textContent = '▶ Play Intro';
+        document.querySelector('.view-switcher').style.opacity = '1';
+        document.querySelector('.controls-panel').style.opacity = '1';
+        controls.enabled = ce;
+        this.sprites.forEach(s => this.scn.remove(s)); this.sprites = [];
+        camera.position.copy(this.origPos); camera.rotation.copy(this.origRot);
+      }
+    };
+    anim();
+  }
+}
+
+const titleSeq = new TitleSequence(camera, scene, 12);
+document.getElementById('play-intro').onclick = () => titleSeq.play();
+
+animate();
+
+window.onresize = () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+};
+</script>
+
+</body>
+</html>

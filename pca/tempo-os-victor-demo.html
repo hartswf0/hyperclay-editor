@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TempoOS + Victor Toolkit Demo</title>
+<style>
+:root { --bg: #0D1B2A; --fg: #F9F9F9; --accent: #36CFC9; --warn: #FFB400; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; overflow: hidden; }
+#canvas { position: fixed; inset: 0; }
+.victor-ui { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+.view-switcher { position: absolute; top: 20px; left: 20px; display: flex; gap: 8px; pointer-events: auto; }
+.view-switcher button { background: rgba(54, 207, 201, 0.2); border: 2px solid var(--accent); color: var(--fg); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.view-switcher button.active { background: var(--accent); color: var(--bg); }
+.controls-panel { position: absolute; top: 80px; left: 20px; background: rgba(13, 27, 42, 0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 20px; width: 320px; pointer-events: auto; max-height: calc(100vh - 100px); overflow-y: auto; }
+.panel-title { font-size: 1.2rem; font-weight: 800; color: var(--accent); margin-bottom: 16px; }
+.toggle-btn { background: var(--warn); color: var(--bg); border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; margin: 16px 0; width: 100%; }
+.metrics { background: rgba(255, 180, 0, 0.1); border-radius: 8px; padding: 12px; margin: 16px 0; }
+.metric { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+.metric span:last-child { font-weight: 700; color: var(--warn); }
+.view-container { position: absolute; top: 80px; right: 20px; width: 420px; background: rgba(13, 27, 42, 0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 20px; pointer-events: auto; display: none; }
+.view-container.active { display: block; }
+canvas#heatmap-canvas { width: 100%; height: 300px; background: rgba(0, 0, 0, 0.4); border-radius: 6px; }
+.export-btn { background: var(--warn); color: var(--bg); border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 16px; width: 100%; }
+.intro-btn { position: absolute; top: 20px; right: 20px; background: var(--accent); color: var(--bg); border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 1.1rem; cursor: pointer; pointer-events: auto; z-index: 200; transition: all 0.3s; box-shadow: 0 4px 12px rgba(54,207,201,0.4); }
+.intro-btn:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(54,207,201,0.6); }
+.intro-btn.playing { background: #ff6b35; }
+
+@media (max-width: 768px) {
+  .view-switcher { flex-wrap: wrap; width: calc(100% - 40px); }
+  .view-switcher button { flex: 1; min-width: 75px; padding: 6px 10px; font-size: 0.85rem; }
+  .controls-panel { top: 140px; left: 10px; right: 10px; width: auto; max-height: 42vh; }
+  .view-container { top: auto; bottom: 10px; left: 10px; right: 10px; width: auto; max-height: 45vh; }
+  .panel-title { font-size: 1rem; }
+  .metrics { font-size: 0.85rem; }
+  canvas#heatmap-canvas { height: 220px; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="victor-ui">
+  <button class="intro-btn" id="play-intro">▶ Play Intro</button>
+  
+  <div class="view-switcher">
+    <button class="active" data-view="visual">Visual</button>
+    <button data-view="symbolic">Symbolic</button>
+    <button data-view="heatmap">Heatmap</button>
+  </div>
+  
+  <div class="controls-panel">
+    <div class="panel-title">🐢 TempoOS Controls</div>
+    <div id="radius-scrubber"></div>
+    <div id="turtle-count-scrubber"></div>
+    <div id="speed-scrubber"></div>
+    <button class="toggle-btn" id="toggle-heatmap">Show Time Field</button>
+    <div id="time-ruler"></div>
+    <div class="metrics">
+      <div class="metric">
+        <span>Active Turtles:</span>
+        <span id="turtle-count">5</span>
+      </div>
+      <div class="metric">
+        <span>Avg Slowdown:</span>
+        <span id="avg-slowdown">0%</span>
+      </div>
+    </div>
+    <button class="export-btn" id="export-btn">📦 Export Config</button>
+  </div>
+  
+  <div class="view-container" data-view="symbolic">
+    <div class="panel-title">📝 Symbolic View</div>
+    <div id="symbolic-content"></div>
+  </div>
+  
+  <div class="view-container" data-view="heatmap">
+    <div class="panel-title">📊 Time Field Heatmap</div>
+    <canvas id="heatmap-canvas" width="400" height="300"></canvas>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const canvas = document.getElementById('canvas');
+const scene = new THREE.Scene();
+// Billout earth palette - muted sand/sky
+scene.background = new THREE.Color(0xc8b89f);
+// Time-field fog - subtle distortion atmosphere
+scene.fog = new THREE.FogExp2(0xc8b89f, 0.012);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(0, 12, 18);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+
+const state = { radius: 5, turtleCount: 5, speed: 1, showHeatmap: false };
+
+// Ground
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(50, 50),
+  new THREE.MeshStandardMaterial({ color: 0x90EE90, roughness: 0.8 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Turtles
+const turtles = [];
+for (let i = 0; i < 10; i++) {
+  const turtle = new THREE.Group();
+  
+  const shell = new THREE.Mesh(
+    new THREE.SphereGeometry(0.6, 16, 16),
+    new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.6 })
+  );
+  shell.scale.y = 0.6;
+  shell.castShadow = true;
+  turtle.add(shell);
+  
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 12, 12),
+    new THREE.MeshStandardMaterial({ color: 0x6B8E23 })
+  );
+  head.position.set(0.7, 0, 0);
+  head.castShadow = true;
+  turtle.add(head);
+  
+  turtle.position.set(
+    (Math.random() - 0.5) * 20,
+    0.3,
+    (Math.random() - 0.5) * 20
+  );
+  turtle.userData.angle = Math.random() * Math.PI * 2;
+  turtle.userData.baseSpeed = 0.02 + Math.random() * 0.03;
+  turtle.visible = i < state.turtleCount;
+  
+  scene.add(turtle);
+  turtles.push(turtle);
+}
+
+// Time field visualization
+const timeFieldMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(50, 50, 32, 32),
+  new THREE.MeshBasicMaterial({ 
+    color: 0xffff00, 
+    transparent: true, 
+    opacity: 0.3,
+    side: THREE.DoubleSide
+  })
+);
+timeFieldMesh.rotation.x = -Math.PI / 2;
+timeFieldMesh.position.y = 0.1;
+timeFieldMesh.visible = false;
+scene.add(timeFieldMesh);
+
+// Lighting - Billout's restrained palette
+// Warm ambient from below (earth)
+scene.add(new THREE.AmbientLight(0xd8c8b8, 0.4));
+// Sky to ground gradient (subtle)
+scene.add(new THREE.HemisphereLight(0xa8b8c8, 0xc8b89f, 0.5));
+
+// Main sun - warm gold for deadpan calm
+const sun = new THREE.DirectionalLight(0xffcc88, 1.0);
+sun.position.set(20, 30, 10);
+sun.castShadow = true;
+sun.shadow.camera.left = -25;
+sun.shadow.camera.right = 25;
+sun.shadow.camera.top = 25;
+sun.shadow.camera.bottom = -25;
+scene.add(sun);
+
+// Controls
+function createScrubber(container, label, min, max, value, onChange) {
+  const div = document.createElement('div');
+  div.style.marginBottom = '16px';
+  div.innerHTML = `
+    <label style="display:block;font-weight:600;margin-bottom:8px;color:#FFB400;">${label}</label>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="range" min="${min}" max="${max}" step="${(max-min)/100}" value="${value}" style="flex:1;height:6px;border-radius:3px;background:rgba(54,207,201,0.3);outline:none;-webkit-appearance:none;appearance:none;">
+      <input type="number" min="${min}" max="${max}" step="${(max-min)/100}" value="${value}" style="width:60px;background:rgba(0,0,0,0.4);border:1px solid #36CFC9;color:#F9F9F9;padding:4px 8px;border-radius:4px;font-size:0.9rem;">
+    </div>
+  `;
+  const [slider, number] = div.querySelectorAll('input');
+  const handle = e => { 
+    slider.value = number.value = e.target.value; 
+    onChange(+e.target.value); 
+  };
+  slider.oninput = number.oninput = handle;
+  container.appendChild(div);
+}
+
+createScrubber(document.getElementById('radius-scrubber'), 'Slow Zone Radius', 2, 10, state.radius, v => state.radius = v);
+createScrubber(document.getElementById('turtle-count-scrubber'), 'Turtle Count', 1, 10, state.turtleCount, v => {
+  state.turtleCount = Math.round(v);
+  turtles.forEach((t, i) => t.visible = i < state.turtleCount);
+  document.getElementById('turtle-count').textContent = state.turtleCount;
+});
+createScrubber(document.getElementById('speed-scrubber'), 'Base Speed', 0.5, 2, state.speed, v => state.speed = v);
+
+// Time ruler
+const rulerDiv = document.getElementById('time-ruler');
+rulerDiv.innerHTML = `
+  <div style="background:rgba(54,207,201,0.1);border-radius:8px;padding:12px;margin-top:16px;">
+    <div style="font-weight:700;color:#36CFC9;margin-bottom:8px;">Time Ruler</div>
+    <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:4px;">
+      <span>Global Time:</span><span id="global-time" style="font-weight:700;color:#FFB400;">1.00x</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.85rem;">
+      <span>Local Time (center):</span><span id="local-time" style="font-weight:700;color:#FFB400;">1.00x</span>
+    </div>
+  </div>
+`;
+
+// Toggle heatmap
+document.getElementById('toggle-heatmap').onclick = () => {
+  state.showHeatmap = !state.showHeatmap;
+  timeFieldMesh.visible = state.showHeatmap;
+  document.getElementById('toggle-heatmap').textContent = state.showHeatmap ? 'Hide Time Field' : 'Show Time Field';
+};
+
+// View switcher
+document.querySelectorAll('.view-switcher button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.view-switcher button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active'));
+    const vc = document.querySelector(`.view-container[data-view="${btn.dataset.view}"]`);
+    if (vc) vc.classList.add('active');
+  };
+});
+
+// Heatmap canvas
+const heatmapCanvas = document.getElementById('heatmap-canvas');
+const heatmapCtx = heatmapCanvas.getContext('2d');
+
+function drawHeatmap() {
+  const w = heatmapCanvas.width;
+  const h = heatmapCanvas.height;
+  const imageData = heatmapCtx.createImageData(w, h);
+  
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const worldX = (x / w - 0.5) * 50;
+      const worldZ = (y / h - 0.5) * 50;
+      
+      let slowdown = 0;
+      turtles.slice(0, state.turtleCount).forEach(turtle => {
+        const dx = worldX - turtle.position.x;
+        const dz = worldZ - turtle.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < state.radius) {
+          slowdown += (1 - dist / state.radius) * 0.7;
+        }
+      });
+      
+      slowdown = Math.min(slowdown, 1);
+      const idx = (y * w + x) * 4;
+      imageData.data[idx] = 255 * (1 - slowdown);
+      imageData.data[idx + 1] = 200;
+      imageData.data[idx + 2] = 255 * slowdown;
+      imageData.data[idx + 3] = 255;
+    }
+  }
+  
+  heatmapCtx.putImageData(imageData, 0, 0);
+}
+
+// Symbolic view
+function updateSymbolic() {
+  const centerSlowdown = calculateSlowdown(0, 0);
+  document.getElementById('symbolic-content').innerHTML = `
+    <pre style="background:rgba(0,0,0,0.6);padding:12px;border-radius:6px;font-size:0.85rem;line-height:1.6;">
+const turtles = ${state.turtleCount};
+const slowZoneRadius = ${state.radius.toFixed(1)}m;
+
+function calculateTimeRate(x, z) {
+  let slowdown = 0;
+  
+  for (turtle of activeTurtles) {
+    const dist = distance(x, z, turtle.pos);
+    if (dist < slowZoneRadius) {
+      slowdown += (1 - dist / radius) * 0.7;
+    }
+  }
+  
+  return 1.0 - Math.min(slowdown, 1);
+}
+
+// At center: ${centerSlowdown.toFixed(2)}x speed
+// (time passes ${centerSlowdown < 1 ? 'slower' : 'normally'})
+    </pre>
+  `;
+}
+
+function calculateSlowdown(x, z) {
+  let slowdown = 0;
+  turtles.slice(0, state.turtleCount).forEach(turtle => {
+    const dx = x - turtle.position.x;
+    const dz = z - turtle.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist < state.radius) {
+      slowdown += (1 - dist / state.radius) * 0.7;
+    }
+  });
+  return 1 - Math.min(slowdown, 1);
+}
+
+// Export
+document.getElementById('export-btn').onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tempo-config.json';
+  a.click();
+};
+
+// Animation
+function animate() {
+  requestAnimationFrame(animate);
+  
+  // Move turtles
+  turtles.slice(0, state.turtleCount).forEach(turtle => {
+    turtle.userData.angle += (Math.random() - 0.5) * 0.1;
+    const timeRate = calculateSlowdown(turtle.position.x, turtle.position.z);
+    const speed = turtle.userData.baseSpeed * state.speed * timeRate;
+    
+    turtle.position.x += Math.cos(turtle.userData.angle) * speed;
+    turtle.position.z += Math.sin(turtle.userData.angle) * speed;
+    turtle.rotation.y = turtle.userData.angle;
+    
+    // Keep in bounds
+    if (Math.abs(turtle.position.x) > 20) turtle.userData.angle = Math.PI - turtle.userData.angle;
+    if (Math.abs(turtle.position.z) > 20) turtle.userData.angle = -turtle.userData.angle;
+  });
+  
+  // Update metrics
+  const centerSlowdown = calculateSlowdown(0, 0);
+  const avgSlowdown = 1 - centerSlowdown;
+  document.getElementById('avg-slowdown').textContent = `${(avgSlowdown * 100).toFixed(0)}%`;
+  document.getElementById('global-time').textContent = '1.00x';
+  document.getElementById('local-time').textContent = `${centerSlowdown.toFixed(2)}x`;
+  
+  updateSymbolic();
+  drawHeatmap();
+  
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ===== AUDIO SYSTEM =====
+class SoundEngine {
+  constructor() {
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  play(freq, duration, type = 'sine', volume = 0.3) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(this.ctx.currentTime);
+    osc.stop(this.ctx.currentTime + duration);
+  }
+  sweep(startFreq, endFreq, duration, volume = 0.2) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, this.ctx.currentTime + duration);
+    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(this.ctx.currentTime);
+    osc.stop(this.ctx.currentTime + duration);
+  }
+}
+
+const sound = new SoundEngine();
+
+// ===== TITLE SEQUENCE =====
+class TitleSequence {
+  constructor(camera, scene, duration = 12) {
+    this.camera = camera;
+    this.scene = scene;
+    this.duration = duration;
+    this.isPlaying = false;
+    this.originalCameraPos = camera.position.clone();
+    this.originalCameraRot = camera.rotation.clone();
+    this.textSprites = [];
+  }
+  
+  createTextSprite(text, color = '#FFB400', size = 120) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 1024;
+    canvas.height = 256;
+    ctx.font = `600 ${size}px 'Helvetica Neue', 'Futura', 'Arial', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 8;
+    ctx.strokeText(text, 512, 128);
+    ctx.fillStyle = color;
+    ctx.fillText(text, 512, 128);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    const sprite = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0 })
+    );
+    sprite.scale.set(10, 2.5, 1);
+    this.scene.add(sprite);
+    this.textSprites.push(sprite);
+    return sprite;
+  }
+  
+  lerp(a, b, t) { return a + (b - a) * t; }
+  
+  play() {
+    if (this.isPlaying) return;
+    this.isPlaying = true;
+    const playBtn = document.getElementById('play-intro');
+    playBtn.classList.add('playing');
+    playBtn.textContent = '⏸ Playing...';
+    document.querySelector('.view-switcher').style.opacity = '0';
+    document.querySelector('.controls-panel').style.opacity = '0';
+    const controlsEnabled = controls.enabled;
+    controls.enabled = false;
+    
+    this.runTempoOSSequence(() => {
+      this.isPlaying = false;
+      playBtn.classList.remove('playing');
+      playBtn.textContent = '▶ Play Intro';
+      document.querySelector('.view-switcher').style.opacity = '1';
+      document.querySelector('.controls-panel').style.opacity = '1';
+      controls.enabled = controlsEnabled;
+      this.textSprites.forEach(s => this.scene.remove(s));
+      this.textSprites = [];
+      camera.position.copy(this.originalCameraPos);
+      camera.rotation.copy(this.originalCameraRot);
+    });
+  }
+  
+  runTempoOSSequence(onComplete) {
+    const startTime = Date.now();
+    const duration = this.duration * 1000;
+    
+    const text1 = this.createTextSprite('TIME', '#FFB400', 140);
+    const text2 = this.createTextSprite('DILATES', '#36CFC9', 130);
+    const text3 = this.createTextSprite('HERE', '#FFB400', 120);
+    
+    // Sound: slow bass pulses
+    setTimeout(() => sound.play(100, 0.5, 'triangle', 0.2), 0);
+    setTimeout(() => sound.play(150, 0.5, 'triangle', 0.2), 3000);
+    setTimeout(() => sound.sweep(150, 50, 3, 0.15), 6000);
+    setTimeout(() => sound.play(100, 1, 'triangle', 0.2), 9000);
+    
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      
+      // ACT 1: Bird's eye descending (0-3s)
+      if (t < 0.25) {
+        const t1 = t / 0.25;
+        camera.position.set(0, this.lerp(40, 25, t1), this.lerp(1, 10, t1));
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        
+        text1.position.set(0, 15, 0);
+        text1.material.opacity = t1;
+        text1.scale.setScalar(this.lerp(0.5, 1, t1) * 12);
+      }
+      // ACT 2: Spiral down tracking turtle (3-6s)
+      else if (t < 0.5) {
+        const t2 = (t - 0.25) / 0.25;
+        const angle = t2 * Math.PI;
+        camera.position.set(
+          Math.cos(angle) * this.lerp(15, 8, t2),
+          this.lerp(25, 8, t2),
+          Math.sin(angle) * this.lerp(15, 12, t2)
+        );
+        camera.lookAt(turtles[0].position);
+        
+        text1.material.opacity = 1 - t2;
+        
+        text2.position.set(turtles[0].position.x, turtles[0].position.y + 5, turtles[0].position.z);
+        text2.material.opacity = t2;
+        text2.scale.setScalar(this.lerp(0.5, 1, t2) * 10);
+      }
+      // ACT 3: Follow turtle close (6-9s)
+      else if (t < 0.75) {
+        const t3 = (t - 0.5) / 0.25;
+        camera.position.set(
+          turtles[0].position.x + 4,
+          2,
+          turtles[0].position.z + 6
+        );
+        camera.lookAt(turtles[0].position);
+        
+        text2.material.opacity = 1 - t3;
+        
+        text3.position.set(0, 8, 0);
+        text3.material.opacity = t3;
+        text3.scale.setScalar(this.lerp(0.5, 1, t3) * 9);
+      }
+      // ACT 4: Wide shot final (9-12s)
+      else {
+        const t4 = (t - 0.75) / 0.25;
+        camera.position.set(0, this.lerp(2, 12, t4), this.lerp(6, 18, t4));
+        camera.lookAt(new THREE.Vector3(0, 0, 0));
+        
+        text3.material.opacity = 1;
+        text3.position.y = this.lerp(8, 10, t4);
+        
+        text4.position.set(0, this.lerp(-8, -2, t4), 0);
+        text4.material.opacity = t4;
+        text4.scale.setScalar(this.lerp(0.5, 1, t4) * 10);
+        
+        if (t > 0.95) {
+          const fadeOut = (t - 0.95) / 0.05;
+          text3.material.opacity = 1 - fadeOut;
+          text4.material.opacity = 1 - fadeOut;
+        }
+      }
+      
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        onComplete();
+      }
+    };
+    animate();
+  }
+}
+
+const titleSequence = new TitleSequence(camera, scene, 12);
+document.getElementById('play-intro').onclick = () => titleSequence.play();
+
+animate();
+
+window.onresize = () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+};
+</script>
+
+</body>
+</html>

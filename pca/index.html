@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plato's Laundry - An Allegorical Washing Experience</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="scene-container">
+        <canvas id="laundry-canvas"></canvas>
+        <div class="overlay">
+            <div class="title-card">
+                <h1>Plato's Laundry</h1>
+                <p>Where shadows dance on analog dreams</p>
+            </div>
+            <div class="controls-hint">
+                <span>Click and drag to explore • Scroll to zoom</span>
+            </div>
+        </div>
+        <div class="loading-overlay" id="loading">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p>Developing the allegory...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js from jsdelivr CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+    <script>
+        // Wait for Three.js to load, then load OrbitControls
+        window.addEventListener('load', function() {
+            if (typeof THREE !== 'undefined') {
+                // Manually define OrbitControls since CDN version might not be available
+                THREE.OrbitControls = function ( object, domElement ) {
+                    this.object = object;
+                    this.domElement = domElement || document;
+                    this.enabled = true;
+                    this.target = new THREE.Vector3();
+                    this.minDistance = 0;
+                    this.maxDistance = Infinity;
+                    this.minPolarAngle = 0;
+                    this.maxPolarAngle = Math.PI;
+                    this.enableDamping = false;
+                    this.dampingFactor = 0.25;
+                    this.enableZoom = true;
+                    this.enablePan = true;
+                    
+                    var scope = this;
+                    var STATE = { NONE: -1, ROTATE: 0, DOLLY: 1, PAN: 2, TOUCH_ROTATE: 3, TOUCH_DOLLY: 4, TOUCH_PAN: 5 };
+                    var state = STATE.NONE;
+                    var spherical = new THREE.Spherical();
+                    var sphericalDelta = new THREE.Spherical();
+                    var rotateStart = new THREE.Vector2();
+                    var rotateEnd = new THREE.Vector2();
+                    var rotateDelta = new THREE.Vector2();
+                    
+                    this.update = function () {
+                        var position = scope.object.position;
+                        spherical.setFromVector3(position.clone().sub(scope.target));
+                        spherical.theta += sphericalDelta.theta;
+                        spherical.phi += sphericalDelta.phi;
+                        spherical.phi = Math.max(scope.minPolarAngle, Math.min(scope.maxPolarAngle, spherical.phi));
+                        spherical.radius = Math.max(scope.minDistance, Math.min(scope.maxDistance, spherical.radius));
+                        
+                        position.setFromSpherical(spherical).add(scope.target);
+                        scope.object.lookAt(scope.target);
+                        
+                        if (scope.enableDamping) {
+                            sphericalDelta.theta *= (1 - scope.dampingFactor);
+                            sphericalDelta.phi *= (1 - scope.dampingFactor);
+                        } else {
+                            sphericalDelta.set(0, 0, 0);
+                        }
+                        
+                        return false;
+                    };
+                    
+                    function onMouseDown(event) {
+                        if (!scope.enabled) return;
+                        event.preventDefault();
+                        rotateStart.set(event.clientX, event.clientY);
+                        state = STATE.ROTATE;
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', onMouseUp);
+                    }
+                    
+                    function onMouseMove(event) {
+                        if (!scope.enabled) return;
+                        event.preventDefault();
+                        rotateEnd.set(event.clientX, event.clientY);
+                        rotateDelta.subVectors(rotateEnd, rotateStart);
+                        sphericalDelta.theta -= 2 * Math.PI * rotateDelta.x / scope.domElement.clientWidth;
+                        sphericalDelta.phi -= 2 * Math.PI * rotateDelta.y / scope.domElement.clientHeight;
+                        rotateStart.copy(rotateEnd);
+                    }
+                    
+                    function onMouseUp() {
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                        state = STATE.NONE;
+                    }
+                    
+                    function onMouseWheel(event) {
+                        if (!scope.enabled || !scope.enableZoom) return;
+                        event.preventDefault();
+                        var delta = event.deltaY > 0 ? 1.1 : 0.9;
+                        spherical.radius *= delta;
+                        scope.update();
+                    }
+                    
+                    scope.domElement.addEventListener('mousedown', onMouseDown);
+                    scope.domElement.addEventListener('wheel', onMouseWheel);
+                };
+                
+                // Now load the main application
+                var script = document.createElement('script');
+                script.src = 'app.js';
+                document.head.appendChild(script);
+            }
+        });
+    </script>
+</body>
+</html>

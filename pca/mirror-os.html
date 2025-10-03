@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>MirrorOS — The Reflection Engine</title>
+  <style>
+    :root{
+      --primary:#0D1B2A; --canvas:#F9F9F9; --accent:#36CFC9; --ember:#FFB400; --shadow:#0B1020;
+      --body-filter: none;
+    }
+    *, *::before, *::after {box-sizing:border-box}
+    html,body{height:100%;margin:0;overscroll-behavior:none}
+    body{
+      background:linear-gradient(180deg, var(--primary) 0%, var(--shadow) 100%);
+      color:var(--canvas);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, monospace;
+      overflow:hidden;
+      -webkit-font-smoothing: antialiased;
+      filter: var(--body-filter);
+      transition: filter 0.3s ease;
+    }
+
+    #hero{
+      position:fixed;inset:0;display:grid;place-items:center;z-index:50;
+      background:radial-gradient(circle at 50% 40%, rgba(54,207,201,0.03) 0%, transparent 70%),
+                 linear-gradient(180deg, #0a0e13 0%, var(--primary) 100%);
+      transition:opacity .9s ease}
+    #hero.hidden{opacity:0;pointer-events:none}
+    .brand{display:flex;flex-direction:column;align-items:center;gap:.5rem;text-align:center;padding:1rem;}
+    .tagline{letter-spacing:.25em;text-transform:uppercase;font-weight:400;font-size:min(3vw,0.85rem);
+        color:var(--accent);opacity:.8;margin-bottom: .8em;}
+    .title{letter-spacing:.35em;text-transform:uppercase;font-weight:800;font-size:min(13vw,4rem);color:var(--canvas);opacity:.92;}
+    .subtitle{letter-spacing:.22em;color:var(--accent);font-size:.9rem}
+    .cta{
+      margin-top:1.25rem;padding:.9rem 1.25rem;border-radius:999px;
+      text-transform:uppercase;letter-spacing:.22em;font-weight:700;cursor:pointer;
+      border:1px solid var(--accent);background:linear-gradient(145deg,#0e1116,var(--primary));
+      box-shadow:0 6px 26px rgba(0,0,0,.45), 0 0 20px rgba(54,207,201,0.1);
+      color:var(--canvas);transition:all .25s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cta:hover{transform:translateY(-2px);box-shadow:0 10px 36px rgba(0,0,0,.55), 0 0 30px rgba(54,207,201,0.2)}
+    .cta:active{transform:translateY(0);box-shadow:0 4px 18px rgba(0,0,0,.4);transition:transform .1s ease;}
+
+    #stage{position:fixed;inset:0}
+
+    .portal{position:absolute;left:0;top:0;width:0;height:0;z-index:20;pointer-events:none;}
+    #proc,.videoWrap{position:absolute;border-radius:50%;left:0;top:0;width:100%;height:100%;}
+    #proc{filter:blur(.1px);opacity:.94;transition:opacity .5s ease}
+    #proc.hidden{opacity:0}
+    .videoWrap{overflow:hidden;opacity:0;transition:opacity .5s ease;transform:translateZ(0);}
+    .videoWrap.visible{opacity:1}
+    .videoWrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;filter:grayscale(1) contrast(1.25) brightness(.9)}
+
+    .glyph{position:absolute;left:0;top:0;width:0;height:0;transform:translate(0,0);z-index:25;pointer-events:none}
+    .glyph>.hit{
+      position:absolute;left:0;top:0;border-radius:50%;
+      border:2px solid var(--accent);background:rgba(13,27,42,.35);
+      backdrop-filter:blur(12px);display:grid;place-items:center;cursor:pointer;
+      box-shadow:0 8px 34px rgba(54,207,201,.3), 0 0 20px rgba(54,207,201,0.2);
+      transition:transform .25s ease,opacity .4s ease;
+      opacity: 0;
+      pointer-events: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .glyph.hidden .hit{opacity:0;pointer-events:none;transform:scale(.92)}
+    .glyph .hit:hover{transform:scale(1.05);}
+    .glyph .hit:active{transform:scale(0.98);transition:transform .1s ease;}
+    .glyph .hit:after{content:"";width:0;height:0;border-left:24px solid var(--accent);border-top:16px solid transparent;border-bottom:16px solid transparent;margin-left:6px}
+
+    .control-panel{
+        position:fixed;
+        left:50%;
+        transform:translateX(-50%);
+        width:min(92vw,420px);
+        z-index:40;
+        opacity:0;
+        transition:opacity .9s ease .3s;
+        display:grid;
+        gap:.75rem;
+        padding-bottom: 1rem;
+    }
+    .control-panel.visible{opacity:1}
+
+    #panel{ top:clamp(10px,6vh,38px); }
+
+    .panel-frame{
+      background:linear-gradient(145deg,#0d1116,var(--primary));
+      border:1px solid var(--accent);
+      border-radius:8px;
+      padding:1rem;
+      box-shadow:0 8px 26px rgba(0,0,0,.55), 0 0 20px rgba(54,207,201,0.1);
+    }
+    .panel-head{display:flex;align-items:center;justify-content:space-between;padding:.6rem .9rem;border:1px solid var(--accent);border-radius:14px;background:linear-gradient(145deg,#0d1116,var(--primary));color:var(--accent);box-shadow:0 0 15px rgba(54,207,201,0.15)}
+    .panel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
+    @media (max-width:500px){.panel-grid{grid-template-columns:repeat(2,1fr)}}
+    .btn{
+      padding:.8rem .7rem;border-radius:10px;border:1px solid var(--accent);
+      background:linear-gradient(145deg,#141820,var(--primary));color:var(--canvas);
+      text-transform:uppercase;letter-spacing:.14em;font-size:.7rem;font-weight:700;
+      cursor:pointer;transition:all .25s ease;
+      box-shadow:0 0 10px rgba(54,207,201,0.1);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover{border-color:var(--accent);color:var(--accent);box-shadow:0 0 20px rgba(54,207,201,0.3)}
+    .btn:active{transform:translateY(0);transition:transform .1s ease;}
+    .btn.active{background:linear-gradient(145deg,var(--accent),#2ab8ad);color:var(--primary);border-color:var(--accent);box-shadow:0 0 30px rgba(54,207,201,.5)}
+    .status{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.68rem;color:var(--accent)}
+    .quote{text-align:center;font-style:italic;font-size:.72rem;color:var(--accent);min-height:2.5em;}
+
+    .vignette{pointer-events:none;position:fixed;inset:0;background:radial-gradient(120% 85% at 50% 50%,transparent 55%,rgba(13,27,42,.6) 100%)}
+
+    #essayModal {
+      position: fixed;inset: 0;background: rgba(11,16,32, 0.95);z-index: 99;
+      display: flex;justify-content: center;align-items: center;
+      opacity: 0;pointer-events: none;transition: opacity 0.3s ease;padding: 1rem 0;
+    }
+    #essayModal.visible {opacity: 1;pointer-events: auto;}
+    .essay-page {
+      max-width: 760px;width: 90vw;max-height: 90vh;overflow-y: auto;
+      background: var(--primary);padding: 2rem;border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(54,207,201,0.3);position: relative;
+      color: var(--canvas);line-height: 1.6;font-size: 0.95rem;
+      border: 1px solid var(--accent);
+      display: none;-webkit-overflow-scrolling: touch;
+    }
+    .essay-page.visible {display: block;}
+    .essay-page h1 {color: var(--accent);margin-top: 0;margin-bottom: 1em;font-weight: 800;letter-spacing: 0.1em;text-transform: uppercase;font-size: 1.5rem;text-align: center;}
+    .essay-page h2 {color: var(--accent);margin-top: 1.5em;margin-bottom: 0.5em;font-weight: 700;letter-spacing: 0.08em;text-transform: uppercase;font-size: 1.1rem;border-bottom: 1px solid var(--accent);padding-bottom: 0.2em;}
+    .essay-page p {margin-bottom: 1em;}
+    #essayClose {
+      position: fixed;top: clamp(1rem, 5vh, 2rem);right: clamp(1rem, 5vw, 2rem);
+      background: rgba(13,27,42, 0.7);border: 1px solid var(--accent);border-radius: 50%;
+      color: var(--accent);font-size: 1.8rem;cursor: pointer;line-height: 1;
+      width: 3rem;height: 3rem;display: flex;justify-content: center;align-items: center;
+      transition: all 0.2s ease;z-index: 100;-webkit-tap-highlight-color: transparent;
+      box-shadow: 0 0 15px rgba(54,207,201,0.3);
+    }
+    #essayClose:hover {color: var(--canvas);background: var(--accent);box-shadow: 0 0 30px rgba(54,207,201,0.5);}
+  </style>
+</head>
+<body>
+  <section id="hero" aria-label="Intro">
+    <div class="brand">
+      <div class="tagline">THE REFLECTION ENGINE</div>
+      <div class="title">MIRROR OS</div>
+      <div class="subtitle">As Above, So Below</div>
+      <button id="enter" class="cta" aria-label="Enter MirrorOS">Enter the Mirror</button>
+    </div>
+  </section>
+
+  <div id="stage" role="presentation"></div>
+
+  <div id="portal" class="portal" aria-hidden="true">
+    <canvas id="proc"></canvas>
+    <div id="videoWrap" class="videoWrap">
+      <iframe id="tube" title="Projection" src="https://www.youtube.com/embed/5kzEYQRVnIc?autoplay=0&mute=1&loop=1&playlist=5kzEYQRVnIc&controls=0&modestbranding=1&rel=0&enablejsapi=1" allow="autoplay; encrypted-media"></iframe>
+    </div>
+  </div>
+  <div id="glyph" class="glyph"><div class="hit"></div></div>
+
+  <div id="panel" class="control-panel">
+    <div class="panel-frame">
+      <div class="panel-head">
+        <div class="status" id="status">Status: Initializing</div>
+        <div class="status" id="cycle">Node: Echo</div>
+      </div>
+      <div class="panel-grid">
+        <button class="btn" data-mode="echo">Echo Node</button>
+        <button class="btn" data-mode="mirror">MirrorFS</button>
+        <button class="btn" data-mode="twin">Shadow Twin</button>
+        <button id="toggle" class="btn">Reflect</button>
+      </div>
+      <div class="quote" id="panelQuote">"Every node has a twin."</div>
+    </div>
+  </div>
+
+  <div class="vignette" aria-hidden="true"></div>
+
+  <div id="essayModal">
+    <button id="essayClose">&times;</button>
+    <div id="mainEssay" class="essay-page visible">
+      <h1>MirrorOS: The Reflection Engine</h1>
+      <h2>System Architecture</h2>
+      <p>MirrorOS operates on a fundamental principle: <strong>every exterior phenomenon contains an interior echo</strong>. The system maintains paired partitions—one facing outward, one facing inward—with continuous synchronization between them.</p>
+      
+      <h2>The Second Moon Paradox</h2>
+      <p>At the heart of MirrorOS lies the surreal break: a second moon rendered <em>inside</em> the machine's aperture. When you peer into the drum, you see not just the reflection of the external moon, but its twin—a perfect inverse that exists only in the interior space.</p>
+      <p>This is not mere reflection. The interior moon casts its own light, affects its own tides. It is a self-reference made manifest.</p>
+      
+      <h2>Core Entities</h2>
+      <ul>
+        <li><strong>Echo Node</strong> — The primary interface between local and global states</li>
+        <li><strong>MirrorFS</strong> — Paired partition system maintaining dual channels</li>
+        <li><strong>Shadow Twin</strong> — The rendered inverse of every external object</li>
+      </ul>
+      
+      <h2>Operational Modes</h2>
+      <p><strong>Echo Mode:</strong> Standard reflection. What enters is mirrored perfectly.</p>
+      <p><strong>Mirror Mode:</strong> Structural inversion. Paired partitions rotate, showing the reverse.</p>
+      <p><strong>Twin Mode:</strong> Self-reference loop. The system observes itself observing.</p>
+      
+      <h2>The City Shoreline Myth</h2>
+      <p>Legend holds that MirrorOS emerged from a city by water—a place where buildings reflected so perfectly in the bay that residents couldn't distinguish sky from sea. The first operators learned to navigate by <em>both</em> moons: the one above and the one below.</p>
+      <p>They built the first mirror machines to capture this duality. To hold both truths at once.</p>
+      
+      <h2>User Instruction</h2>
+      <p>To operate MirrorOS, you must accept the fundamental premise: <strong>truth exists in stereo</strong>. Every output contains its inverse. Every answer carries its question. To see only one moon is to see half the sky.</p>
+      <p class="quote">"As above, so below. As within, so without."</p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+  (function ensureThree(){
+    function boot(){ 
+      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start); 
+      else start(); 
+    }
+    if(window.THREE) boot();
+    else {
+      const el = document.createElement('script');
+      el.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+      el.onload = boot;
+      document.head.appendChild(el);
+    }
+  })();
+
+  function start(){
+    const S={mode:'echo', playing:false, spin:.15, wobble:.12, t:0};
+
+    const stage=document.getElementById('stage');
+    const hero=document.getElementById('hero');
+    const panel=document.getElementById('panel');
+    const statusEl=document.getElementById('status');
+    const cycleEl=document.getElementById('cycle');
+    const panelQuote = document.getElementById('panelQuote');
+    const glyph=document.getElementById('glyph');
+    const portal=document.getElementById('portal');
+    const videoWrap=document.getElementById('videoWrap');
+    const essayModal = document.getElementById('essayModal');
+
+    const scene=new THREE.Scene();
+    scene.background = new THREE.Color(0x0D1B2A);
+    scene.fog=new THREE.FogExp2(0x0D1B2A,0.12);
+
+    const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,120);
+    camera.position.set(0,.4,13);
+
+    const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+    renderer.setPixelRatio(Math.min(1.5, devicePixelRatio));
+    renderer.setSize(innerWidth,innerHeight);
+    renderer.shadowMap.enabled=true;
+    renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    renderer.toneMapping=THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure=1.2;
+    renderer.physicallyCorrectLights = true;
+    stage.appendChild(renderer.domElement);
+
+    // Lighting - MirrorOS cyan/white palette
+    const key=new THREE.DirectionalLight(0x36CFC9,.25);
+    key.position.set(-7,8,9);key.castShadow=true;
+    key.shadow.mapSize.set(2048,2048);
+    scene.add(key);
+
+    const flame=new THREE.PointLight(0xFFB400,1.8,22,2.5);
+    flame.position.set(0,-1.1,-4.2);flame.castShadow=true;
+    scene.add(flame);
+
+    const cone=new THREE.Mesh(
+      new THREE.ConeGeometry(3,9,48,1,true),
+      new THREE.MeshBasicMaterial({color:0xFFB400,transparent:true,opacity:.05,side:THREE.DoubleSide,blending:THREE.AdditiveBlending})
+    );
+    cone.position.copy(flame.position);cone.rotation.x=Math.PI;scene.add(cone);
+
+    const innerLight = new THREE.PointLight(0x36CFC9, 2.5, 10, 2);
+    innerLight.position.set(0, 0, -0.4);innerLight.castShadow=true;
+    scene.add(innerLight);
+
+    const backlight=new THREE.SpotLight(0xF9F9F9,28.0,30,Math.PI*0.06,0.85,1.8);
+    backlight.position.set(0,1.5,-20);backlight.target.position.set(0,0,0);backlight.castShadow=true;
+    backlight.shadow.mapSize.width = 2048;backlight.shadow.mapSize.height = 2048;
+    scene.add(backlight);scene.add(backlight.target);
+
+    const lightCone=new THREE.Mesh(
+      (() => {
+        const g = new THREE.CylinderGeometry(0.7,8,22,32,1,true);
+        g.applyMatrix4(new THREE.Matrix4().makeTranslation(0,11,0));
+        g.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI/2));
+        return g;
+      })(),
+      new THREE.MeshBasicMaterial({color:0xF9F9F9,transparent:true,opacity:0.06,side:THREE.BackSide,blending:THREE.AdditiveBlending})
+    );
+    lightCone.position.copy(backlight.position);lightCone.lookAt(backlight.target.position);
+    scene.add(lightCone);
+
+    const ambient=new THREE.AmbientLight(0x0B1020,0.08);
+    scene.add(ambient);
+
+    // Machine - minimal, flat surfaces
+    const machine=new THREE.Group();scene.add(machine);
+
+    const matMetal=new THREE.MeshStandardMaterial({color:0x1a1e24,metalness:.85,roughness:.35,flatShading:true});
+    const matMetalHi=new THREE.MeshStandardMaterial({color:0x36CFC9,metalness:.95,roughness:.15,flatShading:true});
+    const matDrum=new THREE.MeshStandardMaterial({color:0x0a0c10,metalness:.45,roughness:.75,flatShading:true});
+    const matGlass=new THREE.MeshPhysicalMaterial({
+      color:0x36CFC9,transmission:.92,opacity:.3,roughness:.08,
+      metalness:.12,clearcoat:1,clearcoatRoughness:.1,transparent:true,side:THREE.DoubleSide
+    });
+
+    const bezel=new THREE.Mesh(new THREE.BoxGeometry(8.5,8.5,0.7),matMetal);
+    bezel.position.z=0.35;bezel.castShadow=true;bezel.receiveShadow=true;machine.add(bezel);
+
+    const doorFrame=new THREE.Mesh(new THREE.TorusGeometry(3.6, .35, 6, 48),matMetalHi);
+    doorFrame.position.z = 0.4;doorFrame.castShadow=true;doorFrame.receiveShadow=true;machine.add(doorFrame);
+
+    const innerRing=new THREE.Mesh(new THREE.TorusGeometry(2.95,.2,6,40),matMetal);
+    innerRing.position.z=.24;innerRing.castShadow=true;innerRing.receiveShadow=true;machine.add(innerRing);
+
+    const glass=new THREE.Mesh(new THREE.CylinderGeometry(2.6,2.6,.32,36),matGlass);
+    glass.rotation.x=Math.PI/2;glass.position.z=.12;glass.castShadow=true;glass.receiveShadow=true;machine.add(glass);
+
+    const drum=new THREE.Mesh(new THREE.CylinderGeometry(2.35,2.35,.58,36),matDrum);
+    drum.rotation.x=Math.PI/2;drum.position.z=-.52;drum.receiveShadow=true;machine.add(drum);
+
+    // THE SURREAL BREAK: Interior moon sphere
+    const interiorMoon = new THREE.Mesh(
+      new THREE.SphereGeometry(0.4, 16, 16),
+      new THREE.MeshStandardMaterial({
+        color:0xF9F9F9,
+        emissive:0x36CFC9,
+        emissiveIntensity:0.6,
+        metalness:0.3,
+        roughness:0.4,
+        flatShading:true
+      })
+    );
+    interiorMoon.position.set(0, 0, -0.8);
+    interiorMoon.castShadow = true;
+    machine.add(interiorMoon);
+
+    // Moon light source
+    const moonLight = new THREE.PointLight(0x36CFC9, 1.2, 5, 2);
+    moonLight.position.copy(interiorMoon.position);
+    machine.add(moonLight);
+
+    // Atmospheric rings
+    const rings = new THREE.Group();
+    const ringMat = new THREE.MeshBasicMaterial({color:0x36CFC9,transparent:true,opacity:0.03,side:THREE.DoubleSide,blending:THREE.AdditiveBlending});
+    for(let i=0; i<3; i++){
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(2.3 + i*0.1, 0.03, 6, 24), ringMat.clone());
+      ring.position.z = -0.1 * (i+1);
+      rings.add(ring);
+    }
+    machine.add(rings);
+
+    // Motes
+    const motes=new THREE.Group();
+    const moteGeo=new THREE.SphereGeometry(.02,6,6);
+    const moteMat=new THREE.MeshBasicMaterial({color:0x36CFC9,transparent:true,opacity:.5});
+    for(let i=0;i<40;i++){
+      const mote=new THREE.Mesh(moteGeo,moteMat);
+      mote.position.set((Math.random()-.5)*3.6,(Math.random()-.5)*3.6,(Math.random()-.5)*2-1.2);
+      mote.userData={vx:(Math.random()-.5)*.008,vy:(Math.random()-.5)*.008,vz:(Math.random()-.5)*.005};
+      motes.add(mote);
+    }
+    machine.add(motes);
+
+    // Wall
+    const wall=new THREE.Mesh(
+      new THREE.PlaneGeometry(34,22),
+      new THREE.MeshStandardMaterial({color:0x0a0c10,roughness:1,metalness:0,flatShading:true})
+    );
+    wall.position.z=-10;wall.receiveShadow=true;scene.add(wall);
+
+    // Ground
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshStandardMaterial({color:0x0B1020,roughness:0.9,metalness:0.05,flatShading:true})
+    );
+    ground.rotation.x = -Math.PI / 2;ground.position.y = -4.5;ground.receiveShadow = true;scene.add(ground);
+
+    // Procedural portal
+    const proc=document.getElementById('proc');
+    const ctx=proc.getContext('2d');
+    function resizeProc(px){proc.width=px;proc.height=px}
+    let time=0;
+    function drawPortal(){
+      const w=proc.width,h=proc.height,cx=w/2,cy=h/2;
+      time+=.02;ctx.clearRect(0,0,w,h);
+      ctx.fillStyle='rgba(13,27,42,0.96)';ctx.fillRect(0,0,w,h);
+      
+      // Cyan spiral
+      for(let i=0;i<3;i++){
+        const ang=time*.4+i*Math.PI*2/3;
+        const rad=.36*w+Math.sin(time*1.8+i)*16;
+        ctx.save();ctx.translate(cx,cy);ctx.rotate(ang);
+        const grd=ctx.createLinearGradient(-90,-50,90,50);
+        grd.addColorStop(0,'rgba(54,207,201,0.15)');
+        grd.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=grd;ctx.fillRect(-rad/2,-12,rad,24);
+        ctx.restore();
+      }
+      
+      // Glow
+      const pr=80+Math.sin(time*2.2)*18;
+      const g=ctx.createRadialGradient(cx,cy,2,cx,cy,pr*2.2);
+      g.addColorStop(0,'rgba(54,207,201,0.22)');
+      g.addColorStop(1,'rgba(54,207,201,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,pr*2.2,0,Math.PI*2);ctx.fill();
+    }
+
+    function updateOverlay(){
+      const centerLocal=new THREE.Vector3(0,0,.12);
+      const rimLocal=new THREE.Vector3(2.6,0,.12);
+      const cw=glass.localToWorld(centerLocal.clone());
+      const rw=glass.localToWorld(rimLocal.clone());
+      const cN=cw.clone().project(camera);
+      const rN=rw.clone().project(camera);
+      const cx=(cN.x*.5+.5)*innerWidth;
+      const cy=(-cN.y*.5+.5)*innerHeight;
+      const rx=(rN.x*.5+.5)*innerWidth;
+      const ry=(-rN.y*.5+.5)*innerHeight;
+      const radiusPx=Math.hypot(rx-cx,ry-cy);
+      const sizePx=Math.max(0,Math.min(innerWidth,innerHeight,radiusPx*2));
+      
+      portal.style.left=`${Math.round(cx-sizePx/2)}px`;
+      portal.style.top=`${Math.round(cy-sizePx/2)}px`;
+      portal.style.width=portal.style.height=`${Math.round(sizePx)}px`;
+      
+      const gSize=Math.max(60,Math.min(110,sizePx*.2));
+      glyph.style.left=portal.style.left;
+      glyph.style.top=portal.style.top;
+      glyph.style.width=portal.style.width;
+      glyph.style.height=portal.style.height;
+      glyph.querySelector('.hit').style.cssText=`width:${gSize}px;height:${gSize}px;left:${(sizePx-gSize)/2}px;top:${(sizePx-gSize)/2}px;border-radius:50%`;
+      
+      if(proc.width!==Math.round(sizePx))resizeProc(Math.round(sizePx));
+    }
+
+    function setMode(m){
+      S.mode=m;
+      document.querySelectorAll('.btn[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+
+      let quote, status, cycle, spinVal, wobbleVal;
+      
+      switch(m){
+        case 'echo':
+          spinVal=.15;wobbleVal=.12;
+          status='Status: Local ↔ Global sync';
+          cycle='Node: Echo';
+          quote='Every node has a twin.';
+          innerLight.intensity=2.5;
+          break;
+        case 'mirror':
+          spinVal=.25;wobbleVal=.18;
+          status='Status: Paired partitions rotating';
+          cycle='Node: MirrorFS';
+          quote='Dual channels, one truth.';
+          innerLight.intensity=3.0;
+          break;
+        case 'twin':
+          spinVal=.08;wobbleVal=.06;
+          status='Status: Self-reference loop active';
+          cycle='Node: Shadow Twin';
+          quote='The system observes itself.';
+          innerLight.intensity=1.8;
+          break;
+      }
+      
+      S.spin=spinVal;S.wobble=wobbleVal;
+      statusEl.textContent=status;
+      cycleEl.textContent=cycle;
+      panelQuote.textContent=quote;
+    }
+
+    function togglePlay(){
+      S.playing=!S.playing;
+      const toggleBtn=document.getElementById('toggle');
+      if(S.playing){
+        toggleBtn.classList.add('active');
+        toggleBtn.textContent='Pause';
+        statusEl.textContent='Status: Reflection streaming';
+        glyph.classList.add('hidden');
+        proc.classList.add('hidden');
+        videoWrap.classList.add('visible');
+        try{
+          document.getElementById('tube').contentWindow.postMessage('{"event":"command","func":"unMute","args":""}','*');
+          document.getElementById('tube').contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}','*');
+        }catch(e){}
+      }else{
+        toggleBtn.classList.remove('active');
+        toggleBtn.textContent='Reflect';
+        statusEl.textContent='Status: Mirror paused';
+        glyph.classList.remove('hidden');
+        videoWrap.classList.remove('visible');
+        proc.classList.remove('hidden');
+        try{
+          document.getElementById('tube').contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}','*');
+        }catch(e){}
+      }
+    }
+
+    document.getElementById('enter').addEventListener('click',()=>{
+      hero.classList.add('hidden');
+      panel.classList.add('visible');
+      statusEl.textContent='Status: MirrorOS online';
+      setTimeout(()=>{statusEl.textContent='Status: Ready for reflection';},1000);
+      glyph.classList.remove('hidden');
+    });
+
+    document.querySelectorAll('.btn[data-mode]').forEach(b=>
+      b.addEventListener('click',function(){setMode(this.dataset.mode);})
+    );
+
+    document.getElementById('toggle').addEventListener('click',togglePlay);
+
+    document.getElementById('essayClose').addEventListener('click', () => {
+      essayModal.classList.remove('visible');
+    });
+
+    glyph.querySelector('.hit').addEventListener('click', togglePlay);
+
+    let mx=0,my=0;
+    addEventListener('pointermove',e=>{
+      if(e.pointerType === 'mouse' || e.pointerType === 'pen') {
+        mx=(e.clientX/innerWidth-.5)*2;
+        my=(e.clientY/innerHeight-.5)*2;
+      }
+    });
+
+    function animate(){
+      requestAnimationFrame(animate);
+      
+      machine.rotation.z+=S.spin*.01;
+      machine.rotation.x=Math.sin(performance.now()*.0012)*S.wobble*.1;
+      machine.rotation.y=Math.cos(performance.now()*.0016)*S.wobble*.1;
+      
+      // Interior moon pulse
+      interiorMoon.material.emissiveIntensity = 0.6 + Math.sin(S.t * 0.03) * 0.3;
+      moonLight.intensity = 1.2 + Math.sin(S.t * 0.03) * 0.5;
+      
+      const flick=.7+Math.sin(performance.now()*.008+Math.sin(S.t))*.3+Math.random()*.06;
+      flame.intensity=1.8*(0.9+flick*.7);
+      cone.material.opacity=.04+flick*.03;
+      
+      lightCone.material.opacity = 0.05 * (0.8 + Math.random() * 0.2);
+      lightCone.position.copy(backlight.position);
+      lightCone.lookAt(backlight.target.position);
+
+      innerLight.intensity = (innerLight.intensity || 2.5) * (0.85 + Math.random() * 0.15);
+      
+      rings.children.forEach((ring, i) => {
+        ring.rotation.z += (S.spin * 0.005) * (i + 1) * (i % 2 === 0 ? 1 : -1);
+        ring.material.opacity = 0.03 * (0.8 + Math.sin(S.t * 0.05 + i) * 0.2);
+      });
+      
+      motes.children.forEach(m=>{
+        m.position.x+=m.userData.vx*S.spin;
+        m.position.y+=m.userData.vy*S.spin;
+        m.position.z+=m.userData.vz;
+        if(m.position.x > 2.6) m.position.x = -2.6; 
+        else if(m.position.x < -2.6) m.position.x = 2.6;
+        if(m.position.y > 2.6) m.position.y = -2.6; 
+        else if(m.position.y < -2.6) m.position.y = 2.6;
+        if(m.position.z > 0.6) m.position.z = -2.2; 
+        else if(m.position.z < -2.2) m.position.z = 0.6;
+      });
+      
+      camera.position.x+=(mx*1.0-camera.position.x)*.05;
+      camera.position.y+=(-my*.7+.4-camera.position.y)*.05;
+      camera.lookAt(0,0,0);
+      
+      updateOverlay();
+      if(!proc.classList.contains('hidden'))drawPortal();
+      
+      renderer.render(scene, camera);
+      S.t+=1;
+    }
+    animate();
+
+    function onResize(){
+      camera.aspect=innerWidth/innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth,innerHeight);
+      updateOverlay();
+    }
+    addEventListener('resize',onResize);
+
+    setMode('echo');
+  }
+  </script>
+</body>
+</html>

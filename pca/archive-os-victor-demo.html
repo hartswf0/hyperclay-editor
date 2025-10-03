@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArchiveOS + Victor Toolkit Demo</title>
+<style>
+:root { --bg: #0a0a0a; --fg: #F9F9F9; --accent: #FFB400; --secondary: #36CFC9; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; overflow: hidden; }
+#canvas { position: fixed; inset: 0; }
+.victor-ui { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+.view-switcher { position: absolute; top: 20px; left: 20px; display: flex; gap: 8px; pointer-events: auto; }
+.view-switcher button { background: rgba(255, 180, 0, 0.2); border: 2px solid var(--accent); color: var(--fg); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.view-switcher button.active { background: var(--accent); color: #0a0a0a; }
+.controls-panel { position: absolute; top: 80px; left: 20px; background: rgba(10, 10, 10, 0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 20px; width: 320px; pointer-events: auto; max-height: calc(100vh - 100px); overflow-y: auto; }
+.panel-title { font-size: 1.2rem; font-weight: 800; color: var(--accent); margin-bottom: 16px; }
+.parameter-scrubber { margin-bottom: 20px; }
+.parameter-scrubber label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--secondary); }
+input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: rgba(255, 180, 0, 0.3); outline: none; -webkit-appearance: none; appearance: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); cursor: pointer; }
+.time-scrubber { background: rgba(54, 207, 201, 0.1); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.timeline-bar { height: 30px; background: rgba(0, 0, 0, 0.4); border-radius: 4px; position: relative; margin-top: 12px; cursor: pointer; }
+.timeline-marker { position: absolute; width: 3px; height: 100%; background: var(--accent); left: 50%; transition: left 0.1s; }
+.timeline-labels { display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 6px; opacity: 0.8; }
+.capsule-browser { background: rgba(255, 180, 0, 0.1); border-radius: 8px; padding: 12px; margin-top: 16px; max-height: 250px; overflow-y: auto; }
+.capsule-item { padding: 10px; border-bottom: 1px solid rgba(255, 180, 0, 0.2); cursor: pointer; transition: background 0.2s; }
+.capsule-item:hover { background: rgba(255, 180, 0, 0.2); }
+.capsule-item.selected { background: rgba(255, 180, 0, 0.3); border-left: 4px solid var(--accent); }
+.capsule-title { font-weight: 700; color: var(--accent); }
+.capsule-meta { font-size: 0.8rem; opacity: 0.8; margin-top: 4px; }
+.view-container { position: absolute; top: 80px; right: 20px; width: 420px; background: rgba(10, 10, 10, 0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 20px; pointer-events: auto; display: none; }
+.view-container.active { display: block; }
+canvas.graph { width: 100%; height: 200px; background: rgba(0, 0, 0, 0.4); border-radius: 6px; margin-bottom: 12px; }
+.provenance-tree { font-family: 'Courier New', monospace; font-size: 0.85rem; padding: 12px; background: rgba(0, 0, 0, 0.4); border-radius: 6px; }
+.tree-node { padding: 4px 0; padding-left: 20px; position: relative; }
+.tree-node::before { content: '├─'; position: absolute; left: 0; color: var(--secondary); }
+.tree-node:last-child::before { content: '└─'; }
+.export-btn { background: var(--accent); color: #0a0a0a; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 16px; width: 100%; }
+.intro-btn { position: absolute; top: 20px; right: 20px; background: var(--accent); color: #0a0a0a; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 1.1rem; cursor: pointer; pointer-events: auto; z-index: 200; transition: all 0.3s; box-shadow: 0 4px 12px rgba(212,175,55,0.4); }
+.intro-btn:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(212,175,55,0.6); }
+.intro-btn.playing { background: #ff6b35; color: #fff; }
+
+@media (max-width: 768px) {
+  .view-switcher { flex-wrap: wrap; width: calc(100% - 40px); }
+  .view-switcher button { flex: 1; min-width: 75px; padding: 6px 10px; font-size: 0.85rem; }
+  .controls-panel { top: 140px; left: 10px; right: 10px; width: auto; max-height: 45vh; }
+  .view-container { top: auto; bottom: 10px; left: 10px; right: 10px; width: auto; max-height: 48vh; }
+  .panel-title { font-size: 1rem; }
+  .capsule-browser { max-height: 180px; font-size: 0.85rem; }
+  .time-scrubber { padding: 12px; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="victor-ui">
+  <button class="intro-btn" id="play-intro">▶ Play Intro</button>
+  
+  <div class="view-switcher">
+    <button class="active" data-view="visual">Visual</button>
+    <button data-view="provenance">Provenance</button>
+    <button data-view="diff">Version Diff</button>
+  </div>
+  
+  <div class="controls-panel">
+    <div class="panel-title">📚 ArchiveOS Controls</div>
+    
+    <div class="time-scrubber">
+      <label style="color: var(--accent); font-weight: 700;">Time Travel</label>
+      <div class="timeline-bar" id="timeline-bar">
+        <div class="timeline-marker" id="timeline-marker"></div>
+      </div>
+      <div class="timeline-labels">
+        <span>2020-01</span>
+        <span>2022-06</span>
+        <span>2025-10</span>
+      </div>
+    </div>
+    
+    <div id="pulse-speed"></div>
+    
+    <div class="capsule-browser">
+      <div style="font-weight: 700; color: var(--accent); margin-bottom: 8px;">Capsule Library</div>
+      <div class="capsule-item selected" data-capsule="0">
+        <div class="capsule-title">🌲 Forest Scene v3</div>
+        <div class="capsule-meta">Modified 2025-10-03 • 12 objects</div>
+      </div>
+      <div class="capsule-item" data-capsule="1">
+        <div class="capsule-title">🏠 Village Diorama</div>
+        <div class="capsule-meta">Modified 2024-08-15 • 8 objects</div>
+      </div>
+      <div class="capsule-item" data-capsule="2">
+        <div class="capsule-title">🌊 Ocean Ecosystem</div>
+        <div class="capsule-meta">Modified 2023-03-22 • 15 objects</div>
+      </div>
+      <div class="capsule-item" data-capsule="3">
+        <div class="capsule-title">🌆 City Miniature</div>
+        <div class="capsule-meta">Modified 2022-11-08 • 20 objects</div>
+      </div>
+    </div>
+    
+    <button class="export-btn" id="export-btn">📦 Export Capsule</button>
+  </div>
+  
+  <div class="view-container" data-view="provenance">
+    <div class="panel-title">🔗 Provenance Chain</div>
+    <div class="provenance-tree" id="provenance-tree"></div>
+  </div>
+  
+  <div class="view-container" data-view="diff">
+    <div class="panel-title">📊 Version History</div>
+    <canvas id="diff-canvas" class="graph"></canvas>
+    <div style="font-size: 0.85rem; opacity: 0.8; margin-top: 8px;">
+      Green = additions, Red = deletions, Yellow = modifications
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const canvas = document.getElementById('canvas');
+const scene = new THREE.Scene();
+// Billout library atmosphere - warm sepia darkness
+scene.background = new THREE.Color(0x1a1612);
+// Dust motes in still library air
+scene.fog = new THREE.FogExp2(0x1a1612, 0.022);
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(6, 4, 8);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+
+const state = { timelinePos: 0.5, pulseSpeed: 1.5, selectedCapsule: 0 };
+
+// Library floor
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.3, metalness: 0.5 }));
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// Capsule books (simplified)
+const bookColors = [0xffb400, 0x36cfc9, 0xff6b35, 0x9966ff, 0x00e0a4];
+for (let row = 0; row < 5; row++) {
+  for (let col = 0; col < 9; col++) {
+    const book = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.3, 0.35), new THREE.MeshStandardMaterial({ color: bookColors[(row + col) % bookColors.length], emissive: bookColors[(row + col) % bookColors.length], emissiveIntensity: 0.3, roughness: 0.4 }));
+    book.position.set(-5.5 + col * 1.25, 2.15 + row * 1.8, -8.85);
+    book.userData.isBook = true;
+    book.userData.pulsePhase = Math.random() * Math.PI * 2;
+    book.castShadow = true;
+    scene.add(book);
+  }
+}
+
+// Open capsule diorama
+const openCapsule = new THREE.Group();
+openCapsule.position.set(4, 4, -3);
+
+const capsuleBase = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.15, 32), new THREE.MeshStandardMaterial({ color: 0xffb400, emissive: 0xffb400, emissiveIntensity: 0.5, roughness: 0.2, metalness: 0.8 }));
+capsuleBase.castShadow = true;
+openCapsule.add(capsuleBase);
+
+const dome = new THREE.Mesh(new THREE.SphereGeometry(1.5, 24, 24, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x36cfc9, transparent: true, opacity: 0.4, emissive: 0x36cfc9, emissiveIntensity: 0.3, side: THREE.DoubleSide }));
+dome.position.y = 0.8;
+dome.rotation.z = Math.PI / 6;
+openCapsule.add(dome);
+
+const miniTree = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1, 12), new THREE.MeshStandardMaterial({ color: 0x2a6a2a }));
+miniTree.position.set(0.5, 0.6, 0.5);
+miniTree.castShadow = true;
+openCapsule.add(miniTree);
+
+const miniHouse = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), new THREE.MeshStandardMaterial({ color: 0x9a7a5a }));
+miniHouse.position.set(-0.4, 0.3, -0.4);
+miniHouse.castShadow = true;
+openCapsule.add(miniHouse);
+
+scene.add(openCapsule);
+
+// Minimal ambient - library after hours
+scene.add(new THREE.AmbientLight(0x3a2a1a, 0.25));
+scene.add(new THREE.HemisphereLight(0x4a3a2a, 0x1a1612, 0.35));
+
+// Warm reading lamp spotlight on diorama
+const readingLamp = new THREE.SpotLight(0xffb400, 2.5, 20, Math.PI / 5, 0.4, 1);
+readingLamp.position.set(0, 8, 0);
+readingLamp.target.position.set(0, 2, 0);
+readingLamp.castShadow = true;
+scene.add(readingLamp);
+scene.add(readingLamp.target);
+
+// Cyan portal light from capsules
+const portalLight1 = new THREE.PointLight(0x36cfc9, 0.6, 15);
+portalLight1.position.set(-3, 5, -5);
+scene.add(portalLight1);
+
+const portalLight2 = new THREE.PointLight(0x36cfc9, 0.6, 15);
+portalLight2.position.set(3, 5, 5);
+scene.add(portalLight2);
+
+// Warm bookshelf accent
+const shelfLight = new THREE.DirectionalLight(0xd4af37, 0.4);
+shelfLight.position.set(-8, 6, -8);
+scene.add(shelfLight);
+
+for (let i = -1; i <= 1; i++) {
+  const lamp = new THREE.SpotLight(0xffcc88, 2, 15, Math.PI / 6);
+  lamp.position.set(i * 4, 8, -5);
+  lamp.castShadow = true;
+  scene.add(lamp);
+}
+
+// Controls
+function createScrubber(container, label, min, max, value, onChange) {
+  const div = document.createElement('div');
+  div.className = 'parameter-scrubber';
+  div.innerHTML = `<label>${label}</label><div style="display:flex;gap:8px;align-items:center;"><input type="range" min="${min}" max="${max}" step="${(max-min)/100}" value="${value}" style="flex:1;"></div>`;
+  const slider = div.querySelector('input');
+  slider.oninput = e => onChange(+e.target.value);
+  container.appendChild(div);
+}
+
+createScrubber(document.getElementById('pulse-speed'), 'Book Pulse Speed', 0.5, 3, state.pulseSpeed, v => state.pulseSpeed = v);
+
+// Timeline interaction
+const timelineBar = document.getElementById('timeline-bar');
+const timelineMarker = document.getElementById('timeline-marker');
+
+timelineBar.onclick = e => {
+  const rect = timelineBar.getBoundingClientRect();
+  state.timelinePos = (e.clientX - rect.left) / rect.width;
+  timelineMarker.style.left = `${state.timelinePos * 100}%`;
+};
+
+// Provenance tree
+const provenanceData = [
+  { id: '2020-01', desc: 'Initial creation', children: ['2021-03'] },
+  { id: '2021-03', desc: 'Added house + tree', children: ['2023-06', '2024-01'] },
+  { id: '2023-06', desc: 'Color corrections', children: ['2025-10'] },
+  { id: '2024-01', desc: 'Fork: City variant', children: [] },
+  { id: '2025-10', desc: 'Current version', children: [] }
+];
+
+function renderProvenanceTree() {
+  const html = `
+    <div class="tree-node" style="padding-left:0;">📦 2020-01 Initial creation</div>
+    <div class="tree-node">📦 2021-03 Added house + tree</div>
+    <div class="tree-node" style="padding-left:40px;">📦 2023-06 Color corrections</div>
+    <div class="tree-node" style="padding-left:60px;">📦 2025-10 Current version</div>
+    <div class="tree-node" style="padding-left:40px;">📦 2024-01 Fork: City variant</div>
+  `;
+  document.getElementById('provenance-tree').innerHTML = html;
+}
+
+// Version diff chart
+const diffCanvas = document.getElementById('diff-canvas');
+const diffCtx = diffCanvas.getContext('2d');
+diffCanvas.width = 380;
+diffCanvas.height = 200;
+
+function drawDiffChart() {
+  diffCtx.fillStyle = 'rgba(0,0,0,0.4)';
+  diffCtx.fillRect(0, 0, 380, 200);
+  
+  const versions = [
+    { label: 'v1', add: 5, del: 0, mod: 0 },
+    { label: 'v2', add: 3, del: 1, mod: 2 },
+    { label: 'v3', add: 2, del: 0, mod: 4 },
+    { label: 'v4', add: 1, del: 2, mod: 1 },
+    { label: 'v5', add: 4, del: 1, mod: 3 }
+  ];
+  
+  const barWidth = 60;
+  const spacing = 16;
+  
+  versions.forEach((v, i) => {
+    const x = spacing + i * (barWidth + spacing);
+    const total = v.add + v.del + v.mod;
+    const scale = 15;
+    
+    let yOffset = 180;
+    
+    // Additions (green)
+    diffCtx.fillStyle = '#00e0a4';
+    const addHeight = v.add * scale;
+    diffCtx.fillRect(x, yOffset - addHeight, barWidth, addHeight);
+    yOffset -= addHeight;
+    
+    // Modifications (yellow)
+    diffCtx.fillStyle = '#ffb400';
+    const modHeight = v.mod * scale;
+    diffCtx.fillRect(x, yOffset - modHeight, barWidth, modHeight);
+    yOffset -= modHeight;
+    
+    // Deletions (red)
+    diffCtx.fillStyle = '#ff6b35';
+    const delHeight = v.del * scale;
+    diffCtx.fillRect(x, yOffset - delHeight, barWidth, delHeight);
+    
+    // Label
+    diffCtx.fillStyle = '#fff';
+    diffCtx.font = '12px Inter';
+    diffCtx.textAlign = 'center';
+    diffCtx.fillText(v.label, x + barWidth / 2, 195);
+  });
+}
+
+document.getElementById('export-btn').onclick = () => {
+  const blob = new Blob([JSON.stringify({ selectedCapsule: state.selectedCapsule, timelinePos: state.timelinePos }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'archive-capsule.json';
+  a.click();
+};
+
+document.querySelectorAll('.capsule-item').forEach(item => {
+  item.onclick = () => {
+    document.querySelectorAll('.capsule-item').forEach(i => i.classList.remove('selected'));
+    item.classList.add('selected');
+    state.selectedCapsule = +item.dataset.capsule;
+  };
+});
+
+document.querySelectorAll('.view-switcher button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.view-switcher button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active'));
+    const vc = document.querySelector(`.view-container[data-view="${btn.dataset.view}"]`);
+    if (vc) vc.classList.add('active');
+  };
+});
+
+let time = 0;
+function animate() {
+  requestAnimationFrame(animate);
+  time += 0.016;
+  
+  scene.children.forEach(obj => {
+    if (obj.userData.isBook && obj.material.emissive) {
+      obj.material.emissiveIntensity = 0.2 + Math.sin(time * state.pulseSpeed + obj.userData.pulsePhase) * 0.15;
+    }
+  });
+  
+  openCapsule.position.y = 4 + Math.sin(time * 0.6) * 0.25;
+  openCapsule.rotation.y = time * 0.2;
+  
+  renderProvenanceTree();
+  drawDiffChart();
+  
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ===== AUDIO + TITLE SEQUENCE =====
+class SoundEngine {
+  constructor() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+  play(f, d, t = 'sine', v = 0.3) {
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = t; o.frequency.setValueAtTime(f, this.ctx.currentTime);
+    g.gain.setValueAtTime(v, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + d);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(this.ctx.currentTime); o.stop(this.ctx.currentTime + d);
+  }
+  pageTurn() {
+    this.play(800 + Math.random() * 200, 0.1, 'square', 0.15);
+  }
+}
+const sound = new SoundEngine();
+
+class TitleSequence {
+  constructor(cam, scn, dur = 12) {
+    this.cam = cam; this.scn = scn; this.dur = dur; this.playing = false;
+    this.origPos = cam.position.clone(); this.origRot = cam.rotation.clone();
+    this.sprites = [];
+  }
+  makeTxt(txt, col = '#D4AF37', sz = 120) {
+    const c = document.createElement('canvas'), x = c.getContext('2d');
+    c.width = 1024; c.height = 256;
+    x.font = `600 ${sz}px 'Helvetica Neue', 'Futura', 'Arial', sans-serif`;
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.strokeStyle = '#000'; x.lineWidth = 8; x.strokeText(txt, 512, 128);
+    x.fillStyle = col; x.fillText(txt, 512, 128);
+    const tex = new THREE.CanvasTexture(c); tex.needsUpdate = true;
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0 }));
+    spr.scale.set(10, 2.5, 1); this.scn.add(spr); this.sprites.push(spr); return spr;
+  }
+  lerp(a, b, t) { return a + (b - a) * t; }
+  play() {
+    if (this.playing) return; this.playing = true;
+    const btn = document.getElementById('play-intro');
+    btn.classList.add('playing'); btn.textContent = '⏸ Playing...';
+    document.querySelector('.view-switcher').style.opacity = '0';
+    document.querySelector('.controls-panel').style.opacity = '0';
+    const ce = controls.enabled; controls.enabled = false;
+    
+    const start = Date.now(), dur = this.dur * 1000;
+    const t1 = this.makeTxt('WORLDS', '#D4AF37', 140);
+    const t2 = this.makeTxt('COMPRESS', '#36CFC9', 130);
+    const t3 = this.makeTxt('INTO', '#FFB400', 120);
+    const t4 = this.makeTxt('BOOKS', '#D4AF37', 140);
+    
+    setTimeout(() => sound.pageTurn(), 0);
+    setTimeout(() => sound.play(400, 0.5, 'sine', 0.2), 1000);
+    setTimeout(() => sound.pageTurn(), 3000);
+    setTimeout(() => sound.play(500, 0.5, 'sine', 0.2), 6000);
+    setTimeout(() => sound.pageTurn(), 9000);
+    
+    const anim = () => {
+      const el = Date.now() - start, t = Math.min(el / dur, 1);
+      const focusBook = books[Math.floor(books.length / 2)];
+      
+      if (t < 0.25) {
+        const t1v = t / 0.25;
+        camera.position.set(
+          focusBook.position.x + this.lerp(0.5, 0.2, t1v),
+          focusBook.position.y,
+          focusBook.position.z + this.lerp(2, 0.5, t1v)
+        );
+        camera.lookAt(focusBook.position);
+        t1.position.copy(focusBook.position); t1.position.y += 3;
+        t1.material.opacity = t1v; t1.scale.setScalar(this.lerp(0.5, 1, t1v) * 11);
+      } else if (t < 0.5) {
+        const t2v = (t - 0.25) / 0.25;
+        camera.position.set(
+          this.lerp(focusBook.position.x + 0.2, 0, t2v),
+          this.lerp(focusBook.position.y, 8, t2v),
+          this.lerp(focusBook.position.z + 0.5, 15, t2v)
+        );
+        camera.lookAt(new THREE.Vector3(0, 2, 0));
+        t1.material.opacity = 1 - t2v;
+        t2.position.set(0, 6, 0); t2.material.opacity = t2v;
+        t2.scale.setScalar(this.lerp(0.5, 1, t2v) * 12);
+      } else if (t < 0.75) {
+        const t3v = (t - 0.5) / 0.25;
+        camera.position.set(0, this.lerp(8, 12, t3v), this.lerp(15, 18, t3v));
+        camera.lookAt(new THREE.Vector3(0, 2, 0));
+        t2.material.opacity = 1 - t3v;
+        t3.position.set(0, 8, 0); t3.material.opacity = t3v;
+        t3.scale.setScalar(this.lerp(0.5, 1, t3v) * 10);
+      } else {
+        const t4v = (t - 0.75) / 0.25;
+        camera.position.set(
+          this.lerp(0, 5, t4v),
+          this.lerp(12, 10, t4v),
+          this.lerp(18, 20, t4v)
+        );
+        camera.lookAt(diorama.position);
+        t3.material.opacity = 1; t3.position.y = 8;
+        t4.position.set(0, this.lerp(-6, 2, t4v), 0);
+        t4.material.opacity = t4v; t4.scale.setScalar(this.lerp(0.5, 1, t4v) * 11);
+        if (t > 0.95) {
+          const fo = (t - 0.95) / 0.05;
+          t3.material.opacity = 1 - fo; t4.material.opacity = 1 - fo;
+        }
+      }
+      
+      if (t < 1) requestAnimationFrame(anim);
+      else {
+        this.playing = false; btn.classList.remove('playing'); btn.textContent = '▶ Play Intro';
+        document.querySelector('.view-switcher').style.opacity = '1';
+        document.querySelector('.controls-panel').style.opacity = '1';
+        controls.enabled = ce;
+        this.sprites.forEach(s => this.scn.remove(s)); this.sprites = [];
+        camera.position.copy(this.origPos); camera.rotation.copy(this.origRot);
+      }
+    };
+    anim();
+  }
+}
+
+const titleSeq = new TitleSequence(camera, scene, 12);
+document.getElementById('play-intro').onclick = () => titleSeq.play();
+
+animate();
+
+window.onresize = () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+};
+</script>
+
+</body>
+</html>

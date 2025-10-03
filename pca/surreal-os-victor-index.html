@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default" data-motion="calm">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Surreal OS × Victor Toolkit</title>
+  <meta name="description" content="Seven worlds exploring impossible computing primitives through interactive media." />
+  <meta name="theme-color" content="#0D1B2A" />
+  <style>
+    /* Minimal System */
+    :root {
+      --gap: 20px;
+      --r: 16px;
+      --bg: #0D1B2A;
+      --ink: #F9F9F9;
+      --muted: #8A95A0;
+      --rule: rgba(255,255,255,.12);
+      --accent: #36CFC9;
+      --tile: #162334;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; line-height: 1.4; }
+
+    /* Grid Layout */
+    .wrap { max-width: 1400px; margin: 0 auto; padding: clamp(20px, 4vw, 40px); }
+    .header { text-align: center; margin-bottom: 48px; }
+    .header h1 { font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 800; letter-spacing: -.02em; margin-bottom: 12px; }
+    .header p { font-size: clamp(1rem, 2vw, 1.2rem); color: var(--muted); font-style: italic; }
+
+    .grid { display: grid; gap: var(--gap); grid-template-columns: 1fr; }
+    @media(min-width: 680px) { 
+      .grid { grid-template-columns: repeat(2, 1fr); } 
+    }
+    @media(min-width: 1024px) { 
+      .grid { grid-template-columns: repeat(3, 1fr); } 
+    }
+    @media(max-width: 679px) {
+      .tile-header { gap: 8px; }
+      .tile-number { font-size: 1.2rem; }
+      .tile-title-top { font-size: .85rem; }
+      .art { padding: 32px 24px 24px; }
+      .info { padding: 16px 18px 14px; }
+      .meta { padding: 12px 16px; font-size: .7rem; }
+    }
+
+    /* Tiles */
+    a.tile {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      aspect-ratio: 1/1;
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--tile);
+      border: 1px solid var(--rule);
+      border-radius: var(--r);
+      overflow: hidden;
+      position: relative;
+      transition: transform .2s ease, border-color .2s ease;
+      --tile-accent: var(--accent);
+    }
+    a.tile:hover, a.tile:focus-visible {
+      transform: translateY(-4px);
+      border-color: var(--tile-accent);
+    }
+    
+    /* Per-tile accent colors */
+    .tile[data-world="mirror"] { --tile-accent: #36CFC9; }
+    .tile[data-world="tempo"] { --tile-accent: #FFB400; }
+    .tile[data-world="scale"] { --tile-accent: #FF6B35; }
+    .tile[data-world="morph"] { --tile-accent: #B46CFF; }
+    .tile[data-world="anomaly"] { --tile-accent: #00E0A4; }
+    .tile[data-world="light"] { --tile-accent: #00D4FF; }
+    .tile[data-world="archive"] { --tile-accent: #D4AF37; }
+
+    .tile-header {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+    }
+    
+    .tile-number {
+      font-size: 1.4rem;
+      font-weight: 800;
+      font-family: ui-monospace, 'SF Mono', monospace;
+      color: var(--tile-accent);
+      opacity: .35;
+      letter-spacing: -.05em;
+      line-height: 1;
+    }
+    
+    .tile-title-top {
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--tile-accent);
+      opacity: .85;
+      letter-spacing: .02em;
+      line-height: 1;
+    }
+
+    .art {
+      display: grid;
+      place-items: center;
+      padding: 40px 32px 32px;
+      background: linear-gradient(180deg, transparent, rgba(0,0,0,.04));
+    }
+
+    .glyph { display: block; }
+
+    .info {
+      padding: 20px 22px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .world-title { display: none; } /* Title moved to top header */
+    .world-subtitle { font-size: .8rem; color: var(--tile-accent); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; opacity: .95; }
+    .world-desc { font-size: .8rem; color: var(--muted); line-height: 1.45; margin-top: 2px; }
+
+    .meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 14px 18px;
+      border-top: 1px solid var(--rule);
+      font-size: .73rem;
+      color: var(--muted);
+      font-weight: 500;
+      letter-spacing: .01em;
+    }
+    
+    .meta span:last-child {
+      color: var(--tile-accent);
+      opacity: .8;
+    }
+
+    /* Animations (respect reduced-motion) */
+    @media (prefers-reduced-motion: no-preference) {
+      .glyph--mirror .orbit { stroke-dasharray: 200 40; animation: orbit 10s linear infinite; }
+      .glyph--tempo .wave { stroke-dasharray: 6 10; animation: wave 9s linear infinite; }
+      .glyph--scale line { stroke-dasharray: 4 8; animation: dash 8s linear infinite; }
+      .glyph--morph .shape { animation: morph 7s ease-in-out infinite alternate; }
+      .glyph--anomaly .ball { animation: bounce 6s ease-in-out infinite; }
+      .glyph--light .beam { animation: rotate 12s linear infinite; transform-origin: 60px 60px; }
+      .glyph--archive rect { animation: stack 5s ease-in-out infinite alternate; }
+    }
+
+    .tile:hover .orbit { animation-duration: 7s; }
+    .tile:hover .wave { animation-duration: 6s; }
+
+    @keyframes orbit { to { stroke-dashoffset: -240; } }
+    @keyframes wave { to { stroke-dashoffset: -160; } }
+    @keyframes dash { to { stroke-dashoffset: -120; } }
+    @keyframes morph { from { transform: scale(1); } to { transform: scale(1.05); } }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    @keyframes rotate { to { transform: rotate(360deg); } }
+    @keyframes stack { from { opacity: .4; } to { opacity: 1; } }
+
+    /* Dock Menu */
+    .dock {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+
+    .dock button {
+      appearance: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid var(--rule);
+      background: var(--tile);
+      color: var(--ink);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .dock button:hover { border-color: var(--accent); transform: scale(1.05); }
+
+    .panel {
+      position: fixed;
+      right: 16px;
+      bottom: 74px;
+      width: min(92vw, 420px);
+      background: var(--tile);
+      border: 1px solid var(--rule);
+      border-radius: 14px;
+      padding: 16px;
+      display: none;
+      z-index: 100;
+    }
+
+    .panel.open { display: block; }
+
+    .panel-title { font-weight: 700; margin-bottom: 12px; font-size: .9rem; }
+
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+
+    .option {
+      appearance: none;
+      border: 1px solid var(--rule);
+      border-radius: 20px;
+      padding: 8px 14px;
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: .8rem;
+      transition: all .2s;
+    }
+
+    .option:hover { border-color: var(--accent); }
+    .option[data-active="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    @media print { .dock, .panel { display: none; } html, body { background: #fff; color: #000; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>Surreal OS × Victor Toolkit</h1>
+      <p>Seven Worlds Exploring Impossible Computing Primitives</p>
+    </div>
+
+    <div class="grid" role="list">
+      <!-- 01 MirrorOS -->
+      <a class="tile" data-world="mirror" href="./mirror-os-victor-demo.html" role="listitem" aria-label="MirrorOS: The Reflection Engine">
+        <div class="tile-header">
+          <div class="tile-number">01</div>
+          <div class="tile-title-top">MirrorOS</div>
+        </div>
+        <div class="art">
+          <svg class="glyph glyph--mirror" viewBox="0 0 120 120" width="80%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="35" cy="60" r="22" fill="none" stroke="#36CFC9" stroke-width="1.5" opacity=".4"/>
+            <circle cx="85" cy="60" r="22" fill="none" stroke="#36CFC9" stroke-width="1.5" class="orbit"/>
+            <line x1="35" y1="60" x2="85" y2="60" stroke="#36CFC9" stroke-width="1" opacity=".25" stroke-dasharray="2 4"/>
+            <!-- Moon icon -->
+            <circle cx="60" cy="92" r="9" fill="#F4E5A1"/>
+            <circle cx="64" cy="90" r="8" fill="var(--tile)" opacity=".85"/>
+            <circle cx="58" cy="92" r="1.5" fill="#B8A66F" opacity=".5"/>
+            <circle cx="61" cy="95" r="1" fill="#B8A66F" opacity=".5"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="world-subtitle">The Reflection Engine</div>
+          <div class="world-desc">Synchronized moons challenge local vs global state</div>
+        </div>
+        <div class="meta"><span>3 Views</span><span>Play Intro →</span></div>
+      </a>
+
+      <!-- 02 TempoOS -->
+      <a class="tile" data-world="tempo" href="./tempo-os-victor-demo.html" role="listitem" aria-label="TempoOS: The Rhythm Mediator">
+        <div class="tile-header">
+          <div class="tile-number">02</div>
+          <div class="tile-title-top">TempoOS</div>
+        </div>
+        <div class="art">
+          <svg class="glyph glyph--tempo" viewBox="0 0 120 120" width="80%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path class="wave" d="M15 55 Q 35 35 50 50 T 85 50 Q 95 45 105 50" fill="none" stroke="#FFB400" stroke-width="1.5" opacity=".6"/>
+            <line x1="15" y1="65" x2="105" y2="65" stroke="#FFB400" stroke-width="1" opacity=".25"/>
+            <!-- Turtle icon -->
+            <ellipse cx="60" cy="91" rx="8" ry="6" fill="#6B8E23"/>
+            <ellipse cx="60" cy="89" rx="5" ry="4" fill="#8FBC3F"/>
+            <circle cx="58" cy="88" r="0.8" fill="#2A2A2A"/>
+            <ellipse cx="54" cy="93" rx="2" ry="1.5" fill="#6B8E23"/>
+            <ellipse cx="66" cy="93" rx="2" ry="1.5" fill="#6B8E23"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="world-subtitle">The Rhythm Mediator</div>
+          <div class="world-desc">Turtles create slow zones where time dilates</div>
+        </div>
+        <div class="meta"><span>Time Field</span><span>Play Intro →</span></div>
+      </a>
+
+      <!-- 03 ScaleOS -->
+      <a class="tile" data-world="scale" href="./scale-os-victor-demo.html" role="listitem" aria-label="ScaleOS: The Recursive Zoomer">
+        <div class="tile-header">
+          <div class="tile-number">03</div>
+          <div class="tile-title-top">ScaleOS</div>
+        </div>
+        <div class="art">
+          <svg class="glyph glyph--scale" viewBox="0 0 120 120" width="80%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="20" y="35" width="26" height="18" fill="none" stroke="#FF6B35" stroke-width="1.5" opacity=".7"/>
+            <rect x="55" y="42" width="18" height="12" fill="none" stroke="#FF6B35" stroke-width="1.5" opacity=".5"/>
+            <rect x="82" y="47" width="13" height="9" fill="none" stroke="#FF6B35" stroke-width="1.5" opacity=".3"/>
+            <line x1="20" y1="68" x2="100" y2="68" stroke="#FF6B35" stroke-width="1" opacity=".25"/>
+            <!-- Truck icon -->
+            <rect x="52" y="86" width="12" height="8" fill="#FF6B35" rx="1"/>
+            <rect x="56" y="88" width="4" height="3" fill="#FFB8A3"/>
+            <circle cx="55" cy="95" r="2" fill="#2A2A2A"/>
+            <circle cx="61" cy="95" r="2" fill="#2A2A2A"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="world-subtitle">The Recursive Zoomer</div>
+          <div class="world-desc">Trucks shrink but mass persists paradoxically</div>
+        </div>
+        <div class="meta"><span>Scale Laws</span><span>Play Intro →</span></div>
+      </a>
+
+      <!-- 04 MorphOS -->
+      <a class="tile" data-world="morph" href="./morph-os-victor-demo.html" role="listitem" aria-label="MorphOS: The Shape-Shifter">
+        <div class="tile-header">
+          <div class="tile-number">04</div>
+          <div class="tile-title-top">MorphOS</div>
+        </div>
+        <div class="art">
+          <svg class="glyph glyph--morph" viewBox="0 0 120 120" width="80%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path class="shape" d="M30 55 L45 38 L60 50 L55 68 L35 68 Z" fill="none" stroke="#B46CFF" stroke-width="1.5" opacity=".4"/>
+            <path d="M60 50 Q 72 42 82 50 L82 65 L72 70 Z" fill="none" stroke="#B46CFF" stroke-width="1.5" opacity=".6" class="shape"/>
+            <line x1="45" y1="55" x2="72" y2="55" stroke="#B46CFF" stroke-width="1" opacity=".25" stroke-dasharray="2 3"/>
+            <!-- Bird and human icons -->
+            <g transform="translate(50, 86)">
+              <path d="M0 2 L2 5 L4 2" fill="none" stroke="#B46CFF" stroke-width="1.2"/>
+              <circle cx="2" cy="1" r="1" fill="#B46CFF"/>
+            </g>
+            <g transform="translate(64, 86)">
+              <circle cx="2" cy="1" r="1.2" fill="#D4A8FF"/>
+              <line x1="2" y1="2" x2="2" y2="6" stroke="#D4A8FF" stroke-width="1.2"/>
+              <line x1="0" y1="3.5" x2="4" y2="3.5" stroke="#D4A8FF" stroke-width="1.2"/>
+              <line x1="2" y1="6" x2="1" y2="8" stroke="#D4A8FF" stroke-width="1.2"/>
+              <line x1="2" y1="6" x2="3" y2="8" stroke="#D4A8FF" stroke-width="1.2"/>
+            </g>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="world-subtitle">The Shape-Shifter</div>
+          <div class="world-desc">Bird to human in continuous transformation</div>
+        </div>
+        <div class="meta"><span>Morph Space</span><span>Play Intro →</span></div>
+      </a>
+
+      <!-- 05 AnomalyOS -->
+      <a class="tile" data-world="anomaly" href="./anomaly-os-victor-demo.html" role="listitem" aria-label="AnomalyOS: The Rhythm Breaker">
+        <div class="tile-header">
+          <div class="tile-number">05</div>
+          <div class="tile-title-top">AnomalyOS</div>
+        </div>
+        <div class="art">
+          <svg class="glyph glyph--anomaly" viewBox="0 0 120 120" width="80%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <line x1="25" y1="60" x2="95" y2="60" stroke="#00E0A4" stroke-width="1" opacity=".25"/>
+            <line x1="30" y1="60" x2="30" y2="56" stroke="#00E0A4" stroke-width="1" opacity=".4"/>
+            <line x1="45" y1="60" x2="45" y2="56" stroke="#00E0A4" stroke-width="1" opacity=".4"/>
+            <line x1="60" y1="60" x2="60" y2="56" stroke="#00E0A4" stroke-width="1" opacity=".4"/>
+            <line x1="75" y1="60" x2="75" y2="56" stroke="#00E0A4" stroke-width="1" opacity=".4"/>
+            <line x1="90" y1="60" x2="90" y2="56" stroke="#00E0A4" stroke-width="1" opacity=".4"/>
+            <circle class="ball" cx="60" cy="30" r="8" fill="none" stroke="#00E0A4" stroke-width="1.5"/>
+            <!-- Bowling ball icon -->
+            <circle cx="60" cy="91" r="7" fill="#FF6B35"/>
+            <circle cx="58" cy="89" r="1" fill="#2A2A2A"/>
+            <circle cx="62" cy="89" r="1" fill="#2A2A2A"/>
+            <circle cx="60" cy="93" r="1" fill="#2A2A2A"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="world-subtitle">The Rhythm Breaker</div>
+          <div class="world-desc">Ruptures cascade from the ceiling ball</div>
+        </div>
+        <div class="meta"><span>Chaos Budget</span><span>Play Intro →</span></div>
+      </a>
+
+      <!-- 06 LightOS -->
+      <a class="tile" data-world="light" href="./light-os-victor-demo.html" role="listitem" aria-label="LightOS: The Tangible Intangible">
+        <div class="tile-header">
+          <div class="tile-number">06</div>
+          <div class="tile-title-top">LightOS</div>
+        </div>
+        <div class="art">
+          <svg class="glyph glyph--light" viewBox="0 0 120 120" width="80%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="60" cy="40" r="6" fill="#00D4FF" opacity=".7"/>
+            <g class="beam">
+              <line x1="60" y1="40" x2="60" y2="15" stroke="#00D4FF" stroke-width="2" opacity=".4"/>
+              <line x1="60" y1="40" x2="85" y2="22" stroke="#00D4FF" stroke-width="1.5" opacity=".25"/>
+              <line x1="60" y1="40" x2="35" y2="22" stroke="#00D4FF" stroke-width="1.5" opacity=".25"/>
+            </g>
+            <rect x="45" y="55" width="30" height="8" fill="none" stroke="#00D4FF" stroke-width="1" opacity=".3"/>
+            <!-- Lighthouse icon -->
+            <rect x="56" y="86" width="8" height="10" fill="#E74C3C" rx="1"/>
+            <rect x="55" y="84" width="10" height="2" fill="#C0392B"/>
+            <circle cx="60" cy="86" r="1.5" fill="#FFF3A0"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="world-subtitle">The Tangible Intangible</div>
+          <div class="world-desc">Lighthouse beam becomes walkable structure</div>
+        </div>
+        <div class="meta"><span>Metadata Rooms</span><span>Play Intro →</span></div>
+      </a>
+
+      <!-- 07 ArchiveOS -->
+      <a class="tile" data-world="archive" href="./archive-os-victor-demo.html" role="listitem" aria-label="ArchiveOS: The Capsule Preserver">
+        <div class="tile-header">
+          <div class="tile-number">07</div>
+          <div class="tile-title-top">ArchiveOS</div>
+        </div>
+        <div class="art">
+          <svg class="glyph glyph--archive" viewBox="0 0 120 120" width="80%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="35" y="25" width="50" height="9" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity=".7"/>
+            <rect x="35" y="38" width="50" height="9" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity=".5"/>
+            <rect x="35" y="51" width="50" height="9" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity=".35"/>
+            <rect x="35" y="64" width="50" height="9" fill="none" stroke="#D4AF37" stroke-width="1.5" opacity=".25"/>
+            <circle cx="60" cy="68" r="3" fill="#D4AF37" opacity=".4"/>
+            <!-- Book stack icon -->
+            <rect x="52" y="86" width="16" height="5" fill="#8B4513" rx="0.5"/>
+            <rect x="53" y="90" width="14" height="4" fill="#A0522D" rx="0.5"/>
+            <rect x="54" y="93" width="12" height="3" fill="#CD853F" rx="0.5"/>
+          </svg>
+        </div>
+        <div class="info">
+          <div class="world-subtitle">The Capsule Preserver</div>
+          <div class="world-desc">Books contain complete compressed worlds</div>
+        </div>
+        <div class="meta"><span>Time Travel</span><span>Play Intro →</span></div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Dock Menu -->
+  <div class="dock">
+    <button id="btnMenu" title="Style Menu">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
+      </svg>
+      <span class="sr-only">Open style menu</span>
+    </button>
+  </div>
+
+  <div id="panel" class="panel" role="dialog" aria-modal="false">
+    <div class="panel-title">Appearance</div>
+    <div class="row" id="themesRow"></div>
+    <div class="panel-title">Motion</div>
+    <div class="row" id="motionsRow"></div>
+  </div>
+
+  <script>
+    const themes = {
+      Default: { bg: '#0D1B2A', ink: '#F9F9F9', tile: '#162334', rule: 'rgba(255,255,255,.12)', accent: '#36CFC9', muted: '#8A95A0' },
+      Light: { bg: '#F5F7FA', ink: '#0E0E0E', tile: '#FFFFFF', rule: 'rgba(0,0,0,.12)', accent: '#1E66B3', muted: '#5b6d7a' },
+      Vapor: { bg: '#1B1F23', ink: '#EAF6FF', tile: '#0F1419', rule: 'rgba(255,255,255,.10)', accent: '#00E0FF', muted: '#FF3BCE' },
+      Minimal: { bg: '#0D0E0F', ink: '#F7F8F8', tile: '#101214', rule: 'rgba(255,255,255,.12)', accent: '#2D6B5F', muted: '#9aa3a6' },
+    };
+
+    const motions = {
+      Calm: 'calm',
+      Fast: 'fast',
+      Still: 'still',
+    };
+
+    const panel = document.getElementById('panel');
+    const btnMenu = document.getElementById('btnMenu');
+    const themesRow = document.getElementById('themesRow');
+    const motionsRow = document.getElementById('motionsRow');
+
+    // Build theme buttons
+    Object.keys(themes).forEach(key => {
+      const b = document.createElement('button');
+      b.className = 'option';
+      b.textContent = key;
+      b.addEventListener('click', () => applyTheme(key));
+      themesRow.appendChild(b);
+    });
+
+    // Build motion buttons
+    Object.entries(motions).forEach(([label, val]) => {
+      const b = document.createElement('button');
+      b.className = 'option';
+      b.textContent = label;
+      b.addEventListener('click', () => applyMotion(val));
+      motionsRow.appendChild(b);
+    });
+
+    btnMenu.addEventListener('click', () => {
+      panel.classList.toggle('open');
+      syncActive();
+    });
+
+    function applyTheme(name) {
+      const t = themes[name];
+      const root = document.documentElement;
+      root.style.setProperty('--bg', t.bg);
+      root.style.setProperty('--ink', t.ink);
+      root.style.setProperty('--tile', t.tile);
+      root.style.setProperty('--rule', t.rule);
+      root.style.setProperty('--accent', t.accent);
+      root.style.setProperty('--muted', t.muted);
+      syncActive();
+    }
+
+    function applyMotion(val) {
+      document.documentElement.setAttribute('data-motion', val);
+      syncActive();
+    }
+
+    function syncActive() {
+      const cs = getComputedStyle(document.documentElement);
+      const current = { bg: cs.getPropertyValue('--bg').trim() };
+      themesRow.querySelectorAll('.option').forEach(btn => {
+        const t = themes[btn.textContent];
+        btn.dataset.active = (t && t.bg === current.bg) ? 'true' : 'false';
+      });
+      motionsRow.querySelectorAll('.option').forEach(btn => {
+        btn.dataset.active = (document.documentElement.getAttribute('data-motion') === motions[btn.textContent]) ? 'true' : 'false';
+      });
+    }
+
+    // Initialize
+    applyTheme('Default');
+    applyMotion('calm');
+  </script>
+</body>
+</html>

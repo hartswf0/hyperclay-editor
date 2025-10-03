@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MorphOS + Victor Toolkit Demo</title>
+<style>
+:root { --bg: #0D1B2A; --fg: #F9F9F9; --accent: #B46CFF; --warn: #FFB400; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; overflow: hidden; }
+#canvas { position: fixed; inset: 0; }
+.victor-ui { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+.view-switcher { position: absolute; top: 20px; left: 20px; display: flex; gap: 8px; pointer-events: auto; }
+.view-switcher button { background: rgba(180, 108, 255, 0.2); border: 2px solid var(--accent); color: var(--fg); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.view-switcher button.active { background: var(--accent); color: var(--bg); }
+.controls-panel { position: absolute; top: 80px; left: 20px; background: rgba(13, 27, 42, 0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 20px; width: 320px; pointer-events: auto; }
+.panel-title { font-size: 1.2rem; font-weight: 800; color: var(--accent); margin-bottom: 16px; }
+.morph-scrubber { margin-bottom: 20px; }
+.morph-scrubber label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--warn); }
+input[type="range"] { width: 100%; height: 8px; border-radius: 4px; background: linear-gradient(to right, #36cfc9, var(--accent)); outline: none; -webkit-appearance: none; appearance: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--warn); cursor: pointer; }
+.morph-value { text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--accent); margin-top: 8px; }
+.parameter-table { background: rgba(180, 108, 255, 0.1); border-radius: 8px; padding: 12px; margin-top: 16px; font-size: 0.9rem; }
+.param-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.view-container { position: absolute; top: 80px; right: 20px; width: 400px; background: rgba(13, 27, 42, 0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 20px; pointer-events: auto; display: none; }
+.view-container.active { display: block; }
+canvas.graph { width: 100%; height: 250px; background: rgba(0, 0, 0, 0.4); border-radius: 6px; }
+.export-btn { background: var(--warn); color: var(--bg); border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 16px; width: 100%; }
+.export-btn:hover { transform: scale(1.05); }
+.intro-btn { position: absolute; top: 20px; right: 20px; background: var(--accent); color: var(--bg); border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 1.1rem; cursor: pointer; pointer-events: auto; z-index: 200; transition: all 0.3s; box-shadow: 0 4px 12px rgba(180,108,255,0.4); }
+.intro-btn:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(180,108,255,0.6); }
+.intro-btn.playing { background: #ff6b35; }
+.morph-labels { display: flex; justify-content: space-between; font-size: 0.9rem; opacity: 0.8; }
+
+@media (max-width: 768px) {
+  .view-switcher { flex-wrap: wrap; width: calc(100% - 40px); }
+  .view-switcher button { flex: 1; min-width: 80px; padding: 6px 10px; font-size: 0.85rem; }
+  .controls-panel { top: 140px; left: 10px; right: 10px; width: auto; max-height: 45vh; }
+  .view-container { top: auto; bottom: 10px; left: 10px; right: 10px; width: auto; max-height: 48vh; }
+  .panel-title { font-size: 1rem; }
+  .morph-value { font-size: 1rem; }
+  .parameter-table { font-size: 0.85rem; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="victor-ui">
+  <button class="intro-btn" id="play-intro">▶ Play Intro</button>
+  
+  <div class="view-switcher">
+    <button class="active" data-view="visual">Visual</button>
+    <button data-view="params">Parameters</button>
+    <button data-view="space">Morph Space</button>
+  </div>
+  
+  <div class="controls-panel">
+    <div class="panel-title">🦅→🧍 MorphOS Controls</div>
+    
+    <div class="morph-scrubber">
+      <label>Morph Timeline</label>
+      <input type="range" id="morph-slider" min="0" max="1" step="0.01" value="0.5">
+      <div class="morph-labels">
+        <span>🦅 Bird (0%)</span>
+        <span>🧍 Human (100%)</span>
+      </div>
+      <div class="morph-value" id="morph-display">50% Morphed</div>
+    </div>
+    
+    <div class="parameter-table">
+      <div class="param-row"><span>Body Height:</span><span id="body-height">1.5x</span></div>
+      <div class="param-row"><span>Wingspan:</span><span id="wingspan">100%</span></div>
+      <div class="param-row"><span>Leg Length:</span><span id="leg-length">0%</span></div>
+      <div class="param-row"><span>Posture:</span><span id="posture">Flight</span></div>
+    </div>
+    
+    <button class="export-btn" id="export-btn">📦 Export Morph</button>
+  </div>
+  
+  <div class="view-container" data-view="params">
+    <div class="panel-title">📊 Parameter Curves</div>
+    <canvas id="param-canvas" class="graph"></canvas>
+  </div>
+  
+  <div class="view-container" data-view="space">
+    <div class="panel-title">🗺️ Morph Parameter Space</div>
+    <canvas id="space-canvas" class="graph"></canvas>
+    <p style="margin-top: 12px; font-size: 0.85rem; opacity: 0.8;">
+      X = Bird-ness, Y = Human-ness<br>
+      Diagonal = valid morph path
+    </p>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const canvas = document.getElementById('canvas');
+const scene = new THREE.Scene();
+// Billout twilight rooftop - deep purple-blue
+scene.background = new THREE.Color(0x2a1a3e);
+// Fog emphasizes morphing figure isolation
+scene.fog = new THREE.FogExp2(0x2a1a3e, 0.020);
+
+const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 200);
+camera.position.set(6, 8, 10);
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+
+let morphT = 0.5;
+
+// Scene
+const building = new THREE.Mesh(new THREE.BoxGeometry(8, 12, 6), new THREE.MeshStandardMaterial({ color: 0x2a2a3a }));
+building.position.y = 5.5;
+building.castShadow = true;
+scene.add(building);
+
+const rooftop = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.5, 6.5), new THREE.MeshStandardMaterial({ color: 0x3a3a4a }));
+rooftop.position.y = 11.5;
+scene.add(rooftop);
+
+// Morphing Entity
+const morphEntity = new THREE.Group();
+morphEntity.position.set(0, 14, 0);
+
+const body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+body.castShadow = true;
+morphEntity.add(body);
+
+const leftWing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.6), new THREE.MeshStandardMaterial({ color: 0x2a2a3a }));
+leftWing.position.set(-0.9, 0, 0);
+leftWing.castShadow = true;
+morphEntity.add(leftWing);
+
+const rightWing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.6), new THREE.MeshStandardMaterial({ color: 0x2a2a3a }));
+rightWing.position.set(0.9, 0, 0);
+rightWing.castShadow = true;
+morphEntity.add(rightWing);
+
+const leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.2), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+leftLeg.position.set(-0.3, -1, 0);
+leftLeg.visible = false;
+morphEntity.add(leftLeg);
+
+const rightLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.2), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+rightLeg.position.set(0.3, -1, 0);
+rightLeg.visible = false;
+morphEntity.add(rightLeg);
+
+scene.add(morphEntity);
+
+// Spotlight
+const spotlight = new THREE.SpotLight(0xb46cff, 3, 20, Math.PI / 6);
+spotlight.position.set(0, 18, 0);
+spotlight.target = morphEntity;
+spotlight.castShadow = true;
+scene.add(spotlight);
+
+// Minimal ambient - rooftop at twilight
+scene.add(new THREE.AmbientLight(0x2a1a3e, 0.2));
+scene.add(new THREE.HemisphereLight(0x6a4a8a, 0x2a1a3e, 0.3));
+
+// Dramatic rim light from behind - purple accent
+const rimLight = new THREE.DirectionalLight(0xb46cff, 0.8);
+rimLight.position.set(-10, 18, -5);
+scene.add(rimLight);
+
+// Cyan key light for identity shift
+const keyLight = new THREE.DirectionalLight(0x36cfc9, 1.0);
+keyLight.position.set(8, 12, 5);
+keyLight.castShadow = true;
+scene.add(keyLight);
+
+// Warm fill from below (rooftop reflection)
+const fillLight = new THREE.PointLight(0xffb400, 0.4, 30);
+fillLight.position.set(0, 8, 0);
+scene.add(fillLight);
+
+// Morph Function
+function applyMorph(t) {
+  morphT = t;
+  
+  // Body morphs from round to tall
+  body.scale.y = 1 + t * 0.8;
+  body.scale.x = body.scale.z = 1 - t * 0.4;
+  
+  // Wings retract into arms
+  const wingScale = 1 - t * 0.8;
+  leftWing.scale.x = rightWing.scale.x = wingScale;
+  leftWing.rotation.z = -Math.PI / 4 * (1 - t);
+  rightWing.rotation.z = Math.PI / 4 * (1 - t);
+  
+  // Legs appear
+  leftLeg.visible = rightLeg.visible = t > 0.5;
+  if (t > 0.5) {
+    leftLeg.scale.y = rightLeg.scale.y = (t - 0.5) * 2;
+  }
+  
+  // Update UI
+  document.getElementById('morph-display').textContent = `${(t * 100).toFixed(0)}% Morphed`;
+  document.getElementById('body-height').textContent = `${(1 + t * 0.8).toFixed(2)}x`;
+  document.getElementById('wingspan').textContent = `${(wingScale * 100).toFixed(0)}%`;
+  document.getElementById('leg-length').textContent = t > 0.5 ? `${((t - 0.5) * 200).toFixed(0)}%` : '0%';
+  document.getElementById('posture').textContent = t < 0.3 ? 'Flight' : t < 0.7 ? 'Transitional' : 'Upright';
+}
+
+document.getElementById('morph-slider').oninput = e => applyMorph(+e.target.value);
+
+// Parameter Curves
+const paramCanvas = document.getElementById('param-canvas');
+const paramCtx = paramCanvas.getContext('2d');
+paramCanvas.width = 360;
+paramCanvas.height = 250;
+
+function drawParamCurves() {
+  paramCtx.fillStyle = 'rgba(0,0,0,0.4)';
+  paramCtx.fillRect(0, 0, 360, 250);
+  
+  const curves = [
+    { name: 'Body Height', color: '#ff6b35', fn: t => 1 + t * 0.8 },
+    { name: 'Wingspan', color: '#36cfc9', fn: t => 1 - t * 0.8 },
+    { name: 'Leg Length', color: '#ffb400', fn: t => t > 0.5 ? (t - 0.5) * 2 : 0 }
+  ];
+  
+  curves.forEach((curve, idx) => {
+    paramCtx.strokeStyle = curve.color;
+    paramCtx.lineWidth = 2;
+    paramCtx.beginPath();
+    
+    for (let t = 0; t <= 1; t += 0.01) {
+      const x = t * 360;
+      const y = 250 - (curve.fn(t) * 100 + 25);
+      t === 0 ? paramCtx.moveTo(x, y) : paramCtx.lineTo(x, y);
+    }
+    paramCtx.stroke();
+    
+    paramCtx.fillStyle = curve.color;
+    paramCtx.font = '12px Inter';
+    paramCtx.fillText(curve.name, 10, 20 + idx * 20);
+  });
+  
+  // Current position marker
+  paramCtx.strokeStyle = '#fff';
+  paramCtx.lineWidth = 2;
+  paramCtx.beginPath();
+  paramCtx.moveTo(morphT * 360, 0);
+  paramCtx.lineTo(morphT * 360, 250);
+  paramCtx.stroke();
+}
+
+// Morph Space
+const spaceCanvas = document.getElementById('space-canvas');
+const spaceCtx = spaceCanvas.getContext('2d');
+spaceCanvas.width = 360;
+spaceCanvas.height = 250;
+
+function drawMorphSpace() {
+  spaceCtx.fillStyle = 'rgba(0,0,0,0.4)';
+  spaceCtx.fillRect(0, 0, 360, 250);
+  
+  // Axes
+  spaceCtx.strokeStyle = 'rgba(255,255,255,0.3)';
+  spaceCtx.lineWidth = 1;
+  spaceCtx.beginPath();
+  spaceCtx.moveTo(0, 250);
+  spaceCtx.lineTo(360, 250);
+  spaceCtx.moveTo(0, 0);
+  spaceCtx.lineTo(0, 250);
+  spaceCtx.stroke();
+  
+  // Labels
+  spaceCtx.fillStyle = '#fff';
+  spaceCtx.font = '11px Inter';
+  spaceCtx.fillText('Bird-ness →', 320, 245);
+  spaceCtx.save();
+  spaceCtx.translate(10, 120);
+  spaceCtx.rotate(-Math.PI / 2);
+  spaceCtx.fillText('Human-ness →', 0, 0);
+  spaceCtx.restore();
+  
+  // Valid path (diagonal)
+  spaceCtx.strokeStyle = '#b46cff';
+  spaceCtx.lineWidth = 3;
+  spaceCtx.beginPath();
+  spaceCtx.moveTo(0, 250);
+  spaceCtx.lineTo(360, 0);
+  spaceCtx.stroke();
+  
+  // Current position
+  const birdness = 1 - morphT;
+  const humanness = morphT;
+  spaceCtx.fillStyle = '#ffb400';
+  spaceCtx.beginPath();
+  spaceCtx.arc(birdness * 360, (1 - humanness) * 250, 8, 0, Math.PI * 2);
+  spaceCtx.fill();
+}
+
+document.getElementById('export-btn').onclick = () => {
+  const blob = new Blob([JSON.stringify({ morphT }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'morph-config.json';
+  a.click();
+};
+
+document.querySelectorAll('.view-switcher button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.view-switcher button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view-container').forEach(c => c.classList.remove('active'));
+    const vc = document.querySelector(`.view-container[data-view="${btn.dataset.view}"]`);
+    if (vc) vc.classList.add('active');
+  };
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  
+  morphEntity.position.y = 14 + Math.sin(Date.now() * 0.0008) * 0.3;
+  morphEntity.rotation.y += 0.005;
+  
+  drawParamCurves();
+  drawMorphSpace();
+  
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+applyMorph(0.5);
+
+// ===== AUDIO + TITLE SEQUENCE =====
+class SoundEngine {
+  constructor() { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+  play(f, d, t = 'sine', v = 0.3) {
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = t; o.frequency.setValueAtTime(f, this.ctx.currentTime);
+    g.gain.setValueAtTime(v, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + d);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(this.ctx.currentTime); o.stop(this.ctx.currentTime + d);
+  }
+  sweep(s, e, d, v = 0.2) {
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(s, this.ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(e, this.ctx.currentTime + d);
+    g.gain.setValueAtTime(v, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + d);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(this.ctx.currentTime); o.stop(this.ctx.currentTime + d);
+  }
+}
+const sound = new SoundEngine();
+
+class TitleSequence {
+  constructor(cam, scn, dur = 12) {
+    this.cam = cam; this.scn = scn; this.dur = dur; this.playing = false;
+    this.origPos = cam.position.clone(); this.origRot = cam.rotation.clone();
+    this.sprites = [];
+  }
+  makeTxt(txt, col = '#B46CFF', sz = 120) {
+    const c = document.createElement('canvas'), x = c.getContext('2d');
+    c.width = 1024; c.height = 256;
+    x.font = `600 ${sz}px 'Helvetica Neue', 'Futura', 'Arial', sans-serif`;
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.strokeStyle = '#000'; x.lineWidth = 8; x.strokeText(txt, 512, 128);
+    x.fillStyle = col; x.fillText(txt, 512, 128);
+    const tex = new THREE.CanvasTexture(c); tex.needsUpdate = true;
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0 }));
+    spr.scale.set(10, 2.5, 1); this.scn.add(spr); this.sprites.push(spr); return spr;
+  }
+  lerp(a, b, t) { return a + (b - a) * t; }
+  play() {
+    if (this.playing) return; this.playing = true;
+    const btn = document.getElementById('play-intro');
+    btn.classList.add('playing'); btn.textContent = '⏸ Playing...';
+    document.querySelector('.view-switcher').style.opacity = '0';
+    document.querySelector('.controls-panel').style.opacity = '0';
+    const ce = controls.enabled; controls.enabled = false;
+    
+    const start = Date.now(), dur = this.dur * 1000;
+    const t1 = this.makeTxt('FORM', '#B46CFF', 140);
+    const t2 = this.makeTxt('FLOWS', '#36CFC9', 140);
+    const t3 = this.makeTxt('IDENTITY', '#FFB400', 130);
+    const t4 = this.makeTxt('SHIFTS', '#B46CFF', 130);
+    
+    setTimeout(() => sound.play(300, 0.5, 'sine'), 0);
+    setTimeout(() => sound.sweep(300, 600, 2), 3000);
+    setTimeout(() => sound.play(450, 0.5, 'sine'), 6000);
+    setTimeout(() => sound.sweep(600, 300, 2), 9000);
+    
+    const anim = () => {
+      const el = Date.now() - start, t = Math.min(el / dur, 1);
+      
+      if (t < 0.25) {
+        const t1v = t / 0.25, angle = t1v * Math.PI;
+        camera.position.set(Math.cos(angle) * 15, this.lerp(12, 18, t1v), Math.sin(angle) * 15);
+        camera.lookAt(morphEntity.position);
+        t1.position.copy(morphEntity.position); t1.position.y += 8;
+        t1.material.opacity = t1v; t1.scale.setScalar(this.lerp(0.5, 1, t1v) * 10);
+      } else if (t < 0.5) {
+        const t2v = (t - 0.25) / 0.25;
+        camera.position.set(0, this.lerp(18, 14, t2v), this.lerp(15, 20, t2v));
+        camera.lookAt(morphEntity.position);
+        t1.material.opacity = 1 - t2v;
+        t2.position.copy(morphEntity.position); t2.position.y += 6;
+        t2.material.opacity = t2v; t2.scale.setScalar(this.lerp(0.5, 1, t2v) * 11);
+      } else if (t < 0.75) {
+        const t3v = (t - 0.5) / 0.25;
+        camera.position.set(this.lerp(0, 5, t3v), this.lerp(14, 12, t3v), this.lerp(20, 18, t3v));
+        camera.lookAt(morphEntity.position);
+        t2.material.opacity = 1 - t3v;
+        t3.position.set(0, 10, 0); t3.material.opacity = t3v;
+        t3.scale.setScalar(this.lerp(0.5, 1, t3v) * 9);
+      } else {
+        const t4v = (t - 0.75) / 0.25;
+        camera.position.set(0, this.lerp(12, 15, t4v), this.lerp(18, 20, t4v));
+        camera.lookAt(new THREE.Vector3(0, 14, 0));
+        t3.material.opacity = 1; t3.position.y = 10;
+        t4.position.set(0, this.lerp(-8, 0, t4v), 0);
+        t4.material.opacity = t4v; t4.scale.setScalar(this.lerp(0.5, 1, t4v) * 10);
+        if (t > 0.95) {
+          const fo = (t - 0.95) / 0.05;
+          t3.material.opacity = 1 - fo; t4.material.opacity = 1 - fo;
+        }
+      }
+      
+      if (t < 1) requestAnimationFrame(anim);
+      else {
+        this.playing = false; btn.classList.remove('playing'); btn.textContent = '▶ Play Intro';
+        document.querySelector('.view-switcher').style.opacity = '1';
+        document.querySelector('.controls-panel').style.opacity = '1';
+        controls.enabled = ce;
+        this.sprites.forEach(s => this.scn.remove(s)); this.sprites = [];
+        camera.position.copy(this.origPos); camera.rotation.copy(this.origRot);
+      }
+    };
+    anim();
+  }
+}
+
+const titleSeq = new TitleSequence(camera, scene, 12);
+document.getElementById('play-intro').onclick = () => titleSeq.play();
+
+animate();
+
+window.onresize = () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+};
+</script>
+
+</body>
+</html>
