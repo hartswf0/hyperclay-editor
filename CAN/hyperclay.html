@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HYPERCLAY — Screenplay Editor</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+  background: #0b0b0c;
+  color: #e8e8e8;
+  overflow: hidden;
+  height: 100vh;
+}
+
+#app {
+  display: grid;
+  grid-template-rows: 1fr 160px;
+  height: 100vh;
+  gap: 0;
+}
+
+/* Field View - Main Canvas */
+#field-view {
+  position: relative;
+  background: #0b0b0c;
+  overflow: hidden;
+  border-bottom: 1px solid #333;
+}
+
+#field-canvas {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+#field-canvas:active {
+  cursor: grabbing;
+}
+
+/* Timeline View */
+#timeline-view {
+  background: #1a1a1c;
+  border-top: 1px solid #333;
+  padding: 8px 12px;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 160px;
+}
+
+.timeline-track {
+  margin-bottom: 8px;
+}
+
+.timeline-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.timeline-items {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.timeline-item {
+  background: #2a2a2c;
+  border: 1px solid #444;
+  padding: 4px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.timeline-item:hover {
+  background: #3a3a3c;
+  border-color: #666;
+}
+
+.timeline-item.active {
+  background: #ffd700;
+  color: #000;
+  border-color: #ffd700;
+}
+
+/* HUD Overlay */
+#hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.65;
+  font-size: 12px;
+}
+
+.hud-title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.hud-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 3px 8px;
+  border-radius: 2px;
+  font-size: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Constraint Rack */
+#constraint-rack {
+  position: absolute;
+  top: 160px;
+  right: 12px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 200px;
+}
+
+.constraint-btn {
+  background: #2a2a2c;
+  border: 1px solid #444;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: #e8e8e8;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-family: monospace;
+}
+
+.constraint-btn:hover {
+  background: #3a3a3c;
+  border-color: #666;
+}
+
+.constraint-btn.active {
+  background: #ffd700;
+  color: #000;
+  border-color: #ffd700;
+}
+
+/* Shot Wall Panel */
+#shot-wall {
+  position: absolute;
+  bottom: 180px;
+  right: 12px;
+  width: 300px;
+  max-height: 400px;
+  background: rgba(26, 26, 28, 0.95);
+  border: 1px solid #444;
+  padding: 12px;
+  z-index: 90;
+  display: none;
+  overflow-y: auto;
+}
+
+#shot-wall.visible {
+  display: block;
+}
+
+.shot-wall-title {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.shot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.shot-thumb {
+  aspect-ratio: 16/9;
+  background: #1a1a1c;
+  border: 1px solid #333;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.shot-thumb:hover {
+  border-color: #ffd700;
+  transform: scale(1.05);
+}
+
+.shot-thumb img,
+.shot-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shot-number {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffd700;
+  font-size: 9px;
+  padding: 2px 4px;
+  font-weight: 700;
+}
+
+/* Ledger Panel */
+#ledger {
+  position: absolute;
+  bottom: 180px;
+  left: 12px;
+  width: 320px;
+  max-height: 300px;
+  background: rgba(26, 26, 28, 0.95);
+  border: 1px solid #444;
+  padding: 12px;
+  z-index: 90;
+  display: none;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 10px;
+}
+
+#ledger.visible {
+  display: block;
+}
+
+.ledger-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid #222;
+  color: #aaa;
+}
+
+.ledger-entry .timestamp {
+  color: #666;
+}
+
+.ledger-entry .action {
+  color: #ffd700;
+}
+
+/* Scene Node Tooltip */
+.scene-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid #ffd700;
+  padding: 12px 16px;
+  font-size: 11px;
+  pointer-events: none;
+  z-index: 200;
+  max-width: 400px;
+  display: none;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.scene-tooltip.visible {
+  display: block;
+}
+
+.tooltip-title {
+  font-weight: 700;
+  color: #ffd700;
+  margin-bottom: 4px;
+}
+
+.tooltip-text {
+  color: #ccc;
+  line-height: 1.4;
+}
+
+/* Loading State */
+.loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  color: #888;
+  text-align: center;
+}
+
+/* Toggle Buttons */
+.view-toggle {
+  position: absolute;
+  bottom: 180px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+}
+
+.toggle-btn {
+  background: #2a2a2c;
+  border: 1px solid #444;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #e8e8e8;
+  cursor: pointer;
+  font-family: monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+  background: #3a3a3c;
+  border-color: #666;
+}
+
+.toggle-btn.active {
+  background: #ffd700;
+  color: #000;
+  border-color: #ffd700;
+}
+
+/* Style selector */
+.style-selector {
+  position: absolute;
+  top: 80px;
+  right: 12px;
+  z-index: 100;
+  display: flex;
+  gap: 4px;
+  flex-direction: column;
+  max-width: 200px;
+}
+
+.style-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  margin-bottom: 2px;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="field-view">
+    <canvas id="field-canvas"></canvas>
+    
+    <div id="hud">
+      <div class="hud-title" id="hud-title">Loading...</div>
+      <div class="hud-badges">
+        <span class="badge" id="badge-style">photoreal-lite</span>
+        <span class="badge" id="badge-lens">35mm</span>
+        <span class="badge" id="badge-seed">seed:lock</span>
+      </div>
+    </div>
+
+    <div class="style-selector">
+      <div class="style-label">Visual Style</div>
+      <button class="constraint-btn" data-style="dynamic_style">Dynamic</button>
+      <button class="constraint-btn" data-style="handdrawn_ink_style">Hand-drawn</button>
+    </div>
+
+    <div id="constraint-rack">
+      <button class="constraint-btn" data-constraint="style">Style</button>
+      <button class="constraint-btn" data-constraint="lens">Lens</button>
+      <button class="constraint-btn" data-constraint="physics">Physics</button>
+      <button class="constraint-btn" data-constraint="identity">Identity</button>
+      <button class="constraint-btn" data-constraint="continuity">Continuity</button>
+      <button class="constraint-btn" data-constraint="prompt">Prompt</button>
+    </div>
+
+    <div class="view-toggle">
+      <button class="toggle-btn" data-view="shots">Shots</button>
+      <button class="toggle-btn" data-view="ledger">Ledger</button>
+    </div>
+
+    <div id="shot-wall">
+      <div class="shot-wall-title">Shot Wall</div>
+      <div class="shot-grid" id="shot-grid"></div>
+    </div>
+
+    <div id="ledger">
+      <div class="shot-wall-title">Provenance Ledger</div>
+      <div id="ledger-content"></div>
+    </div>
+
+    <div class="scene-tooltip" id="scene-tooltip">
+      <div class="tooltip-title"></div>
+      <div class="tooltip-text"></div>
+    </div>
+  </div>
+
+  <div id="timeline-view">
+    <div class="timeline-track">
+      <div class="timeline-label">Screenplay</div>
+      <div class="timeline-items" id="screenplay-selector"></div>
+    </div>
+    <div class="timeline-track">
+      <div class="timeline-label">Shots</div>
+      <div class="timeline-items" id="timeline-scenes"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Global State
+const state = {
+  data: null,
+  screenplays: [],
+  currentScreenplay: 0,
+  currentScene: 0,
+  currentStyle: 'dynamic_style',
+  view: { x: 0, y: 0, scale: 1 },
+  nodes: [],
+  constraints: {
+    style: { model: 'photoreal-lite', active: false },
+    lens: { fov: 35, active: false },
+    physics: { active: false },
+    identity: { active: false },
+    continuity: { seed_lock: true, active: false },
+    prompt: { prefix: '', suffix: '', active: false }
+  },
+  ledger: [],
+  dragging: false,
+  dragStart: { x: 0, y: 0 },
+  imageCache: {}
+};
+
+// Load Data
+async function loadData() {
+  try {
+    const response = await fetch('screenplays.json');
+    state.data = await response.json();
+    log('Data loaded', `${state.data.length} screenplay(s)`);
+    init();
+  } catch (error) {
+    console.error('Failed to load data:', error);
+    document.querySelector('.loading').textContent = 'Failed to load screenplays.json';
+  }
+}
+
+// Initialize
+function init() {
+  if (!state.data || state.data.length === 0) return;
+  
+  state.screenplays = state.data;
+  loadScreenplay(state.currentScreenplay);
+  renderScreenplaySelector();
+  setupInteractions();
+}
+
+// Load specific screenplay
+function loadScreenplay(idx) {
+  if (idx < 0 || idx >= state.screenplays.length) return;
+  
+  state.currentScreenplay = idx;
+  state.currentScene = 0;
+  const screenplay = state.screenplays[idx];
+  
+  document.getElementById('hud-title').textContent = screenplay.title || 'Untitled';
+  
+  // Extract ALL content items
+  const allContent = [];
+  screenplay.content.forEach((item, i) => {
+    if (item.shot_number) {
+      const prevFragment = i > 0 && screenplay.content[i-1].fragment ? screenplay.content[i-1].fragment : '';
+      allContent.push({
+        id: item.shot_number,
+        name: `Shot ${item.shot_number}`,
+        shotDesc: item.shot_description || '',
+        staticDesc: item.static_scene_description || '',
+        temporalDesc: item.temporal_scene_description || '',
+        fragment: prevFragment,
+        elements: item.scene_story_elements || [],
+        x: Math.cos(allContent.length * 0.6) * 250 + 500,
+        y: Math.sin(allContent.length * 0.6) * 250 + 350,
+        size: Math.min(Math.max((item.shot_description?.length || 100), 80), 600),
+        color: hashColor(item.shot_number),
+        data: item
+      });
+    }
+  });
+  
+  state.nodes = allContent;
+  log('Screenplay loaded', `${screenplay.title}: ${state.nodes.length} shots`);
+  
+  // Preload images
+  preloadImages();
+  
+  renderTimeline();
+  renderCanvas();
+  renderShotWall();
+}
+
+// Hash color from ID
+function hashColor(id) {
+  const hue = (id * 137.5) % 360;
+  return `hsl(${hue}, 50%, 50%)`;
+}
+
+// Preload images
+function preloadImages() {
+  state.nodes.forEach(node => {
+    const versions = node.data.versions;
+    if (versions && versions[state.currentStyle]) {
+      const url = versions[state.currentStyle].selected_image_url;
+      if (url && !state.imageCache[url]) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          state.imageCache[url] = img;
+          renderCanvas();
+        };
+        img.src = url;
+      }
+    }
+  });
+}
+
+// Render Canvas (Story Graph)
+function renderCanvas() {
+  const canvas = document.getElementById('field-canvas');
+  const ctx = canvas.getContext('2d');
+  
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  
+  const w = canvas.offsetWidth;
+  const h = canvas.offsetHeight;
+  
+  // Clear
+  ctx.fillStyle = '#0b0b0c';
+  ctx.fillRect(0, 0, w, h);
+  
+  // Grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < w; i += 50) {
+    ctx.beginPath();
+    ctx.moveTo(i + state.view.x, 0);
+    ctx.lineTo(i + state.view.x, h);
+    ctx.stroke();
+  }
+  for (let i = 0; i < h; i += 50) {
+    ctx.beginPath();
+    ctx.moveTo(0, i + state.view.y);
+    ctx.lineTo(w, i + state.view.y);
+    ctx.stroke();
+  }
+  
+  // Edges (sequence)
+  ctx.strokeStyle = 'rgba(255, 215, 0, 0.2)';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < state.nodes.length - 1; i++) {
+    const n1 = state.nodes[i];
+    const n2 = state.nodes[i + 1];
+    ctx.beginPath();
+    ctx.moveTo(n1.x + state.view.x, n1.y + state.view.y);
+    ctx.lineTo(n2.x + state.view.x, n2.y + state.view.y);
+    ctx.stroke();
+  }
+  
+  // Nodes
+  state.nodes.forEach((node, idx) => {
+    const x = node.x + state.view.x;
+    const y = node.y + state.view.y;
+    const r = Math.sqrt(node.size / Math.PI) * 0.35 + 30;
+    
+    // Glow for active
+    if (idx === state.currentScene) {
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = '#ffd700';
+    } else {
+      ctx.shadowBlur = 0;
+    }
+    
+    // Image inside circle
+    const versions = node.data.versions;
+    const imageUrl = versions && versions[state.currentStyle] ? versions[state.currentStyle].selected_image_url : null;
+    const cachedImg = imageUrl ? state.imageCache[imageUrl] : null;
+    
+    if (cachedImg) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, r - 2, 0, Math.PI * 2);
+      ctx.clip();
+      const imgSize = (r - 2) * 2;
+      ctx.drawImage(cachedImg, x - r + 2, y - r + 2, imgSize, imgSize);
+      ctx.restore();
+    } else {
+      // Fallback: color circle
+      ctx.fillStyle = node.color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Border
+    ctx.strokeStyle = idx === state.currentScene ? '#ffd700' : 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = idx === state.currentScene ? 4 : 2;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.shadowBlur = 0;
+    
+    // Label
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 3;
+    ctx.fillText(node.name, x, y + r + 16);
+    ctx.shadowBlur = 0;
+  });
+}
+
+// Render screenplay selector
+function renderScreenplaySelector() {
+  const container = document.getElementById('screenplay-selector');
+  container.innerHTML = '';
+  
+  state.screenplays.forEach((screenplay, idx) => {
+    const item = document.createElement('div');
+    item.className = 'timeline-item' + (idx === state.currentScreenplay ? ' active' : '');
+    item.textContent = screenplay.title || `Screenplay ${idx + 1}`;
+    item.onclick = () => {
+      loadScreenplay(idx);
+      log('Switch screenplay', screenplay.title);
+    };
+    container.appendChild(item);
+  });
+}
+
+// Render Timeline
+function renderTimeline() {
+  const container = document.getElementById('timeline-scenes');
+  container.innerHTML = '';
+  
+  state.nodes.forEach((node, idx) => {
+    const item = document.createElement('div');
+    item.className = 'timeline-item' + (idx === state.currentScene ? ' active' : '');
+    item.textContent = node.name;
+    item.onclick = () => selectScene(idx);
+    container.appendChild(item);
+  });
+}
+
+// Render Shot Wall
+function renderShotWall() {
+  const grid = document.getElementById('shot-grid');
+  grid.innerHTML = '';
+  
+  state.nodes.forEach((node) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'shot-thumb';
+    
+    const versions = node.data.versions;
+    let mediaUrl = null;
+    
+    if (versions) {
+      // Try dynamic style first
+      if (versions.dynamic_style?.selected_image_url) {
+        mediaUrl = versions.dynamic_style.selected_image_url;
+      } else if (versions.handdrawn_ink_style?.selected_image_url) {
+        mediaUrl = versions.handdrawn_ink_style.selected_image_url;
+      }
+    }
+    
+    if (mediaUrl) {
+      const img = document.createElement('img');
+      img.src = mediaUrl;
+      img.alt = node.name;
+      thumb.appendChild(img);
+    }
+    
+    const num = document.createElement('div');
+    num.className = 'shot-number';
+    num.textContent = node.id;
+    thumb.appendChild(num);
+    
+    thumb.onclick = () => {
+      const idx = state.nodes.findIndex(n => n.id === node.id);
+      selectScene(idx);
+    };
+    
+    grid.appendChild(thumb);
+  });
+}
+
+// Select Scene
+function selectScene(idx) {
+  state.currentScene = idx;
+  log('Select', `Scene ${state.nodes[idx].name}`);
+  renderTimeline();
+  renderCanvas();
+}
+
+// Setup Interactions
+function setupInteractions() {
+  const canvas = document.getElementById('field-canvas');
+  
+  // Pan
+  canvas.addEventListener('mousedown', (e) => {
+    state.dragging = true;
+    state.dragStart = { x: e.clientX - state.view.x, y: e.clientY - state.view.y };
+  });
+  
+  canvas.addEventListener('mousemove', (e) => {
+    if (state.dragging) {
+      state.view.x = e.clientX - state.dragStart.x;
+      state.view.y = e.clientY - state.dragStart.y;
+      renderCanvas();
+    }
+    
+    // Tooltip
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left - state.view.x;
+    const my = e.clientY - rect.top - state.view.y;
+    
+    let hoveredNode = null;
+    for (const node of state.nodes) {
+      const dx = mx - node.x;
+      const dy = my - node.y;
+      const r = Math.sqrt(node.size / Math.PI) * 0.3 + 20;
+      if (Math.sqrt(dx * dx + dy * dy) < r) {
+        hoveredNode = node;
+        break;
+      }
+    }
+    
+    const tooltip = document.getElementById('scene-tooltip');
+    if (hoveredNode) {
+      const titleEl = tooltip.querySelector('.tooltip-title');
+      const textEl = tooltip.querySelector('.tooltip-text');
+      titleEl.textContent = hoveredNode.name;
+      
+      // Show fragment + shot description + elements
+      let tooltipContent = '';
+      if (hoveredNode.fragment) tooltipContent += `[Fragment] ${hoveredNode.fragment.substring(0, 80)}...\n\n`;
+      if (hoveredNode.shotDesc) tooltipContent += `[Shot] ${hoveredNode.shotDesc.substring(0, 100)}...\n\n`;
+      if (hoveredNode.elements.length > 0) tooltipContent += `[Elements] ${hoveredNode.elements.join(', ')}`;
+      
+      textEl.textContent = tooltipContent || hoveredNode.staticDesc?.substring(0, 120) + '...' || '';
+      tooltip.style.left = e.clientX + 15 + 'px';
+      tooltip.style.top = e.clientY + 15 + 'px';
+      tooltip.classList.add('visible');
+    } else {
+      tooltip.classList.remove('visible');
+    }
+  });
+  
+  canvas.addEventListener('mouseup', () => {
+    state.dragging = false;
+  });
+  
+  canvas.addEventListener('mouseleave', () => {
+    state.dragging = false;
+    document.getElementById('scene-tooltip').classList.remove('visible');
+  });
+  
+  // Click node
+  canvas.addEventListener('click', (e) => {
+    if (Math.abs(e.clientX - (state.dragStart.x + state.view.x)) > 5) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left - state.view.x;
+    const my = e.clientY - rect.top - state.view.y;
+    
+    for (let i = 0; i < state.nodes.length; i++) {
+      const node = state.nodes[i];
+      const dx = mx - node.x;
+      const dy = my - node.y;
+      const r = Math.sqrt(node.size / Math.PI) * 0.3 + 20;
+      if (Math.sqrt(dx * dx + dy * dy) < r) {
+        selectScene(i);
+        break;
+      }
+    }
+  });
+  
+  // Style switcher
+  document.querySelectorAll('[data-style]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const style = btn.dataset.style;
+      state.currentStyle = style;
+      document.querySelectorAll('[data-style]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      log('Style changed', style === 'dynamic_style' ? 'Dynamic' : 'Hand-drawn');
+      state.imageCache = {};
+      preloadImages();
+      renderCanvas();
+      renderShotWall();
+    });
+  });
+  
+  // Set initial active style
+  document.querySelector(`[data-style="${state.currentStyle}"]`).classList.add('active');
+  
+  // Constraints
+  document.querySelectorAll('[data-constraint]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const constraint = btn.dataset.constraint;
+      state.constraints[constraint].active = !state.constraints[constraint].active;
+      btn.classList.toggle('active');
+      log('Constraint', `${constraint} ${state.constraints[constraint].active ? 'enabled' : 'disabled'}`);
+    });
+  });
+  
+  // View toggles
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.dataset.view;
+      const panel = document.getElementById(view === 'shots' ? 'shot-wall' : 'ledger');
+      const isVisible = panel.classList.contains('visible');
+      
+      // Hide all panels
+      document.querySelectorAll('#shot-wall, #ledger').forEach(p => p.classList.remove('visible'));
+      document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+      
+      if (!isVisible) {
+        panel.classList.add('visible');
+        btn.classList.add('active');
+      }
+    });
+  });
+  
+  // Keyboard
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'h') {
+      const hud = document.getElementById('hud');
+      hud.style.opacity = hud.style.opacity === '0' ? '0.65' : '0';
+    }
+    if (e.key === 'ArrowLeft' && state.currentScene > 0) {
+      selectScene(state.currentScene - 1);
+    }
+    if (e.key === 'ArrowRight' && state.currentScene < state.nodes.length - 1) {
+      selectScene(state.currentScene + 1);
+    }
+  });
+  
+  // Resize
+  window.addEventListener('resize', renderCanvas);
+}
+
+// Provenance Log
+function log(action, details = '') {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    action,
+    details
+  };
+  state.ledger.push(entry);
+  
+  const ledger = document.getElementById('ledger-content');
+  const el = document.createElement('div');
+  el.className = 'ledger-entry';
+  el.innerHTML = `<span class="timestamp">${entry.timestamp.split('T')[1].split('.')[0]}</span> <span class="action">${action}</span> ${details}`;
+  ledger.appendChild(el);
+  ledger.scrollTop = ledger.scrollHeight;
+  
+  // Keep last 200
+  if (state.ledger.length > 200) {
+    state.ledger.shift();
+    ledger.removeChild(ledger.firstChild);
+  }
+}
+
+// Start
+loadData();
+</script>
+
+</body>
+</html>

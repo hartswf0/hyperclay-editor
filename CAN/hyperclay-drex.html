@@ -1,0 +1,1723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HYPERCLAY REX — Cinome Breeder</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+body { 
+  font-family: 'Courier New', monospace;
+  background: #000; 
+  color: #e8e8e8; 
+  overflow: hidden;
+  height: 100vh;
+}
+
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+.top-bar {
+  background: rgba(0, 0, 0, 0.9);
+  border-bottom: 1px solid #2a2a2c;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  backdrop-filter: blur(10px);
+}
+
+.operator {
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 2px solid #333;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 18px;
+  color: #666;
+}
+
+.operator:hover {
+  border-color: #00bcd4;
+  color: #00bcd4;
+  background: rgba(0, 188, 212, 0.1);
+  transform: scale(1.1);
+}
+
+.operator.active {
+  border-color: #ffd700;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.main {
+  flex: 1;
+  background: #000;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* DNA Helix Container - Zoomable */
+.helix-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+}
+
+.helix-strand {
+  position: relative;
+  width: 200px;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.1s linear;
+}
+
+@media (min-width: 768px) {
+  .helix-strand {
+    width: 280px;
+  }
+}
+
+/* Helix SVG Background */
+.helix-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.helix-path {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0.9;
+  transition: all 0.3s;
+}
+
+.helix-a { 
+  stroke: #00bcd4;
+  filter: drop-shadow(0 0 6px rgba(0, 188, 212, 0.7));
+}
+
+.helix-b { 
+  stroke: #ff9800;
+  filter: drop-shadow(0 0 6px rgba(255, 152, 0, 0.7));
+}
+
+/* Base Pair Node - Dense Distribution */
+.base-pair {
+  position: absolute;
+  width: 100%;
+  left: 0;
+  height: 1px;
+  transform-origin: center;
+  pointer-events: none;
+  z-index: 1;
+  will-change: transform, opacity, top;
+}
+
+.base-pair.center {
+  z-index: 100;
+  pointer-events: all;
+}
+
+/* BP Label - Minimal */
+.bp-label {
+  position: absolute;
+  left: -25px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Courier New', monospace;
+  font-size: 8px;
+  font-weight: 700;
+  color: #00bcd4;
+  letter-spacing: 0.5px;
+  opacity: 0;
+  transition: all 0.3s;
+}
+
+.base-pair.focused .bp-label,
+.base-pair:hover .bp-label {
+  opacity: 1;
+  color: #00d4e8;
+  font-size: 11px;
+  left: -35px;
+}
+
+/* Nucleotide - Dynamic Sizing */
+.nucleotide {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 2;
+  overflow: hidden;
+  border: 1px solid;
+  pointer-events: all;
+  transition: none; /* Smooth via JS */
+  will-change: width, height, left, top, opacity;
+}
+
+.nucleotide-a {
+  background: #00bcd4;
+  border-color: #00bcd4;
+  box-shadow: 0 0 10px rgba(0, 188, 212, 1);
+}
+
+.nucleotide-b {
+  background: #ff9800;
+  border-color: #ff9800;
+  box-shadow: 0 0 10px rgba(255, 152, 0, 1);
+}
+
+.nucleotide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.strand-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.95);
+  padding: 6px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  border-top: 1px solid;
+  letter-spacing: 0.3px;
+}
+
+.strand-a .strand-label {
+  color: #00bcd4;
+  border-color: #00bcd4;
+}
+
+.strand-b .strand-label {
+  color: #ff9800;
+  border-color: #ff9800;
+}
+
+.strand-type {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 3px 6px;
+  font-size: 8px;
+  font-weight: 900;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+.strand-a .strand-type {
+  background: #00bcd4;
+  color: #000;
+}
+
+.strand-b .strand-type {
+  background: #ff9800;
+  color: #000;
+}
+
+/* Horizontal Bond Lines - Minimal */
+.bond-lines {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 40%;
+  bottom: 40%;
+  z-index: 1;
+  pointer-events: all;
+  opacity: 0;
+  transition: all 0.3s;
+}
+
+.base-pair.focused .bond-lines {
+  opacity: 1;
+}
+
+.bond-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 215, 0, 0.3);
+  pointer-events: all;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bond-line:hover {
+  background: rgba(255, 215, 0, 0.9);
+  height: 2px;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+}
+
+/* Operation Popup - Symbolic */
+.bond-ops {
+  position: absolute;
+  left: 50%;
+  top: -25px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid #ffd700;
+  border-radius: 20px;
+  padding: 4px 8px;
+  display: none;
+  gap: 6px;
+  align-items: center;
+  backdrop-filter: blur(10px);
+}
+
+.bond-line:hover .bond-ops {
+  display: flex;
+}
+
+.bond-op {
+  background: transparent;
+  border: none;
+  color: #ffd700;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: all 0.2s;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bond-op:hover {
+  color: #fff;
+  transform: scale(1.2);
+}
+
+/* Text Encoding */
+.text-encoding {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 9px;
+  color: #999;
+  line-height: 1.3;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.base-pair.selected .text-encoding {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .text-encoding {
+    font-size: 10px;
+  }
+}
+
+.encoding-row {
+  display: flex;
+  gap: 6px;
+}
+
+.encoding-label {
+  color: #666;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  min-width: 30px;
+}
+
+@media (min-width: 768px) {
+  .encoding-label {
+    font-size: 8px;
+    min-width: 40px;
+  }
+}
+
+.encoding-value {
+  color: #ccc;
+  font-family: 'Courier New', monospace;
+  word-break: break-word;
+  font-size: 8px;
+}
+
+@media (min-width: 768px) {
+  .encoding-value {
+    font-size: 9px;
+  }
+}
+
+.encoding-value.shot {
+  color: #00bcd4;
+  font-weight: 700;
+}
+
+.encoding-value.mode {
+  color: #ff9800;
+  font-weight: 700;
+}
+
+/* Phenotype Rectangle - Minimal */
+.phenotype {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  border: 2px solid #ffd700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+  cursor: pointer;
+  background: #000;
+  z-index: 3;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+}
+
+.base-pair.focused .phenotype {
+  width: 160px;
+  height: 90px;
+  border-width: 3px;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.9);
+  opacity: 1;
+}
+
+@media (min-width: 768px) {
+  .base-pair.focused .phenotype {
+    width: 200px;
+    height: 112px;
+  }
+}
+
+.phenotype:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+}
+
+.phenotype canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.phenotype-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 215, 0, 0.9);
+  color: #000;
+  font-size: 8px;
+  font-weight: 900;
+  text-align: center;
+  padding: 3px;
+  text-transform: uppercase;
+}
+
+/* Corner Controls */
+.corner-control {
+  position: fixed;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid #333;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  z-index: 1000;
+  font-size: 24px;
+  color: #666;
+}
+
+.corner-control:hover {
+  border-color: #00bcd4;
+  color: #00bcd4;
+  transform: scale(1.1);
+  box-shadow: 0 0 30px rgba(0, 188, 212, 0.4);
+}
+
+.corner-tl { top: 20px; left: 20px; }
+.corner-tr { top: 20px; right: 20px; }
+.corner-bl { bottom: 80px; left: 20px; }
+.corner-br { bottom: 80px; right: 20px; }
+
+/* Bottom Control Bar */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.95);
+  border-top: 1px solid #2a2a2c;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  backdrop-filter: blur(10px);
+  z-index: 999;
+}
+
+.control-slider {
+  flex: 1;
+  height: 8px;
+  background: #1a1a1c;
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+}
+
+.slider-track {
+  height: 100%;
+  background: linear-gradient(90deg, #00bcd4, #ff9800);
+  border-radius: 4px;
+  transition: width 0.2s;
+}
+
+.slider-label {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  min-width: 80px;
+}
+
+/* Image Lightbox */
+.lightbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.lightbox.visible {
+  display: flex;
+}
+
+.lightbox-content {
+  max-width: 90vw;
+  max-height: 90vh;
+  position: relative;
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: 90vh;
+  border: 3px solid #00bcd4;
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(0, 188, 212, 0.6);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: #00bcd4;
+  border: none;
+  color: #000;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-info {
+  position: absolute;
+  bottom: -60px;
+  left: 0;
+  right: 0;
+  color: #00bcd4;
+  text-align: center;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Library Items */
+.library-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.library-item {
+  background: #1a1a1c;
+  border: 1px solid #2a2a2c;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.library-item:hover {
+  background: #222224;
+  border-color: #00bcd4;
+}
+
+.library-item.active {
+  background: rgba(0, 188, 212, 0.15);
+  border-color: #00bcd4;
+}
+
+.library-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.library-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.library-meta {
+  font-size: 10px;
+  color: #999;
+  font-weight: 600;
+}
+
+.library-meta strong {
+  color: #00bcd4;
+  display: none;
+}
+
+.crispr-btn {
+  background: #1a1a1c;
+  border: 1px solid #444;
+  padding: 12px;
+  font-size: 11px;
+  color: #ccc;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.crispr-btn:hover {
+  background: #2a2a2c;
+  border-color: #00bcd4;
+  color: #fff;
+}
+
+.crispr-btn:active {
+  transform: scale(0.98);
+}
+
+/* Theory Panel */
+.theory-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.theory-overlay.visible {
+  display: flex;
+}
+
+.theory-content {
+  background: #0b0b0c;
+  border: 2px solid #00bcd4;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 30px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.theory-title {
+  font-size: 18px;
+  color: #00bcd4;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.theory-section {
+  margin-bottom: 20px;
+}
+
+.theory-section h3 {
+  font-size: 13px;
+  color: #ff9800;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.theory-section p {
+  color: #ccc;
+  margin-bottom: 10px;
+}
+
+.theory-close {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  background: #00bcd4;
+  color: #000;
+  border: none;
+  font-weight: 900;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Floating Action Buttons */
+.fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #00bcd4;
+  color: #000;
+  border: none;
+  font-size: 28px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 188, 212, 0.4);
+  z-index: 900;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 24px rgba(0, 188, 212, 0.6);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+.fab-secondary {
+  bottom: 90px;
+  background: #ff9800;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+}
+
+.fab-secondary:hover {
+  box-shadow: 0 8px 24px rgba(255, 152, 0, 0.6);
+}
+
+.help-btn {
+  position: fixed;
+  bottom: 160px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(26, 26, 28, 0.9);
+  color: #00bcd4;
+  border: 2px solid #00bcd4;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 900;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+
+.help-btn:hover {
+  transform: scale(1.1);
+  background: rgba(0, 188, 212, 0.2);
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0b0b0c; }
+::-webkit-scrollbar-thumb { background: #00bcd4; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Top Operator Bar -->
+  <div class="top-bar">
+    <div class="operator" id="op-mutate" title="Mutate">⚡</div>
+    <div class="operator" id="op-breed" title="Breed">◈</div>
+    <div class="operator" id="op-splice" title="Splice">✂</div>
+    <div class="operator" id="op-copy" title="Copy">⎘</div>
+    <div class="operator" id="op-delete" title="Delete">⌫</div>
+  </div>
+
+  <!-- Main Helix Viewport -->
+  <div class="main">
+    <div class="helix-viewport" id="helix-viewport">
+      <div class="helix-strand" id="helix-strand">
+        <svg class="helix-svg" id="helix-svg" viewBox="0 0 200 2000" preserveAspectRatio="xMidYMin slice">
+          <path class="helix-path helix-a" id="helix-path-a" d=""/>
+          <path class="helix-path helix-b" id="helix-path-b" d=""/>
+        </svg>
+        <!-- Base pairs dynamically inserted -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Corner Controls -->
+<div class="corner-control corner-tl" id="import-export" title="Import/Export">↕</div>
+<div class="corner-control corner-tr" id="add-new" title="Add New">+</div>
+<div class="corner-control corner-bl" id="help" title="Help & Modes">?</div>
+<div class="corner-control corner-br" id="menu" title="Menu">☰</div>
+
+<!-- Bottom Control Bar -->
+<div class="bottom-bar">
+  <div class="slider-label" id="slider-label">Blend</div>
+  <div class="control-slider" id="control-slider">
+    <div class="slider-track" id="slider-track" style="width: 50%;"></div>
+  </div>
+  <div class="slider-label">Gen <span id="gen-count">0</span></div>
+</div>
+
+<!-- Theory Overlay -->
+<div class="theory-overlay" id="theory-overlay">
+  <div class="theory-content">
+    <div class="theory-title">Procedural Rhetoric</div>
+    
+    <div class="theory-section">
+      <h3>Stanley & Lehman: Why Greatness Cannot Be Planned</h3>
+      <p>This interface embodies <strong>novelty search</strong> over objective-driven specification. You cannot plan which combinations will be interesting. Discovery emerges through <strong>stepping stones</strong> — unanticipated intermediates that lead somewhere you couldn't foresee.</p>
+      <p><strong>The tyranny of plausibility</strong>: Pre-specification forecloses exploration. Here, you breed without objectives, follow curiosity, accumulate unexpected forms.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Ingold: Correspondence Not Hylomorphism</h3>
+      <p>Traditional filmmaking assumes <strong>hylomorphism</strong>: complete vision (form) imposed on passive matter. This breeder demonstrates <strong>correspondence</strong> — form emerges <em>through</em> material engagement, not before it.</p>
+      <p>You don't arrive with a vision. You <strong>discover</strong> it by attending to what materials (images, blends, mutations) offer. The cinome grows along paths that continually bifurcate.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Barad: Agential Realism</h3>
+      <p>Each offspring is an <strong>apparatus-dependent phenomenon</strong>. The blend isn't "out there" waiting to be found — it's produced through the intra-action of parent images, blend modes, your selection, and the computational system.</p>
+      <p><strong>Agential cuts</strong>: When you choose to breed, star, or pool an offspring, you're making cuts that produce new phenomena. The genome is entangled with your choices.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>The Cinome</h3>
+      <p>A <strong>genome of cinema</strong> — not DNA, but a lineage of visual forms breeding across generations. The double helix visualization shows ancestry, not as a tree but as an intertwined spiral of emergence.</p>
+      <p>Each generation builds on "interesting" rather than "correct." The pile twists, mutates, corresponds. Greatness, if it arrives, arrives unplanned.</p>
+    </div>
+
+    <button class="theory-close" id="theory-close">Close</button>
+  </div>
+</div>
+
+<button class="help-btn" id="help-btn">?</button>
+
+<!-- Image Lightbox -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-content">
+    <button class="lightbox-close" id="lightbox-close">×</button>
+    <img class="lightbox-img" id="lightbox-img" src="" alt="">
+    <div class="lightbox-info" id="lightbox-info"></div>
+  </div>
+</div>
+
+<script>
+const state = {
+  shots: [],
+  sequence: [],
+  selectedPair: null,
+  focusedPair: null,
+  blendMode: 'multiply',
+  generation: 0,
+  rotation: 0, // Current rotation angle
+  isDragging: false
+};
+
+// Load shots
+async function loadData() {
+  try {
+    const res = await fetch('screenplays.json');
+    const data = await res.json();
+    
+    // Load ALL shots into the genome
+    data.forEach(sp => {
+      sp.content.forEach(item => {
+        if (item.shot_number && item.versions) {
+          const shot = {
+            sp: sp.screenplay,
+            num: item.shot_number,
+            vers: item.versions,
+            id: Date.now() + Math.random()
+          };
+          state.shots.push(shot);
+          
+          // Add every shot to the sequence immediately (full genome)
+          const strandAImg = getRandomImageFromShot(shot);
+          const strandBImg = getRandomImageFromShot(shot);
+          
+          if (strandAImg && strandBImg) {
+            state.sequence.push({
+              id: shot.id,
+              strandA: { shot, image: strandAImg, style: strandAImg.style },
+              strandB: { shot, image: strandBImg, style: strandBImg.style },
+              phenotype: null
+            });
+          }
+        }
+      });
+    });
+    
+    console.log(`Loaded full genome: ${state.sequence.length} base pairs`);
+    init();
+  } catch (err) {
+    console.error('Failed to load data:', err);
+    init();
+  }
+}
+
+async function initializeSequence(count) {
+  const sampled = shuffleArray(state.shots).slice(0, count * 2);
+  
+  for (let i = 0; i < count; i++) {
+    const strandA = await createStrand(sampled[i * 2], 'dynamic_style');
+    const strandB = await createStrand(sampled[i * 2 + 1], 'handdrawn_ink_style');
+    
+    state.sequence.push({
+      id: Date.now() + i,
+      position: i,
+      strandA,
+      strandB,
+      phenotype: null
+    });
+  }
+}
+
+async function createStrand(shot, preferredStyle) {
+  const style = shot.vers[preferredStyle] ? preferredStyle : 
+    (shot.vers.dynamic_style ? 'dynamic_style' : 'handdrawn_ink_style');
+  
+  const v = shot.vers[style];
+  const url = v?.selected_image_url;
+  
+  if (url) {
+    const img = new Image();
+    img.src = url;
+    await new Promise(r => {
+      img.onload = r;
+      img.onerror = r;
+    });
+    return {
+      shot,
+      style,
+      image: img
+    };
+  }
+  return null;
+}
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function init() {
+  renderSequence();
+  setupControls();
+  updateUI();
+  
+  console.log(`CINOME loaded: ${state.sequence.length} base pairs visible as dots`);
+  console.log('Images will lazy-load as you rotate through the genome');
+}
+
+function updateUI() {
+  document.getElementById('gen-count').textContent = state.generation;
+}
+
+function renderSequence() {
+  const container = document.getElementById('helix-strand');
+  const svg = document.getElementById('helix-svg');
+  
+  // Clear existing base pairs (but keep SVG)
+  const existing = container.querySelectorAll('.base-pair');
+  existing.forEach(el => el.remove());
+  
+  // Full viewport height
+  const viewportHeight = window.innerHeight - 120;
+  const width = window.innerWidth >= 768 ? 280 : 200;
+  
+  svg.setAttribute('viewBox', `0 0 ${width} ${viewportHeight}`);
+  svg.style.height = `${viewportHeight}px`;
+  
+  // Draw helix for full height
+  const amplitude = width * 0.36;
+  const centerX = width / 2;
+  const frequency = 0.012;
+  
+  let pathA = '';
+  let pathB = '';
+  
+  for (let y = 0; y < viewportHeight; y += 2) {
+    const wave = Math.sin(y * frequency) * amplitude;
+    const x1 = centerX + wave;
+    const x2 = centerX - wave;
+    
+    if (y === 0) {
+      pathA += `M ${x1} ${y} `;
+      pathB += `M ${x2} ${y} `;
+    } else {
+      pathA += `L ${x1} ${y} `;
+      pathB += `L ${x2} ${y} `;
+    }
+  }
+  
+  document.getElementById('helix-path-a').setAttribute('d', pathA);
+  document.getElementById('helix-path-b').setAttribute('d', pathB);
+  
+  // Create all base pairs distributed across viewport
+  state.sequence.forEach((pair, index) => {
+    const bp = document.createElement('div');
+    bp.className = 'base-pair';
+    bp.dataset.bpId = pair.id;
+    bp.dataset.index = index;
+    if (pair.phenotype) bp.classList.add('has-phenotype');
+    
+    // Nucleotide A - lazy load image
+    const nucA = document.createElement('div');
+    nucA.className = 'nucleotide nucleotide-a';
+    nucA.dataset.imgSrc = pair.strandA?.image?.src || '';
+    nucA.dataset.shotInfo = `Strand A - ${pair.strandA?.shot.sp} #${pair.strandA?.shot.num}`;
+    bp.appendChild(nucA);
+    
+    // Nucleotide B - lazy load image
+    const nucB = document.createElement('div');
+    nucB.className = 'nucleotide nucleotide-b';
+    nucB.dataset.imgSrc = pair.strandB?.image?.src || '';
+    nucB.dataset.shotInfo = `Strand B - ${pair.strandB?.shot.sp} #${pair.strandB?.shot.num}`;
+    bp.appendChild(nucB);
+    
+    container.appendChild(bp);
+  });
+  
+  // Position and animate
+  updateHelixRotation();
+}
+
+// Update helix rotation and positioning - HIGH DENSITY
+function updateHelixRotation() {
+  const viewportHeight = window.innerHeight - 120;
+  const width = window.innerWidth >= 768 ? 280 : 200;
+  const centerX = width / 2;
+  const centerY = viewportHeight / 2;
+  const amplitude = width * 0.36;
+  const frequency = 0.012;
+  
+  const basePairs = document.querySelectorAll('.base-pair');
+  const numPairs = state.sequence.length;
+  
+  // Ultra-high density for full genome display
+  const spacing = viewportHeight / (numPairs * 0.08); // Very tight spacing
+  
+  basePairs.forEach((bp, idx) => {
+    const index = parseInt(bp.dataset.index);
+    
+    // Tight vertical distribution with rotation offset
+    const verticalStep = spacing * index;
+    const y = (verticalStep + (state.rotation * 50)) % (viewportHeight * 1.5) - (viewportHeight * 0.25);
+    
+    // Calculate distance from center for standing wave effect
+    const distFromCenter = Math.abs(y - centerY);
+    const centerProximity = Math.max(0, 1 - (distFromCenter / (centerY * 0.6)));
+    
+    // Smooth transitions based on proximity
+    // Opacity: 0.2 at edges → 1.0 at center
+    const opacity = 0.2 + (centerProximity * 0.8);
+    
+    // Scale: 0.4x at edges → 2.5x at center
+    const scale = 0.4 + (centerProximity * 2.1);
+    
+    // Nucleotide size: 6px at edges → 100px at center
+    const baseSize = window.innerWidth >= 768 ? 8 : 6;
+    const nucSize = baseSize + (centerProximity * 94);
+    
+    // Image opacity: 0 until 0.5 proximity, then fade in
+    const imgOpacity = Math.max(0, (centerProximity - 0.5) * 2);
+    
+    // Position base pair
+    bp.style.top = `${y}px`;
+    bp.style.transform = `scale(${scale})`;
+    bp.style.opacity = opacity;
+    bp.style.zIndex = Math.round(centerProximity * 100);
+    
+    if (centerProximity > 0.6) {
+      bp.classList.add('center');
+    } else {
+      bp.classList.remove('center');
+    }
+    
+    // Calculate helix wave at this Y for nucleotide positioning - LOCKED TO CURVE
+    const wave = Math.sin(y * frequency) * amplitude;
+    const xA = centerX + wave;
+    const xB = centerX - wave;
+    
+    // Position nucleotides ON the helix curves - ALWAYS LOCKED
+    const nucA = bp.querySelector('.nucleotide-a');
+    const nucB = bp.querySelector('.nucleotide-b');
+    
+    if (nucA) {
+      nucA.style.left = `${xA}px`;
+      nucA.style.top = '50%';
+      nucA.style.transform = `translate(-50%, -50%)`;
+      nucA.style.width = `${nucSize}px`;
+      nucA.style.height = `${nucSize}px`;
+      
+      // Lazy load image when approaching center
+      let img = nucA.querySelector('img');
+      if (centerProximity > 0.3 && !img && nucA.dataset.imgSrc) {
+        img = document.createElement('img');
+        img.src = nucA.dataset.imgSrc;
+        img.onclick = (e) => {
+          e.stopPropagation();
+          openLightbox(nucA.dataset.imgSrc, nucA.dataset.shotInfo);
+        };
+        nucA.appendChild(img);
+      }
+      
+      if (img) {
+        img.style.opacity = imgOpacity;
+      }
+    }
+    
+    if (nucB) {
+      nucB.style.left = `${xB}px`;
+      nucB.style.top = '50%';
+      nucB.style.transform = `translate(-50%, -50%)`;
+      nucB.style.width = `${nucSize}px`;
+      nucB.style.height = `${nucSize}px`;
+      
+      // Lazy load image when approaching center
+      let img = nucB.querySelector('img');
+      if (centerProximity > 0.3 && !img && nucB.dataset.imgSrc) {
+        img = document.createElement('img');
+        img.src = nucB.dataset.imgSrc;
+        img.onclick = (e) => {
+          e.stopPropagation();
+          openLightbox(nucB.dataset.imgSrc, nucB.dataset.shotInfo);
+        };
+        nucB.appendChild(img);
+      }
+      
+      if (img) {
+        img.style.opacity = imgOpacity;
+      }
+    }
+  });
+}
+
+function handleBondOperation(action, pairId) {
+  state.selectedPair = pairId;
+  
+  switch(action) {
+    case 'mutate':
+      mutateSelected();
+      break;
+    case 'delete':
+      const idx = state.sequence.findIndex(p => p.id === pairId);
+      if (idx > -1) {
+        state.sequence.splice(idx, 1);
+        state.selectedPair = null;
+      }
+      break;
+    case 'breed':
+      const pair = state.sequence.find(p => p.id === pairId);
+      if (pair) {
+        generatePhenotype(pairId);
+      }
+      break;
+  }
+  
+  renderSequence();
+}
+
+
+function openLightbox(src, info) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-info').textContent = info;
+  document.getElementById('lightbox').classList.add('visible');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('visible');
+}
+
+function generatePhenotype(pairId) {
+  const pair = state.sequence.find(p => p.id === pairId);
+  if (!pair || !pair.strandA?.image || !pair.strandB?.image) return;
+  
+  const canvas = document.createElement('canvas');
+  const img1 = pair.strandA.image;
+  const img2 = pair.strandB.image;
+  
+  canvas.width = Math.min(img1.width, img2.width);
+  canvas.height = Math.min(img1.height, img2.height);
+  const ctx = canvas.getContext('2d');
+  
+  // Draw strand A
+  ctx.globalAlpha = 0.6;
+  ctx.drawImage(img1, 0, 0, canvas.width, canvas.height);
+  
+  // Blend strand B
+  ctx.globalAlpha = 0.5;
+  ctx.globalCompositeOperation = state.blendMode;
+  ctx.drawImage(img2, 0, 0, canvas.width, canvas.height);
+  
+  pair.phenotype = canvas;
+  renderSequence();
+}
+
+async function addBasePair() {
+  if (state.shots.length < 2) return;
+  
+  const available = shuffleArray(state.shots).slice(0, 2);
+  const strandA = await createStrand(available[0], 'dynamic_style');
+  const strandB = await createStrand(available[1], 'handdrawn_ink_style');
+  
+  state.sequence.push({
+    id: Date.now(),
+    position: state.sequence.length,
+    strandA,
+    strandB,
+    phenotype: null
+  });
+  
+  state.generation++;
+  document.getElementById('gen-count').textContent = state.generation;
+  renderSequence();
+  
+  // Auto-generate phenotype
+  setTimeout(() => {
+    generatePhenotype(state.sequence[state.sequence.length - 1].id);
+  }, 300);
+}
+
+function spliceSelected() {
+  if (!state.selectedPair) return;
+  
+  const index = state.sequence.findIndex(p => p.id === state.selectedPair);
+  if (index > -1) {
+    state.sequence.splice(index, 1);
+    state.selectedPair = null;
+    renderSequence();
+  }
+}
+
+async function mutateSelected() {
+  if (!state.selectedPair) return;
+  
+  const pair = state.sequence.find(p => p.id === state.selectedPair);
+  if (!pair) return;
+  
+  // Randomly mutate one strand
+  if (Math.random() > 0.5) {
+    pair.strandA = await createStrand(
+      shuffleArray(state.shots)[0],
+      'dynamic_style'
+    );
+  } else {
+    pair.strandB = await createStrand(
+      shuffleArray(state.shots)[0],
+      'handdrawn_ink_style'
+    );
+  }
+  
+  pair.phenotype = null;
+  renderSequence();
+  
+  setTimeout(() => generatePhenotype(pair.id), 300);
+}
+
+function exportSequence() {
+  const data = {
+    generation: state.generation,
+    blendMode: state.blendMode,
+    sequence: state.sequence.map(p => ({
+      position: p.position,
+      strandA: {
+        shot: p.strandA?.shot.num,
+        screenplay: p.strandA?.shot.sp,
+        style: p.strandA?.style
+      },
+      strandB: {
+        shot: p.strandB?.shot.num,
+        screenplay: p.strandB?.shot.sp,
+        style: p.strandB?.style
+      },
+      hasPhenotype: !!p.phenotype
+    }))
+  };
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cinome-gen${state.generation}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportPhenotypes() {
+  state.sequence.forEach((pair, i) => {
+    if (pair.phenotype) {
+      const url = pair.phenotype.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `phenotype-BP${i}-gen${state.generation}.png`;
+      a.click();
+    }
+  });
+}
+
+
+function setupControls() {
+  // Top operators
+  document.getElementById('op-mutate').onclick = () => {
+    if (state.focusedPair) handleBondOperation('mutate', state.focusedPair);
+  };
+  
+  document.getElementById('op-breed').onclick = () => {
+    if (state.focusedPair) handleBondOperation('breed', state.focusedPair);
+  };
+  
+  document.getElementById('op-splice').onclick = () => {
+    // Insert new pair after focused
+    if (state.focusedPair) {
+      const idx = state.sequence.findIndex(p => p.id === state.focusedPair);
+      if (idx > -1) {
+        addBasePair().then(() => {
+          const newPair = state.sequence.pop();
+          state.sequence.splice(idx + 1, 0, newPair);
+          renderSequence();
+        });
+      }
+    }
+  };
+  
+  document.getElementById('op-delete').onclick = () => {
+    if (state.focusedPair) handleBondOperation('delete', state.focusedPair);
+  };
+  
+  // Corner controls
+  document.getElementById('add-new').onclick = async () => {
+    await addBasePair();
+    state.generation++;
+    renderSequence();
+    updateUI();
+  };
+  
+  document.getElementById('import-export').onclick = () => {
+    exportSequence();
+    exportPhenotypes();
+  };
+  
+  document.getElementById('help').onclick = () => {
+    document.getElementById('theory-overlay').classList.add('visible');
+  };
+  
+  // Lightbox
+  document.getElementById('lightbox-close').onclick = closeLightbox;
+  document.getElementById('lightbox').onclick = (e) => {
+    if (e.target.id === 'lightbox') closeLightbox();
+  };
+  
+  document.getElementById('theory-close').onclick = () => {
+    document.getElementById('theory-overlay').classList.remove('visible');
+  };
+  
+  document.getElementById('theory-overlay').onclick = (e) => {
+    if (e.target.id === 'theory-overlay') {
+      document.getElementById('theory-overlay').classList.remove('visible');
+    }
+  };
+  
+  // Helix rotation controls
+  const viewport = document.getElementById('helix-viewport');
+  let startY = 0;
+  let lastY = 0;
+  
+  viewport.addEventListener('mousedown', (e) => {
+    state.isDragging = true;
+    startY = e.clientY;
+    lastY = e.clientY;
+  });
+  
+  let animationFrame = null;
+  
+  window.addEventListener('mousemove', (e) => {
+    if (!state.isDragging) return;
+    
+    const deltaY = e.clientY - lastY;
+    lastY = e.clientY;
+    
+    // Rotate helix based on drag
+    state.rotation += deltaY * 0.01;
+    
+    // Use RAF for smooth updates
+    if (!animationFrame) {
+      animationFrame = requestAnimationFrame(() => {
+        updateHelixRotation();
+        animationFrame = null;
+      });
+    }
+  });
+  
+  window.addEventListener('mouseup', () => {
+    state.isDragging = false;
+  });
+  
+  // Wheel for rotation
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    state.rotation += e.deltaY * 0.003;
+    updateHelixRotation();
+  }, { passive: false });
+  
+  // Touch support
+  viewport.addEventListener('touchstart', (e) => {
+    state.isDragging = true;
+    startY = e.touches[0].clientY;
+    lastY = e.touches[0].clientY;
+  });
+  
+  viewport.addEventListener('touchmove', (e) => {
+    if (!state.isDragging) return;
+    e.preventDefault();
+    
+    const deltaY = e.touches[0].clientY - lastY;
+    lastY = e.touches[0].clientY;
+    
+    state.rotation += deltaY * 0.01;
+    
+    if (!animationFrame) {
+      animationFrame = requestAnimationFrame(() => {
+        updateHelixRotation();
+        animationFrame = null;
+      });
+    }
+  }, { passive: false });
+  
+  viewport.addEventListener('touchend', () => {
+    state.isDragging = false;
+  });
+  
+  // Bottom slider for blend mode
+  const slider = document.getElementById('control-slider');
+  slider.addEventListener('click', (e) => {
+    const rect = slider.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    document.getElementById('slider-track').style.width = `${percent * 100}%`;
+    
+    const modes = ['multiply', 'screen', 'overlay', 'difference', 'lighten', 'darken'];
+    const modeIndex = Math.floor(percent * modes.length);
+    state.blendMode = modes[Math.min(modeIndex, modes.length - 1)];
+    document.getElementById('slider-label').textContent = state.blendMode.toUpperCase();
+    
+    state.sequence.forEach(pair => {
+      if (pair.strandA?.image && pair.strandB?.image) {
+        generatePhenotype(pair.id);
+      }
+    });
+    renderSequence();
+  });
+}
+
+loadData();
+</script>
+<!-- Code injected by live-server -->
+<script>
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+</body>
+</html>
+    ctx.drawImage(parent1.media, 0, 0);
+    
+    ctx.globalAlpha = cf;
+    ctx.globalCompositeOperation = mode;
+    ctx.drawImage(parent2.media, 0, 0);
+    
+    state.offspring.push({
+      id: Date.now() + Math.random(),
+      generation: state.generation,
+      parents: [parent1.id, parent2.id],
+      mode,
+      crossfade: cf,
+      canvas,
+      starred: false
+    });
+  });
+  
+  state.selected = [];
+  renderOffspring();
+  renderPool();
+  document.getElementById('breed-btn').disabled = true;
+  document.getElementById('gen-count').textContent = state.generation;
+  document.getElementById('offspring-gen').textContent = state.generation;
+  
+  // Add to helix
+  state.helix.push({
+    gen: state.generation,
+    count: state.offspring.length
+  });
+}
+
+function renderOffspring() {
+  const grid = document.getElementById('offspring-grid');
+  grid.innerHTML = '';
+  
+  state.offspring.forEach(child => {
+    const card = document.createElement('div');
+    card.className = 'offspring-card';
+    if (child.starred) card.classList.add('starred');
+    
+    card.appendChild(child.canvas);
+    
+    const meta = document.createElement('div');
+    meta.className = 'offspring-meta';
+    
+    const gen = document.createElement('div');
+    gen.className = 'offspring-gen';
+    gen.textContent = `Gen ${child.generation} — ${child.mode}`;
+    
+    const actions = document.createElement('div');
+    actions.className = 'offspring-actions';
+    
+    const starBtn = document.createElement('button');
+    starBtn.className = 'action-btn star';
+    starBtn.textContent = child.starred ? '★' : '☆';
+    starBtn.onclick = (e) => {
+      e.stopPropagation();
+      child.starred = !child.starred;
+      renderOffspring();
+    };
+    
+    const poolBtn = document.createElement('button');
+    poolBtn.className = 'action-btn';
+    poolBtn.textContent = 'Pool';
+    poolBtn.onclick = (e) => {
+      e.stopPropagation();
+      addOffspringToPool(child);
+    };
+    
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'action-btn';
+    exportBtn.textContent = 'Export';
+    exportBtn.onclick = (e) => {
+      e.stopPropagation();
+      exportOffspring(child);
+    };
+    
+    actions.appendChild(starBtn);
+    actions.appendChild(poolBtn);
+    actions.appendChild(exportBtn);
+    
+    meta.appendChild(gen);
+    meta.appendChild(actions);
+    card.appendChild(meta);
+    
+    grid.appendChild(card);
+  });
+}
+
+function addOffspringToPool(child) {
+  // Convert offspring back to gene format
+  const gene = {
+    id: Date.now() + Math.random(),
+    shot: { num: `B${state.generation}`, sp: 'Bred' },
+    generation: child.generation,
+    style: 'bred',
+    media: null
+  };
+  
+  // Create image from canvas
+  const img = new Image();
+  img.src = child.canvas.toDataURL();
+  gene.media = img;
+  
+  state.genePool.push(gene);
+  renderPool();
+}
+
+function exportOffspring(child) {
+  const link = document.createElement('a');
+  link.download = `cinome-gen${child.generation}-${child.mode}.png`;
+  link.href = child.canvas.toDataURL();
+  link.click();
+}
+
+function renderHelix() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  animFrame++;
+  
+  // Draw double helix
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const amplitude = 80;
+  const frequency = 0.02;
+  const speed = animFrame * 0.01;
+  
+  for (let y = 0; y < canvas.height; y += 5) {
+    const offset = y - centerY;
+    const wave = Math.sin(offset * frequency + speed);
+    
+    // Strand 1
+    const x1 = centerX + wave * amplitude;
+    ctx.fillStyle = `rgba(0, 188, 212, ${0.3 + Math.abs(wave) * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(x1, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Strand 2
+    const x2 = centerX - wave * amplitude;
+    ctx.fillStyle = `rgba(255, 152, 0, ${0.3 + Math.abs(wave) * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(x2, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Connection
+    if (Math.abs(wave) > 0.8) {
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + Math.abs(wave) * 0.2})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.stroke();
+    }
+  }
+  
+  // Generation markers
+  ctx.font = '12px Courier New';
+  ctx.fillStyle = '#ff9800';
+  ctx.textAlign = 'right';
+  state.helix.forEach((h, i) => {
+    const y = 100 + i * 80;
+    if (y < canvas.height - 100) {
+      ctx.fillText(`GEN ${h.gen}`, centerX - amplitude - 20, y);
+    }
+  });
+  
+  requestAnimationFrame(renderHelix);
+}
+
+function setupControls() {
+  document.getElementById('breed-btn').onclick = breed;
+  
+  document.getElementById('help-btn').onclick = () => {
+    document.getElementById('theory-overlay').classList.add('visible');
+  };
+  
+  document.getElementById('theory-close').onclick = () => {
+    document.getElementById('theory-overlay').classList.remove('visible');
+  };
+  
+  document.getElementById('theory-overlay').onclick = (e) => {
+    if (e.target.id === 'theory-overlay') {
+      document.getElementById('theory-overlay').classList.remove('visible');
+    }
+  };
+}
+
+loadData();
+</script>
+<!-- Code inject

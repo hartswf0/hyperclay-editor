@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HYPERCLAY Blend</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; color: #e8e8e8; height: 100vh; overflow: hidden; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+.top-bar { background: #0b0b0c; border-bottom: 1px solid #2a2a2c; padding: 8px 16px; display: flex; align-items: center; gap: 12px; }
+.title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #666; margin-right: auto; font-family: monospace; text-transform: uppercase; }
+.btn { background: #1a1a1c; border: 1px solid #333; padding: 5px 12px; font-size: 10px; color: #999; cursor: pointer; font-family: monospace; font-weight: 600; transition: all 0.2s; text-transform: uppercase; }
+.btn:hover { background: #2a2a2c; color: #ccc; }
+.btn.active { background: #2a2a2c; color: #fff; border-color: #555; }
+.main { flex: 1; display: flex; gap: 1px; background: #2a2a2c; }
+.canvas-area { 
+  flex: 1; 
+  background: #000; 
+  position: relative; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  overflow: hidden;
+}
+
+.canvas-area::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    repeating-linear-gradient(90deg, transparent, transparent 49%, rgba(0, 188, 212, 0.03) 49%, rgba(0, 188, 212, 0.03) 51%, transparent 51%),
+    repeating-linear-gradient(0deg, transparent, transparent 49%, rgba(76, 175, 80, 0.03) 49%, rgba(76, 175, 80, 0.03) 51%, transparent 51%);
+  background-size: 2px 100%, 100% 2px;
+  pointer-events: none;
+  opacity: 0.5;
+  animation: seamShimmer 8s linear infinite;
+}
+
+@keyframes seamShimmer {
+  0% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+  100% { opacity: 0.3; }
+}
+
+canvas { 
+  max-width: 100%; 
+  max-height: 100%; 
+  display: block;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+canvas:hover {
+  transform: scale(1.01);
+}
+.controls { width: 320px; background: #0b0b0c; padding: 20px; overflow-y: auto; }
+.control-group { margin-bottom: 24px; }
+.control-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #666; margin-bottom: 12px; font-family: monospace; border-bottom: 1px solid #2a2a2c; padding-bottom: 6px; }
+.control-item { margin-bottom: 16px; }
+.control-item label { font-size: 11px; color: #999; display: block; margin-bottom: 6px; font-family: monospace; }
+.control-item .value { color: #fff; font-weight: 700; float: right; }
+select { width: 100%; background: #1a1a1c; border: 1px solid #333; color: #ccc; padding: 8px; font-size: 11px; font-family: monospace; cursor: pointer; }
+input[type="range"] { width: 100%; height: 3px; background: #2a2a2c; outline: none; -webkit-appearance: none; cursor: pointer; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #fff; cursor: pointer; border-radius: 50%; }
+input[type="range"]::-webkit-slider-thumb:hover { background: #ffd700; }
+input[type="checkbox"] { margin-right: 8px; }
+.timeline { background: #0b0b0c; border-top: 1px solid #2a2a2c; height: 100px; display: flex; flex-direction: column; }
+.timeline-header { padding: 6px 12px; background: #1a1a1c; border-bottom: 1px solid #333; font-size: 9px; color: #555; font-family: monospace; }
+.timeline-shots { flex: 1; display: flex; gap: 6px; padding: 8px; overflow-x: auto; align-items: center; }
+.timeline-thumb { flex-shrink: 0; width: 120px; cursor: pointer; transition: all 0.2s; }
+.timeline-thumb:hover { transform: translateY(-3px); }
+.timeline-thumb.active { transform: scale(1.15) translateY(-5px); }
+.thumb-img { aspect-ratio: 16/9; background: #1a1a1c; border: 2px solid #444; position: relative; overflow: hidden; }
+.timeline-thumb.active .thumb-img { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+.thumb-img img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-number { position: absolute; top: 3px; left: 3px; background: rgba(0,0,0,0.85); color: #999; padding: 2px 6px; font-size: 9px; font-weight: 700; border: 1px solid rgba(255,255,255,0.1); font-family: monospace; }
+.progress-bar { height: 4px; background: #1a1a1c; cursor: pointer; }
+.progress-fill { height: 100%; background: #fff; transition: width 0.3s; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0b0b0c; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="top-bar">
+    <div class="title">HYPERCLAY BLEND COMPOSITOR ◈ SEAMFUL</div>
+    <button class="btn" id="play-btn">▶ Play</button>
+    <button class="btn" id="glitch-btn">⚡ Glitch</button>
+    <button class="btn" id="seam-btn">◊ Show Seams</button>
+    <button class="btn" id="export-btn">Export Frame</button>
+  </div>
+
+  <div class="main">
+    <div class="canvas-area">
+      <canvas id="blend-canvas"></canvas>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <div class="control-title">Blend Mode</div>
+        <div class="control-item">
+          <select id="blend-mode">
+            <option value="normal">Normal</option>
+            <option value="multiply">Multiply</option>
+            <option value="screen">Screen</option>
+            <option value="overlay">Overlay</option>
+            <option value="dodge">Color Dodge</option>
+            <option value="burn">Color Burn</option>
+            <option value="difference">Difference</option>
+            <option value="exclusion">Exclusion</option>
+            <option value="lighten">Lighten</option>
+            <option value="darken">Darken</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">Layer 1</div>
+        <div class="control-item">
+          <label>Source</label>
+          <select id="layer1-source">
+            <option value="dynamic-image">Dynamic Image</option>
+            <option value="dynamic-video">Dynamic Video</option>
+            <option value="handdrawn-image">Hand-drawn Image</option>
+            <option value="handdrawn-video">Hand-drawn Video</option>
+          </select>
+        </div>
+        <div class="control-item">
+          <label>Opacity <span class="value" id="layer1-opacity-val">100%</span></label>
+          <input type="range" id="layer1-opacity" min="0" max="100" value="100">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">Layer 2</div>
+        <div class="control-item">
+          <label>Source</label>
+          <select id="layer2-source">
+            <option value="dynamic-image">Dynamic Image</option>
+            <option value="dynamic-video" selected>Dynamic Video</option>
+            <option value="handdrawn-image">Hand-drawn Image</option>
+            <option value="handdrawn-video">Hand-drawn Video</option>
+          </select>
+        </div>
+        <div class="control-item">
+          <label>Opacity <span class="value" id="layer2-opacity-val">50%</span></label>
+          <input type="range" id="layer2-opacity" min="0" max="100" value="50">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">Transform</div>
+        <div class="control-item">
+          <label>Scale Layer 1 <span class="value" id="scale1-val">100%</span></label>
+          <input type="range" id="scale1" min="50" max="200" value="100">
+        </div>
+        <div class="control-item">
+          <label>Scale Layer 2 <span class="value" id="scale2-val">100%</span></label>
+          <input type="range" id="scale2" min="50" max="200" value="100">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">Color Adjustments</div>
+        <div class="control-item">
+          <label>Brightness <span class="value" id="brightness-val">0</span></label>
+          <input type="range" id="brightness" min="-100" max="100" value="0">
+        </div>
+        <div class="control-item">
+          <label>Contrast <span class="value" id="contrast-val">0</span></label>
+          <input type="range" id="contrast" min="-100" max="100" value="0">
+        </div>
+        <div class="control-item">
+          <label>Saturation <span class="value" id="saturation-val">0</span></label>
+          <input type="range" id="saturation" min="-100" max="100" value="0">
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-title">Options</div>
+        <div class="control-item">
+          <label><input type="checkbox" id="invert">Invert Colors</label>
+        </div>
+        <div class="control-item">
+          <label><input type="checkbox" id="grayscale">Grayscale</label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="timeline-header">
+      <span id="shot-counter">Shot 1 / 0</span>
+    </div>
+    <div class="timeline-shots" id="timeline-shots"></div>
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+  shots: [],
+  current: 0,
+  playing: false,
+  images: {},
+  blendMode: 'normal',
+  layer1: { source: 'dynamic-image', opacity: 100, scale: 100 },
+  layer2: { source: 'dynamic-video', opacity: 50, scale: 100 },
+  brightness: 0,
+  contrast: 0,
+  saturation: 0,
+  invert: false,
+  grayscale: false,
+  glitchActive: false,
+  seamVisible: true,
+  zenoOffset: 0
+};
+
+const canvas = document.getElementById('blend-canvas');
+const ctx = canvas.getContext('2d');
+
+async function loadData() {
+  try {
+    const res = await fetch('screenplays.json');
+    const data = await res.json();
+    data.forEach(sp => {
+      sp.content.forEach((item, i) => {
+        if (item.shot_number) {
+          state.shots.push({
+            num: item.shot_number,
+            vers: item.versions || {}
+          });
+        }
+      });
+    });
+    init();
+  } catch(e) { console.error(e); }
+}
+
+function init() {
+  renderTimeline();
+  loadShot(0);
+  setupControls();
+  // Set initial button states
+  document.getElementById('seam-btn').classList.add('active');
+}
+
+async function loadShot(i) {
+  state.current = i;
+  const shot = state.shots[i];
+  
+  // Load all images
+  const sources = ['dynamic-image', 'dynamic-video', 'handdrawn-image', 'handdrawn-video'];
+  const styleMap = {
+    'dynamic-image': ['dynamic_style', 'image'],
+    'dynamic-video': ['dynamic_style', 'video'],
+    'handdrawn-image': ['handdrawn_ink_style', 'image'],
+    'handdrawn-video': ['handdrawn_ink_style', 'video']
+  };
+  
+  for (const src of sources) {
+    const [style, type] = styleMap[src];
+    const v = shot.vers[style];
+    if (!v) continue;
+    const url = type === 'video' ? v.selected_video_url : v.selected_image_url;
+    if (!url) continue;
+    
+    if (type === 'video') {
+      if (!state.images[src] || state.images[src].src !== url) {
+        const vid = document.createElement('video');
+        vid.src = url;
+        vid.loop = true;
+        vid.muted = true;
+        vid.autoplay = true;
+        state.images[src] = vid;
+      }
+    } else {
+      if (!state.images[src] || state.images[src].src !== url) {
+        const img = new Image();
+        img.src = url;
+        await new Promise(resolve => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+        state.images[src] = img;
+      }
+    }
+  }
+  
+  // Update UI
+  document.getElementById('progress-fill').style.width = ((i+1)/state.shots.length*100)+'%';
+  document.getElementById('shot-counter').textContent = `Shot ${i+1} / ${state.shots.length}`;
+  document.querySelectorAll('.timeline-thumb').forEach((el, idx) => {
+    el.classList.toggle('active', idx === i);
+  });
+  
+  render();
+}
+
+function render() {
+  const img1 = state.images[state.layer1.source];
+  const img2 = state.images[state.layer2.source];
+  
+  if (!img1 && !img2) return;
+  
+  // Set canvas size
+  const baseImg = img1 || img2;
+  canvas.width = baseImg.videoWidth || baseImg.naturalWidth || 1920;
+  canvas.height = baseImg.videoHeight || baseImg.naturalHeight || 1080;
+  
+  // Clear
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Zeno's paradox: never quite reach the target
+  state.zenoOffset += (0 - state.zenoOffset) * 0.5;
+  const zenoShift = Math.sin(Date.now() * 0.001) * 2 * (1 - Math.abs(state.zenoOffset));
+  
+  // Draw layer 1
+  if (img1) {
+    ctx.save();
+    ctx.globalAlpha = state.layer1.opacity / 100;
+    const scale1 = state.layer1.scale / 100;
+    const w1 = canvas.width * scale1;
+    const h1 = canvas.height * scale1;
+    let x1 = (canvas.width - w1) / 2 + zenoShift;
+    let y1 = (canvas.height - h1) / 2;
+    
+    // Glitch effect
+    if (state.glitchActive && Math.random() < 0.1) {
+      x1 += (Math.random() - 0.5) * 20;
+      y1 += (Math.random() - 0.5) * 20;
+      ctx.globalAlpha *= 0.7 + Math.random() * 0.3;
+    }
+    
+    ctx.drawImage(img1, x1, y1, w1, h1);
+    ctx.restore();
+  }
+  
+  // Draw layer 2 with blend mode
+  if (img2) {
+    ctx.save();
+    ctx.globalAlpha = state.layer2.opacity / 100;
+    ctx.globalCompositeOperation = state.blendMode;
+    const scale2 = state.layer2.scale / 100;
+    const w2 = canvas.width * scale2;
+    const h2 = canvas.height * scale2;
+    let x2 = (canvas.width - w2) / 2 - zenoShift;
+    let y2 = (canvas.height - h2) / 2;
+    
+    // Glitch effect
+    if (state.glitchActive && Math.random() < 0.1) {
+      x2 += (Math.random() - 0.5) * 20;
+      y2 += (Math.random() - 0.5) * 20;
+      const glitchBlend = ['difference', 'screen', 'multiply'][Math.floor(Math.random() * 3)];
+      ctx.globalCompositeOperation = glitchBlend;
+    }
+    
+    ctx.drawImage(img2, x2, y2, w2, h2);
+    ctx.restore();
+  }
+  
+  // Draw seam lines (celebrating the composition)
+  if (state.seamVisible && img1 && img2) {
+    ctx.save();
+    ctx.strokeStyle = `rgba(0, 188, 212, ${0.3 + Math.sin(Date.now() * 0.002) * 0.2})`;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.lineDashOffset = -Date.now() * 0.05;
+    
+    // Draw cross-seam
+    ctx.beginPath();
+    ctx.moveTo(canvas.width * 0.5, 0);
+    ctx.lineTo(canvas.width * 0.5, canvas.height);
+    ctx.moveTo(0, canvas.height * 0.5);
+    ctx.lineTo(canvas.width, canvas.height * 0.5);
+    ctx.stroke();
+    ctx.restore();
+  }
+  
+  // Apply CSS filters to canvas directly (no CORS issues)
+  const filters = [];
+  if (state.brightness !== 0) filters.push(`brightness(${100 + state.brightness}%)`);
+  if (state.contrast !== 0) filters.push(`contrast(${100 + state.contrast}%)`);
+  if (state.saturation !== 0) filters.push(`saturate(${100 + state.saturation}%)`);
+  if (state.invert) filters.push('invert(100%)');
+  if (state.grayscale) filters.push('grayscale(100%)');
+  
+  canvas.style.filter = filters.join(' ');
+  
+  requestAnimationFrame(render);
+}
+
+function setupControls() {
+  document.getElementById('blend-mode').onchange = (e) => {
+    state.blendMode = e.target.value;
+  };
+  
+  document.getElementById('layer1-source').onchange = (e) => {
+    state.layer1.source = e.target.value;
+    loadShot(state.current);
+  };
+  
+  document.getElementById('layer2-source').onchange = (e) => {
+    state.layer2.source = e.target.value;
+    loadShot(state.current);
+  };
+  
+  document.getElementById('layer1-opacity').oninput = (e) => {
+    state.layer1.opacity = parseInt(e.target.value);
+    document.getElementById('layer1-opacity-val').textContent = state.layer1.opacity + '%';
+  };
+  
+  document.getElementById('layer2-opacity').oninput = (e) => {
+    state.layer2.opacity = parseInt(e.target.value);
+    document.getElementById('layer2-opacity-val').textContent = state.layer2.opacity + '%';
+  };
+  
+  document.getElementById('scale1').oninput = (e) => {
+    state.layer1.scale = parseInt(e.target.value);
+    document.getElementById('scale1-val').textContent = state.layer1.scale + '%';
+  };
+  
+  document.getElementById('scale2').oninput = (e) => {
+    state.layer2.scale = parseInt(e.target.value);
+    document.getElementById('scale2-val').textContent = state.layer2.scale + '%';
+  };
+  
+  document.getElementById('brightness').oninput = (e) => {
+    state.brightness = parseInt(e.target.value);
+    document.getElementById('brightness-val').textContent = state.brightness;
+  };
+  
+  document.getElementById('contrast').oninput = (e) => {
+    state.contrast = parseInt(e.target.value);
+    document.getElementById('contrast-val').textContent = state.contrast;
+  };
+  
+  document.getElementById('saturation').oninput = (e) => {
+    state.saturation = parseInt(e.target.value);
+    document.getElementById('saturation-val').textContent = state.saturation;
+  };
+  
+  document.getElementById('invert').onchange = (e) => {
+    state.invert = e.target.checked;
+  };
+  
+  document.getElementById('grayscale').onchange = (e) => {
+    state.grayscale = e.target.checked;
+  };
+  
+  document.getElementById('play-btn').onclick = () => {
+    if (state.playing) {
+      clearInterval(state.playInt);
+      state.playing = false;
+      document.getElementById('play-btn').textContent = '▶ Play';
+    } else {
+      state.playing = true;
+      document.getElementById('play-btn').textContent = '⏸ Pause';
+      state.playInt = setInterval(() => {
+        if (state.current < state.shots.length - 1) loadShot(state.current + 1);
+        else { loadShot(0); }
+      }, 4000);
+    }
+  };
+  
+  document.getElementById('glitch-btn').onclick = () => {
+    state.glitchActive = !state.glitchActive;
+    document.getElementById('glitch-btn').classList.toggle('active', state.glitchActive);
+  };
+  
+  document.getElementById('seam-btn').onclick = () => {
+    state.seamVisible = !state.seamVisible;
+    document.getElementById('seam-btn').classList.toggle('active', state.seamVisible);
+  };
+  
+  document.getElementById('export-btn').onclick = () => {
+    const link = document.createElement('a');
+    link.download = `hyperclay-blend-shot${state.shots[state.current].num}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+  
+  document.getElementById('progress-bar').onclick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const pct = x / rect.width;
+    const idx = Math.floor(pct * state.shots.length);
+    loadShot(Math.min(idx, state.shots.length - 1));
+  };
+  
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' && state.current > 0) loadShot(state.current - 1);
+    if (e.key === 'ArrowRight' && state.current < state.shots.length - 1) loadShot(state.current + 1);
+    if (e.key === ' ') { e.preventDefault(); document.getElementById('play-btn').click(); }
+  });
+}
+
+function renderTimeline() {
+  const c = document.getElementById('timeline-shots');
+  c.innerHTML = '';
+  state.shots.forEach((s, i) => {
+    const t = document.createElement('div');
+    t.className = 'timeline-thumb';
+    const img = document.createElement('div');
+    img.className = 'thumb-img';
+    const url = s.vers.dynamic_style?.selected_image_url;
+    if (url) {
+      const im = document.createElement('img');
+      im.src = url;
+      img.appendChild(im);
+    }
+    const n = document.createElement('div');
+    n.className = 'thumb-number';
+    n.textContent = `#${s.num}`;
+    img.appendChild(n);
+    t.appendChild(img);
+    t.onclick = () => loadShot(i);
+    c.appendChild(t);
+  });
+}
+
+loadData();
+</script>
+</body>
+</html>

@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>HYPERCLAY — DJ Deck</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { 
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+  background: #000; 
+  color: #e8e8e8; 
+  height: 100vh; 
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+.top-bar {
+  background: linear-gradient(135deg, #0b0b0c, #1a1a1c);
+  border-bottom: 1px solid #333;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, #00bcd4, #ff9800);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: monospace;
+}
+
+.preset-buttons {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.preset {
+  background: rgba(0, 188, 212, 0.2);
+  border: 1px solid rgba(0, 188, 212, 0.4);
+  padding: 5px 10px;
+  font-size: 9px;
+  color: #00bcd4;
+  cursor: pointer;
+  font-family: monospace;
+  font-weight: 700;
+  transition: all 0.3s;
+  text-transform: uppercase;
+}
+
+.preset:hover {
+  background: rgba(0, 188, 212, 0.4);
+  transform: translateY(-1px);
+}
+
+.preset.active {
+  background: #00bcd4;
+  color: #000;
+  box-shadow: 0 0 15px rgba(0, 188, 212, 0.6);
+}
+
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .main {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 60vh;
+  }
+}
+
+/* Canvas Display */
+.canvas-area {
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+canvas {
+  max-width: 95%;
+  max-height: 95%;
+  filter: drop-shadow(0 0 20px rgba(0, 188, 212, 0.3));
+}
+
+/* DJ Deck */
+.deck {
+  background: #0b0b0c;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  overflow-y: auto;
+  border-left: 1px solid #333;
+}
+
+.deck-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+  font-family: monospace;
+  border-bottom: 1px solid #1a1a1c;
+  padding-bottom: 6px;
+}
+
+/* Crossfader */
+.crossfader {
+  width: 100%;
+  height: 80px;
+  position: relative;
+  background: linear-gradient(180deg, #0b0b0c, #1a1a1c);
+  border: 2px solid #333;
+  border-radius: 40px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.crossfader-track {
+  position: absolute;
+  top: 50%;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: linear-gradient(90deg, #00bcd4, #666, #ff9800);
+  transform: translateY(-50%);
+  border-radius: 2px;
+}
+
+.crossfader-handle {
+  position: absolute;
+  top: 50%;
+  width: 60px;
+  height: 90px;
+  background: linear-gradient(135deg, #00bcd4, #008c9e);
+  border: 3px solid #00d4e8;
+  border-radius: 10px;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  box-shadow: 
+    0 4px 20px rgba(0, 188, 212, 0.5),
+    inset 0 2px 0 rgba(255, 255, 255, 0.3);
+  transition: transform 0.05s;
+  touch-action: none;
+}
+
+.crossfader-handle:active {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+.crossfader-grip {
+  position: absolute;
+  inset: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.grip-line {
+  width: 30px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 1px;
+}
+
+.crossfader-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 9px;
+  color: #666;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.crossfader-value {
+  text-align: center;
+  margin-top: 4px;
+  font-size: 14px;
+  color: #00bcd4;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 10px rgba(0, 188, 212, 0.6);
+}
+
+/* Turntables */
+.turntables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.turntable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.turntable-disc {
+  width: 140px;
+  height: 140px;
+  position: relative;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.disc-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #1a1a1c 30%, #0b0b0c 100%);
+  border: 3px solid #333;
+  box-shadow: 
+    inset 0 0 20px rgba(0, 0, 0, 0.8),
+    0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.disc-grooves {
+  position: absolute;
+  inset: 10%;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    transparent,
+    transparent 6px,
+    rgba(255, 255, 255, 0.03) 6px,
+    rgba(255, 255, 255, 0.03) 7px
+  );
+  pointer-events: none;
+}
+
+.disc-vinyl {
+  position: absolute;
+  inset: 15%;
+  border-radius: 50%;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(0, 188, 212, 0.2), transparent),
+    #0b0b0c;
+  transition: transform 0.05s;
+}
+
+.disc-label {
+  position: absolute;
+  inset: 35%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00bcd4, #ff9800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #000;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.disc-needle {
+  position: absolute;
+  top: 15%;
+  right: -8%;
+  width: 50px;
+  height: 2px;
+  background: linear-gradient(90deg, #00bcd4, transparent);
+  transform-origin: right center;
+  box-shadow: 0 0 8px rgba(0, 188, 212, 0.8);
+  pointer-events: none;
+}
+
+.turntable-label {
+  font-size: 9px;
+  color: #666;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+.turntable-value {
+  font-size: 16px;
+  color: #00bcd4;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 10px rgba(0, 188, 212, 0.6);
+}
+
+/* Blend Mode Selector */
+.blend-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.blend-btn {
+  background: #1a1a1c;
+  border: 1px solid #333;
+  padding: 8px;
+  font-size: 9px;
+  color: #999;
+  cursor: pointer;
+  font-family: monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.blend-btn:hover {
+  background: #2a2a2c;
+  border-color: #00bcd4;
+  color: #ccc;
+}
+
+.blend-btn.active {
+  background: rgba(0, 188, 212, 0.3);
+  border-color: #00bcd4;
+  color: #00bcd4;
+  box-shadow: 0 0 10px rgba(0, 188, 212, 0.4);
+}
+
+/* Timeline */
+.timeline {
+  background: #0b0b0c;
+  border-top: 1px solid #333;
+  height: 80px;
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  overflow-x: auto;
+  align-items: center;
+}
+
+.timeline-shot {
+  flex-shrink: 0;
+  width: 100px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.timeline-shot:hover {
+  transform: translateY(-2px);
+}
+
+.timeline-shot.active {
+  transform: scale(1.1) translateY(-4px);
+}
+
+.shot-thumb {
+  aspect-ratio: 16/9;
+  background: #1a1a1c;
+  border: 2px solid #444;
+  position: relative;
+  overflow: hidden;
+}
+
+.timeline-shot.active .shot-thumb {
+  border-color: #00bcd4;
+  box-shadow: 0 0 15px rgba(0, 188, 212, 0.6);
+}
+
+.shot-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shot-num {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: rgba(0, 0, 0, 0.9);
+  color: #00bcd4;
+  padding: 2px 5px;
+  font-size: 8px;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0b0b0c; }
+::-webkit-scrollbar-thumb { background: #00bcd4; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="top-bar">
+    <div class="title">HYPERCLAY ◈ DJ DECK</div>
+    <div class="preset-buttons">
+      <button class="preset" data-preset="fade">Fade</button>
+      <button class="preset" data-preset="strobe">Strobe</button>
+      <button class="preset" data-preset="glitch">Glitch</button>
+      <button class="preset" data-preset="zeno">Zeno Drift</button>
+      <button class="preset" data-preset="kaleidoscope">Kaleidoscope</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="canvas-area">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="deck">
+      <div class="deck-section">
+        <div class="section-title">Crossfader</div>
+        <div class="crossfader" id="crossfader">
+          <div class="crossfader-track"></div>
+          <div class="crossfader-handle" id="crossfader-handle">
+            <div class="crossfader-grip">
+              <div class="grip-line"></div>
+              <div class="grip-line"></div>
+              <div class="grip-line"></div>
+            </div>
+          </div>
+        </div>
+        <div class="crossfader-labels">
+          <span id="layer1-label">Dynamic</span>
+          <span id="layer2-label">Hand-drawn</span>
+        </div>
+        <div class="crossfader-value" id="crossfader-value">50%</div>
+      </div>
+
+      <div class="deck-section">
+        <div class="section-title">Turntables</div>
+        <div class="turntables">
+          <div class="turntable">
+            <div class="turntable-disc" id="turntable1">
+              <div class="disc-bg"></div>
+              <div class="disc-grooves"></div>
+              <div class="disc-vinyl"></div>
+              <div class="disc-label">L1</div>
+              <div class="disc-needle"></div>
+            </div>
+            <div class="turntable-label">Layer 1</div>
+            <div class="turntable-value" id="turntable1-value">100%</div>
+          </div>
+          <div class="turntable">
+            <div class="turntable-disc" id="turntable2">
+              <div class="disc-bg"></div>
+              <div class="disc-grooves"></div>
+              <div class="disc-vinyl"></div>
+              <div class="disc-label">L2</div>
+              <div class="disc-needle"></div>
+            </div>
+            <div class="turntable-label">Layer 2</div>
+            <div class="turntable-value" id="turntable2-value">100%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="deck-section">
+        <div class="section-title">Blend Mode</div>
+        <div class="blend-grid">
+          <button class="blend-btn active" data-mode="normal">Normal</button>
+          <button class="blend-btn" data-mode="multiply">Multiply</button>
+          <button class="blend-btn" data-mode="screen">Screen</button>
+          <button class="blend-btn" data-mode="overlay">Overlay</button>
+          <button class="blend-btn" data-mode="difference">Difference</button>
+          <button class="blend-btn" data-mode="color-dodge">Dodge</button>
+          <button class="blend-btn" data-mode="color-burn">Burn</button>
+          <button class="blend-btn" data-mode="lighten">Lighten</button>
+          <button class="blend-btn" data-mode="darken">Darken</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<script>
+const state = {
+  shots: [],
+  current: 0,
+  layer1: { source: 'dynamic_style', opacity: 100, media: null },
+  layer2: { source: 'handdrawn_ink_style', opacity: 100, media: null },
+  crossfade: 50,
+  blendMode: 'normal',
+  preset: null,
+  presetFrame: 0
+};
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Load data
+async function loadData() {
+  try {
+    const res = await fetch('screenplays.json');
+    const data = await res.json();
+    data.forEach(sp => {
+      sp.content.forEach(item => {
+        if (item.shot_number && item.versions) {
+          state.shots.push({
+            num: item.shot_number,
+            vers: item.versions
+          });
+        }
+      });
+    });
+    init();
+  } catch(e) { console.error(e); }
+}
+
+function init() {
+  renderTimeline();
+  loadShot(0);
+  setupControls();
+  render();
+}
+
+async function loadShot(i) {
+  if (i < 0 || i >= state.shots.length) return;
+  state.current = i;
+  const shot = state.shots[i];
+  
+  // Load layer 1
+  await loadMedia(shot, state.layer1.source, 1);
+  
+  // Load layer 2
+  await loadMedia(shot, state.layer2.source, 2);
+  
+  updateTimeline();
+}
+
+async function loadMedia(shot, style, layer) {
+  const v = shot.vers[style];
+  if (!v) return;
+  
+  const videoUrl = v.selected_video_url;
+  const imageUrl = v.selected_image_url;
+  
+  if (videoUrl) {
+    const vid = document.createElement('video');
+    vid.src = videoUrl;
+    vid.loop = true;
+    vid.muted = true;
+    vid.autoplay = true;
+    await new Promise(resolve => {
+      vid.onloadeddata = resolve;
+      vid.onerror = resolve;
+    });
+    state[`layer${layer}`].media = vid;
+  } else if (imageUrl) {
+    const img = new Image();
+    img.src = imageUrl;
+    await new Promise(resolve => {
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+    state[`layer${layer}`].media = img;
+  }
+}
+
+function render() {
+  const m1 = state.layer1.media;
+  const m2 = state.layer2.media;
+  
+  if (!m1 && !m2) {
+    requestAnimationFrame(render);
+    return;
+  }
+  
+  // Set canvas size
+  const base = m1 || m2;
+  canvas.width = base.videoWidth || base.naturalWidth || 1920;
+  canvas.height = base.videoHeight || base.naturalHeight || 1080;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Apply preset animations
+  if (state.preset) {
+    applyPreset();
+  }
+  
+  // Calculate crossfade
+  const cf = state.crossfade / 100;
+  const alpha1 = (1 - cf) * (state.layer1.opacity / 100);
+  const alpha2 = cf * (state.layer2.opacity / 100);
+  
+  // Draw layer 1
+  if (m1 && alpha1 > 0) {
+    ctx.save();
+    ctx.globalAlpha = alpha1;
+    ctx.drawImage(m1, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+  
+  // Draw layer 2 with blend
+  if (m2 && alpha2 > 0) {
+    ctx.save();
+    ctx.globalAlpha = alpha2;
+    ctx.globalCompositeOperation = state.blendMode;
+    ctx.drawImage(m2, 0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+  
+  requestAnimationFrame(render);
+}
+
+function applyPreset() {
+  state.presetFrame++;
+  const t = state.presetFrame;
+  
+  switch(state.preset) {
+    case 'fade':
+      state.crossfade = 50 + Math.sin(t * 0.02) * 50;
+      updateCrossfaderUI();
+      break;
+    case 'strobe':
+      state.layer1.opacity = Math.random() > 0.5 ? 100 : 0;
+      state.layer2.opacity = Math.random() > 0.5 ? 100 : 0;
+      updateTurntableUI();
+      break;
+    case 'glitch':
+      if (t % 10 === 0) {
+        const modes = ['normal', 'multiply', 'screen', 'difference', 'overlay'];
+        state.blendMode = modes[Math.floor(Math.random() * modes.length)];
+        updateBlendUI();
+      }
+      break;
+    case 'zeno':
+      const target = Math.sin(t * 0.005) * 50 + 50;
+      state.crossfade += (target - state.crossfade) * 0.1;
+      updateCrossfaderUI();
+      break;
+    case 'kaleidoscope':
+      const modes = ['multiply', 'screen', 'overlay', 'difference', 'color-dodge', 'lighten'];
+      if (t % 60 === 0) {
+        state.blendMode = modes[Math.floor(t / 60) % modes.length];
+        updateBlendUI();
+      }
+      state.crossfade = 50 + Math.sin(t * 0.03) * 30;
+      updateCrossfaderUI();
+      break;
+  }
+}
+
+function setupControls() {
+  // Crossfader
+  const crossfader = document.getElementById('crossfader');
+  const handle = document.getElementById('crossfader-handle');
+  
+  let dragging = false;
+  
+  function updateCrossfaderPosition(clientX) {
+    const rect = crossfader.getBoundingClientRect();
+    const x = Math.max(20, Math.min(rect.width - 20, clientX - rect.left));
+    const percent = ((x - 20) / (rect.width - 40)) * 100;
+    state.crossfade = percent;
+    updateCrossfaderUI();
+  }
+  
+  handle.addEventListener('mousedown', () => dragging = true);
+  handle.addEventListener('touchstart', (e) => {
+    dragging = true;
+    e.preventDefault();
+  });
+  
+  window.addEventListener('mousemove', (e) => {
+    if (dragging) updateCrossfaderPosition(e.clientX);
+  });
+  
+  window.addEventListener('touchmove', (e) => {
+    if (dragging && e.touches[0]) {
+      updateCrossfaderPosition(e.touches[0].clientX);
+      e.preventDefault();
+    }
+  });
+  
+  window.addEventListener('mouseup', () => dragging = false);
+  window.addEventListener('touchend', () => dragging = false);
+  
+  crossfader.addEventListener('click', (e) => {
+    if (e.target !== handle) updateCrossfaderPosition(e.clientX);
+  });
+  
+  // Turntables
+  setupTurntable('turntable1', 1);
+  setupTurntable('turntable2', 2);
+  
+  // Blend modes
+  document.querySelectorAll('.blend-btn').forEach(btn => {
+    btn.onclick = () => {
+      state.blendMode = btn.dataset.mode;
+      updateBlendUI();
+    };
+  });
+  
+  // Presets
+  document.querySelectorAll('.preset').forEach(btn => {
+    btn.onclick = () => {
+      if (state.preset === btn.dataset.preset) {
+        state.preset = null;
+        state.presetFrame = 0;
+        btn.classList.remove('active');
+      } else {
+        document.querySelectorAll('.preset').forEach(b => b.classList.remove('active'));
+        state.preset = btn.dataset.preset;
+        state.presetFrame = 0;
+        btn.classList.add('active');
+      }
+    };
+  });
+  
+  // Keyboard
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' && state.current > 0) loadShot(state.current - 1);
+    if (e.key === 'ArrowRight' && state.current < state.shots.length - 1) loadShot(state.current + 1);
+  });
+}
+
+function setupTurntable(id, layer) {
+  const disc = document.getElementById(id);
+  const vinyl = disc.querySelector('.disc-vinyl');
+  
+  let dragging = false;
+  let startAngle = 0;
+  let startOpacity = state[`layer${layer}`].opacity;
+  
+  function getAngle(clientX, clientY) {
+    const rect = disc.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    return Math.atan2(clientY - cy, clientX - cx);
+  }
+  
+  function updateOpacity(clientX, clientY) {
+    const angle = getAngle(clientX, clientY);
+    const delta = (angle - startAngle) * (180 / Math.PI);
+    const opacity = Math.max(0, Math.min(100, startOpacity + delta));
+    state[`layer${layer}`].opacity = opacity;
+    updateTurntableUI();
+  }
+  
+  disc.addEventListener('mousedown', (e) => {
+    dragging = true;
+    startAngle = getAngle(e.clientX, e.clientY);
+    startOpacity = state[`layer${layer}`].opacity;
+  });
+  
+  disc.addEventListener('touchstart', (e) => {
+    dragging = true;
+    const touch = e.touches[0];
+    startAngle = getAngle(touch.clientX, touch.clientY);
+    startOpacity = state[`layer${layer}`].opacity;
+    e.preventDefault();
+  });
+  
+  window.addEventListener('mousemove', (e) => {
+    if (dragging && e.target === disc || disc.contains(e.target)) {
+      updateOpacity(e.clientX, e.clientY);
+      vinyl.style.transform = `rotate(${state[`layer${layer}`].opacity * 3.6}deg)`;
+    }
+  });
+  
+  window.addEventListener('touchmove', (e) => {
+    if (dragging && e.touches[0]) {
+      updateOpacity(e.touches[0].clientX, e.touches[0].clientY);
+      vinyl.style.transform = `rotate(${state[`layer${layer}`].opacity * 3.6}deg)`;
+      e.preventDefault();
+    }
+  });
+  
+  window.addEventListener('mouseup', () => dragging = false);
+  window.addEventListener('touchend', () => dragging = false);
+}
+
+function updateCrossfaderUI() {
+  const handle = document.getElementById('crossfader-handle');
+  const crossfader = document.getElementById('crossfader');
+  const rect = crossfader.getBoundingClientRect();
+  const x = 20 + ((rect.width - 40) * (state.crossfade / 100));
+  handle.style.left = x + 'px';
+  document.getElementById('crossfader-value').textContent = Math.round(state.crossfade) + '%';
+}
+
+function updateTurntableUI() {
+  document.getElementById('turntable1-value').textContent = Math.round(state.layer1.opacity) + '%';
+  document.getElementById('turntable2-value').textContent = Math.round(state.layer2.opacity) + '%';
+}
+
+function updateBlendUI() {
+  document.querySelectorAll('.blend-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === state.blendMode);
+  });
+}
+
+function renderTimeline() {
+  const timeline = document.getElementById('timeline');
+  timeline.innerHTML = '';
+  
+  state.shots.forEach((shot, i) => {
+    const div = document.createElement('div');
+    div.className = 'timeline-shot' + (i === state.current ? ' active' : '');
+    
+    const thumb = document.createElement('div');
+    thumb.className = 'shot-thumb';
+    
+    const url = shot.vers.dynamic_style?.selected_image_url;
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      thumb.appendChild(img);
+    }
+    
+    const num = document.createElement('div');
+    num.className = 'shot-num';
+    num.textContent = '#' + shot.num;
+    thumb.appendChild(num);
+    
+    div.appendChild(thumb);
+    div.onclick = () => loadShot(i);
+    timeline.appendChild(div);
+  });
+}
+
+function updateTimeline() {
+  document.querySelectorAll('.timeline-shot').forEach((el, i) => {
+    el.classList.toggle('active', i === state.current);
+  });
+}
+
+loadData();
+</script>
+</body>
+</html>

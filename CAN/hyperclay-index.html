@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hyperclay Experiments</title>
+  <style>
+    :root{ --bg:#0b0b0c; --cy:#00bcd4; --ink:#e6eff1; --panel:#101114; --ring:#1f2a2e; }
+    body{ margin:0; background:var(--bg); font-family: Courier, monospace; color:var(--ink); overflow-x:hidden; }
+    .container{ max-width:960px; margin:0 auto; padding:28px 20px; }
+    h1{ color:var(--cy); text-align:center; margin:8px 0 28px; letter-spacing:0.18em; text-transform:uppercase; font-size:2rem; font-weight:900; }
+    .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:18px; }
+    .card{ background:var(--panel); border:1px solid var(--ring); border-radius:8px; padding:20px; transition:border-color .2s ease; }
+    .card:hover{ border-color:var(--cy); }
+    .card h3{ color:var(--cy); margin:0 0 6px; font-size:1.1rem; letter-spacing:0.08em; }
+    .card p{ font-size:13px; opacity:0.8; line-height:1.35; margin:0; }
+    .btn{ display:inline-block; background:transparent; border:1px solid var(--cy); color:var(--cy); text-align:center; padding:10px 12px; text-decoration:none; margin-top:14px; border-radius:4px; transition:background .15s ease, color .15s ease; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; font-size:12px; }
+    .btn:hover{ background:var(--cy); color:#000; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>┌─ HYPERCLAY EXPERIMENTS ─┐</h1>
+    
+    <div class="grid">
+      <div class="card">
+        <h3>SONIFIER</h3>
+        <p>Mesh topology synthesizer & irregular geometry sequencer. Shape → Sound → Sequence.</p>
+        <a href="./hyperclay-sonifier.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>DECK</h3>
+        <p>DJ turntable interface for media blending. Radial dials, auto-presets, vinyl aesthetics.</p>
+        <a href="./hyperclay-deck.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>CRISPR</h3>
+        <p>Genetic media manipulation toolkit. Cut, splice, and evolve digital organisms.</p>
+        <a href="./hyperclay-crispr.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>DREX</h3>
+        <p>Dream sequence narrative generator. Procedural storytelling with visual poetry.</p>
+        <a href="./hyperclay-drex.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>REX</h3>
+        <p>Generative DNA visualization system. Evolve nucleotide sequences in real-time.</p>
+        <a href="./hyperclay-rex.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>TREX REFINED ⭐</h3>
+        <p>DNA helix with sophisticated radial controls, image blending, and DJ-style crossfader. Mobile-optimized with circular dials and conic gradients.</p>
+        <a href="./hyperclay-trex-refined.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>TREX (ORIGINAL)</h3>
+        <p>Double helix visualization with independent strand control. Image-based nucleotides, real-time blending, hypnotic animation.</p>
+        <a href="./hyperclay-trex.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>TREX COLOR</h3>
+        <p>Pure color mode variant. Mathematical color blending without images. Lightweight and fast.</p>
+        <a href="./hyperclay-trex-color.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>TREX MINIMAL</h3>
+        <p>Stripped-down minimalist helix. Core functionality only, maximum performance.</p>
+        <a href="./hyperclay-trex-minimal.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>BLEND</h3>
+        <p>Layer composition and blending matrix. Multi-track visual and audio synthesis.</p>
+        <a href="./hyperclay-blend.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>CINEMA</h3>
+        <p>Cinematic compositor and shot sandbox.</p>
+        <a href="./hyperclay-cinema.html" class="btn">LAUNCH</a>
+      </div>
+
+      <div class="card">
+        <h3>STUDIO</h3>
+        <p>Workspace and toolkit hub for hyperclay.</p>
+        <a href="./hyperclay-studio.html" class="btn">LAUNCH</a>
+      </div>
+
+      <div class="card">
+        <h3>EDIT</h3>
+        <p>Nonlinear editor experiments and utilities.</p>
+        <a href="./hyperclay-edit.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>QUAD</h3>
+        <p>Four-way split screen media compositor. Simultaneous playback and blending.</p>
+        <a href="./hyperclay-quad.html" class="btn">LAUNCH</a>
+      </div>
+      
+      <div class="card">
+        <h3>HYPERCLAY (ROOT)</h3>
+        <p>Original prototype and foundational experiments.</p>
+        <a href="./hyperclay.html" class="btn">LAUNCH</a>
+      </div>
+      
+    </div>
+    
+    <div style="margin-top: 48px; padding: 24px; background: var(--panel); border: 1px solid var(--ring); border-radius: 8px; text-align: center;">
+      <p style="font-size: 11px; opacity: 0.6; margin: 0; line-height: 1.6;">
+        ⭐ = Latest refined version with best UX/UI<br>
+        All experiments use procedural generation, real-time blending, and interactive controls.<br>
+        Best viewed on desktop. Mobile-optimized where indicated.
+      </p>
+    </div>
+  </div>
+  
+  <script>
+    // Add keyboard shortcut: press 'h' to return to index
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'h' && !e.ctrlKey && !e.metaKey) {
+        if (window.location.pathname !== '/hyperclay-index.html') {
+          window.location.href = './hyperclay-index.html';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

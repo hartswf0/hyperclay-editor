@@ -1,0 +1,3475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HYPERCLAY T-REX — Color Mode (All Features)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='black' stroke='%2300bcd4' stroke-width='4'/%3E%3Cpath d='M10 32 Q32 12 54 32 Q32 52 10 32Z' fill='none' stroke='%23ffd700' stroke-width='3'/%3E%3C/svg%3E" />
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+body { 
+  font-family: 'Courier New', monospace;
+  background: #000; 
+  color: #e8e8e8; 
+  overflow: hidden;
+  height: 100vh;
+}
+
+.app { 
+  display: flex; 
+  flex-direction: column; 
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+.top-bar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 60px;
+  height: 100vh;
+  background: rgba(10, 10, 12, 0.95);
+  backdrop-filter: blur(20px);
+  border-right: 2px solid #00bcd4;
+  z-index: 100;
+  padding: 10px 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 4px 0 30px rgba(0, 188, 212, 0.1);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .top-bar {
+    width: 50px;
+    padding: 8px 4px;
+  }
+}
+
+.top-bar.hidden {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.top-bar.active {
+  background: rgba(0, 188, 212, 0.3);
+  border-right-width: 5px;
+  box-shadow: 4px 0 30px rgba(0, 188, 212, 0.5);
+}
+
+.top-bar-right {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 60px;
+  height: 100vh;
+  background: rgba(10, 10, 12, 0.95);
+  backdrop-filter: blur(20px);
+  border-left: 2px solid #ff9800;
+  z-index: 100;
+  padding: 10px 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: -4px 0 30px rgba(255, 152, 0, 0.1);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .top-bar-right {
+    width: 50px;
+    padding: 8px 4px;
+  }
+}
+
+.top-bar-right.hidden {
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.top-bar-right.active {
+  background: rgba(255, 152, 0, 0.3);
+  border-left-width: 5px;
+  box-shadow: -4px 0 30px rgba(255, 152, 0, 0.5);
+}
+
+.op-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.operator {
+  width: 44px;
+  height: 44px;
+  background: rgba(26, 26, 28, 0.8);
+  border: 1px solid #333;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 18px;
+  color: #666;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.operator::after {
+  content: attr(data-label);
+  position: absolute;
+  left: 60px;
+  background: rgba(0, 0, 0, 0.95);
+  color: #00bcd4;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 9px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 10000;
+  border: 1px solid #00bcd4;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.operator:hover::after {
+  opacity: 1;
+}
+
+.operator::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(0, 188, 212, 0.1), rgba(255, 152, 0, 0.1));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.operator:hover::before {
+  opacity: 1;
+}
+
+.operator:hover {
+  border-color: #00bcd4;
+  color: #00bcd4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);
+}
+
+.operator:active {
+  transform: translateY(0) scale(0.95);
+  background: rgba(0, 188, 212, 0.4);
+  border-color: #00bcd4;
+}
+
+.operator.active {
+  border-color: #00bcd4;
+  color: #00bcd4;
+  background: rgba(0, 188, 212, 0.2);
+  box-shadow: 0 0 20px rgba(0, 188, 212, 0.4);
+}
+
+.gen-display {
+  font-size: 9px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  padding: 8px 4px;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  border-top: 1px solid #333;
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.gen-display span {
+  color: inherit;
+  font-size: 14px;
+  display: block;
+  margin-top: 4px;
+}
+
+.top-bar .gen-display {
+  color: #00bcd4;
+}
+
+.top-bar-right .gen-display {
+  color: #ff9800;
+}
+
+.dual-mode-controls {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.strand-control {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.strand-label {
+  font-size: 8px;
+  color: #666;
+  letter-spacing: 2px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.strand-a-control .strand-label {
+  color: #00bcd4;
+}
+
+.strand-b-control .strand-label {
+  color: #ff9800;
+}
+
+.mode-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.mode-mini-b.operator {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid #333;
+  color: #999;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  position: relative;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+@media (max-width: 768px) {
+  .operator {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 12px;
+  }
+}
+
+.mode-mini-btn {
+  background: rgba(26, 26, 28, 0.8);
+  border: 1px solid #333;
+  color: #666;
+  padding: 8px 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.mode-mini-btn:hover {
+  border-color: #00bcd4;
+  color: #00bcd4;
+}
+
+.mode-mini-btn.active[data-strand="a"] {
+  background: rgba(0, 188, 212, 0.2);
+  border-color: #00bcd4;
+  color: #00bcd4;
+  box-shadow: 0 0 12px rgba(0, 188, 212, 0.4);
+}
+
+.mode-mini-btn.active[data-strand="b"] {
+  background: rgba(255, 152, 0, 0.2);
+  border-color: #ff9800;
+  color: #ff9800;
+  box-shadow: 0 0 12px rgba(255, 152, 0, 0.4);
+}
+
+.drift-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.drift-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(26, 26, 28, 0.9);
+  border: 2px solid #333;
+  color: #666;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.drift-btn:hover {
+  border-color: #ffd700;
+  color: #ffd700;
+  transform: scale(1.1);
+}
+
+.drift-btn.active {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: #ffd700;
+  color: #ffd700;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+  animation: drift-pulse 2s ease-in-out infinite;
+}
+
+@keyframes drift-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.gen-label {
+  font-size: 9px;
+  color: #666;
+  letter-spacing: 2px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.gen-label span {
+  color: #ffd700;
+  font-size: 12px;
+  display: block;
+  margin-top: 2px;
+}
+
+.main {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* DNA Helix Container - Zoomable */
+.helix-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  background: radial-gradient(ellipse at center, rgba(0, 188, 212, 0.03), transparent 70%);
+  touch-action: none;
+}
+
+.helix-viewport.has-selection {
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.9));
+}
+
+.phenotype-background {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  pointer-events: none;
+}
+
+.phenotype-background.visible {
+  display: flex;
+}
+
+.phenotype-background canvas {
+  max-width: 80%;
+  max-height: 80%;
+  opacity: 0.3;
+  border: 2px solid rgba(255, 215, 0, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.3);
+  transition: opacity 0.3s;
+}
+
+.helix-viewport.has-selection .phenotype-background canvas {
+  opacity: 0.5;
+}
+
+.helix-viewport::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 60%;
+  background: linear-gradient(to bottom, 
+    transparent,
+    rgba(255, 215, 0, 0.3) 45%,
+    rgba(255, 215, 0, 0.6) 50%,
+    rgba(255, 215, 0, 0.3) 55%,
+    transparent);
+  pointer-events: none;
+  z-index: 500;
+}
+
+.helix-viewport::after {
+  content: 'FOCAL ZONE';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  color: rgba(255, 215, 0, 0.3);
+  letter-spacing: 3px;
+  font-weight: 900;
+  pointer-events: none;
+  z-index: 501;
+}
+
+.helix-strand {
+  position: relative;
+  width: 200px;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.1s linear;
+}
+
+@media (min-width: 768px) {
+  .helix-strand {
+    width: 280px;
+  }
+}
+
+/* Helix SVG Background */
+.helix-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.helix-path {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.7;
+  transition: stroke-width 0.3s, opacity 0.3s;
+}
+
+.helix-path:hover {
+  stroke-width: 5;
+  opacity: 1;
+}
+
+.helix-a { 
+  stroke: #00bcd4; 
+  filter: drop-shadow(0 0 4px rgba(0, 188, 212, 0.5));
+}
+
+.helix-b { 
+  stroke: #ff9800;
+  filter: drop-shadow(0 0 4px rgba(255, 152, 0, 0.5));
+  filter: drop-shadow(0 0 6px rgba(255, 152, 0, 0.7));
+}
+
+/* Base Pair Node - Dense Distribution */
+.base-pair {
+  position: absolute;
+  width: 100%;
+  left: 0;
+  height: 1px;
+  transform-origin: center;
+  pointer-events: all;
+  z-index: 1;
+  will-change: transform, opacity, top;
+  cursor: pointer;
+  transition: filter 0.3s;
+}
+
+.base-pair.center {
+  z-index: 100;
+}
+
+.base-pair.selected {
+  z-index: 200;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.9)) !important;
+}
+
+.base-pair.selected .nucleotide {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.1); }
+}
+
+/* BP Label - Minimal */
+.bp-label {
+  position: absolute;
+  left: -25px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Courier New', monospace;
+  font-size: 8px;
+  font-weight: 700;
+  color: #00bcd4;
+  letter-spacing: 0.5px;
+  opacity: 0;
+  transition: all 0.3s;
+}
+
+.base-pair.focused .bp-label,
+.base-pair:hover .bp-label {
+  opacity: 1;
+  color: #00d4e8;
+  font-size: 11px;
+  left: -35px;
+}
+
+/* Nucleotide - Dynamic Sizing */
+.nucleotide {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 2;
+  overflow: hidden;
+  border: 1px solid;
+  pointer-events: all;
+  transition: none; /* Smooth via JS */
+  will-change: width, height, left, top, opacity;
+}
+
+.nucleotide-a {
+  background: #00bcd4;
+  border-color: #00bcd4;
+  box-shadow: 0 0 10px rgba(0, 188, 212, 1);
+}
+
+.nucleotide-b {
+  background: #ff9800;
+  border-color: #ff9800;
+  box-shadow: 0 0 10px rgba(255, 152, 0, 1);
+}
+
+.nucleotide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.strand-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.95);
+  padding: 6px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  border-top: 1px solid;
+  letter-spacing: 0.3px;
+}
+
+.strand-a .strand-label {
+  color: #00bcd4;
+  border-color: #00bcd4;
+}
+
+.strand-b .strand-label {
+  color: #ff9800;
+  border-color: #ff9800;
+}
+
+.strand-type {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 3px 6px;
+  font-size: 8px;
+  font-weight: 900;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+.strand-a .strand-type {
+  background: #00bcd4;
+  color: #000;
+}
+
+.strand-b .strand-type {
+  background: #ff9800;
+  color: #000;
+}
+
+/* Horizontal Bond Lines - Minimal */
+.bond-lines {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 40%;
+  bottom: 40%;
+  z-index: 1;
+  pointer-events: all;
+  opacity: 0;
+  transition: all 0.3s;
+}
+
+.base-pair.focused .bond-lines {
+  opacity: 1;
+}
+
+.bond-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 215, 0, 0.3);
+  pointer-events: all;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bond-line:hover {
+  background: rgba(255, 215, 0, 0.9);
+  height: 2px;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+}
+
+/* Operation Popup - Symbolic */
+.bond-ops {
+  position: absolute;
+  left: 50%;
+  top: -25px;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid #ffd700;
+  border-radius: 20px;
+  padding: 4px 8px;
+  display: none;
+  gap: 6px;
+  align-items: center;
+  backdrop-filter: blur(10px);
+}
+
+.bond-line:hover .bond-ops {
+  display: flex;
+}
+
+.bond-op {
+  background: transparent;
+  border: none;
+  color: #ffd700;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: all 0.2s;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bond-op:hover {
+  color: #fff;
+  transform: scale(1.2);
+}
+
+/* Text Encoding */
+.text-encoding {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 9px;
+  color: #999;
+  line-height: 1.3;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.base-pair.selected .text-encoding {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .text-encoding {
+    font-size: 10px;
+  }
+}
+
+.encoding-row {
+  display: flex;
+  gap: 6px;
+}
+
+.encoding-label {
+  color: #666;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 7px;
+  letter-spacing: 0.5px;
+  min-width: 30px;
+}
+
+@media (min-width: 768px) {
+  .encoding-label {
+    font-size: 8px;
+    min-width: 40px;
+  }
+}
+
+.encoding-value {
+  color: #ccc;
+  font-family: 'Courier New', monospace;
+  word-break: break-word;
+  font-size: 8px;
+}
+
+@media (min-width: 768px) {
+  .encoding-value {
+    font-size: 9px;
+  }
+}
+
+.encoding-value.shot {
+  color: #00bcd4;
+  font-weight: 700;
+}
+
+.encoding-value.mode {
+  color: #ff9800;
+  font-weight: 700;
+}
+
+/* Phenotype Rectangle - Minimal */
+.phenotype {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  border: 2px solid #ffd700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+  cursor: pointer;
+  background: #000;
+  z-index: 3;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+}
+
+.base-pair.focused .phenotype {
+  width: 160px;
+  height: 90px;
+  border-width: 3px;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.9);
+  opacity: 1;
+}
+
+@media (min-width: 768px) {
+  .base-pair.focused .phenotype {
+    width: 200px;
+    height: 112px;
+  }
+}
+
+.phenotype:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+}
+
+.phenotype canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.phenotype-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 215, 0, 0.9);
+  color: #000;
+  font-size: 8px;
+  font-weight: 900;
+  text-align: center;
+  padding: 3px;
+  text-transform: uppercase;
+}
+
+/* Corner Controls */
+.corner-control {
+  position: fixed;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: rgba(10, 10, 12, 0.95);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 1000;
+  font-size: 24px;
+  color: #666;
+  gap: 2px;
+}
+
+.corner-control::after {
+  content: attr(data-label);
+  font-size: 7px;
+  color: #666;
+  letter-spacing: 0.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.corner-control.fullscreen-active {
+  background: rgba(0, 188, 212, 0.2);
+  border-color: #00bcd4;
+  color: #00bcd4;
+}
+
+@media (min-width: 768px) {
+  .corner-control {
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+  }
+}
+
+.corner-control:hover {
+  border-color: #00bcd4;
+  color: #00bcd4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 188, 212, 0.4);
+}
+
+.corner-tl { top: 16px; left: 16px; }
+.corner-tr { top: 16px; right: 16px; }
+.corner-bl { bottom: 200px; left: 16px; }
+.corner-br { bottom: 200px; right: 16px; }
+
+/* DNA Shape Controls */
+.dna-shape-panel {
+  position: fixed;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  backdrop-filter: blur(20px);
+  min-width: 200px;
+}
+
+.dna-shape-panel.visible {
+  display: flex;
+}
+
+.shape-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shape-label {
+  font-size: 8px;
+  color: #666;
+  letter-spacing: 1px;
+  font-weight: 900;
+  min-width: 60px;
+}
+
+.shape-slider {
+  flex: 1;
+  height: 4px;
+  background: #1a1a1c;
+  border-radius: 2px;
+  position: relative;
+  cursor: pointer;
+}
+
+.shape-track {
+  height: 100%;
+  background: #00bcd4;
+  border-radius: 2px;
+}
+
+/* Bottom Control Bar - DJ Style */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.98), rgba(0, 0, 0, 0.95));
+  border-top: 2px solid rgba(255, 152, 0, 0.4);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  backdrop-filter: blur(30px);
+  z-index: 999;
+  box-shadow: 0 -4px 30px rgba(255, 152, 0, 0.1);
+}
+
+.bottom-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent,
+    rgba(0, 188, 212, 0.5) 25%,
+    rgba(255, 215, 0, 0.5) 50%,
+    rgba(255, 152, 0, 0.5) 75%,
+    transparent);
+  animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.opacity-slider {
+  flex: 1;
+  height: 12px;
+  background: #0a0a0c;
+  border: 1px solid #2a2a2c;
+  border-radius: 6px;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.opacity-track {
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8));
+  border-radius: 6px;
+  position: relative;
+  transition: width 0.15s;
+}
+
+.opacity-track::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 2px;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.8);
+}
+
+.control-slider {
+  flex: 1;
+  height: 12px;
+  background: #0a0a0c;
+  border: 1px solid #2a2a2c;
+  border-radius: 6px;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.slider-track {
+  height: 100%;
+  background: linear-gradient(90deg, #00bcd4, #ff9800);
+  border-radius: 6px;
+  position: relative;
+  transition: width 0.15s;
+}
+
+.slider-track::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+.slider-label {
+  font-size: 9px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 900;
+  min-width: 50px;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.slider-value {
+  font-size: 11px;
+  color: #00bcd4;
+  font-weight: 700;
+  min-width: 40px;
+  text-align: left;
+  font-family: 'Courier New', monospace;
+}
+
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.mode-btn {
+  background: rgba(26, 26, 28, 0.8);
+  border: 1px solid #333;
+  color: #666;
+  padding: 6px 4px;
+  font-size: 9px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+.mode-btn:hover {
+  border-color: #00bcd4;
+  color: #00bcd4;
+}
+
+.mode-btn.active {
+  background: rgba(0, 188, 212, 0.2);
+  border-color: #00bcd4;
+  color: #00bcd4;
+  box-shadow: 0 0 12px rgba(0, 188, 212, 0.4);
+}
+
+/* Image Lightbox */
+.lightbox {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.lightbox.visible {
+  display: flex;
+}
+
+.lightbox-content {
+  max-width: 90vw;
+  max-height: 90vh;
+  position: relative;
+}
+
+.lightbox-img {
+  max-width: 100%;
+  max-height: 90vh;
+  border: 3px solid #00bcd4;
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(0, 188, 212, 0.6);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: #00bcd4;
+  border: none;
+  color: #000;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-info {
+  position: absolute;
+  bottom: -60px;
+  left: 0;
+  right: 0;
+  color: #00bcd4;
+  text-align: center;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Library Items */
+.library-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.library-item {
+  background: #1a1a1c;
+  border: 1px solid #2a2a2c;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.library-item:hover {
+  background: #222224;
+  border-color: #00bcd4;
+}
+
+.library-item.active {
+  background: rgba(0, 188, 212, 0.15);
+  border-color: #00bcd4;
+}
+
+.library-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.library-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.library-meta {
+  font-size: 10px;
+  color: #999;
+  font-weight: 600;
+}
+
+.library-meta strong {
+  color: #00bcd4;
+  display: none;
+}
+
+.crispr-btn {
+  background: #1a1a1c;
+  border: 1px solid #444;
+  padding: 12px;
+  font-size: 11px;
+  color: #ccc;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.crispr-btn:hover {
+  background: #2a2a2c;
+  border-color: #00bcd4;
+  color: #fff;
+}
+
+.crispr-btn:active {
+  transform: scale(0.98);
+}
+
+/* Theory Panel */
+.theory-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+.theory-overlay.visible {
+  display: flex;
+}
+
+.theory-content {
+  background: #0b0b0c;
+  border: 2px solid #00bcd4;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 30px;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.theory-title {
+  font-size: 18px;
+  color: #00bcd4;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.theory-section {
+  margin-bottom: 20px;
+}
+
+.theory-section h3 {
+  font-size: 13px;
+  color: #ff9800;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.theory-section p {
+  color: #ccc;
+  margin-bottom: 10px;
+}
+
+.theory-close {
+  margin-top: 20px;
+  width: 100%;
+  padding: 12px;
+  background: #00bcd4;
+  color: #000;
+  border: none;
+  font-weight: 900;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-family: 'Courier New', monospace;
+}
+
+/* Floating Action Buttons */
+.fab {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #00bcd4;
+  color: #000;
+  border: none;
+  font-size: 28px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 188, 212, 0.4);
+  z-index: 900;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 8px 24px rgba(0, 188, 212, 0.6);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+.fab-secondary {
+  bottom: 90px;
+  background: #ff9800;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+}
+
+.fab-secondary:hover {
+  box-shadow: 0 8px 24px rgba(255, 152, 0, 0.6);
+}
+
+/* Operations HUD */
+.ops-hud {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,.8);
+  border: 1px solid #00bcd4;
+  color: #00bcd4;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  z-index: 1100;
+  backdrop-filter: blur(10px);
+}
+.ops-row { display:flex; gap:10px; align-items:center; }
+.ops-bar { width:160px; height:6px; background:#0b0b0c; border:1px solid #2a2a2c; border-radius:3px; overflow:hidden }
+.ops-fill { height:100%; width:0%; background:linear-gradient(90deg,#00bcd4,#ffd700); transition:width .2s }
+
+.help-btn {
+  position: fixed;
+  bottom: 160px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(26, 26, 28, 0.9);
+  color: #00bcd4;
+  border: 2px solid #00bcd4;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 900;
+  transition: all 0.3s;
+  backdrop-filter: blur(10px);
+}
+
+.help-btn:hover {
+  transform: scale(1.1);
+  background: rgba(0, 188, 212, 0.2);
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #0b0b0c; }
+::-webkit-scrollbar-thumb { background: #00bcd4; border-radius: 4px; }
+
+/* VERTICAL RANGE SLIDER STYLING */
+input[type="range"][style*="vertical"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  width: 8px !important;
+}
+
+input[type="range"][style*="vertical"]::-webkit-slider-runnable-track {
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2));
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+
+input[type="range"][style*="vertical"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00bcd4, #ff9800);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+input[type="range"][style*="vertical"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(0,188,212,0.6);
+}
+
+input[type="range"][style*="vertical"]::-webkit-slider-thumb:active {
+  transform: scale(1.4);
+  box-shadow: 0 6px 16px rgba(255,152,0,0.8);
+}
+
+/* Firefox */
+input[type="range"][style*="vertical"]::-moz-range-track {
+  width: 8px;
+  background: linear-gradient(to top, rgba(0,0,0,0.3), rgba(255,255,255,0.2));
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+
+input[type="range"][style*="vertical"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00bcd4, #ff9800);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  input[type="range"][style*="vertical"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+  input[type="range"][style*="vertical"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Left Strip: Strand A (Cyan) FULL CONTROL PANEL -->
+  <div class="top-bar" id="strand-a-panel">
+    <!-- PANEL HEADER with toggle and visual indicator -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #00bcd4;">
+      <div style="font-size: 11px; font-weight: 900; color: #00bcd4; letter-spacing: 2px;">A</div>
+      <div id="toggle-panel-a" style="cursor: pointer; font-size: 14px; color: #00bcd4; padding: 2px 4px; border: 1px solid #00bcd4; border-radius: 2px; background: rgba(0,188,212,0.2); transition: all 0.2s;" title="Hide panel (H)">«</div>
+    </div>
+    
+    <!-- STATUS -->
+    <div style="text-align: center; font-size: 7px; color: #00bcd4; margin-bottom: 6px; opacity: 0.9; line-height: 1.2; font-weight: 700;" id="strand-a-status">
+      ▶ FWD
+    </div>
+    
+    <!-- CONTROLS -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 6px;">
+      <div class="operator" id="play-pause-a" title="Play/Pause" style="font-size: 16px;">▶</div>
+      <div class="operator" id="reverse-a" title="Reverse" style="font-size: 16px;">⇄</div>
+      <div class="operator" id="speed-a-down" title="Slower" style="font-size: 18px;">−</div>
+      <div class="operator" id="speed-a-up" title="Faster" style="font-size: 18px;">+</div>
+    </div>
+    <div style="text-align: center; font-size: 8px; color: #00bcd4; margin-bottom: 8px; font-weight: 700;"><span id="speed-a-display">0.8x</span></div>
+    
+    <!-- SLIDERS -->
+    <div style="margin-bottom: 8px; display: flex; flex-direction: column; align-items: center;">
+      <div style="font-size: 7px; color: #666; margin-bottom: 2px; font-weight: 700;">OPA</div>
+      <input type="range" id="opacity-a-slider" min="0" max="100" value="50" style="writing-mode: vertical-lr; direction: rtl; width: 4px; height: 60px; cursor: pointer;">
+      <div style="font-size: 7px; color: #00bcd4; margin-top: 2px; font-weight: 700;" id="opacity-a-value">50</div>
+    </div>
+    
+    <div style="margin-bottom: 8px; display: flex; flex-direction: column; align-items: center;">
+      <div style="font-size: 7px; color: #666; margin-bottom: 2px; font-weight: 700;">WOB</div>
+      <input type="range" id="freq-a-slider" min="5" max="30" value="10" style="writing-mode: vertical-lr; direction: rtl; width: 4px; height: 60px; cursor: pointer;">
+      <div style="font-size: 7px; color: #00bcd4; margin-top: 2px; font-weight: 700;" id="freq-a-value">10</div>
+    </div>
+    
+    <!-- BLEND -->
+    <div style="margin-bottom: 8px;">
+      <div style="font-size: 7px; color: #666; margin-bottom: 3px; text-align: center; font-weight: 700;">BLEND</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
+        <div class="mode-mini-btn" data-strand="a" data-mode="multiply" style="font-size: 12px; padding: 6px 2px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: #666; text-align: center; cursor: pointer; border-radius: 2px;">×</div>
+        <div class="mode-mini-btn" data-strand="a" data-mode="screen" style="font-size: 12px; padding: 6px 2px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: #666; text-align: center; cursor: pointer; border-radius: 2px;">◐</div>
+        <div class="mode-mini-btn" data-strand="a" data-mode="overlay" style="font-size: 12px; padding: 6px 2px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: #666; text-align: center; cursor: pointer; border-radius: 2px;">◑</div>
+        <div class="mode-mini-btn" data-strand="a" data-mode="difference" style="font-size: 12px; padding: 6px 2px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: #666; text-align: center; cursor: pointer; border-radius: 2px;">△</div>
+      </div>
+    </div>
+    
+    <!-- ON/OFF -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
+      <div class="operator" id="op-express-a" title="Show" style="font-size: 9px; padding: 6px 2px;">ON</div>
+      <div class="operator" id="op-silence-a" title="Hide" style="font-size: 9px; padding: 6px 2px;">OFF</div>
+    </div>
+  </div>
+  
+  <!-- Right Strip: Strand B (Orange) FULL CONTROL PANEL -->
+  <div class="top-bar-right" id="strand-b-panel">
+    <!-- PANEL HEADER with toggle and visual indicator -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #ff9800;">
+      <div style="font-size: 11px; font-weight: 900; color: #ff9800; letter-spacing: 2px;">B</div>
+      <div id="toggle-panel-b" style="cursor: pointer; font-size: 14px; color: #ff9800; padding: 2px 4px; border: 1px solid #ff9800; border-radius: 2px; background: rgba(255,152,0,0.2); transition: all 0.2s;" title="Hide panel (K)">»</div>
+    </div>
+    
+    <!-- STATUS -->
+    <div style="text-align: center; font-size: 7px; color: #ff9800; margin-bottom: 6px; opacity: 0.9; line-height: 1.2; font-weight: 700;" id="strand-b-status">
+      ▶ FWD
+    </div>
+    
+    <!-- CONTROLS -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 6px;">
+      <div class="operator" id="play-pause-b" title="Play/Pause" style="font-size: 16px;">▶</div>
+      <div class="operator" id="reverse-b" title="Reverse" style="font-size: 16px;">⇄</div>
+      <div class="operator" id="speed-b-down" title="Slower" style="font-size: 18px;">−</div>
+      <div class="operator" id="speed-b-up" title="Faster" style="font-size: 18px;">+</div>
+    </div>
+    <div style="text-align: center; font-size: 8px; color: #ff9800; margin-bottom: 8px; font-weight: 700;"><span id="speed-b-display">1.5x</span></div>
+    
+    <!-- SLIDERS -->
+    <div style="margin-bottom: 8px; display: flex; flex-direction: column; align-items: center;">
+      <div style="font-size: 7px; color: #666; margin-bottom: 2px; font-weight: 700;">OPA</div>
+      <input type="range" id="opacity-b-slider" min="0" max="100" value="50" style="writing-mode: vertical-lr; direction: rtl; width: 4px; height: 60px; cursor: pointer;">
+      <div style="font-size: 7px; color: #ff9800; margin-top: 2px; font-weight: 700;" id="opacity-b-value">50</div>
+    </div>
+    
+    <div style="margin-bottom: 8px; display: flex; flex-direction: column; align-items: center;">
+      <div style="font-size: 7px; color: #666; margin-bottom: 2px; font-weight: 700;">WOB</div>
+      <input type="range" id="freq-b-slider" min="5" max="30" value="18" style="writing-mode: vertical-lr; direction: rtl; width: 4px; height: 60px; cursor: pointer;">
+      <div style="font-size: 7px; color: #ff9800; margin-top: 2px; font-weight: 700;" id="freq-b-value">18</div>
+    </div>
+    
+    <!-- BLEND -->
+    <div style="margin-bottom: 8px;">
+      <div style="font-size: 7px; color: #666; margin-bottom: 3px; text-align: center; font-weight: 700;">BLEND</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
+        <div class="mode-mini-btn" data-strand="b" data-mode="multiply" style="font-size: 12px; padding: 6px 2px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: #666; text-align: center; cursor: pointer; border-radius: 2px;">×</div>
+        <div class="mode-mini-btn" data-strand="b" data-mode="screen" style="font-size: 12px; padding: 6px 2px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: #666; text-align: center; cursor: pointer; border-radius: 2px;">◐</div>
+        <div class="mode-mini-btn" data-strand="b" data-mode="overlay" style="font-size: 12px; padding: 6px 2px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: #666; text-align: center; cursor: pointer; border-radius: 2px;">◑</div>
+        <div class="mode-mini-btn" data-strand="b" data-mode="difference" style="font-size: 12px; padding: 6px 2px; border: 1px solid #333; background: rgba(0,0,0,0.5); color: #666; text-align: center; cursor: pointer; border-radius: 2px;">△</div>
+      </div>
+    </div>
+    
+    <!-- ON/OFF -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
+      <div class="operator" id="op-express-b" title="Show" style="font-size: 9px; padding: 6px 2px;">ON</div>
+      <div class="operator" id="op-silence-b" title="Hide" style="font-size: 9px; padding: 6px 2px;">OFF</div>
+    </div>
+  </div>
+
+  <!-- Main Helix Viewport -->
+  <div class="main">
+    <div class="helix-viewport" id="helix-viewport">
+      <div class="helix-strand" id="helix-strand">
+        <svg class="helix-svg" id="helix-svg" viewBox="0 0 200 2000" preserveAspectRatio="xMidYMin slice">
+          <path class="helix-path helix-a" id="helix-path-a" d=""/>
+          <path class="helix-path helix-b" id="helix-path-b" d=""/>
+        </svg>
+        <!-- Base pairs dynamically inserted -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Operations HUD -->
+<div class="ops-hud" id="ops-hud" style="display:none">
+  <div class="ops-row">
+    <span id="ops-text">Loading 0/0</span>
+    <div class="ops-bar"><div class="ops-fill" id="ops-fill"></div></div>
+  </div>
+</div>
+
+<!-- Color Mode Badge with Status -->
+<div id="status-badge" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(255, 215, 0, 0.2); border: 1px solid #ffd700; color: #ffd700; padding: 6px 12px; border-radius: 20px; font-size: 10px; font-weight: 900; letter-spacing: 2px; z-index: 1100; backdrop-filter: blur(10px); display: flex; gap: 12px; align-items: center; cursor: help;" title="H=Hide Left Panel, K=Hide Right Panel, ESC=Toggle Both">
+  <span>COLOR MODE</span>
+  <span style="font-size: 8px; opacity: 0.7; border-left: 1px solid #ffd700; padding-left: 12px;" id="status-text">READY</span>
+</div>
+
+<!-- Corner Controls with Labels -->
+<div class="corner-control corner-tl" id="fullscreen" data-label="FULL">⛶</div>
+<div class="corner-control corner-tr" id="dna-shape" data-label="SHAPE">◇</div>
+<div class="corner-control corner-bl" id="auto-rotate" data-label="AUTO">⟳</div>
+<div class="corner-control corner-br" id="help" data-label="HELP">?</div>
+
+<!-- DNA Shape Panel -->
+<div class="dna-shape-panel" id="dna-shape-panel">
+  <div class="shape-control">
+    <div class="shape-label">FREQUENCY</div>
+    <div class="shape-slider" id="freq-slider">
+      <div class="shape-track" id="freq-track" style="width: 50%;"></div>
+    </div>
+  </div>
+  <div class="shape-control">
+    <div class="shape-label">AMPLITUDE</div>
+    <div class="shape-slider" id="amp-slider">
+      <div class="shape-track" id="amp-track" style="width: 50%;"></div>
+    </div>
+  </div>
+  <div class="shape-control">
+    <div class="shape-label">DENSITY</div>
+    <div class="shape-slider" id="density-slider">
+      <div class="shape-track" id="density-track" style="width: 50%;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bottom Control Bar - CROSSFADER EDITION -->
+<div class="bottom-bar">
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 20px; gap: 20px;">
+    
+    <!-- LEFT: Strand A Focus -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 60px;">
+      <div id="focus-a" class="focus-btn" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(0,188,212,0.2); border: 2px solid #00bcd4; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; font-size: 16px; color: #00bcd4; font-weight: 900;">A</div>
+      <div style="font-size: 7px; color: #00bcd4; font-weight: 700;">SOLO</div>
+    </div>
+    
+    <!-- CENTER: Crossfader -->
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+      <div style="font-size: 8px; color: #666; font-weight: 700; letter-spacing: 1px;">A ← BALANCE → B</div>
+      <div style="position: relative; width: 100%; height: 40px; background: linear-gradient(to right, rgba(0,188,212,0.3), rgba(0,0,0,0.5), rgba(255,152,0,0.3)); border-radius: 20px; border: 1px solid #333;">
+        <input type="range" id="crossfader" min="0" max="100" value="50" style="width: 100%; height: 100%; cursor: pointer; opacity: 0; position: absolute; top: 0; left: 0; z-index: 2;">
+        <div id="crossfader-thumb" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; background: linear-gradient(135deg, #00bcd4, #ff9800); border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: none; transition: all 0.1s;"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; width: 100%; padding: 0 10px;">
+        <div style="font-size: 7px; color: #00bcd4; font-weight: 700;" id="balance-a">50%</div>
+        <div style="font-size: 7px; color: #ff9800; font-weight: 700;" id="balance-b">50%</div>
+      </div>
+    </div>
+    
+    <!-- RIGHT: Strand B Focus -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 60px;">
+      <div id="focus-b" class="focus-btn" style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,152,0,0.2); border: 2px solid #ff9800; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s; font-size: 16px; color: #ff9800; font-weight: 900;">B</div>
+      <div style="font-size: 7px; color: #ff9800; font-weight: 700;">SOLO</div>
+    </div>
+    
+    <!-- Drift Button -->
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+      <div class="drift-btn" id="organic-drift" title="Organic Drift" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px;">∿</div>
+      <div style="font-size: 7px; color: #666; font-weight: 700;">DRIFT</div>
+    </div>
+  </div>
+</div>
+
+<!-- Theory Overlay -->
+<div class="theory-overlay" id="theory-overlay">
+  <div class="theory-content">
+    <div class="theory-title">Procedural Rhetoric</div>
+    
+    <div class="theory-section">
+      <h3>Stanley & Lehman: Why Greatness Cannot Be Planned</h3>
+      <p>This interface embodies <strong>novelty search</strong> over objective-driven specification. You cannot plan which combinations will be interesting. Discovery emerges through <strong>stepping stones</strong> — unanticipated intermediates that lead somewhere you couldn't foresee.</p>
+      <p><strong>The tyranny of plausibility</strong>: Pre-specification forecloses exploration. Here, you breed without objectives, follow curiosity, accumulate unexpected forms.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Ingold: Correspondence Not Hylomorphism</h3>
+      <p>Traditional filmmaking assumes <strong>hylomorphism</strong>: complete vision (form) imposed on passive matter. This breeder demonstrates <strong>correspondence</strong> — form emerges <em>through</em> material engagement, not before it.</p>
+      <p>You don't arrive with a vision. You <strong>discover</strong> it by attending to what materials (images, blends, mutations) offer. The cinome grows along paths that continually bifurcate.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>Barad: Agential Realism</h3>
+      <p>Each offspring is an <strong>apparatus-dependent phenomenon</strong>. The blend isn't "out there" waiting to be found — it's produced through the intra-action of parent images, blend modes, your selection, and the computational system.</p>
+      <p><strong>Agential cuts</strong>: When you choose to breed, star, or pool an offspring, you're making cuts that produce new phenomena. The genome is entangled with your choices.</p>
+    </div>
+
+    <div class="theory-section">
+      <h3>The Cinome</h3>
+      <p>A <strong>genome of cinema</strong> — not DNA, but a lineage of visual forms breeding across generations. The double helix visualization shows ancestry, not as a tree but as an intertwined spiral of emergence.</p>
+      <p>Each generation builds on "interesting" rather than "correct." The pile twists, mutates, corresponds. Greatness, if it arrives, arrives unplanned.</p>
+    </div>
+
+    <button class="theory-close" id="theory-close">Close</button>
+  </div>
+</div>
+
+<!-- Image Lightbox -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-content">
+    <button class="lightbox-close" id="lightbox-close">×</button>
+    <img class="lightbox-img" id="lightbox-img" src="" alt="">
+    <div class="lightbox-info" id="lightbox-info"></div>
+  </div>
+</div>
+
+<script>
+const state = {
+  shots: [],
+  sequence: [],
+  selectedPair: null,
+  focusedPair: null,
+  strandA: {
+    mode: 'multiply',
+    opacity: 0.5,
+    active: true,
+    rotation: 0,
+    flow: 0.8, // SLOWER than B - visibly different
+    paused: false,
+    direction: 1, // 1 = forward, -1 = reverse
+    locked: false,
+    frequency: 0.010, // Lower frequency - wider waves
+    phaseShift: 0,
+    breathe: true
+  },
+  strandB: {
+    mode: 'screen',
+    opacity: 0.5,
+    active: true,
+    rotation: 0,
+    flow: 1.5, // FASTER than A - visibly different
+    paused: false,
+    direction: 1, // 1 = forward, -1 = reverse
+    locked: false,
+    frequency: 0.018, // Higher frequency - tighter waves
+    phaseShift: Math.PI,
+    breathe: true
+  },
+  dna: {
+    amplitude: 0.36,
+    twist: 0,
+    density: 0.05
+  },
+  hypnotic: {
+    enabled: false,
+    time: 0,
+    freqDrift: 0.0001,
+    flowDrift: 0.0005,
+    breathRate: 0.002
+  },
+  generation: 0,
+  isDragging: false,
+  activeStrand: null, // 'a', 'b', or null for both
+  isFullscreen: false,
+  organicDrift: false,
+  driftSpeed: 0.01
+};
+
+// Audio context for haptic feedback
+let audioContext;
+let lastTickRotation = 0;
+
+// COLOR MODE - No image cache needed
+let rafId = null;
+
+function playTickSound() {
+  // Only tick every 5 degrees of rotation
+  const rotationDeg = (state.rotation * 180 / Math.PI) % 360;
+  if (Math.abs(rotationDeg - lastTickRotation) < 5) return;
+  lastTickRotation = rotationDeg;
+  
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  
+  const osc = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  
+  osc.connect(gain);
+  gain.connect(audioContext.destination);
+  
+  osc.frequency.value = 800;
+  osc.type = 'sine';
+  
+  gain.gain.setValueAtTime(0.05, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.02);
+  
+  osc.start(audioContext.currentTime);
+  osc.stop(audioContext.currentTime + 0.02);
+}
+
+// Load shots
+// Helper to get random image from shot
+function getRandomImageFromShot(shot) {
+  const styles = ['dynamic_style', 'handdrawn_ink_style'];
+  const availableStyles = styles.filter(s => shot.vers[s]?.selected_image_url);
+  
+  if (availableStyles.length === 0) return null;
+  
+  const style = availableStyles[Math.floor(Math.random() * availableStyles.length)];
+  const url = shot.vers[style].selected_image_url;
+  
+  if (!url) return null;
+  
+  const img = new Image();
+  img.src = url;
+  img.style = style;
+  
+  return img;
+}
+
+async function loadData() {
+  // GENERATE COLOR DATA instead of loading images
+  console.log('[COLOR MODE] Generating 81 base pairs with pure colors...');
+  
+  try {
+    // Simulate async loading for consistency
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // GENERATE 81 color-based base pairs
+    const colorPalettes = [
+      { name: 'Cyan', color: '#00bcd4', rgb: [0, 188, 212] },
+      { name: 'Orange', color: '#ff9800', rgb: [255, 152, 0] },
+      { name: 'Gold', color: '#ffd700', rgb: [255, 215, 0] },
+      { name: 'Magenta', color: '#ff006e', rgb: [255, 0, 110] },
+      { name: 'Lime', color: '#39ff14', rgb: [57, 255, 20] },
+      { name: 'Purple', color: '#a855f7', rgb: [168, 85, 247] },
+      { name: 'Pink', color: '#ec4899', rgb: [236, 72, 153] },
+      { name: 'Yellow', color: '#fbbf24', rgb: [251, 191, 36] },
+      { name: 'Teal', color: '#14b8a6', rgb: [20, 184, 166] }
+    ];
+    
+    for (let i = 0; i < 81; i++) {
+      const colorA = colorPalettes[i % colorPalettes.length];
+      const colorB = colorPalettes[(i + 3) % colorPalettes.length];
+      
+      state.sequence.push({
+        id: Date.now() + i + Math.random(),
+        strandA: { 
+          color: colorA.color,
+          rgb: colorA.rgb,
+          name: colorA.name,
+          index: i
+        },
+        strandB: { 
+          color: colorB.color,
+          rgb: colorB.rgb,
+          name: colorB.name,
+          index: i
+        },
+        phenotype: null
+      });
+    }
+    
+    console.log(`[COLOR MODE] Generated ${state.sequence.length} base pairs with pure colors`);
+    init();
+  } catch (err) {
+    console.error('[COLOR MODE] Generation error:', err);
+    // Generate minimal fallback
+    for (let i = 0; i < 81; i++) {
+      state.sequence.push({
+        id: Date.now() + i,
+        strandA: { color: '#00bcd4', rgb: [0, 188, 212], name: 'Cyan', index: i },
+        strandB: { color: '#ff9800', rgb: [255, 152, 0], name: 'Orange', index: i },
+        phenotype: null
+      });
+    }
+    init();
+  }
+}
+
+async function initializeSequence(count) {
+  const sampled = shuffleArray(state.shots).slice(0, count * 2);
+  
+  for (let i = 0; i < count; i++) {
+    const strandA = await createStrand(sampled[i * 2], 'dynamic_style');
+    const strandB = await createStrand(sampled[i * 2 + 1], 'handdrawn_ink_style');
+    
+    state.sequence.push({
+      id: Date.now() + i,
+      position: i,
+      strandA,
+      strandB,
+      phenotype: null
+    });
+  }
+}
+
+async function createStrand(shot, preferredStyle) {
+  const style = shot.vers[preferredStyle] ? preferredStyle : 
+    (shot.vers.dynamic_style ? 'dynamic_style' : 'handdrawn_ink_style');
+  
+  const v = shot.vers[style];
+  const url = v?.selected_image_url;
+  
+  if (url) {
+    const img = new Image();
+    img.src = url;
+    await new Promise(r => {
+      img.onload = r;
+      img.onerror = r;
+    });
+    return {
+      shot,
+      style,
+      image: img
+    };
+  }
+  return null;
+}
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Consolidated render loop for smooth animation
+let frameCounter = 0;
+function startRenderLoop() {
+  function animate() {
+    // AUTO-ROTATE: Actually increment rotation
+    if (state.autoRotate && state.hypnotic.enabled) {
+      state.hypnotic.time += 1;
+      
+      // Breathe opacities
+      if (state.strandA.breathe) {
+        state.strandA.opacity = 0.4 + Math.sin(state.hypnotic.time * state.hypnotic.breathRate) * 0.2;
+      }
+      if (state.strandB.breathe) {
+        state.strandB.opacity = 0.4 + Math.cos(state.hypnotic.time * state.hypnotic.breathRate) * 0.2;
+      }
+      
+      // Drift flow rates
+      state.strandA.flow = 1.0 + Math.sin(state.hypnotic.time * state.hypnotic.flowDrift) * 0.3;
+      state.strandB.flow = 1.2 + Math.cos(state.hypnotic.time * state.hypnotic.flowDrift) * 0.3;
+      
+      // INCREMENT ROTATION - respecting pause and direction
+      if (!state.strandA.paused) {
+        state.strandA.rotation += state.driftSpeed * state.strandA.flow * state.strandA.direction;
+      }
+      if (!state.strandB.paused) {
+        state.strandB.rotation += state.driftSpeed * state.strandB.flow * state.strandB.direction;
+      }
+    }
+    
+    // Organic drift mode
+    if (state.organicDrift) {
+      if (!state.strandA.paused) {
+        state.strandA.rotation += state.driftSpeed * 0.5 * state.strandA.direction;
+      }
+      if (!state.strandB.paused) {
+        state.strandB.rotation += state.driftSpeed * 0.7 * state.strandB.direction;
+      }
+    }
+    
+    // Update visual if anything changed OR if either strand is moving
+    const strandAMoving = !state.strandA.paused && (state.autoRotate || state.organicDrift);
+    const strandBMoving = !state.strandB.paused && (state.autoRotate || state.organicDrift);
+    
+    if (state.isDragging || strandAMoving || strandBMoving) {
+      updateHelixRotation();
+    }
+    
+    // Update info displays every 10 frames
+    if (frameCounter % 10 === 0) {
+      updateInfoDisplays();
+    }
+    
+    // Log every 60 frames
+    if (frameCounter++ % 60 === 0 && state.autoRotate) {
+      console.log('[ANIMATE] Rotating:', state.strandA.rotation.toFixed(2));
+    }
+    
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+}
+
+// Update all information displays (Tufte: maximize data-ink ratio)
+function updateInfoDisplays() {
+  // Speed displays updated by controls
+  // Opacity displays updated by sliders
+  // Frequency displays updated by sliders
+  // Just keep values in sync
+  const opacityAValue = document.getElementById('opacity-a-value');
+  const opacityBValue = document.getElementById('opacity-b-value');
+  const freqAValue = document.getElementById('freq-a-value');
+  const freqBValue = document.getElementById('freq-b-value');
+  
+  if (opacityAValue) opacityAValue.textContent = Math.round(state.strandA.opacity * 100) + '%';
+  if (opacityBValue) opacityBValue.textContent = Math.round(state.strandB.opacity * 100) + '%';
+  if (freqAValue) freqAValue.textContent = state.strandA.frequency.toFixed(3);
+  if (freqBValue) freqBValue.textContent = state.strandB.frequency.toFixed(3);
+}
+
+function startAutoRotation() {
+  if (!state.autoRotate) return;
+  
+  state.rotation += state.rotationSpeed;
+  updateHelixRotation();
+  
+  requestAnimationFrame(startAutoRotation);
+}
+
+function init() {
+  // Initialize rotation values to 0 if not set
+  if (state.strandA.rotation === undefined) state.strandA.rotation = 0;
+  if (state.strandB.rotation === undefined) state.strandB.rotation = 0;
+  
+  console.log(`CINOME loaded: ${state.sequence.length} base pairs`);
+  console.log('Strand A rotation:', state.strandA.rotation);
+  console.log('Strand B rotation:', state.strandB.rotation);
+  console.log('[COLOR MODE] Pure color rendering');
+  
+  renderSequence();
+  setupControls();
+  updateUI();
+  
+  // Start smooth render loop
+  startRenderLoop();
+  
+  console.log('[COLOR MODE] Ready - no images to load!');
+}
+
+// Operations HUD utilities
+let opsTotal = 0, opsLoaded = 0, opsFailed = 0, opsVisible = false;
+function updateOpsHUD() {
+  const hud = document.getElementById('ops-hud');
+  if (!hud) return;
+  if (!opsVisible) { hud.style.display = 'none'; return; }
+  hud.style.display = 'block';
+  const text = document.getElementById('ops-text');
+  const fill = document.getElementById('ops-fill');
+  const done = opsLoaded + opsFailed;
+  const pct = opsTotal ? Math.round((done / opsTotal) * 100) : 0;
+  text.textContent = `Loading ${done}/${opsTotal} (${pct}%)`;
+  fill.style.width = `${pct}%`;
+  if (done >= opsTotal) setTimeout(()=>{ opsVisible=false; updateOpsHUD(); }, 400);
+}
+
+function beginPrefetch(){
+  // COLOR MODE - No prefetch needed
+  console.log('[COLOR MODE] No image prefetch needed - using pure colors');
+}
+
+function updateUI() {
+  // Gen count removed from UI in bottom bar redesign
+  // Status updates handled by individual controls
+}
+
+function renderSequence() {
+  const container = document.getElementById('helix-strand');
+  const svg = document.getElementById('helix-svg');
+  
+  // Clear existing base pairs (but keep SVG)
+  const existing = container.querySelectorAll('.base-pair');
+  existing.forEach(el => el.remove());
+  
+  // Full viewport height
+  const viewportHeight = window.innerHeight - 120;
+  const width = window.innerWidth >= 768 ? 280 : 200;
+  
+  svg.setAttribute('viewBox', `0 0 ${width} ${viewportHeight}`);
+  svg.style.height = `${viewportHeight}px`;
+  
+  // Draw helix for full height - INDEPENDENT WAVE FREQUENCIES
+  const amplitude = width * state.dna.amplitude;
+  const centerX = width / 2;
+  
+  let pathA = '';
+  let pathB = '';
+  
+  // Each strand has its own frequency and flow
+  const freqA = state.strandA.frequency + (state.hypnotic.enabled ? Math.sin(state.hypnotic.time * state.hypnotic.freqDrift) * 0.003 : 0);
+  const freqB = state.strandB.frequency + (state.hypnotic.enabled ? Math.cos(state.hypnotic.time * state.hypnotic.freqDrift) * 0.003 : 0);
+  
+  for (let y = 0; y < viewportHeight; y += 2) {
+    const actualY = y + (viewportHeight * 0.5);
+    
+    // Strand A - independent frequency, flow, and phase
+    const waveA = Math.sin((actualY + state.strandA.rotation * 50) * freqA + state.strandA.phaseShift + state.dna.twist) * amplitude;
+    const x1 = centerX + waveA;
+    
+    // Strand B - independent frequency, flow, and phase
+    const waveB = Math.sin((actualY + state.strandB.rotation * 50) * freqB + state.strandB.phaseShift - state.dna.twist) * amplitude;
+    const x2 = centerX - waveB;
+    
+    if (y === 0) {
+      pathA += `M ${x1} ${y} `;
+      pathB += `M ${x2} ${y} `;
+    } else {
+      pathA += `L ${x1} ${y} `;
+      pathB += `L ${x2} ${y} `;
+    }
+  }
+  
+  document.getElementById('helix-path-a').setAttribute('d', pathA);
+  document.getElementById('helix-path-b').setAttribute('d', pathB);
+  
+  // Create all base pairs distributed across viewport
+  console.log(`[RENDER] Creating ${state.sequence.length} base pairs (SVG will update dynamically)`);
+  
+  state.sequence.forEach((pair, index) => {
+    const bp = document.createElement('div');
+    bp.className = 'base-pair';
+    bp.dataset.bpId = pair.id;
+    bp.dataset.index = index;
+    if (pair.phenotype) bp.classList.add('has-phenotype');
+    
+    // Nucleotide A - use COLOR
+    const nucA = document.createElement('div');
+    nucA.className = 'nucleotide nucleotide-a';
+    nucA.style.background = pair.strandA?.color || '#00bcd4';
+    nucA.style.boxShadow = `0 0 10px ${pair.strandA?.color || '#00bcd4'}`;
+    nucA.dataset.colorName = pair.strandA?.name || 'Cyan';
+    nucA.dataset.pairId = pair.id;
+    bp.appendChild(nucA);
+    
+    // Nucleotide B - use COLOR
+    const nucB = document.createElement('div');
+    nucB.className = 'nucleotide nucleotide-b';
+    nucB.style.background = pair.strandB?.color || '#ff9800';
+    nucB.style.boxShadow = `0 0 10px ${pair.strandB?.color || '#ff9800'}`;
+    nucB.dataset.colorName = pair.strandB?.name || 'Orange';
+    nucB.dataset.pairId = pair.id;
+    bp.appendChild(nucB);
+    
+    // Click to select and show phenotype
+    bp.onclick = (e) => {
+      e.stopPropagation();
+      selectPair(pair.id);
+    };
+    
+    container.appendChild(bp);
+  });
+  
+  // Create phenotype background display
+  let phenoBg = document.getElementById('phenotype-bg');
+  if (!phenoBg) {
+    phenoBg = document.createElement('div');
+    phenoBg.id = 'phenotype-bg';
+    phenoBg.className = 'phenotype-background';
+    document.getElementById('helix-viewport').appendChild(phenoBg);
+  }
+  
+  // Position and animate
+  updateHelixRotation();
+}
+
+// Update helix rotation and positioning - HYPNOTIC INDEPENDENT WAVES
+function updateHelixRotation() {
+  const viewportHeight = window.innerHeight - 120;
+  const width = window.innerWidth >= 768 ? 280 : 200;
+  const centerX = width / 2;
+  const centerY = viewportHeight / 2;
+  const amplitude = width * state.dna.amplitude;
+  
+  // Independent frequencies with hypnotic drift
+  const freqA = state.strandA.frequency + (state.hypnotic.enabled ? Math.sin(state.hypnotic.time * state.hypnotic.freqDrift) * 0.003 : 0);
+  const freqB = state.strandB.frequency + (state.hypnotic.enabled ? Math.cos(state.hypnotic.time * state.hypnotic.freqDrift) * 0.003 : 0);
+  
+  // UPDATE SVG HELIX CURVES EVERY FRAME - MATCHING DOT COORDINATES EXACTLY
+  const svg = document.getElementById('helix-svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${viewportHeight}`);
+  svg.style.height = `${viewportHeight}px`;
+  
+  let pathA = '';
+  let pathB = '';
+  
+  // Draw curves using SAME coordinate system as dots!
+  for (let y = 0; y < viewportHeight; y += 2) {
+    // CRITICAL: Use same actualY calculation as dot positioning
+    const actualY = y + (viewportHeight * 0.5);
+    
+    // Strand A - exact same formula as dot positioning
+    const waveA = Math.sin((actualY + state.strandA.rotation * 50) * freqA + state.strandA.phaseShift + state.dna.twist) * amplitude;
+    const x1 = centerX + waveA;
+    
+    // Strand B - exact same formula as dot positioning  
+    const waveB = Math.sin((actualY + state.strandB.rotation * 50) * freqB + state.strandB.phaseShift - state.dna.twist) * amplitude;
+    const x2 = centerX - waveB;
+    
+    if (y === 0) {
+      pathA += `M ${x1} ${y} `;
+      pathB += `M ${x2} ${y} `;
+    } else {
+      pathA += `L ${x1} ${y} `;
+      pathB += `L ${x2} ${y} `;
+    }
+  }
+  
+  document.getElementById('helix-path-a').setAttribute('d', pathA);
+  document.getElementById('helix-path-b').setAttribute('d', pathB);
+  
+  const basePairs = document.querySelectorAll('.base-pair');
+  const numPairs = state.sequence.length;
+  
+  if (basePairs.length === 0) {
+    console.warn('No base pairs found in DOM!');
+    return;
+  }
+  
+  // Ultra-high density for full genome display - USER CONTROLLED
+  const spacing = viewportHeight / (numPairs * state.dna.density);
+  
+  basePairs.forEach((bp, idx) => {
+    const index = parseInt(bp.dataset.index);
+    
+    // Tight vertical distribution with rotation offset - WRAP SMOOTHLY
+    const verticalStep = spacing * index;
+    // Use average of both strands for vertical scroll
+    const avgRotation = (state.strandA.rotation + state.strandB.rotation) / 2;
+    const totalScroll = avgRotation * 50;
+    const wrappedHeight = viewportHeight * 2; // Double wrap for smooth cycling
+    const y = ((verticalStep + totalScroll) % wrappedHeight) - (viewportHeight * 0.5);
+    
+    // Calculate distance from center for standing wave effect
+    const distFromCenter = Math.abs(y - centerY);
+    const centerProximity = Math.max(0, 1 - (distFromCenter / (centerY * 0.6)));
+    
+    // Smooth transitions based on proximity
+    // Opacity: 0.6 at edges → 1.0 at center (MORE VISIBLE)
+    const opacity = 0.6 + (centerProximity * 0.4);
+    
+    // Scale: 0.8x at edges → 2.0x at center
+    const scale = 0.8 + (centerProximity * 1.2);
+    
+    // Nucleotide size: 8px at edges → 80px at center (ALWAYS VISIBLE)
+    const baseSize = window.innerWidth >= 768 ? 10 : 8;
+    const nucSize = baseSize + (centerProximity * 72);
+    
+    // Adaptive spacing - smaller dots pack tighter
+    const densityFactor = 1 - (centerProximity * 0.3); // Tighter at edges
+    
+    // Image opacity: 0 until 0.5 proximity, then fade in
+    const imgOpacity = Math.max(0, (centerProximity - 0.5) * 2);
+    
+    // Position base pair
+    bp.style.top = `${y}px`;
+    bp.style.transform = `scale(${scale})`;
+    bp.style.opacity = opacity;
+    bp.style.zIndex = Math.round(centerProximity * 100);
+    
+    // Mark as center if in focal zone
+    if (centerProximity > 0.7) {
+      bp.classList.add('center');
+      // Visual indicator for selected pair
+      bp.style.filter = 'drop-shadow(0 0 10px rgba(0, 188, 212, 0.6))';
+    } else {
+      bp.classList.remove('center');
+      bp.style.filter = '';
+    }
+    
+    // Calculate helix wave - INDEPENDENT FREQUENCIES + HYPNOTIC DRIFT
+    const actualY = y + (viewportHeight * 0.5);
+    
+    // Strand A - independent frequency, rotation, phase
+    const waveA = Math.sin((actualY + state.strandA.rotation * 50) * freqA + state.strandA.phaseShift + state.dna.twist) * amplitude;
+    const xA = centerX + waveA;
+    
+    // Strand B - independent frequency, rotation, phase
+    const waveB = Math.sin((actualY + state.strandB.rotation * 50) * freqB + state.strandB.phaseShift - state.dna.twist) * amplitude;
+    const xB = centerX - waveB;
+    
+    // Position nucleotides ON the helix curves - ALWAYS LOCKED
+    const nucA = bp.querySelector('.nucleotide-a');
+    const nucB = bp.querySelector('.nucleotide-b');
+    
+    if (nucA) {
+      // PRECISE positioning - FIX: Account for base-pair scale transform
+      // Dots must be positioned BEFORE scale is applied
+      nucA.style.left = `${xA}px`;
+      nucA.style.top = `0px`; // At base-pair vertical center
+      nucA.style.transform = `translate(-50%, -50%) scale(${1/scale})`; // Counter parent scale
+      nucA.style.width = `${nucSize * scale}px`; // Pre-scale size
+      nucA.style.height = `${nucSize * scale}px`;
+      nucA.style.marginTop = '0';
+      
+      // Color dot - no images needed
+      // Colors are set on the nucleotide div itself during renderSequence()
+      // Just update click handlers if needed
+      if (!nucA.hasAttribute('data-handlers-set')) {
+        nucA.onclick = (e) => {
+          e.stopPropagation();
+          selectPair(parseInt(nucA.dataset.pairId));
+        };
+        nucA.setAttribute('data-handlers-set', 'true');
+      }
+    }
+    
+    if (nucB) {
+      // PRECISE positioning - FIX: Account for base-pair scale transform
+      nucB.style.left = `${xB}px`;
+      nucB.style.top = `0px`; // At base-pair vertical center
+      nucB.style.transform = `translate(-50%, -50%) scale(${1/scale})`; // Counter parent scale
+      nucB.style.width = `${nucSize * scale}px`; // Pre-scale size
+      nucB.style.height = `${nucSize * scale}px`;
+      nucB.style.marginTop = '0';
+      
+      // Color dot - no images needed
+      // Colors are set on the nucleotide div itself during renderSequence()
+      // Just update click handlers if needed
+      if (!nucB.hasAttribute('data-handlers-set')) {
+        nucB.onclick = (e) => {
+          e.stopPropagation();
+          selectPair(parseInt(nucB.dataset.pairId));
+        };
+        nucB.setAttribute('data-handlers-set', 'true');
+      }
+    }
+  });
+}
+
+function handleBondOperation(action, pairId) {
+  state.selectedPair = pairId;
+  
+  switch(action) {
+    case 'mutate':
+      mutateSelected();
+      break;
+    case 'delete':
+      const idx = state.sequence.findIndex(p => p.id === pairId);
+      if (idx > -1) {
+        state.sequence.splice(idx, 1);
+        state.selectedPair = null;
+      }
+      break;
+    case 'breed':
+      const pair = state.sequence.find(p => p.id === pairId);
+      if (pair) {
+        generatePhenotype(pairId);
+      }
+      break;
+  }
+  
+  renderSequence();
+}
+
+
+function openLightbox(src, info) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-info').textContent = info;
+  document.getElementById('lightbox').classList.add('visible');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('visible');
+}
+
+function selectPair(pairId) {
+  // Deselect previous
+  document.querySelectorAll('.base-pair').forEach(b => b.classList.remove('selected'));
+  
+  // Find and select new pair
+  const pair = state.sequence.find(p => p.id === pairId);
+  if (!pair) return;
+  
+  const bp = document.querySelector(`[data-bp-id="${pairId}"]`);
+  if (bp) bp.classList.add('selected');
+  
+  state.selectedPair = pairId;
+  console.log('Selected pair:', pairId, pair);
+  playTickSound();
+  
+  // Generate phenotype if not exists
+  if (!pair.phenotype && pair.strandA?.image && pair.strandB?.image) {
+    generatePhenotype(pairId);
+  }
+  
+  // Show phenotype in background
+  const phenoBg = document.getElementById('phenotype-bg');
+  const viewport = document.getElementById('helix-viewport');
+  
+  if (pair.phenotype && phenoBg) {
+    phenoBg.innerHTML = '';
+    const canvas = pair.phenotype.cloneNode(true);
+    phenoBg.appendChild(canvas);
+    phenoBg.classList.add('visible');
+    viewport.classList.add('has-selection');
+    
+    // Double-click canvas to zoom
+    canvas.ondblclick = () => {
+      try {
+        const url = pair.phenotype.toDataURL();
+        openLightbox(url, `Phenotype - ${state.blendMode.toUpperCase()} blend`);
+      } catch(err) {
+        console.log('Canvas export blocked by CORS');
+      }
+    };
+  } else {
+    phenoBg.classList.remove('visible');
+    viewport.classList.remove('has-selection');
+  }
+}
+
+function deselectPair() {
+  document.querySelectorAll('.base-pair').forEach(b => b.classList.remove('selected'));
+  state.selectedPair = null;
+  
+  const phenoBg = document.getElementById('phenotype-bg');
+  const viewport = document.getElementById('helix-viewport');
+  
+  if (phenoBg) phenoBg.classList.remove('visible');
+  if (viewport) viewport.classList.remove('has-selection');
+}
+
+function generatePhenotype(pairId) {
+  const pair = state.sequence.find(p => p.id === pairId);
+  if (!pair || !pair.strandA?.rgb || !pair.strandB?.rgb) return;
+  
+  // BLEND COLORS mathematically instead of using canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = 200;
+  canvas.height = 112;
+  const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: false });
+  
+  // Get RGB values
+  const [r1, g1, b1] = pair.strandA.rgb;
+  const [r2, g2, b2] = pair.strandB.rgb;
+  
+  // Apply blend mode mathematically
+  let finalColor;
+  const mode = state.strandB.mode;
+  const opacityA = state.strandA.active ? state.strandA.opacity : 0;
+  const opacityB = state.strandB.active ? state.strandB.opacity : 0;
+  
+  if (mode === 'multiply') {
+    finalColor = `rgb(${Math.floor(r1 * r2 / 255)}, ${Math.floor(g1 * g2 / 255)}, ${Math.floor(b1 * b2 / 255)})`;
+  } else if (mode === 'screen') {
+    finalColor = `rgb(${255 - Math.floor((255 - r1) * (255 - r2) / 255)}, ${255 - Math.floor((255 - g1) * (255 - g2) / 255)}, ${255 - Math.floor((255 - b1) * (255 - b2) / 255)})`;
+  } else if (mode === 'overlay' || mode === 'difference') {
+    // Simple blend for overlay/difference
+    const r = Math.floor((r1 * opacityA + r2 * opacityB) / (opacityA + opacityB || 1));
+    const g = Math.floor((g1 * opacityA + g2 * opacityB) / (opacityA + opacityB || 1));
+    const b = Math.floor((b1 * opacityA + b2 * opacityB) / (opacityA + opacityB || 1));
+    finalColor = `rgb(${r}, ${g}, ${b})`;
+  } else {
+    // Default: weighted average
+    const r = Math.floor(r1 * opacityA + r2 * opacityB);
+    const g = Math.floor(g1 * opacityA + g2 * opacityB);
+    const b = Math.floor(b1 * opacityA + b2 * opacityB);
+    finalColor = `rgb(${r}, ${g}, ${b})`;
+  }
+  
+  // Fill canvas with blended color
+  ctx.fillStyle = finalColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Add color names as text
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${pair.strandA.name} × ${pair.strandB.name}`, canvas.width / 2, canvas.height / 2);
+  ctx.fillText(mode.toUpperCase(), canvas.width / 2, canvas.height / 2 + 20);
+  
+  pair.phenotype = canvas;
+  
+  // Non-blocking UI update
+  if (window.requestIdleCallback) {
+    requestIdleCallback(() => {
+      if (state.selectedPair === pairId) selectPair(pairId);
+    });
+  } else {
+    setTimeout(() => {
+      if (state.selectedPair === pairId) selectPair(pairId);
+    }, 0);
+  }
+}
+
+async function addBasePair() {
+  if (state.shots.length < 2) return;
+  
+  const available = shuffleArray(state.shots).slice(0, 2);
+  const strandA = await createStrand(available[0], 'dynamic_style');
+  const strandB = await createStrand(available[1], 'handdrawn_ink_style');
+  
+  state.sequence.push({
+    id: Date.now(),
+    position: state.sequence.length,
+    strandA,
+    strandB,
+    phenotype: null
+  });
+  
+  state.generation++;
+  // Gen count display removed from UI
+  renderSequence();
+  
+  // Auto-generate phenotype
+  setTimeout(() => {
+    generatePhenotype(state.sequence[state.sequence.length - 1].id);
+  }, 300);
+}
+
+function spliceSelected() {
+  if (!state.selectedPair) return;
+  
+  const index = state.sequence.findIndex(p => p.id === state.selectedPair);
+  if (index > -1) {
+    state.sequence.splice(index, 1);
+    state.selectedPair = null;
+    renderSequence();
+  }
+}
+
+async function mutateSelected() {
+  if (!state.selectedPair) return;
+  
+  const pair = state.sequence.find(p => p.id === state.selectedPair);
+  if (!pair) return;
+  
+  // Randomly mutate one strand
+  if (Math.random() > 0.5) {
+    pair.strandA = await createStrand(
+      shuffleArray(state.shots)[0],
+      'dynamic_style'
+    );
+  } else {
+    pair.strandB = await createStrand(
+      shuffleArray(state.shots)[0],
+      'handdrawn_ink_style'
+    );
+  }
+  
+  pair.phenotype = null;
+  renderSequence();
+  
+  setTimeout(() => generatePhenotype(pair.id), 300);
+}
+
+function exportSequence() {
+  const data = {
+    generation: state.generation,
+    blendMode: state.blendMode,
+    sequence: state.sequence.map(p => ({
+      position: p.position,
+      strandA: {
+        shot: p.strandA?.shot.num,
+        screenplay: p.strandA?.shot.sp,
+        style: p.strandA?.style
+      },
+      strandB: {
+        shot: p.strandB?.shot.num,
+        screenplay: p.strandB?.shot.sp,
+        style: p.strandB?.style
+      },
+      hasPhenotype: !!p.phenotype
+    }))
+  };
+  
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `cinome-gen${state.generation}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportPhenotypes() {
+  state.sequence.forEach((pair, i) => {
+    if (pair.phenotype) {
+      const url = pair.phenotype.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `phenotype-BP${i}-gen${state.generation}.png`;
+      a.click();
+    }
+  });
+}
+
+
+function setupControls() {
+  // OPACITY SLIDERS - Direct visual feedback
+  const opacityASlider = document.getElementById('opacity-a-slider');
+  const opacityBSlider = document.getElementById('opacity-b-slider');
+  
+  opacityASlider.addEventListener('input', (e) => {
+    state.strandA.opacity = parseInt(e.target.value) / 100;
+    document.getElementById('opacity-a-value').textContent = e.target.value;
+    regenerateAllPhenotypes();
+  });
+  
+  opacityBSlider.addEventListener('input', (e) => {
+    state.strandB.opacity = parseInt(e.target.value) / 100;
+    document.getElementById('opacity-b-value').textContent = e.target.value;
+    regenerateAllPhenotypes();
+  });
+  
+  // CROSSFADER - DJ-style A/B balance
+  const crossfader = document.getElementById('crossfader');
+  const crossfaderThumb = document.getElementById('crossfader-thumb');
+  const balanceA = document.getElementById('balance-a');
+  const balanceB = document.getElementById('balance-b');
+  
+  crossfader.addEventListener('input', (e) => {
+    const value = parseInt(e.target.value);
+    const percent = value / 100;
+    
+    // Position thumb
+    crossfaderThumb.style.left = `${value}%`;
+    
+    // Balance opacities (inverse relationship)
+    const opacityA = 1 - (percent * 0.7); // A fades as slider moves right
+    const opacityB = 0.3 + (percent * 0.7); // B grows as slider moves right
+    
+    state.strandA.opacity = Math.max(0.1, Math.min(1, opacityA));
+    state.strandB.opacity = Math.max(0.1, Math.min(1, opacityB));
+    
+    // Update displays
+    opacityASlider.value = Math.round(state.strandA.opacity * 100);
+    opacityBSlider.value = Math.round(state.strandB.opacity * 100);
+    document.getElementById('opacity-a-value').textContent = Math.round(state.strandA.opacity * 100);
+    document.getElementById('opacity-b-value').textContent = Math.round(state.strandB.opacity * 100);
+    balanceA.textContent = Math.round((1 - percent) * 100) + '%';
+    balanceB.textContent = Math.round(percent * 100) + '%';
+    
+    regenerateAllPhenotypes();
+  });
+  
+  // FOCUS BUTTONS - Solo each strand
+  document.getElementById('focus-a').addEventListener('click', function() {
+    state.strandA.opacity = 0.9;
+    state.strandB.opacity = 0.1;
+    crossfader.value = 0;
+    crossfaderThumb.style.left = '0%';
+    opacityASlider.value = 90;
+    opacityBSlider.value = 10;
+    document.getElementById('opacity-a-value').textContent = '90';
+    document.getElementById('opacity-b-value').textContent = '10';
+    balanceA.textContent = '100%';
+    balanceB.textContent = '0%';
+    this.style.transform = 'scale(1.1)';
+    setTimeout(() => this.style.transform = 'scale(1)', 200);
+    regenerateAllPhenotypes();
+    updateStatusText('Strand A SOLO');
+  });
+  
+  document.getElementById('focus-b').addEventListener('click', function() {
+    state.strandA.opacity = 0.1;
+    state.strandB.opacity = 0.9;
+    crossfader.value = 100;
+    crossfaderThumb.style.left = '100%';
+    opacityASlider.value = 10;
+    opacityBSlider.value = 90;
+    document.getElementById('opacity-a-value').textContent = '10';
+    document.getElementById('opacity-b-value').textContent = '90';
+    balanceA.textContent = '0%';
+    balanceB.textContent = '100%';
+    this.style.transform = 'scale(1.1)';
+    setTimeout(() => this.style.transform = 'scale(1)', 200);
+    regenerateAllPhenotypes();
+    updateStatusText('Strand B SOLO');
+  });
+  
+  // FREQUENCY SLIDERS - Control wobble per strand
+  const freqASlider = document.getElementById('freq-a-slider');
+  const freqBSlider = document.getElementById('freq-b-slider');
+  
+  freqASlider.addEventListener('input', (e) => {
+    state.strandA.frequency = parseInt(e.target.value) / 1000;
+    document.getElementById('freq-a-value').textContent = e.target.value;
+    updateHelixRotation();
+  });
+  
+  freqBSlider.addEventListener('input', (e) => {
+    state.strandB.frequency = parseInt(e.target.value) / 1000;
+    document.getElementById('freq-b-value').textContent = e.target.value;
+    updateHelixRotation();
+  });
+  
+  // BLEND MODE BUTTONS - Better visibility
+  document.querySelectorAll('.mode-mini-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const strand = this.dataset.strand;
+      const mode = this.dataset.mode;
+      
+      if (strand === 'a') {
+        state.strandA.mode = mode;
+        document.querySelectorAll('[data-strand="a"]').forEach(b => {
+          b.style.borderColor = b.dataset.mode === mode ? '#00bcd4' : '#333';
+          b.style.color = b.dataset.mode === mode ? '#00bcd4' : '#666';
+          b.style.background = b.dataset.mode === mode ? 'rgba(0, 188, 212, 0.2)' : 'rgba(0,0,0,0.5)';
+        });
+      } else {
+        state.strandB.mode = mode;
+        document.querySelectorAll('[data-strand="b"]').forEach(b => {
+          b.style.borderColor = b.dataset.mode === mode ? '#ff9800' : '#333';
+          b.style.color = b.dataset.mode === mode ? '#ff9800' : '#666';
+          b.style.background = b.dataset.mode === mode ? 'rgba(255, 152, 0, 0.2)' : 'rgba(0,0,0,0.5)';
+        });
+      }
+      
+      regenerateAllPhenotypes();
+      updateStatusText(`${strand.toUpperCase()}: ${mode.toUpperCase()} blend`);
+    });
+  });
+  
+  // Initialize blend mode button states
+  document.querySelectorAll('[data-strand="a"]').forEach(b => {
+    if (b.dataset.mode === state.strandA.mode) {
+      b.style.borderColor = '#00bcd4';
+      b.style.color = '#00bcd4';
+      b.style.background = 'rgba(0, 188, 212, 0.2)';
+    }
+  });
+  document.querySelectorAll('[data-strand="b"]').forEach(b => {
+    if (b.dataset.mode === state.strandB.mode) {
+      b.style.borderColor = '#ff9800';
+      b.style.color = '#ff9800';
+      b.style.background = 'rgba(255, 152, 0, 0.2)';
+    }
+  });
+  
+  // STRAND ISOLATION - Highlight strand when hovering control panel
+  const strandAPanel = document.getElementById('strand-a-panel');
+  const strandBPanel = document.getElementById('strand-b-panel');
+  const helixPathA = document.getElementById('helix-path-a');
+  const helixPathB = document.getElementById('helix-path-b');
+  
+  strandAPanel.addEventListener('mouseenter', () => {
+    helixPathA.style.strokeWidth = '6';
+    helixPathA.style.opacity = '1';
+    helixPathB.style.opacity = '0.3';
+    document.querySelectorAll('.nucleotide-a').forEach(n => n.style.filter = 'brightness(1.5) drop-shadow(0 0 8px #00bcd4)');
+    document.querySelectorAll('.nucleotide-b').forEach(n => n.style.opacity = '0.3');
+  });
+  
+  strandAPanel.addEventListener('mouseleave', () => {
+    helixPathA.style.strokeWidth = '3';
+    helixPathA.style.opacity = '0.7';
+    helixPathB.style.opacity = '0.7';
+    document.querySelectorAll('.nucleotide-a').forEach(n => n.style.filter = '');
+    document.querySelectorAll('.nucleotide-b').forEach(n => n.style.opacity = '1');
+  });
+  
+  strandBPanel.addEventListener('mouseenter', () => {
+    helixPathB.style.strokeWidth = '6';
+    helixPathB.style.opacity = '1';
+    helixPathA.style.opacity = '0.3';
+    document.querySelectorAll('.nucleotide-b').forEach(n => n.style.filter = 'brightness(1.5) drop-shadow(0 0 8px #ff9800)');
+    document.querySelectorAll('.nucleotide-a').forEach(n => n.style.opacity = '0.3');
+  });
+  
+  strandBPanel.addEventListener('mouseleave', () => {
+    helixPathB.style.strokeWidth = '3';
+    helixPathB.style.opacity = '0.7';
+    helixPathA.style.opacity = '0.7';
+    document.querySelectorAll('.nucleotide-b').forEach(n => n.style.filter = '');
+    document.querySelectorAll('.nucleotide-a').forEach(n => n.style.opacity = '1');
+  });
+  
+  // STRAND A CONTROLS (Cyan/Left)
+  // Transcribe/replicate removed - they required base pair selection which was confusing
+  
+  document.getElementById('op-express-a').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandA.active = true;
+    document.getElementById('op-express-a').style.color = '#00bcd4';
+    regenerateAllPhenotypes();
+  };
+  
+  document.getElementById('op-silence-a').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandA.active = false;
+    document.getElementById('op-silence-a').style.color = '#666';
+    updateStatusText('Strand A silenced');
+    regenerateAllPhenotypes();
+  };
+  
+  // Speed controls for Strand A - finer granularity
+  document.getElementById('speed-a-up').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandA.flow = Math.min(5.0, state.strandA.flow + 0.1);
+    document.getElementById('speed-a-display').textContent = state.strandA.flow.toFixed(1) + 'x';
+    updateStatusText(`Strand A speed: ${state.strandA.flow.toFixed(1)}x`);
+  };
+  
+  document.getElementById('speed-a-down').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandA.flow = Math.max(0.1, state.strandA.flow - 0.1);
+    document.getElementById('speed-a-display').textContent = state.strandA.flow.toFixed(1) + 'x';
+    updateStatusText(`Strand A speed: ${state.strandA.flow.toFixed(1)}x`);
+  };
+  
+  // Play/Pause Strand A
+  document.getElementById('play-pause-a').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandA.paused = !state.strandA.paused;
+    this.textContent = state.strandA.paused ? '■' : '▶';
+    this.style.color = state.strandA.paused ? '#666' : '#00bcd4';
+    
+    // Update status indicator
+    const status = document.getElementById('strand-a-status');
+    const playState = state.strandA.paused ? '■' : '▶';
+    const dirState = state.strandA.direction === 1 ? 'FWD' : 'REV';
+    status.textContent = `${playState} ${dirState}`;
+    
+    updateStatusText(`Strand A ${state.strandA.paused ? 'PAUSED' : 'PLAYING'}`);
+  };
+  
+  // Reverse Strand A
+  document.getElementById('reverse-a').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandA.direction *= -1;
+    this.style.color = state.strandA.direction === 1 ? '#666' : '#00bcd4';
+    
+    // Update status indicator
+    const status = document.getElementById('strand-a-status');
+    const playState = state.strandA.paused ? '■' : '▶';
+    const dirState = state.strandA.direction === 1 ? 'FWD' : 'REV';
+    status.textContent = `${playState} ${dirState}`;
+    
+    updateStatusText(`Strand A ${state.strandA.direction === 1 ? 'FORWARD' : 'REVERSE'}`);
+  };
+  
+  // STRAND B CONTROLS (Orange/Right)
+  
+  document.getElementById('op-express-b').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandB.active = true;
+    document.getElementById('op-express-b').style.color = '#ff9800';
+    regenerateAllPhenotypes();
+  };
+  
+  document.getElementById('op-silence-b').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandB.active = false;
+    document.getElementById('op-silence-b').style.color = '#666';
+    updateStatusText('Strand B silenced');
+    regenerateAllPhenotypes();
+  };
+  
+  // Speed controls for Strand B - finer granularity
+  document.getElementById('speed-b-up').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandB.flow = Math.min(5.0, state.strandB.flow + 0.1);
+    document.getElementById('speed-b-display').textContent = state.strandB.flow.toFixed(1) + 'x';
+    updateStatusText(`Strand B speed: ${state.strandB.flow.toFixed(1)}x`);
+  };
+  
+  document.getElementById('speed-b-down').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandB.flow = Math.max(0.1, state.strandB.flow - 0.1);
+    document.getElementById('speed-b-display').textContent = state.strandB.flow.toFixed(1) + 'x';
+    updateStatusText(`Strand B speed: ${state.strandB.flow.toFixed(1)}x`);
+  };
+  
+  // Play/Pause Strand B
+  document.getElementById('play-pause-b').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandB.paused = !state.strandB.paused;
+    this.textContent = state.strandB.paused ? '■' : '▶';
+    this.style.color = state.strandB.paused ? '#666' : '#ff9800';
+    
+    // Update status indicator
+    const status = document.getElementById('strand-b-status');
+    const playState = state.strandB.paused ? '■' : '▶';
+    const dirState = state.strandB.direction === 1 ? 'FWD' : 'REV';
+    status.textContent = `${playState} ${dirState}`;
+    
+    updateStatusText(`Strand B ${state.strandB.paused ? 'PAUSED' : 'PLAYING'}`);
+  };
+  
+  // Reverse Strand B
+  document.getElementById('reverse-b').onclick = function() {
+    this.classList.add('active');
+    setTimeout(() => this.classList.remove('active'), 200);
+    state.strandB.direction *= -1;
+    this.style.color = state.strandB.direction === 1 ? '#666' : '#ff9800';
+    
+    // Update status indicator
+    const status = document.getElementById('strand-b-status');
+    const playState = state.strandB.paused ? '■' : '▶';
+    const dirState = state.strandB.direction === 1 ? 'FWD' : 'REV';
+    status.textContent = `${playState} ${dirState}`;
+    
+    updateStatusText(`Strand B ${state.strandB.direction === 1 ? 'FORWARD' : 'REVERSE'}`);
+  };
+  
+  function regenerateAllPhenotypes() {
+    state.sequence.forEach(pair => {
+      if (pair.strandA?.rgb && pair.strandB?.rgb) {
+        generatePhenotype(pair.id);
+      }
+    });
+    if (state.selectedPair) selectPair(state.selectedPair);
+  }
+  
+  // Status text updater
+  function updateStatusText(message) {
+    const statusEl = document.getElementById('status-text');
+    if (statusEl) {
+      statusEl.textContent = message.toUpperCase();
+      setTimeout(() => {
+        if (state.autoRotate) {
+          statusEl.textContent = 'AUTO-ROTATING';
+        } else if (state.organicDrift) {
+          statusEl.textContent = 'DRIFTING';
+        } else {
+          statusEl.textContent = 'READY';
+        }
+      }, 2000);
+    }
+  }
+  
+  // Fullscreen control
+  const fullscreenBtn = document.getElementById('fullscreen');
+  if (fullscreenBtn) {
+    fullscreenBtn.onclick = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+        state.isFullscreen = true;
+        fullscreenBtn.classList.add('fullscreen-active');
+      } else {
+        document.exitFullscreen();
+        state.isFullscreen = false;
+        fullscreenBtn.classList.remove('fullscreen-active');
+      }
+    };
+  }
+  
+  // Hypnotic auto-rotate toggle
+  document.getElementById('auto-rotate').onclick = () => {
+    state.autoRotate = !state.autoRotate;
+    state.hypnotic.enabled = state.autoRotate;
+    
+    const btn = document.getElementById('auto-rotate');
+    if (state.autoRotate) {
+      btn.style.borderColor = '#00bcd4';
+      btn.style.color = '#00bcd4';
+      btn.style.background = 'rgba(0, 188, 212, 0.2)';
+      updateStatusText('Auto-rotate ON');
+      console.log('[AUTO-ROTATE] Enabled - rotation handled by main loop');
+    } else {
+      btn.style.borderColor = '#333';
+      btn.style.color = '#666';
+      btn.style.background = 'rgba(10, 10, 12, 0.95)';
+      updateStatusText('Auto-rotate OFF');
+      console.log('[AUTO-ROTATE] Disabled');
+    }
+  };
+  
+  // REMOVED: startHypnoticFlow() - all animation now in main startRenderLoop()
+  
+  document.getElementById('help').onclick = () => {
+    document.getElementById('theory-overlay').classList.add('visible');
+  };
+  
+  // DNA Shape controls
+  const shapePanel = document.getElementById('dna-shape-panel');
+  document.getElementById('dna-shape').onclick = () => {
+    shapePanel.classList.toggle('visible');
+  };
+  
+  // Frequency slider - controls strand frequency difference
+  document.getElementById('freq-slider').addEventListener('click', (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    document.getElementById('freq-track').style.width = `${percent * 100}%`;
+    
+    // Center = same frequency, edges = different frequencies
+    const diff = (percent - 0.5) * 0.02;
+    state.strandA.frequency = 0.012 - diff;
+    state.strandB.frequency = 0.012 + diff;
+    updateHelixRotation(); // Just update positions, don't recreate DOM
+  });
+  
+  // Amplitude slider
+  document.getElementById('amp-slider').addEventListener('click', (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    document.getElementById('amp-track').style.width = `${percent * 100}%`;
+    
+    state.dna.amplitude = 0.1 + (percent * 0.5); // 0.1 to 0.6
+    updateHelixRotation(); // Just update positions, don't recreate DOM
+  });
+  
+  // Density slider
+  document.getElementById('density-slider').addEventListener('click', (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    document.getElementById('density-track').style.width = `${percent * 100}%`;
+    
+    state.dna.density = 0.02 + (percent * 0.1); // 0.02 to 0.12
+    updateHelixRotation(); // Just update positions, don't recreate DOM
+  });
+  
+  // Lightbox
+  document.getElementById('lightbox-close').onclick = closeLightbox;
+  document.getElementById('lightbox').onclick = (e) => {
+    if (e.target.id === 'lightbox') closeLightbox();
+  };
+  
+  document.getElementById('theory-close').onclick = () => {
+    document.getElementById('theory-overlay').classList.remove('visible');
+  };
+  
+  document.getElementById('theory-overlay').onclick = (e) => {
+    if (e.target.id === 'theory-overlay') {
+      document.getElementById('theory-overlay').classList.remove('visible');
+    }
+  };
+  
+  // (Strand panel hover/click handlers already defined above with highlighting)
+  
+  // PANEL HIDE/SHOW TOGGLES
+  const panelA = document.getElementById('strand-a-panel');
+  const panelB = document.getElementById('strand-b-panel');
+  const toggleA = document.getElementById('toggle-panel-a');
+  const toggleB = document.getElementById('toggle-panel-b');
+  
+  toggleA.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panelA.classList.toggle('hidden');
+    toggleA.textContent = panelA.classList.contains('hidden') ? '»' : '«';
+    updateStatusText(panelA.classList.contains('hidden') ? 'Panel A hidden (H to show)' : 'Panel A visible');
+  });
+  
+  toggleB.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panelB.classList.toggle('hidden');
+    toggleB.textContent = panelB.classList.contains('hidden') ? '«' : '»';
+    updateStatusText(panelB.classList.contains('hidden') ? 'Panel B hidden (K to show)' : 'Panel B visible');
+  });
+  
+  // KEYBOARD SHORTCUTS for panel toggle
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'h' || e.key === 'H') {
+      panelA.classList.toggle('hidden');
+      toggleA.textContent = panelA.classList.contains('hidden') ? '»' : '«';
+      toggleA.style.transform = panelA.classList.contains('hidden') ? 'translateX(60px)' : 'none';
+      updateStatusText(panelA.classList.contains('hidden') ? 'Panel A hidden' : 'Panel A visible');
+    }
+    if (e.key === 'k' || e.key === 'K') {
+      panelB.classList.toggle('hidden');
+      toggleB.textContent = panelB.classList.contains('hidden') ? '«' : '»';
+      toggleB.style.transform = panelB.classList.contains('hidden') ? 'translateX(-60px)' : 'none';
+      updateStatusText(panelB.classList.contains('hidden') ? 'Panel B hidden' : 'Panel B visible');
+    }
+    // Hide both with ESC
+    if (e.key === 'Escape') {
+      const bothHidden = panelA.classList.contains('hidden') && panelB.classList.contains('hidden');
+      panelA.classList.toggle('hidden', !bothHidden);
+      panelB.classList.toggle('hidden', !bothHidden);
+      toggleA.textContent = panelA.classList.contains('hidden') ? '»' : '«';
+      toggleB.textContent = panelB.classList.contains('hidden') ? '«' : '»';
+      toggleA.style.transform = panelA.classList.contains('hidden') ? 'translateX(60px)' : 'none';
+      toggleB.style.transform = panelB.classList.contains('hidden') ? 'translateX(-60px)' : 'none';
+      updateStatusText(bothHidden ? 'Panels visible' : 'Panels hidden');
+    }
+  });
+  
+  // SWIPE GESTURES for mobile - swipe from edge to toggle panels
+  let touchStartX = 0;
+  let touchStartY = 0;
+  
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  });
+  
+  document.addEventListener('touchend', (e) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = Math.abs(touchEndY - touchStartY);
+    
+    // Horizontal swipe (deltaY < 50 to avoid interfering with scroll)
+    if (deltaY < 50 && Math.abs(deltaX) > 80) {
+      // Swipe from left edge -> show/hide left panel
+      if (touchStartX < 50) {
+        panelA.classList.toggle('hidden');
+        toggleA.textContent = panelA.classList.contains('hidden') ? '»' : '«';
+        toggleA.style.transform = panelA.classList.contains('hidden') ? 'translateX(60px)' : 'none';
+        updateStatusText(panelA.classList.contains('hidden') ? 'Panel A hidden' : 'Panel A visible');
+      }
+      // Swipe from right edge -> show/hide right panel
+      else if (touchStartX > window.innerWidth - 50) {
+        panelB.classList.toggle('hidden');
+        toggleB.textContent = panelB.classList.contains('hidden') ? '«' : '»';
+        toggleB.style.transform = panelB.classList.contains('hidden') ? 'translateX(-60px)' : 'none';
+        updateStatusText(panelB.classList.contains('hidden') ? 'Panel B hidden' : 'Panel B visible');
+      }
+    }
+  });
+  
+  // Helix rotation controls - strand-aware
+  const viewport = document.getElementById('helix-viewport');
+  let startY = 0;
+  let lastY = 0;
+  
+  // Click background to deselect
+  viewport.addEventListener('click', (e) => {
+    if (e.target === viewport || e.target.classList.contains('helix-svg') || e.target.classList.contains('helix-path')) {
+      deselectPair();
+      state.activeStrand = null;
+      strandAPanel.classList.remove('active');
+      strandBPanel.classList.remove('active');
+    }
+  });
+  
+  viewport.addEventListener('mousedown', (e) => {
+    state.isDragging = true;
+    startY = e.clientY;
+    lastY = e.clientY;
+  });
+  
+  window.addEventListener('mousemove', (e) => {
+    if (!state.isDragging) return;
+    
+    const deltaY = e.clientY - lastY;
+    lastY = e.clientY;
+    
+    // Rotate based on active strand
+    if (state.activeStrand === 'a') {
+      state.strandA.rotation += deltaY * 0.01 * state.strandA.flow;
+    } else if (state.activeStrand === 'b') {
+      state.strandB.rotation += deltaY * 0.01 * state.strandB.flow;
+    } else {
+      // Both strands
+      state.strandA.rotation += deltaY * 0.01 * state.strandA.flow;
+      state.strandB.rotation += deltaY * 0.01 * state.strandB.flow;
+    }
+    
+    // Haptic tick feedback
+    playTickSound();
+    
+    // Throttled RAF for smooth updates - prevent multiple calls
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(() => {
+      updateHelixRotation();
+      rafId = null;
+    });
+  });
+  
+  window.addEventListener('mouseup', () => {
+    state.isDragging = false;
+  });
+  
+  // Wheel for rotation
+  let lastTickTime = 0;
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    state.rotation += e.deltaY * 0.003;
+    updateHelixRotation();
+    
+    // Tick sound every 50ms
+    const now = Date.now();
+    if (now - lastTickTime > 50) {
+      playTickSound();
+      lastTickTime = now;
+    }
+  }, { passive: false });
+  
+  // Touch support
+  viewport.addEventListener('touchstart', (e) => {
+    state.isDragging = true;
+    startY = e.touches[0].clientY;
+    lastY = e.touches[0].clientY;
+  }, { passive: true });
+
+  viewport.addEventListener('touchmove', (e) => {
+    if (!state.isDragging) return;
+    e.preventDefault();
+    
+    const currentY = e.touches[0].clientY;
+    const dy = currentY - lastY;
+    lastY = e.touches[0].clientY;
+    
+    state.rotation += dy * 0.01;
+    
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(() => {
+      updateHelixRotation();
+      rafId = null;
+    });
+  }, { passive: false });
+  
+  viewport.addEventListener('touchend', () => {
+    state.isDragging = false;
+  });
+  
+  // Bottom slider removed - all controls moved to side panels
+  // Blend mode controls already fully configured above in setupControls()
+  
+  // Organic drift mode
+  const driftBtn = document.getElementById('organic-drift');
+  let driftInterval = null;
+  
+  driftBtn.addEventListener('click', () => {
+    state.organicDrift = !state.organicDrift;
+    
+    if (state.organicDrift) {
+      driftBtn.classList.add('active');
+      startOrganicDrift();
+    } else {
+      driftBtn.classList.remove('active');
+      if (driftInterval) clearInterval(driftInterval);
+    }
+  });
+  
+  function startOrganicDrift() {
+    if (driftInterval) clearInterval(driftInterval);
+    
+    // Rotation now handled by main RAF loop
+    // This interval only handles occasional random mode/opacity changes
+    driftInterval = setInterval(() => {
+      if (!state.organicDrift) return;
+      
+      // Occasionally drift blend modes
+      if (Math.random() < 0.02) {
+        const modes = ['multiply', 'screen', 'overlay', 'difference'];
+        const randomMode = modes[Math.floor(Math.random() * modes.length)];
+        
+        if (Math.random() < 0.5) {
+          state.strandA.mode = randomMode;
+          document.querySelectorAll('.mode-mini-btn[data-strand="a"]').forEach(b => {
+            b.style.borderColor = b.dataset.mode === randomMode ? '#00bcd4' : '#333';
+            b.style.color = b.dataset.mode === randomMode ? '#00bcd4' : '#666';
+            b.style.background = b.dataset.mode === randomMode ? 'rgba(0, 188, 212, 0.2)' : 'rgba(0,0,0,0.5)';
+          });
+        } else {
+          state.strandB.mode = randomMode;
+          document.querySelectorAll('.mode-mini-btn[data-strand="b"]').forEach(b => {
+            b.style.borderColor = b.dataset.mode === randomMode ? '#ff9800' : '#333';
+            b.style.color = b.dataset.mode === randomMode ? '#ff9800' : '#666';
+            b.style.background = b.dataset.mode === randomMode ? 'rgba(255, 152, 0, 0.2)' : 'rgba(0,0,0,0.5)';
+          });
+        }
+        
+        regenerateAllPhenotypes();
+      }
+      
+      // Drift opacities subtly
+      if (Math.random() < 0.02) {
+        state.strandA.opacity = Math.max(0.2, Math.min(0.8, state.strandA.opacity + (Math.random() - 0.5) * 0.1));
+        state.strandB.opacity = Math.max(0.2, Math.min(0.8, state.strandB.opacity + (Math.random() - 0.5) * 0.1));
+        regenerateAllPhenotypes();
+      }
+    }, 500); // Slower interval since rotation is handled elsewhere
+  }
+  
+  function getModeSymbol(mode) {
+    const symbols = {
+      'multiply': '×',
+      'screen': '◐',
+      'overlay': '◑',
+      'difference': '△',
+      'lighten': '◇',
+      'darken': '◆'
+    };
+    return symbols[mode] || '×';
+  }
+  
+  // Initialize mode button states (already done in blend mode setup above)
+  // No need for strand-a-mode / strand-b-mode text elements - removed from design
+}
+
+loadData();
+</script>
+</body>
+</html>
+    ctx.drawImage(parent2.media, 0, 0);
+    
+    state.offspring.push({
+      id: Date.now() + Math.random(),
+      generation: state.generation,
+      parents: [parent1.id, parent2.id],
+      mode,
+      crossfade: cf,
+      canvas,
+      starred: false
+    });
+  });
+  
+  state.selected = [];
+  renderOffspring();
+  renderPool();
+  // Gen count and breed UI removed in redesign
+  
+  // Add to helix
+  state.helix.push({
+    gen: state.generation,
+    count: state.offspring.length
+  });
+}
+
+function renderOffspring() {
+  const grid = document.getElementById('offspring-grid');
+  grid.innerHTML = '';
+  
+  state.offspring.forEach(child => {
+    const card = document.createElement('div');
+    card.className = 'offspring-card';
+    if (child.starred) card.classList.add('starred');
+    
+    card.appendChild(child.canvas);
+    
+    const meta = document.createElement('div');
+    meta.className = 'offspring-meta';
+    
+    const gen = document.createElement('div');
+    gen.className = 'offspring-gen';
+    gen.textContent = `Gen ${child.generation} — ${child.mode}`;
+    
+    const actions = document.createElement('div');
+    actions.className = 'offspring-actions';
+    
+    const starBtn = document.createElement('button');
+    starBtn.className = 'action-btn star';
+    starBtn.textContent = child.starred ? '★' : '☆';
+    starBtn.onclick = (e) => {
+      e.stopPropagation();
+      child.starred = !child.starred;
+      renderOffspring();
+    };
+    
+    const poolBtn = document.createElement('button');
+    poolBtn.className = 'action-btn';
+    poolBtn.textContent = 'Pool';
+    poolBtn.onclick = (e) => {
+      e.stopPropagation();
+      addOffspringToPool(child);
+    };
+    
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'action-btn';
+    exportBtn.textContent = 'Export';
+    exportBtn.onclick = (e) => {
+      e.stopPropagation();
+      exportOffspring(child);
+    };
+    
+    actions.appendChild(starBtn);
+    actions.appendChild(poolBtn);
+    actions.appendChild(exportBtn);
+    
+    meta.appendChild(gen);
+    meta.appendChild(actions);
+    card.appendChild(meta);
+    
+    grid.appendChild(card);
+  });
+}
+
+function addOffspringToPool(child) {
+  // Convert offspring back to gene format
+  const gene = {
+    id: Date.now() + Math.random(),
+    shot: { num: `B${state.generation}`, sp: 'Bred' },
+    generation: child.generation,
+    style: 'bred',
+    media: null
+  };
+  
+  // Create image from canvas
+  const img = new Image();
+  img.src = child.canvas.toDataURL();
+  gene.media = img;
+  
+  state.genePool.push(gene);
+  renderPool();
+}
+
+function exportOffspring(child) {
+  const link = document.createElement('a');
+  link.download = `cinome-gen${child.generation}-${child.mode}.png`;
+  link.href = child.canvas.toDataURL();
+  link.click();
+}
+
+function renderHelix() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  animFrame++;
+  
+  // Draw double helix
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const amplitude = 80;
+  const frequency = 0.02;
+  const speed = animFrame * 0.01;
+  
+  for (let y = 0; y < canvas.height; y += 5) {
+    const offset = y - centerY;
+    const wave = Math.sin(offset * frequency + speed);
+    
+    // Strand 1
+    const x1 = centerX + wave * amplitude;
+    ctx.fillStyle = `rgba(0, 188, 212, ${0.3 + Math.abs(wave) * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(x1, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Strand 2
+    const x2 = centerX - wave * amplitude;
+    ctx.fillStyle = `rgba(255, 152, 0, ${0.3 + Math.abs(wave) * 0.3})`;
+    ctx.beginPath();
+    ctx.arc(x2, y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Connection
+    if (Math.abs(wave) > 0.8) {
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + Math.abs(wave) * 0.2})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.stroke();
+    }
+  }
+  
+  // Generation markers
+  ctx.font = '12px Courier New';
+  ctx.fillStyle = '#ff9800';
+  ctx.textAlign = 'right';
+  state.helix.forEach((h, i) => {
+    const y = 100 + i * 80;
+    if (y < canvas.height - 100) {
+      ctx.fillText(`GEN ${h.gen}`, centerX - amplitude - 20, y);
+    }
+  });
+  
+  requestAnimationFrame(renderHelix);
+}
+
+function setupControls() {
+  document.getElementById('breed-btn').onclick = breed;
+  
+  document.getElementById('help-btn').onclick = () => {
+    document.getElementById('theory-overlay').classList.add('visible');
+  };
+  
+  document.getElementById('theory-close').onclick = () => {
+    document.getElementById('theory-overlay').classList.remove('visible');
+  };
+  
+  document.getElementById('theory-overlay').onclick = (e) => {
+    if (e.target.id === 'theory-overlay') {
+      document.getElementById('theory-overlay').classList.remove('visible');
+    }
+  };
+}
+
+loadData();
+</script>
+</body>
+</html>

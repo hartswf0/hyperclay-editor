@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HYPERCLAY Studio</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #000; color: #e8e8e8; height: 100vh; overflow: hidden; }
+.app { display: flex; flex-direction: column; height: 100vh; }
+.top-bar { background: #0b0b0c; border-bottom: 1px solid #2a2a2c; padding: 8px 16px; display: flex; align-items: center; gap: 12px; z-index: 1000; }
+.title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #666; margin-right: auto; font-family: monospace; text-transform: uppercase; }
+.mode-tabs { display: flex; gap: 4px; }
+.mode-tab, .btn {
+  background: #1a1a1c;
+  border: 1px solid #333;
+  padding: 5px 12px;
+  font-size: 10px;
+  color: #999;
+  cursor: pointer;
+  font-family: monospace;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  position: relative;
+}
+.mode-tab:hover, .btn:hover {
+  background: #2a2a2c;
+  color: #ccc;
+  transform: translateY(-1px);
+}
+.mode-tab.active, .btn.active {
+  background: #2a2a2c;
+  color: #fff;
+  border-color: #555;
+}
+.mode-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #00bcd4, #4caf50, #ff9800, #f44336, #9c27b0);
+  animation: flow 3s linear infinite;
+}
+@keyframes flow {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+.btn.collection { background: #00bcd4; color: #000; }
+.btn.collection:hover { background: #00d4e8; }
+.workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.view { display: none; flex: 1; }
+.view.active { display: flex; flex-direction: column; }
+.quad-grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px; background: #2a2a2c; }
+.quad-panel { background: #000; position: relative; overflow: hidden; cursor: pointer; transition: all 0.3s; }
+.quad-panel:hover { background: #0a0a0a; }
+.quad-panel.focused { grid-column: 1 / -1; grid-row: 1 / -1; z-index: 10; }
+.panel-label { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.85); color: #999; padding: 3px 8px; font-size: 9px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); z-index: 10; font-family: monospace; text-transform: uppercase; }
+.media-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.media-container img, .media-container video { max-width: 100%; max-height: 100%; object-fit: contain; }
+.grid-view { flex: 1; overflow-y: auto; padding: 16px; }
+.grid-controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.shot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.shot-card { background: #1a1a1c; border: 2px solid #333; cursor: grab; transition: all 0.2s; position: relative; }
+.shot-card:hover { border-color: #555; transform: translateY(-2px); }
+.shot-card.dragging { opacity: 0.5; cursor: grabbing; }
+.shot-card.flagged-clarify { border-left: 4px solid #00bcd4; }
+.shot-card.flagged-adhere { border-left: 4px solid #4caf50; }
+.shot-card.flagged-negotiate { border-left: 4px solid #ff9800; }
+.shot-card.flagged-distort { border-left: 4px solid #f44336; }
+.shot-card.flagged-overstep { border-left: 4px solid #9c27b0; }
+.shot-thumb { aspect-ratio: 16/9; background: #000; overflow: hidden; position: relative; }
+.shot-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.shot-info { padding: 8px; font-size: 10px; color: #999; }
+.shot-number { font-weight: 700; color: #fff; margin-bottom: 4px; }
+.shot-flags { position: absolute; top: 4px; right: 4px; display: flex; gap: 4px; z-index: 5; }
+.flag-badge { background: rgba(0,0,0,0.85); padding: 3px 6px; font-size: 8px; font-weight: 700; border-radius: 2px; text-transform: uppercase; }
+.flag-clarify { background: #00bcd4; color: #000; }
+.flag-adhere { background: #4caf50; color: #000; }
+.flag-negotiate { background: #ff9800; color: #000; }
+.flag-distort { background: #f44336; color: #fff; }
+.flag-overstep { background: #9c27b0; color: #fff; }
+.text-panel { background: #1a1a1c; border-top: 1px solid #333; padding: 16px 24px; max-height: 25vh; overflow-y: auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.text-section { display: flex; flex-direction: column; gap: 6px; }
+.text-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #666; font-family: monospace; border-bottom: 1px solid #2a2a2c; padding-bottom: 3px; }
+.text-content { font-size: 16px; line-height: 1.6; color: #e8e8e8; font-family: 'Helvetica Neue', Arial, sans-serif; }
+.sidebar { position: fixed; top: 50px; right: 0; width: 320px; height: calc(100vh - 50px); background: #0b0b0c; border-left: 1px solid #2a2a2c; transform: translateX(100%); transition: transform 0.3s; z-index: 900; overflow-y: auto; padding: 16px; }
+.sidebar.open { transform: translateX(0); }
+.sidebar-section { margin-bottom: 24px; }
+.sidebar-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #666; margin-bottom: 12px; font-family: monospace; }
+.flag-buttons { display: flex; flex-direction: column; gap: 6px; }
+.flag-btn { padding: 8px 12px; border: none; font-size: 11px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; font-family: monospace; }
+.flag-btn.clarify { background: #00bcd4; color: #000; }
+.flag-btn.adhere { background: #4caf50; color: #000; }
+.flag-btn.negotiate { background: #ff9800; color: #000; }
+.flag-btn.distort { background: #f44336; color: #fff; }
+.flag-btn.overstep { background: #9c27b0; color: #fff; }
+.flag-btn:hover { opacity: 0.85; transform: translateX(-2px); }
+.transcript-box { background: #1a1a1c; border: 1px solid #333; padding: 12px; font-size: 12px; line-height: 1.6; color: #ccc; max-height: 300px; overflow-y: auto; }
+.timeline-container { background: #0b0b0c; border-top: 1px solid #2a2a2c; height: 100px; display: flex; flex-direction: column; }
+.timeline-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #1a1a1c; border-bottom: 1px solid #333; }
+.timeline-shots { flex: 1; display: flex; gap: 6px; padding: 8px; overflow-x: auto; align-items: center; }
+.timeline-thumb { flex-shrink: 0; width: 120px; cursor: pointer; transition: all 0.2s; position: relative; }
+.timeline-thumb:hover { transform: translateY(-3px); }
+.timeline-thumb.active { transform: scale(1.15) translateY(-5px); }
+.thumb-img { aspect-ratio: 16/9; background: #1a1a1c; border: 2px solid #444; position: relative; overflow: hidden; }
+.timeline-thumb.active .thumb-img { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+.thumb-img img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-number { position: absolute; top: 3px; left: 3px; background: rgba(0,0,0,0.85); color: #999; padding: 2px 6px; font-size: 9px; font-weight: 700; border: 1px solid rgba(255,255,255,0.1); font-family: monospace; }
+.progress-bar { height: 4px; background: #1a1a1c; cursor: pointer; }
+.progress-fill { height: 100%; background: #fff; transition: width 0.3s; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0b0b0c; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="top-bar">
+    <div class="title">HYPERCLAY STUDIO</div>
+    <div class="mode-tabs">
+      <div class="mode-tab active" data-mode="quad">Quad</div>
+      <div class="mode-tab" data-mode="grid">Grid</div>
+    </div>
+    <button class="btn" id="play-btn">▶ Play</button>
+    <button class="btn" id="flag-btn">Flag</button>
+    <button class="btn" id="text-toggle">Text</button>
+  </div>
+
+  <div class="workspace">
+    <div class="view active" id="quad-view">
+      <div class="quad-grid">
+        <div class="quad-panel" data-panel="0">
+          <div class="panel-label">Dynamic — Image</div>
+          <div class="media-container" id="p0"></div>
+        </div>
+        <div class="quad-panel" data-panel="1">
+          <div class="panel-label">Dynamic — Video</div>
+          <div class="media-container" id="p1"></div>
+        </div>
+        <div class="quad-panel" data-panel="2">
+          <div class="panel-label">Hand-drawn — Image</div>
+          <div class="media-container" id="p2"></div>
+        </div>
+        <div class="quad-panel" data-panel="3">
+          <div class="panel-label">Hand-drawn — Video</div>
+          <div class="media-container" id="p3"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="grid-view">
+      <div class="grid-view">
+        <div class="grid-controls">
+          <button class="btn active" data-sort="sequence">Sequence</button>
+          <button class="btn" data-sort="screenplay">Screenplay</button>
+          <button class="btn" data-sort="flagged">Flagged</button>
+          <button class="btn active" data-filter="all">All</button>
+          <button class="btn" data-filter="clarify">Clarify</button>
+          <button class="btn" data-filter="adhere">Adhere</button>
+          <button class="btn" data-filter="negotiate">Negotiate</button>
+          <button class="btn" data-filter="distort">Distort</button>
+          <button class="btn" data-filter="overstep">Overstep</button>
+        </div>
+        <div class="shot-grid" id="shot-grid"></div>
+      </div>
+    </div>
+
+    <div class="text-panel" id="text-panel">
+      <div class="text-section">
+        <div class="text-label">Fragment</div>
+        <div class="text-content" id="text-fragment"></div>
+      </div>
+      <div class="text-section">
+        <div class="text-label">Shot</div>
+        <div class="text-content" id="text-shot"></div>
+      </div>
+      <div class="text-section">
+        <div class="text-label">Elements</div>
+        <div class="text-content" id="text-elements"></div>
+      </div>
+      <div class="text-section">
+        <div class="text-label">Scene</div>
+        <div class="text-content" id="text-scene"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="timeline-container">
+    <div class="timeline-header">
+      <div style="font-size: 9px; color: #555; font-family: monospace;">
+        <span id="shot-counter">1 / 0</span>
+      </div>
+    </div>
+    <div class="timeline-shots" id="timeline-shots"></div>
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">CAN-DO Flagging</div>
+      <div class="flag-buttons">
+        <button class="flag-btn clarify" data-flag="clarify">Clarify</button>
+        <button class="flag-btn adhere" data-flag="adhere">Adhere</button>
+        <button class="flag-btn negotiate" data-flag="negotiate">Negotiate</button>
+        <button class="flag-btn distort" data-flag="distort">Distort</button>
+        <button class="flag-btn overstep" data-flag="overstep">Overstep</button>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Transcript</div>
+      <div class="transcript-box" id="transcript">
+        <em>Click a shot to load transcript from paper.md</em>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const state = {
+  shots: [],
+  current: 0,
+  mode: 'quad',
+  playing: false,
+  textVisible: true,
+  sidebarOpen: false,
+  focusedPanel: null,
+  flags: {},
+  sortMode: 'sequence',
+  filterMode: 'all',
+  draggedIndex: null
+};
+
+async function loadData() {
+  try {
+    const res = await fetch('screenplays.json');
+    const data = await res.json();
+    data.forEach(sp => {
+      sp.content.forEach((item, i) => {
+        if (item.shot_number) {
+          const frag = i > 0 && sp.content[i-1].fragment ? sp.content[i-1].fragment : '';
+          state.shots.push({
+            sp: sp.title,
+            num: item.shot_number,
+            desc: item.shot_description || '',
+            static: item.static_scene_description || '',
+            frag: frag,
+            els: item.scene_story_elements || [],
+            vers: item.versions || {}
+          });
+        }
+      });
+    });
+    init();
+  } catch(e) { console.error(e); }
+}
+
+function init() {
+  renderTimeline();
+  renderGrid();
+  showShot(0);
+  
+  // Mode tabs
+  document.querySelectorAll('.mode-tab').forEach(t => {
+    t.onclick = () => {
+      state.mode = t.dataset.mode;
+      document.querySelectorAll('.mode-tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(state.mode + '-view').classList.add('active');
+    };
+  });
+  
+  // Panel focus
+  document.querySelectorAll('.quad-panel').forEach(p => {
+    p.onclick = () => {
+      const idx = p.dataset.panel;
+      if (state.focusedPanel === idx) {
+        state.focusedPanel = null;
+        p.classList.remove('focused');
+      } else {
+        document.querySelectorAll('.quad-panel').forEach(x => x.classList.remove('focused'));
+        state.focusedPanel = idx;
+        p.classList.add('focused');
+      }
+    };
+  });
+  
+  // Play
+  document.getElementById('play-btn').onclick = () => {
+    if (state.playing) {
+      clearInterval(state.playInt);
+      state.playing = false;
+      document.getElementById('play-btn').textContent = '▶ Play';
+    } else {
+      state.playing = true;
+      document.getElementById('play-btn').textContent = '⏸ Pause';
+      state.playInt = setInterval(() => {
+        if (state.current < state.shots.length - 1) showShot(state.current + 1);
+        else { showShot(0); clearInterval(state.playInt); state.playing = false; }
+      }, 4000);
+    }
+  };
+  
+  // Flag
+  document.getElementById('flag-btn').onclick = () => {
+    state.sidebarOpen = !state.sidebarOpen;
+    document.getElementById('sidebar').classList.toggle('open', state.sidebarOpen);
+    document.getElementById('flag-btn').classList.toggle('active', state.sidebarOpen);
+  };
+  
+  // Flag buttons
+  document.querySelectorAll('.flag-btn').forEach(b => {
+    b.onclick = () => {
+      const flag = b.dataset.flag;
+      if (!state.flags[state.current]) state.flags[state.current] = [];
+      const idx = state.flags[state.current].indexOf(flag);
+      if (idx > -1) state.flags[state.current].splice(idx, 1);
+      else state.flags[state.current].push(flag);
+      renderTimeline();
+      renderGrid();
+    };
+  });
+  
+  // Text toggle
+  document.getElementById('text-toggle').onclick = () => {
+    state.textVisible = !state.textVisible;
+    document.getElementById('text-panel').style.display = state.textVisible ? 'grid' : 'none';
+    document.getElementById('text-toggle').classList.toggle('active', state.textVisible);
+  };
+  
+  // Sort/Filter
+  document.querySelectorAll('[data-sort]').forEach(b => {
+    b.onclick = () => {
+      state.sortMode = b.dataset.sort;
+      document.querySelectorAll('[data-sort]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      renderGrid();
+    };
+  });
+  
+  document.querySelectorAll('[data-filter]').forEach(b => {
+    b.onclick = () => {
+      state.filterMode = b.dataset.filter;
+      document.querySelectorAll('[data-filter]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      renderGrid();
+    };
+  });
+  
+  // Progress bar
+  document.getElementById('progress-bar').onclick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const pct = x / rect.width;
+    const idx = Math.floor(pct * state.shots.length);
+    showShot(Math.min(idx, state.shots.length - 1));
+  };
+  
+  // Keyboard
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' && state.current > 0) showShot(state.current - 1);
+    if (e.key === 'ArrowRight' && state.current < state.shots.length - 1) showShot(state.current + 1);
+    if (e.key === ' ') { e.preventDefault(); document.getElementById('play-btn').click(); }
+  });
+}
+
+function showShot(i) {
+  state.current = i;
+  const s = state.shots[i];
+  
+  // Render panels
+  renderPanel('p0', s, 'dynamic_style', 'image');
+  renderPanel('p1', s, 'dynamic_style', 'video');
+  renderPanel('p2', s, 'handdrawn_ink_style', 'image');
+  renderPanel('p3', s, 'handdrawn_ink_style', 'video');
+  
+  // Text
+  document.getElementById('text-fragment').textContent = s.frag || 'N/A';
+  document.getElementById('text-shot').textContent = s.desc || 'N/A';
+  document.getElementById('text-elements').textContent = s.els.length > 0 ? s.els.join(' • ') : 'N/A';
+  document.getElementById('text-scene').textContent = s.static || 'N/A';
+  
+  // Progress
+  document.getElementById('progress-fill').style.width = ((i+1)/state.shots.length*100)+'%';
+  document.getElementById('shot-counter').textContent = `${i+1} / ${state.shots.length}`;
+  
+  // Timeline
+  document.querySelectorAll('.timeline-thumb').forEach((el, idx) => {
+    el.classList.toggle('active', idx === i);
+  });
+  document.querySelector('.timeline-thumb.active')?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+
+function renderPanel(id, shot, style, type) {
+  const c = document.getElementById(id);
+  c.innerHTML = '';
+  const v = shot.vers[style];
+  if (!v) return;
+  const url = type === 'video' ? v.selected_video_url : v.selected_image_url;
+  if (!url) return;
+  if (type === 'video') {
+    const vid = document.createElement('video');
+    vid.src = url;
+    vid.autoplay = true;
+    vid.loop = true;
+    vid.muted = true;
+    c.appendChild(vid);
+  } else {
+    const img = document.createElement('img');
+    img.src = url;
+    c.appendChild(img);
+  }
+}
+
+function renderTimeline() {
+  const c = document.getElementById('timeline-shots');
+  c.innerHTML = '';
+  state.shots.forEach((s, i) => {
+    const t = document.createElement('div');
+    t.className = 'timeline-thumb' + (i === state.current ? ' active' : '');
+    const img = document.createElement('div');
+    img.className = 'thumb-img';
+    const url = s.vers.dynamic_style?.selected_image_url;
+    if (url) {
+      const im = document.createElement('img');
+      im.src = url;
+      img.appendChild(im);
+    }
+    const n = document.createElement('div');
+    n.className = 'thumb-number';
+    n.textContent = `#${s.num}`;
+    img.appendChild(n);
+    if (state.flags[i]) {
+      const fl = document.createElement('div');
+      fl.className = 'shot-flags';
+      state.flags[i].forEach(f => {
+        const b = document.createElement('div');
+        b.className = `flag-badge flag-${f}`;
+        b.textContent = f[0].toUpperCase();
+        fl.appendChild(b);
+      });
+      img.appendChild(fl);
+    }
+    t.appendChild(img);
+    t.onclick = () => showShot(i);
+    c.appendChild(t);
+  });
+}
+
+function renderGrid() {
+  const c = document.getElementById('shot-grid');
+  c.innerHTML = '';
+  let shots = state.shots.map((s,i)=>({s,i}));
+  
+  // Filter
+  if (state.filterMode !== 'all') {
+    shots = shots.filter(x => state.flags[x.i]?.includes(state.filterMode));
+  }
+  
+  // Sort
+  if (state.sortMode === 'screenplay') {
+    shots.sort((a,b) => a.s.sp.localeCompare(b.s.sp));
+  } else if (state.sortMode === 'flagged') {
+    shots.sort((a,b) => (state.flags[b.i]?.length||0) - (state.flags[a.i]?.length||0));
+  }
+  
+  shots.forEach(({s,i}) => {
+    const card = document.createElement('div');
+    card.className = 'shot-card';
+    if (state.flags[i]) {
+      state.flags[i].forEach(f => card.classList.add(`flagged-${f}`));
+    }
+    card.draggable = true;
+    
+    const thumb = document.createElement('div');
+    thumb.className = 'shot-thumb';
+    const url = s.vers.dynamic_style?.selected_image_url;
+    if (url) {
+      const im = document.createElement('img');
+      im.src = url;
+      thumb.appendChild(im);
+    }
+    
+    if (state.flags[i]) {
+      const fl = document.createElement('div');
+      fl.className = 'shot-flags';
+      state.flags[i].forEach(f => {
+        const b = document.createElement('div');
+        b.className = `flag-badge flag-${f}`;
+        b.textContent = f[0].toUpperCase();
+        fl.appendChild(b);
+      });
+      thumb.appendChild(fl);
+    }
+    
+    const info = document.createElement('div');
+    info.className = 'shot-info';
+    const num = document.createElement('div');
+    num.className = 'shot-number';
+    num.textContent = `Shot ${s.num} — ${s.sp}`;
+    info.appendChild(num);
+    
+    card.appendChild(thumb);
+    card.appendChild(info);
+    card.onclick = () => showShot(i);
+    
+    // Drag
+    card.ondragstart = (e) => {
+      state.draggedIndex = i;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    };
+    card.ondragend = () => {
+      card.classList.remove('dragging');
+      state.draggedIndex = null;
+    };
+    card.ondragover = (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    };
+    card.ondrop = (e) => {
+      e.preventDefault();
+      if (state.draggedIndex !== null && state.draggedIndex !== i) {
+        const temp = state.shots[state.draggedIndex];
+        state.shots.splice(state.draggedIndex, 1);
+        state.shots.splice(i, 0, temp);
+        renderGrid();
+        renderTimeline();
+      }
+    };
+    
+    c.appendChild(card);
+  });
+}
+
+loadData();
+</script>
+</body>
+</html>

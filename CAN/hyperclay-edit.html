@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HYPERCLAY — Film Editor</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, monospace;
+  background: #000;
+  color: #e8e8e8;
+  overflow: hidden;
+  height: 100vh;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Top Control Bar */
+.control-bar {
+  background: #0b0b0c;
+  border-bottom: 2px solid #ffd700;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #ffd700;
+  margin-right: auto;
+}
+
+.btn {
+  background: #1a1a1c;
+  border: 2px solid #444;
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #e8e8e8;
+  cursor: pointer;
+  font-family: monospace;
+  font-weight: 700;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.btn:hover {
+  background: #2a2a2c;
+  border-color: #ffd700;
+}
+
+.btn.active {
+  background: #ffd700;
+  color: #000;
+  border-color: #ffd700;
+}
+
+.btn.play {
+  background: #0a0;
+  border-color: #0c0;
+  color: #000;
+  font-size: 14px;
+  padding: 10px 24px;
+}
+
+.btn.play:hover {
+  background: #0c0;
+}
+
+select.btn {
+  padding: 8px 12px;
+}
+
+/* Main Viewer */
+.viewer {
+  flex: 1;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.shot-container {
+  max-width: 95%;
+  max-height: 95%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.shot-media {
+  max-width: 100%;
+  max-height: 100%;
+  border: 3px solid #ffd700;
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+}
+
+/* Shot Info Overlay */
+.shot-info {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid #ffd700;
+  padding: 16px 20px;
+  font-size: 12px;
+  line-height: 1.6;
+  max-height: 40%;
+  overflow-y: auto;
+  display: none;
+}
+
+.shot-info.visible {
+  display: block;
+}
+
+.info-row {
+  margin-bottom: 12px;
+}
+
+.info-label {
+  color: #ffd700;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.info-value {
+  color: #ccc;
+}
+
+/* Navigation Arrows */
+.nav-arrows {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  padding: 0 20px;
+  pointer-events: none;
+}
+
+.nav-btn {
+  background: rgba(0, 0, 0, 0.9);
+  border: 3px solid #ffd700;
+  color: #ffd700;
+  font-size: 32px;
+  width: 60px;
+  height: 60px;
+  cursor: pointer;
+  pointer-events: all;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.nav-btn:hover {
+  background: #ffd700;
+  color: #000;
+  transform: scale(1.1);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Timeline Container */
+.timeline-container {
+  background: #0b0b0c;
+  border-top: 2px solid #ffd700;
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Timeline Controls */
+.timeline-controls {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  border-bottom: 1px solid #333;
+  background: #1a1a1c;
+}
+
+.screenplay-tabs {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  overflow-x: auto;
+}
+
+.screenplay-tab {
+  background: #2a2a2c;
+  border: 2px solid #444;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: #aaa;
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.screenplay-tab:hover {
+  border-color: #666;
+  color: #ccc;
+}
+
+.screenplay-tab.active {
+  background: #ffd700;
+  color: #000;
+  border-color: #ffd700;
+}
+
+/* Timeline Shots */
+.timeline-shots {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  align-items: center;
+}
+
+.timeline-shot {
+  flex-shrink: 0;
+  width: 180px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.timeline-shot:hover {
+  transform: translateY(-4px);
+}
+
+.timeline-shot.active {
+  transform: scale(1.1) translateY(-8px);
+}
+
+.timeline-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #1a1a1c;
+  border: 3px solid #444;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.timeline-shot.active .timeline-thumb {
+  border-color: #0a0;
+  box-shadow: 0 0 20px rgba(0, 170, 0, 0.6);
+}
+
+.timeline-thumb img,
+.timeline-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shot-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(0, 0, 0, 0.9);
+  color: #ffd700;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid #ffd700;
+}
+
+.video-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0, 170, 0, 0.95);
+  color: #000;
+  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 2px;
+}
+
+.timeline-label {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #888;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Progress Bar */
+.progress-bar {
+  height: 4px;
+  background: #1a1a1c;
+  position: relative;
+  cursor: pointer;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #ffd700;
+  transition: width 0.3s;
+  position: relative;
+}
+
+.progress-handle {
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background: #ffd700;
+  border-radius: 50%;
+  cursor: grab;
+}
+
+/* Status Bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #1a1a1c;
+  border-top: 1px solid #333;
+  font-size: 10px;
+  color: #888;
+}
+
+.status-left {
+  display: flex;
+  gap: 12px;
+}
+
+.status-item {
+  display: flex;
+  gap: 4px;
+}
+
+.status-label {
+  color: #666;
+}
+
+.status-value {
+  color: #ffd700;
+  font-weight: 700;
+}
+
+/* Loading */
+.loading {
+  font-size: 14px;
+  color: #888;
+  text-align: center;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b0b0c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Control Bar -->
+  <div class="control-bar">
+    <div class="title">HYPERCLAY — FILM EDITOR</div>
+    
+    <button class="btn play" id="play-btn">▶ PLAY</button>
+    
+    <select class="btn" id="style-select">
+      <option value="dynamic_style">Dynamic Style</option>
+      <option value="handdrawn_ink_style">Hand-drawn Style</option>
+    </select>
+    
+    <button class="btn" id="info-btn">INFO</button>
+    <button class="btn" id="fullscreen-btn">FULLSCREEN</button>
+  </div>
+
+  <!-- Main Viewer -->
+  <div class="viewer">
+    <div class="shot-container">
+      <div class="loading">Loading screenplays.json...</div>
+    </div>
+
+    <div class="shot-info" id="shot-info">
+      <div class="info-row">
+        <div class="info-label">Screenplay</div>
+        <div class="info-value" id="info-screenplay"></div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">Shot #</div>
+        <div class="info-value" id="info-shotnum"></div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">Fragment</div>
+        <div class="info-value" id="info-fragment"></div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">Shot Description</div>
+        <div class="info-value" id="info-shot"></div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">Scene Elements</div>
+        <div class="info-value" id="info-elements"></div>
+      </div>
+      <div class="info-row">
+        <div class="info-label">Scene Description</div>
+        <div class="info-value" id="info-scene"></div>
+      </div>
+    </div>
+
+    <div class="nav-arrows">
+      <button class="nav-btn" id="prev-btn">‹</button>
+      <button class="nav-btn" id="next-btn">›</button>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="timeline-container">
+    <div class="timeline-controls">
+      <div class="screenplay-tabs" id="screenplay-tabs"></div>
+      <button class="btn" id="all-btn">ALL FILMS</button>
+    </div>
+    
+    <div class="timeline-shots" id="timeline-shots"></div>
+    
+    <div class="progress-bar" id="progress-bar">
+      <div class="progress-fill" id="progress-fill">
+        <div class="progress-handle"></div>
+      </div>
+    </div>
+    
+    <div class="status-bar">
+      <div class="status-left">
+        <div class="status-item">
+          <span class="status-label">Shot:</span>
+          <span class="status-value" id="status-shot">1 / 0</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Duration:</span>
+          <span class="status-value" id="status-duration">0s</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Total Shots:</span>
+          <span class="status-value" id="status-total">0</span>
+        </div>
+      </div>
+      <div class="status-right">
+        <span class="status-label">Keyboard:</span>
+        <span class="status-value">← → Space I F</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// State
+const state = {
+  screenplays: [],
+  allShots: [],
+  currentShot: 0,
+  currentScreenplay: null, // null = all films
+  currentStyle: 'dynamic_style',
+  playing: false,
+  playInterval: null,
+  infoVisible: false,
+  shotDuration: 3000 // ms per shot
+};
+
+// Load data
+async function loadData() {
+  try {
+    const response = await fetch('screenplays.json');
+    const data = await response.json();
+    
+    data.forEach(screenplay => {
+      const shots = [];
+      let globalIndex = state.allShots.length;
+      
+      screenplay.content.forEach((item, i) => {
+        if (item.shot_number) {
+          const prevFragment = i > 0 && screenplay.content[i-1].fragment ? 
+            screenplay.content[i-1].fragment : '';
+          
+          const shot = {
+            globalIndex: globalIndex++,
+            screenplay: screenplay.title,
+            shotNumber: item.shot_number,
+            shotDesc: item.shot_description || '',
+            staticDesc: item.static_scene_description || '',
+            temporalDesc: item.temporal_scene_description || '',
+            fragment: prevFragment,
+            elements: item.scene_story_elements || [],
+            versions: item.versions || {}
+          };
+          
+          shots.push(shot);
+          state.allShots.push(shot);
+        }
+      });
+      
+      state.screenplays.push({
+        title: screenplay.title,
+        shots: shots
+      });
+    });
+    
+    console.log(`Loaded ${state.screenplays.length} screenplays, ${state.allShots.length} shots`);
+    
+    init();
+  } catch (error) {
+    console.error('Failed to load:', error);
+    document.querySelector('.loading').textContent = 'ERROR: Place screenplays.json in same folder';
+  }
+}
+
+// Initialize
+function init() {
+  renderScreenplayTabs();
+  renderTimeline();
+  showShot(0);
+  setupControls();
+  updateStatus();
+}
+
+// Get media URL
+function getMediaUrl(shot, type = 'image') {
+  const version = shot.versions[state.currentStyle];
+  if (!version) return null;
+  return type === 'video' ? version.selected_video_url : version.selected_image_url;
+}
+
+// Get visible shots based on filter
+function getVisibleShots() {
+  if (state.currentScreenplay === null) {
+    return state.allShots;
+  }
+  const sp = state.screenplays.find(s => s.title === state.currentScreenplay);
+  return sp ? sp.shots : [];
+}
+
+// Show shot
+function showShot(index) {
+  const shots = getVisibleShots();
+  if (index < 0 || index >= shots.length) return;
+  
+  state.currentShot = index;
+  const shot = shots[index];
+  
+  const container = document.querySelector('.shot-container');
+  container.innerHTML = '';
+  
+  const videoUrl = getMediaUrl(shot, 'video');
+  const imageUrl = getMediaUrl(shot, 'image');
+  
+  if (videoUrl) {
+    const video = document.createElement('video');
+    video.className = 'shot-media';
+    video.src = videoUrl;
+    video.autoplay = true;
+    video.loop = true;
+    video.muted = true;
+    video.controls = false;
+    container.appendChild(video);
+  } else if (imageUrl) {
+    const img = document.createElement('img');
+    img.className = 'shot-media';
+    img.src = imageUrl;
+    container.appendChild(img);
+  } else {
+    container.innerHTML = '<div class="loading">No media available</div>';
+  }
+  
+  updateInfo(shot);
+  updateProgress();
+  updateTimeline();
+  updateStatus();
+}
+
+// Update info panel
+function updateInfo(shot) {
+  document.getElementById('info-screenplay').textContent = shot.screenplay;
+  document.getElementById('info-shotnum').textContent = shot.shotNumber;
+  document.getElementById('info-fragment').textContent = shot.fragment || 'N/A';
+  document.getElementById('info-shot').textContent = shot.shotDesc || 'N/A';
+  document.getElementById('info-elements').textContent = 
+    shot.elements.length > 0 ? shot.elements.join(', ') : 'N/A';
+  document.getElementById('info-scene').textContent = 
+    shot.staticDesc || shot.temporalDesc || 'N/A';
+}
+
+// Update progress bar
+function updateProgress() {
+  const shots = getVisibleShots();
+  const progress = ((state.currentShot + 1) / shots.length) * 100;
+  document.getElementById('progress-fill').style.width = progress + '%';
+}
+
+// Update status bar
+function updateStatus() {
+  const shots = getVisibleShots();
+  document.getElementById('status-shot').textContent = 
+    `${state.currentShot + 1} / ${shots.length}`;
+  document.getElementById('status-duration').textContent = 
+    `${(state.shotDuration / 1000).toFixed(1)}s`;
+  document.getElementById('status-total').textContent = state.allShots.length;
+}
+
+// Render screenplay tabs
+function renderScreenplayTabs() {
+  const container = document.getElementById('screenplay-tabs');
+  container.innerHTML = '';
+  
+  state.screenplays.forEach(sp => {
+    const tab = document.createElement('div');
+    tab.className = 'screenplay-tab';
+    if (state.currentScreenplay === sp.title) tab.classList.add('active');
+    tab.textContent = sp.title;
+    tab.onclick = () => {
+      state.currentScreenplay = sp.title;
+      state.currentShot = 0;
+      renderScreenplayTabs();
+      renderTimeline();
+      showShot(0);
+    };
+    container.appendChild(tab);
+  });
+}
+
+// Render timeline
+function renderTimeline() {
+  const container = document.getElementById('timeline-shots');
+  container.innerHTML = '';
+  
+  const shots = getVisibleShots();
+  
+  shots.forEach((shot, index) => {
+    const card = document.createElement('div');
+    card.className = 'timeline-shot';
+    if (index === state.currentShot) card.classList.add('active');
+    
+    const thumb = document.createElement('div');
+    thumb.className = 'timeline-thumb';
+    
+    const imageUrl = getMediaUrl(shot, 'image');
+    const videoUrl = getMediaUrl(shot, 'video');
+    
+    if (imageUrl) {
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      thumb.appendChild(img);
+    }
+    
+    const badge = document.createElement('div');
+    badge.className = 'shot-badge';
+    badge.textContent = `#${shot.shotNumber}`;
+    thumb.appendChild(badge);
+    
+    if (videoUrl) {
+      const videoBadge = document.createElement('div');
+      videoBadge.className = 'video-badge';
+      videoBadge.textContent = '▶ VIDEO';
+      thumb.appendChild(videoBadge);
+    }
+    
+    const label = document.createElement('div');
+    label.className = 'timeline-label';
+    label.textContent = shot.shotDesc.substring(0, 40) || `Shot ${shot.shotNumber}`;
+    
+    card.appendChild(thumb);
+    card.appendChild(label);
+    
+    card.onclick = () => {
+      if (state.playing) stopPlayback();
+      showShot(index);
+    };
+    
+    container.appendChild(card);
+  });
+}
+
+// Update timeline active state
+function updateTimeline() {
+  document.querySelectorAll('.timeline-shot').forEach((el, i) => {
+    el.classList.toggle('active', i === state.currentShot);
+  });
+  
+  // Scroll active into view
+  const active = document.querySelector('.timeline-shot.active');
+  if (active) {
+    active.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+}
+
+// Playback
+function startPlayback() {
+  if (state.playing) return;
+  state.playing = true;
+  document.getElementById('play-btn').textContent = '⏸ PAUSE';
+  document.getElementById('play-btn').classList.add('active');
+  
+  state.playInterval = setInterval(() => {
+    const shots = getVisibleShots();
+    if (state.currentShot < shots.length - 1) {
+      showShot(state.currentShot + 1);
+    } else {
+      stopPlayback();
+      showShot(0); // Loop
+    }
+  }, state.shotDuration);
+}
+
+function stopPlayback() {
+  state.playing = false;
+  document.getElementById('play-btn').textContent = '▶ PLAY';
+  document.getElementById('play-btn').classList.remove('active');
+  if (state.playInterval) {
+    clearInterval(state.playInterval);
+    state.playInterval = null;
+  }
+}
+
+// Setup controls
+function setupControls() {
+  // Play/Pause
+  document.getElementById('play-btn').onclick = () => {
+    if (state.playing) stopPlayback();
+    else startPlayback();
+  };
+  
+  // Navigation
+  document.getElementById('prev-btn').onclick = () => {
+    if (state.currentShot > 0) {
+      if (state.playing) stopPlayback();
+      showShot(state.currentShot - 1);
+    }
+  };
+  
+  document.getElementById('next-btn').onclick = () => {
+    const shots = getVisibleShots();
+    if (state.currentShot < shots.length - 1) {
+      if (state.playing) stopPlayback();
+      showShot(state.currentShot + 1);
+    }
+  };
+  
+  // Info toggle
+  document.getElementById('info-btn').onclick = () => {
+    state.infoVisible = !state.infoVisible;
+    document.getElementById('shot-info').classList.toggle('visible', state.infoVisible);
+    document.getElementById('info-btn').classList.toggle('active', state.infoVisible);
+  };
+  
+  // Style selector
+  document.getElementById('style-select').onchange = (e) => {
+    state.currentStyle = e.target.value;
+    showShot(state.currentShot);
+    renderTimeline();
+  };
+  
+  // All films button
+  document.getElementById('all-btn').onclick = () => {
+    state.currentScreenplay = null;
+    state.currentShot = 0;
+    document.querySelectorAll('.screenplay-tab').forEach(t => t.classList.remove('active'));
+    renderTimeline();
+    showShot(0);
+  };
+  
+  // Fullscreen
+  document.getElementById('fullscreen-btn').onclick = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  };
+  
+  // Progress bar click
+  document.getElementById('progress-bar').onclick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = x / rect.width;
+    const shots = getVisibleShots();
+    const index = Math.floor(percent * shots.length);
+    if (state.playing) stopPlayback();
+    showShot(Math.min(index, shots.length - 1));
+  };
+  
+  // Keyboard
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+      document.getElementById('prev-btn').click();
+    } else if (e.key === 'ArrowRight') {
+      document.getElementById('next-btn').click();
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      document.getElementById('play-btn').click();
+    } else if (e.key === 'i' || e.key === 'I') {
+      document.getElementById('info-btn').click();
+    } else if (e.key === 'f' || e.key === 'F') {
+      document.getElementById('fullscreen-btn').click();
+    }
+  });
+}
+
+// Start
+loadData();
+</script>
+
+</body>
+</html>

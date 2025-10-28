@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HYPERCLAY T-REX — Color Mode (Full Features)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='black' stroke='%2300bcd4' stroke-width='4'/%3E%3Cpath d='M10 32 Q32 12 54 32 Q32 52 10 32Z' fill='none' stroke='%23ffd700' stroke-width='3'/%3E%3C/svg%3E" />
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  font-family: 'Courier New', monospace;
+  background: #000; 
+  color: #e8e8e8; 
+  overflow: hidden;
+  height: 100vh;
+}
+
+.helix-viewport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.helix-strand {
+  position: relative;
+  width: 280px;
+  height: 100%;
+}
+
+.helix-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.helix-path {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.helix-a { stroke: #00bcd4; }
+.helix-b { stroke: #ff9800; }
+
+.base-pair {
+  position: absolute;
+  width: 100%;
+  left: 0;
+  height: 1px;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.nucleotide {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 2;
+  transition: width 0.1s, height 0.1s, opacity 0.1s;
+}
+
+.nucleotide-a {
+  background: #00bcd4;
+  box-shadow: 0 0 10px rgba(0, 188, 212, 1);
+}
+
+.nucleotide-b {
+  background: #ff9800;
+  box-shadow: 0 0 10px rgba(255, 152, 0, 1);
+}
+
+.controls {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 20px;
+  border: 1px solid #00bcd4;
+  border-radius: 8px;
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.control-btn {
+  background: rgba(0, 188, 212, 0.2);
+  border: 1px solid #00bcd4;
+  color: #00bcd4;
+  padding: 10px 20px;
+  margin: 5px 0;
+  cursor: pointer;
+  width: 100%;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background: rgba(0, 188, 212, 0.4);
+}
+
+.control-btn.active {
+  background: rgba(0, 188, 212, 0.6);
+  box-shadow: 0 0 20px rgba(0, 188, 212, 0.4);
+}
+
+.info {
+  font-size: 10px;
+  color: #666;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+</style>
+</head>
+<body>
+
+<div class="helix-viewport" id="viewport">
+  <div class="helix-strand" id="strand">
+    <svg class="helix-svg" id="svg" viewBox="0 0 280 800">
+      <path class="helix-path helix-a" id="pathA" d=""/>
+      <path class="helix-path helix-b" id="pathB" d=""/>
+    </svg>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="control-btn" id="autoBtn">AUTO ROTATE</button>
+  <button class="control-btn" id="speedBtn">SPEED: 1x</button>
+  <button class="control-btn" id="resetBtn">RESET</button>
+  <div class="info">
+    <div>Base Pairs: <span id="count">81</span></div>
+    <div>Rotation: <span id="rotation">0.00</span></div>
+    <div>FPS: <span id="fps">60</span></div>
+  </div>
+</div>
+
+<script>
+const state = {
+  rotation: 0,
+  speed: 0.01,
+  autoRotate: false,
+  isDragging: false,
+  numPairs: 81
+};
+
+let lastFrameTime = Date.now();
+let frameCount = 0;
+let fpsValue = 60;
+
+// Create base pairs ONCE
+function init() {
+  const container = document.getElementById('strand');
+  const height = window.innerHeight;
+  
+  // Create all base pairs
+  for (let i = 0; i < state.numPairs; i++) {
+    const bp = document.createElement('div');
+    bp.className = 'base-pair';
+    bp.dataset.index = i;
+    
+    const nucA = document.createElement('div');
+    nucA.className = 'nucleotide nucleotide-a';
+    bp.appendChild(nucA);
+    
+    const nucB = document.createElement('div');
+    nucB.className = 'nucleotide nucleotide-b';
+    bp.appendChild(nucB);
+    
+    container.appendChild(bp);
+  }
+  
+  console.log('Created', state.numPairs, 'base pairs ONCE');
+  updateHelix();
+}
+
+// Update positions WITHOUT destroying DOM
+function updateHelix() {
+  const height = window.innerHeight;
+  const width = 280;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const amplitude = width * 0.36;
+  const frequency = 0.012;
+  
+  // Update SVG paths
+  const svg = document.getElementById('svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.style.height = `${height}px`;
+  
+  let pathA = '';
+  let pathB = '';
+  
+  for (let y = 0; y < height; y += 2) {
+    const waveA = Math.sin((y + state.rotation * 50) * frequency) * amplitude;
+    const waveB = Math.sin((y + state.rotation * 50) * frequency + Math.PI) * amplitude;
+    const x1 = centerX + waveA;
+    const x2 = centerX - waveB;
+    
+    if (y === 0) {
+      pathA += `M ${x1} ${y} `;
+      pathB += `M ${x2} ${y} `;
+    } else {
+      pathA += `L ${x1} ${y} `;
+      pathB += `L ${x2} ${y} `;
+    }
+  }
+  
+  document.getElementById('pathA').setAttribute('d', pathA);
+  document.getElementById('pathB').setAttribute('d', pathB);
+  
+  // Update base pair positions
+  const basePairs = document.querySelectorAll('.base-pair');
+  const spacing = height / state.numPairs;
+  
+  basePairs.forEach((bp, idx) => {
+    const verticalStep = spacing * idx;
+    const totalScroll = state.rotation * 50;
+    const wrappedHeight = height * 2;
+    const y = ((verticalStep + totalScroll) % wrappedHeight) - height * 0.5;
+    
+    const distFromCenter = Math.abs(y - centerY);
+    const centerProximity = Math.max(0, 1 - (distFromCenter / (centerY * 0.6)));
+    
+    const opacity = 0.6 + (centerProximity * 0.4);
+    const scale = 0.8 + (centerProximity * 1.2);
+    const nucSize = 8 + (centerProximity * 72);
+    
+    bp.style.top = `${y}px`;
+    bp.style.transform = `scale(${scale})`;
+    bp.style.opacity = opacity;
+    bp.style.zIndex = Math.round(centerProximity * 100);
+    
+    const actualY = y + height * 0.5;
+    const waveA = Math.sin((actualY + state.rotation * 50) * frequency) * amplitude;
+    const waveB = Math.sin((actualY + state.rotation * 50) * frequency + Math.PI) * amplitude;
+    const xA = centerX + waveA;
+    const xB = centerX - waveB;
+    
+    const nucA = bp.querySelector('.nucleotide-a');
+    const nucB = bp.querySelector('.nucleotide-b');
+    
+    if (nucA) {
+      nucA.style.left = `${xA}px`;
+      nucA.style.top = '50%';
+      nucA.style.transform = `translate(-50%, -50%)`;
+      nucA.style.width = `${nucSize}px`;
+      nucA.style.height = `${nucSize}px`;
+    }
+    
+    if (nucB) {
+      nucB.style.left = `${xB}px`;
+      nucB.style.top = '50%';
+      nucB.style.transform = `translate(-50%, -50%)`;
+      nucB.style.width = `${nucSize}px`;
+      nucB.style.height = `${nucSize}px`;
+    }
+  });
+  
+  // Update UI
+  document.getElementById('rotation').textContent = state.rotation.toFixed(2);
+}
+
+// Animation loop
+function animate() {
+  if (state.autoRotate) {
+    state.rotation += state.speed;
+  }
+  
+  updateHelix();
+  
+  // FPS counter
+  frameCount++;
+  const now = Date.now();
+  if (now - lastFrameTime >= 1000) {
+    fpsValue = frameCount;
+    document.getElementById('fps').textContent = fpsValue;
+    frameCount = 0;
+    lastFrameTime = now;
+  }
+  
+  requestAnimationFrame(animate);
+}
+
+// Controls
+document.getElementById('autoBtn').onclick = () => {
+  state.autoRotate = !state.autoRotate;
+  document.getElementById('autoBtn').classList.toggle('active', state.autoRotate);
+  console.log('Auto rotate:', state.autoRotate);
+};
+
+document.getElementById('speedBtn').onclick = () => {
+  const speeds = [0.005, 0.01, 0.02, 0.05];
+  const labels = ['0.5x', '1x', '2x', '5x'];
+  const currentIdx = speeds.indexOf(state.speed);
+  const nextIdx = (currentIdx + 1) % speeds.length;
+  state.speed = speeds[nextIdx];
+  document.getElementById('speedBtn').textContent = `SPEED: ${labels[nextIdx]}`;
+  console.log('Speed:', labels[nextIdx]);
+};
+
+document.getElementById('resetBtn').onclick = () => {
+  state.rotation = 0;
+  console.log('Reset');
+};
+
+// Manual drag
+let lastY = 0;
+document.getElementById('viewport').addEventListener('mousedown', (e) => {
+  state.isDragging = true;
+  lastY = e.clientY;
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (!state.isDragging) return;
+  const deltaY = e.clientY - lastY;
+  lastY = e.clientY;
+  state.rotation += deltaY * 0.01;
+});
+
+window.addEventListener('mouseup', () => {
+  state.isDragging = false;
+});
+
+// Touch support
+document.getElementById('viewport').addEventListener('touchstart', (e) => {
+  state.isDragging = true;
+  lastY = e.touches[0].clientY;
+}, { passive: true });
+
+document.getElementById('viewport').addEventListener('touchmove', (e) => {
+  if (!state.isDragging) return;
+  e.preventDefault();
+  const currentY = e.touches[0].clientY;
+  const dy = currentY - lastY;
+  lastY = currentY;
+  state.rotation += dy * 0.01;
+}, { passive: false });
+
+document.getElementById('viewport').addEventListener('touchend', () => {
+  state.isDragging = false;
+});
+
+// Start
+init();
+animate();
+console.log('Minimal test started - pure colors, no images');
+</script>
+</body>
+</html>
