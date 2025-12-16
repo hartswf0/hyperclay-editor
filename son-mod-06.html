@@ -1,0 +1,600 @@
+<!-- hyperclay-gumstick.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>HYPERCLAY // RACK UNIT</title>
+<style>
+  :root {
+    --bg: #0a0b10;
+    --panel: #14161f;
+    --surface: #1e222e;
+    --highlight: #00f0ff; /* Cyan */
+    --dim: #005f66;
+    --text: #a0aab5;
+    --text-active: #ffffff;
+    --h: 180px; /* Fixed height for the module */
+  }
+
+  * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+  
+  body {
+    margin: 0; padding: 0;
+    background: #000;
+    font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    align-items: center; /* Center vertically for demo, would be top in grid */
+    justify-content: center;
+  }
+
+  /* THE MODULE CONTAINER - The "Stick of Gum" */
+  .module-rack {
+    width: 100%;
+    max-width: 1200px; /* Max width for desktop */
+    height: var(--h);
+    background: var(--bg);
+    border-top: 2px solid #333;
+    border-bottom: 2px solid #333;
+    display: grid;
+    grid-template-columns: 140px 1fr 100px; /* Left Controls | Mesh | Right Controls */
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+  }
+
+  /* LEFT CONTROL PANEL */
+  .panel-left {
+    background: var(--panel);
+    border-right: 1px solid #333;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .brand {
+    font-size: 10px; color: var(--highlight);
+    letter-spacing: 2px; font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 0 0 5px var(--dim);
+  }
+
+  .knob-row {
+    display: flex; gap: 10px; margin-bottom: 5px;
+  }
+
+  /* CSS KNOB UI */
+  .knob-container {
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .knob {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: conic-gradient(var(--highlight) var(--val, 0%), var(--surface) 0%);
+    position: relative;
+    margin-bottom: 4px;
+    cursor: ns-resize;
+  }
+  .knob::after {
+    content:''; position:absolute; inset: 4px; 
+    background: var(--bg); border-radius: 50%;
+  }
+  .knob-label { font-size: 9px; color: var(--text); }
+
+  /* CENTER DISPLAY (CANVAS) */
+  .display-area {
+    position: relative;
+    background: #000;
+    overflow: hidden;
+    cursor: crosshair;
+    box-shadow: inset 0 0 20px rgba(0,0,0,1);
+  }
+  
+  canvas { display: block; width: 100%; height: 100%; }
+
+  /* OVERLAYS */
+  .overlay-text {
+    position: absolute; pointer-events: none;
+    font-size: 10px; color: var(--dim);
+    bottom: 10px; right: 10px;
+  }
+
+  /* GATE / START OVERLAY */
+  .gate-overlay {
+    position: absolute; inset: 0;
+    background: rgba(10,11,16,0.85);
+    backdrop-filter: blur(4px);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 50; transition: opacity 0.3s;
+  }
+  .gate-btn {
+    background: transparent; border: 1px solid var(--highlight);
+    color: var(--highlight); padding: 8px 24px;
+    font-family: inherit; font-size: 12px; letter-spacing: 2px;
+    cursor: pointer; box-shadow: 0 0 10px var(--dim);
+  }
+  .gate-btn:hover { background: var(--highlight); color: #000; }
+
+  /* RIGHT CONTROL PANEL */
+  .panel-right {
+    background: var(--panel);
+    border-left: 1px solid #333;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    z-index: 10;
+  }
+
+  .mode-switch {
+    width: 100%; text-align: center;
+    font-size: 10px; color: var(--text);
+    padding: 5px; border: 1px solid #333;
+    background: var(--surface); cursor: pointer;
+  }
+  .mode-switch.active { border-color: var(--highlight); color: var(--highlight); }
+
+  .transport-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%; border: 2px solid var(--highlight);
+    display: grid; place-items: center;
+    color: var(--highlight); cursor: pointer;
+    box-shadow: 0 0 15px var(--dim);
+    transition: all 0.1s;
+  }
+  .transport-btn:active { transform: scale(0.95); background: var(--highlight); color: #000; }
+  .transport-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+  /* SCREWS (Decoration) */
+  .screw {
+    width: 6px; height: 6px; background: #222; border-radius: 50%;
+    position: absolute; box-shadow: inset 1px 1px 2px #000;
+  }
+  .tl { top: 5px; left: 5px; } .tr { top: 5px; right: 5px; }
+  .bl { bottom: 5px; left: 5px; } .br { bottom: 5px; right: 5px; }
+
+  @media (max-width: 600px) {
+    .module-rack { grid-template-columns: 80px 1fr 60px; height: 160px; }
+    .knob-row { flex-direction: column; gap: 5px; }
+    .knob { width: 30px; height: 30px; }
+    .brand { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="module-rack" id="rack-container">
+  
+  <!-- LEFT: SOUND PARAMS -->
+  <div class="panel-left">
+    <div class="screw tl"></div><div class="screw bl"></div>
+    <div class="brand">HYPERCLAY</div>
+    
+    <div class="knob-row">
+      <div class="knob-container">
+        <div class="knob" id="k-str" data-param="strength" style="--val: 40%;"></div>
+        <div class="knob-label">STR</div>
+      </div>
+      <div class="knob-container">
+        <div class="knob" id="k-rad" data-param="radius" style="--val: 60%;"></div>
+        <div class="knob-label">RAD</div>
+      </div>
+    </div>
+    
+    <div class="knob-row">
+      <div class="knob-container">
+        <div class="knob" id="k-flt" data-param="filter" style="--val: 70%;"></div>
+        <div class="knob-label">FLT</div>
+      </div>
+      <div class="knob-container">
+        <div class="knob" id="k-rel" data-param="release" style="--val: 30%;"></div>
+        <div class="knob-label">REL</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: CANVAS -->
+  <div class="display-area" id="display-container">
+    <canvas id="cv"></canvas>
+    <div class="overlay-text" id="status-text">INIT // READY</div>
+    
+    <div class="gate-overlay" id="gate">
+      <button class="gate-btn" id="btn-start">ACTIVATE MODULE</button>
+    </div>
+  </div>
+
+  <!-- RIGHT: TRANSPORT & MODE -->
+  <div class="panel-right">
+    <div class="screw tr"></div><div class="screw br"></div>
+    
+    <div class="mode-switch" id="mode-btn">SCULPT</div>
+    
+    <div class="transport-btn" id="transport-btn">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/**
+ * HYPERCLAY GUMSTICK EDITION
+ * Optimized for horizontal orchestrator grids
+ */
+
+class HyperClayGum {
+  constructor() {
+    this.container = document.getElementById('display-container');
+    this.cv = document.getElementById('cv');
+    this.ctx = this.cv.getContext('2d');
+    
+    // Config
+    this.DPR = Math.min(window.devicePixelRatio || 1, 2);
+    this.params = {
+      strength: 8,
+      radius: 60,
+      filter: 2000,
+      release: 400
+    };
+    
+    this.state = {
+      mode: 'sculpt', // 'sculpt' or 'seq'
+      playing: false,
+      mx: 0, my: 0,
+      down: false
+    };
+
+    // Sequencer
+    this.seqStep = 0;
+    this.lastTime = 0;
+    this.tempo = 110;
+
+    // Audio context
+    this.audio = null;
+
+    this.initUI();
+    this.resize();
+    
+    // Listeners
+    window.addEventListener('resize', () => this.resize());
+    this.cv.addEventListener('pointerdown', e => this.onPointerDown(e));
+    this.cv.addEventListener('pointermove', e => this.onPointerMove(e));
+    window.addEventListener('pointerup', () => this.state.down = false);
+    
+    document.getElementById('btn-start').addEventListener('click', () => {
+      this.initAudio();
+      document.getElementById('gate').style.opacity = 0;
+      setTimeout(() => document.getElementById('gate').style.display = 'none', 300);
+      this.loop();
+    });
+  }
+
+  initAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.audio = new AC();
+    this.master = this.audio.createGain();
+    this.master.gain.value = 0.4;
+    
+    // Simple Delay Send
+    this.delay = this.audio.createDelay();
+    this.delay.delayTime.value = 0.25;
+    this.fb = this.audio.createGain();
+    this.fb.gain.value = 0.3;
+    
+    this.delay.connect(this.fb);
+    this.fb.connect(this.delay);
+    this.delay.connect(this.master);
+    this.master.connect(this.audio.destination);
+  }
+
+  initUI() {
+    // Mode Toggle
+    const modeBtn = document.getElementById('mode-btn');
+    modeBtn.addEventListener('click', () => {
+      this.state.mode = this.state.mode === 'sculpt' ? 'seq' : 'sculpt';
+      modeBtn.innerText = this.state.mode.toUpperCase();
+      modeBtn.classList.toggle('active');
+      document.getElementById('status-text').innerText = this.state.mode === 'seq' ? "SEQ // LOCKED" : "SCULPT // FREE";
+      if(this.state.mode === 'seq') this.lockSequencer();
+      else this.unlockSequencer();
+    });
+
+    // Transport
+    const transBtn = document.getElementById('transport-btn');
+    transBtn.addEventListener('click', () => {
+      this.state.playing = !this.state.playing;
+      transBtn.style.color = this.state.playing ? '#fff' : 'var(--highlight)';
+      transBtn.style.background = this.state.playing ? 'var(--highlight)' : 'transparent';
+      transBtn.innerHTML = this.state.playing 
+        ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    });
+
+    // Knobs (Simple Drag Logic)
+    document.querySelectorAll('.knob').forEach(k => {
+      let startY = 0, startVal = 0;
+      k.addEventListener('pointerdown', e => {
+        startY = e.clientY;
+        startVal = parseFloat(k.style.getPropertyValue('--val')) || 0;
+        k.setPointerCapture(e.pointerId);
+        k.onpointermove = (ev) => {
+          const delta = startY - ev.clientY;
+          let newVal = Math.max(0, Math.min(100, startVal + delta));
+          k.style.setProperty('--val', newVal + '%');
+          this.updateParam(k.dataset.param, newVal);
+        };
+        k.onpointerup = () => { k.onpointermove = null; };
+      });
+    });
+  }
+
+  updateParam(key, percent) {
+    if(key === 'strength') this.params.strength = 1 + (percent/100)*20;
+    if(key === 'radius') this.params.radius = 20 + (percent/100)*100;
+    if(key === 'filter') this.params.filter = 200 + (percent/100)*5000;
+    if(key === 'release') this.params.release = 100 + (percent/100)*1000;
+  }
+
+  resize() {
+    const rect = this.container.getBoundingClientRect();
+    this.W = rect.width;
+    this.H = rect.height;
+    
+    this.cv.width = this.W * this.DPR;
+    this.cv.height = this.H * this.DPR;
+    this.ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
+
+    // Rebuild Mesh for new aspect ratio
+    this.cols = Math.floor(this.W / 25); // Dense columns
+    this.rows = Math.floor(this.H / 25); // Few rows
+    this.pts = [];
+    
+    for(let r=0; r<=this.rows; r++) {
+      for(let c=0; c<=this.cols; c++) {
+        const x = (c/this.cols) * this.W;
+        const y = (r/this.rows) * this.H;
+        this.pts.push({x, y, ox:x, oy:y});
+      }
+    }
+    
+    // Reset seq
+    if(this.state.mode === 'seq') this.lockSequencer();
+    else this.unlockSequencer();
+  }
+
+  onPointerDown(e) {
+    this.state.down = true;
+    this.state.mx = e.offsetX;
+    this.state.my = e.offsetY;
+    
+    if(this.state.mode === 'seq') {
+      // Toggle Cell
+      const idx = this.getCellAt(this.state.mx, this.state.my);
+      if(idx > -1 && this.seqCells[idx]) {
+        this.seqCells[idx].active = !this.seqCells[idx].active;
+        this.playTone(this.seqCells[idx].pitch, 0.1);
+      }
+    } else {
+      this.sculpt(true); // Initial hit
+    }
+  }
+
+  onPointerMove(e) {
+    this.state.mx = e.offsetX;
+    this.state.my = e.offsetY;
+    if(this.state.down && this.state.mode === 'sculpt') {
+      this.sculpt(false);
+    }
+  }
+
+  sculpt(triggerAudio) {
+    const r2 = this.params.radius * this.params.radius;
+    let hit = false;
+    
+    this.pts.forEach(p => {
+      const dx = p.x - this.state.mx;
+      const dy = p.y - this.state.my;
+      const d2 = dx*dx + dy*dy;
+      if(d2 < r2) {
+        const dist = Math.sqrt(d2);
+        const f = (1 - dist/this.params.radius) * this.params.strength;
+        const ang = Math.atan2(dy, dx);
+        p.x += Math.cos(ang) * f;
+        p.y += Math.sin(ang) * f;
+        hit = true;
+      }
+    });
+
+    if(hit && triggerAudio && Math.random() > 0.7) {
+      this.playTone(1 - (this.state.my/this.H), 0.2);
+    }
+  }
+
+  // --- AUDIO ENGINE ---
+  playTone(pitchNorm, vol) {
+    if(!this.audio) return;
+    const osc = this.audio.createOscillator();
+    const flt = this.audio.createBiquadFilter();
+    const gain = this.audio.createGain();
+
+    // Scale
+    const scale = [0, 2, 4, 7, 9, 12, 14, 16];
+    const root = 130.8; // C3
+    const noteIdx = Math.floor(pitchNorm * (scale.length-1));
+    const freq = root * Math.pow(2, scale[noteIdx]/12);
+
+    osc.frequency.value = freq;
+    osc.type = 'sawtooth';
+
+    flt.type = 'lowpass';
+    flt.frequency.value = this.params.filter;
+    flt.Q.value = 5;
+
+    const now = this.audio.currentTime;
+    const rel = this.params.release / 1000;
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + rel);
+
+    osc.connect(flt).connect(gain).connect(this.master);
+    gain.connect(this.delay);
+    
+    osc.start(now);
+    osc.stop(now + rel + 0.1);
+  }
+
+  // --- SEQUENCER LOGIC ---
+  lockSequencer() {
+    this.seqCells = [];
+    // Create cells based on current mesh distortion
+    for(let r=0; r<this.rows; r++) {
+      for(let c=0; c<this.cols; c++) {
+        const i = r*(this.cols+1)+c;
+        // Define quad
+        const p1 = this.pts[i];
+        const p2 = this.pts[i+1];
+        const p3 = this.pts[i+this.cols+2];
+        const p4 = this.pts[i+this.cols+1];
+        
+        // Pitch based on Y distortion of center
+        const cy = (p1.y+p3.y)/2;
+        const normY = Math.max(0, Math.min(1, cy / this.H));
+
+        this.seqCells.push({
+          pts: [p1,p2,p3,p4],
+          active: false,
+          pitch: 1 - normY,
+          col: c // for step tracking
+        });
+      }
+    }
+  }
+  
+  unlockSequencer() { this.seqCells = []; }
+  
+  getCellAt(x, y) {
+    // Simple bounding box check for speed
+    if(!this.seqCells.length) return -1;
+    return this.seqCells.findIndex(c => {
+      const minX = Math.min(c.pts[0].x, c.pts[2].x);
+      const maxX = Math.max(c.pts[0].x, c.pts[2].x);
+      const minY = Math.min(c.pts[0].y, c.pts[2].y);
+      const maxY = Math.max(c.pts[0].y, c.pts[2].y);
+      return x >= minX && x <= maxX && y >= minY && y <= maxY;
+    });
+  }
+
+  // --- LOOP ---
+  loop() {
+    requestAnimationFrame(() => this.loop());
+    
+    // Clear
+    this.ctx.fillStyle = '#000';
+    this.ctx.fillRect(0,0,this.W, this.H);
+
+    // Draw Grid Background
+    this.ctx.strokeStyle = '#111';
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    for(let x=0; x<this.W; x+=40) { this.ctx.moveTo(x,0); this.ctx.lineTo(x,this.H); }
+    this.ctx.stroke();
+
+    // Logic
+    if(this.state.playing && this.audio) {
+      const now = this.audio.currentTime;
+      const stepTime = 60/this.tempo/4;
+      if(now - this.lastTime > stepTime) {
+        this.lastTime = now;
+        this.seqStep = (this.seqStep + 1) % this.cols;
+        
+        if(this.state.mode === 'seq') {
+          // Find active cells in this column
+          const cells = this.seqCells.filter(c => c.col === this.seqStep && c.active);
+          cells.forEach(c => this.playTone(c.pitch, 0.4));
+        }
+      }
+    }
+
+    // Draw Mesh or Seq
+    if(this.state.mode === 'seq') {
+      this.drawSeq();
+    } else {
+      this.drawMesh();
+      // Cursor
+      if(this.state.down) {
+        this.ctx.strokeStyle = 'rgba(0,255,255,0.5)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.arc(this.state.mx, this.state.my, this.params.radius, 0, Math.PI*2);
+        this.ctx.stroke();
+      }
+    }
+
+    // Playhead
+    if(this.state.playing) {
+      const x = (this.seqStep / this.cols) * this.W;
+      this.ctx.strokeStyle = '#fff';
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.H);
+      this.ctx.stroke();
+    }
+  }
+
+  drawMesh() {
+    this.ctx.strokeStyle = '#00f0ff';
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    
+    // Rows
+    for(let r=0; r<=this.rows; r++) {
+      for(let c=0; c<=this.cols; c++) {
+        const p = this.pts[r*(this.cols+1)+c];
+        if(c===0) this.ctx.moveTo(p.x, p.y);
+        else this.ctx.lineTo(p.x, p.y);
+      }
+    }
+    // Cols
+    for(let c=0; c<=this.cols; c++) {
+      for(let r=0; r<=this.rows; r++) {
+        const p = this.pts[r*(this.cols+1)+c];
+        if(r===0) this.ctx.moveTo(p.x, p.y);
+        else this.ctx.lineTo(p.x, p.y);
+      }
+    }
+    this.ctx.stroke();
+  }
+
+  drawSeq() {
+    this.ctx.lineWidth = 1;
+    this.seqCells.forEach(c => {
+      this.ctx.beginPath();
+      this.ctx.moveTo(c.pts[0].x, c.pts[0].y);
+      this.ctx.lineTo(c.pts[1].x, c.pts[1].y);
+      this.ctx.lineTo(c.pts[2].x, c.pts[2].y);
+      this.ctx.lineTo(c.pts[3].x, c.pts[3].y);
+      this.ctx.closePath();
+      
+      if(c.active) {
+        this.ctx.fillStyle = 'rgba(0,240,255,0.6)';
+        this.ctx.fill();
+      } else {
+        this.ctx.strokeStyle = 'rgba(0,240,255,0.1)';
+        this.ctx.stroke();
+      }
+    });
+  }
+}
+
+// Init
+window.module = new HyperClayGum();
+</script>
+</body>
+</html>
