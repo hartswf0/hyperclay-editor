@@ -1,1350 +1,812 @@
 <!DOCTYPE html>
-<!-- HYPERCLAY MODULE v2.0 - Sculpt/Sequence Integration -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>HYPERCLAY // GRAIN</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a08">
+<title>HYPERCLAY // MANIFOLD</title>
 <style>
-/* === DYNAMIC THEME SYSTEM === */
-:root {
-  /* Sculpt Mode Theme */
-  --sculpt-bg-0: #05080a;
-  --sculpt-bg-1: #0f151a;
-  --sculpt-primary: #7fffd4;  /* Aquamarine */
-  --sculpt-secondary: #e6e6fa; /* Lavender */
-  --sculpt-ink: #f0f8ff;
-  
-  /* Sequence Mode Theme */
-  --seq-bg-0: #110505;
-  --seq-bg-1: #1a0a0a;
-  --seq-primary: #ff3300;  /* Red */
-  --seq-secondary: #ff9900; /* Orange */
-  --seq-ink: #ffffff;
-  
-  /* Current Theme (will be interpolated) */
-  --bg-0: var(--sculpt-bg-0);
-  --bg-1: var(--sculpt-bg-1);
-  --primary: var(--sculpt-primary);
-  --secondary: var(--sculpt-secondary);
-  --ink: var(--sculpt-ink);
-  
-  /* Visual Properties */
-  --glow: 0 0 20px var(--primary);
-  --panel: rgba(15, 25, 35, 0.9);
-  --transition-speed: 0.5s;
-}
+    :root {
+        --bg: #0a0a08;
+        --panel: #141210;
+        --border: #333;
+        --accent: #d4a418;
+        --text: #c2b280;
+        --text-dim: #635147;
+        --rack-height: 240px; 
+        --font-mono: 'Courier New', monospace;
+        --font-ui: 'Inter', system-ui, sans-serif;
+    }
 
-/* === TRANSITION ANIMATIONS === */
-@keyframes sculptPulse {
-  0% { box-shadow: 0 0 10px var(--sculpt-primary); }
-  50% { box-shadow: 0 0 25px var(--sculpt-primary); }
-  100% { box-shadow: 0 0 10px var(--sculpt-primary); }
-}
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+    
+    body {
+        margin: 0; padding: 0;
+        background: var(--bg); color: var(--text);
+        font-family: var(--font-ui);
+        height: 100vh; width: 100vw;
+        overflow: hidden;
+        display: flex; flex-direction: column;
+    }
 
-@keyframes seqPulse {
-  0% { box-shadow: 0 0 10px var(--seq-primary); }
-  50% { box-shadow: 0 0 25px var(--seq-primary); }
-  100% { box-shadow: 0 0 10px var(--seq-primary); }
-}
+    /* --- HEADER --- */
+    header {
+        height: 50px; background: #0f0f0f; border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 12px; z-index: 20; flex-shrink: 0;
+    }
+    .header-grp { display: flex; gap: 8px; align-items: center; }
+    
+    .brand { font-family: var(--font-mono); font-weight: 800; color: var(--accent); letter-spacing: 2px; font-size: 14px; margin-right: 10px; }
+    
+    .bpm-ctrl {
+        display: flex; align-items: center; background: #1a1a1a; 
+        border: 1px solid var(--border); border-radius: 4px; padding: 2px;
+    }
+    .bpm-val { font-family: var(--font-mono); font-size: 12px; color: var(--text); width: 30px; text-align: center; }
+    .bpm-btn {
+        width: 24px; height: 24px; background: transparent; border: none; 
+        color: var(--text-dim); cursor: pointer; display: grid; place-items: center;
+        font-weight: bold; font-size: 14px;
+    }
+    .bpm-btn:active { color: var(--accent); background: rgba(255,255,255,0.05); }
 
-/* === BASE STYLES === */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-user-select: none;
-  user-select: none;
-}
+    .btn-icon {
+        background: none; border: 1px solid var(--border); color: var(--text-dim);
+        width: 32px; height: 32px; border-radius: 4px;
+        display: grid; place-items: center; cursor: pointer; font-size: 14px;
+        transition: all 0.2s;
+    }
+    .btn-icon:hover { border-color: var(--text); color: var(--text); }
+    .btn-icon.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
-html, body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: var(--bg-0);
-  color: var(--ink);
-  font-family: 'Courier New', 'Monaco', monospace;
-  transition: background-color var(--transition-speed);
-}
+    /* --- RACK LIST --- */
+    #rack-container {
+        flex-grow: 1; overflow-y: auto; overflow-x: hidden;
+        padding: 0; 
+        display: flex; flex-direction: column; 
+        gap: 0; 
+    }
 
-#canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  touch-action: none;
-  image-rendering: crisp-edges;
-}
+    .rack {
+        background: var(--panel); 
+        border-bottom: 1px solid var(--border);
+        height: var(--rack-height);
+        display: grid; grid-template-columns: 120px 1fr 60px; /* Widened left col for faders */
+        overflow: hidden; 
+        position: relative;
+    }
+    .rack.muted .screen-area { opacity: 0.3; filter: grayscale(1); }
+    .rack.paused .screen-area canvas { opacity: 0.5; }
 
-/* === MODE INDICATOR === */
-.mode-indicator {
-  position: fixed;
-  top: 15px;
-  left: 15px;
-  padding: 8px 16px;
-  background: var(--panel);
-  border: 1px solid var(--primary);
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  color: var(--primary);
-  z-index: 100;
-  transition: all var(--transition-speed);
-  backdrop-filter: blur(10px);
-}
+    /* --- CONTROLS LEFT (Faders) --- */
+    .controls-left {
+        padding: 12px 8px; border-right: 1px solid var(--border);
+        display: flex; flex-direction: row; /* Horizontal layout for vertical faders */
+        justify-content: space-between; align-items: center;
+        background: #0d0d0d;
+    }
+    
+    .fader-wrap {
+        height: 100%; display: flex; flex-direction: column; align-items: center;
+        flex: 1; cursor: ns-resize; touch-action: none;
+    }
+    .fader-track {
+        flex-grow: 1; width: 6px; background: #222; border-radius: 3px;
+        position: relative; margin-bottom: 6px;
+    }
+    .fader-fill {
+        position: absolute; bottom: 0; left: 0; width: 100%; 
+        background: var(--accent); border-radius: 3px; pointer-events: none;
+    }
+    .fader-knob {
+        position: absolute; left: 50%; transform: translate(-50%, 50%);
+        width: 14px; height: 14px; background: var(--text); border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.8); pointer-events: none;
+    }
+    .fader-label {
+        font-size: 8px; color: var(--text-dim); font-weight: 700; 
+        writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: 1px;
+    }
 
-.mode-indicator::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--primary), transparent);
-}
+    /* --- SCREEN AREA --- */
+    .screen-area { position: relative; background: #000; cursor: crosshair; overflow: hidden; }
+    canvas { display: block; width: 100%; height: 100%; }
+    
+    .toolbar {
+        position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+        display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .tool-btn {
+        width: 28px; height: 28px; background: rgba(20,20,20,0.9);
+        border: 1px solid var(--border); border-radius: 4px; pointer-events: auto;
+        color: var(--text-dim); font-size: 14px; display: grid; place-items: center;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .tool-btn.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px rgba(212, 164, 24, 0.2); }
 
-/* === INTEGRATED TOOLBAR === */
-.toolbar {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 12px;
-  padding: 12px 20px;
-  background: var(--panel);
-  border: 1px solid var(--primary);
-  border-radius: 30px;
-  z-index: 100;
-  backdrop-filter: blur(10px);
-  transition: all var(--transition-speed);
-}
+    .rack-label {
+        position: absolute; top: 8px; right: 8px; 
+        font-family: var(--font-mono); font-size: 10px; font-weight: bold;
+        background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 2px;
+        pointer-events: none; letter-spacing: 1px;
+    }
 
-.tool-btn {
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
+    /* --- CONTROLS RIGHT (Buttons) --- */
+    .controls-right {
+        border-left: 1px solid var(--border); background: #0d0d0d;
+        display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
+        padding: 8px 6px;
+    }
+    .btn-rect {
+        width: 100%; height: 22%; /* Proportional height */
+        background: #181818; border: 1px solid var(--border);
+        color: var(--text-dim); font-size: 9px; display: grid; place-items: center;
+        cursor: pointer; border-radius: 2px; font-weight: 700; letter-spacing: 0.5px;
+        transition: all 0.1s;
+    }
+    .btn-rect.active { background: var(--accent); color: #000; border-color: var(--accent); }
+    .btn-rect:active { transform: scale(0.95); }
 
-.tool-btn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  transform: translateY(-2px);
-}
+    /* --- FAB --- */
+    #fab {
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: rgba(10,10,10,0.95); backdrop-filter: blur(8px);
+        border: 1px solid var(--border); border-radius: 50px;
+        padding: 8px 16px; display: flex; gap: 16px; align-items: center;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 100;
+    }
+    .fab-play {
+        width: 64px; height: 64px; background: var(--accent); color: #000;
+        border-radius: 50%; display: grid; place-items: center;
+        font-size: 28px; margin: -25px 0; border: 4px solid #000;
+        cursor: pointer;
+    }
 
-.tool-btn.active {
-  background: var(--primary);
-  color: var(--bg-0);
-  border-color: var(--primary);
-  box-shadow: var(--glow);
-}
+    /* --- MODALS --- */
+    .overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: opacity 0.3s; pointer-events: none; opacity: 0;
+    }
+    .overlay.visible { opacity: 1; pointer-events: auto; }
+    
+    .modal-card { 
+        max-width: 300px; text-align: center; color: var(--text); line-height: 1.6; font-size: 12px; 
+    }
+    .modal-title { font-size: 18px; color: var(--accent); margin-bottom: 15px; font-weight: 800; letter-spacing: 2px; }
+    
+    .loader-btn {
+        background: transparent; border: 1px solid var(--accent); color: var(--accent);
+        padding: 15px 40px; font-size: 12px; letter-spacing: 3px; font-weight: 800;
+        margin-top: 30px; cursor: pointer; transition: all 0.2s;
+    }
+    .loader-btn:hover { background: var(--accent); color: #000; }
+    .close-btn { margin-top: 20px; text-decoration: underline; cursor: pointer; color: var(--text-dim); }
 
-.tool-btn[data-mode="sculpt"] {
-  animation: sculptPulse 2s infinite;
-}
-
-.tool-btn[data-mode="sequence"] {
-  animation: seqPulse 2s infinite;
-}
-
-/* === PARAMETER DISPLAY === */
-.param-display {
-  position: fixed;
-  bottom: 90px;
-  right: 20px;
-  width: 120px;
-  padding: 10px;
-  background: var(--panel);
-  border: 1px solid var(--primary);
-  border-radius: 8px;
-  font-size: 10px;
-  z-index: 100;
-  backdrop-filter: blur(10px);
-}
-
-.param-label {
-  color: var(--primary);
-  font-weight: 700;
-  margin-bottom: 5px;
-  letter-spacing: 0.1em;
-}
-
-.param-value {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.param-bar {
-  flex: 1;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.param-fill {
-  height: 100%;
-  background: var(--primary);
-  border-radius: 2px;
-}
-
-/* === START GATE === */
-.gate {
-  position: fixed;
-  inset: 0;
-  background: var(--bg-0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(20px);
-}
-
-.gate-card {
-  border: 2px solid var(--primary);
-  padding: 40px;
-  background: var(--panel);
-  border-radius: 8px;
-  text-align: center;
-  max-width: 400px;
-  box-shadow: var(--glow);
-}
-
-.gate-title {
-  font-size: 24px;
-  color: var(--primary);
-  margin-bottom: 10px;
-  letter-spacing: 0.3em;
-}
-
-.gate-subtitle {
-  font-size: 12px;
-  color: var(--ink);
-  opacity: 0.8;
-  margin-bottom: 30px;
-  line-height: 1.6;
-}
-
-.start-btn {
-  background: transparent;
-  border: 1px solid var(--primary);
-  color: var(--primary);
-  padding: 12px 24px;
-  font-family: inherit;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.start-btn:hover {
-  background: var(--primary);
-  color: var(--bg-0);
-  box-shadow: var(--glow);
-}
-
-/* === INSTRUMENT LABEL === */
-.instrument-label {
-  position: fixed;
-  top: 15px;
-  right: 15px;
-  padding: 6px 12px;
-  background: var(--panel);
-  border: 1px solid var(--primary);
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  color: var(--primary);
-  z-index: 100;
-}
-
-/* === SCANLINE === */
-.scanline {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    transparent 50%,
-    rgba(255, 255, 255, 0.02) 50%
-  );
-  background-size: 100% 4px;
-  pointer-events: none;
-  z-index: 50;
-  opacity: 0.3;
-}
-
-/* === MOBILE OPTIMIZATIONS === */
-@media (max-width: 768px) {
-  .toolbar {
-    bottom: 10px;
-    padding: 10px 16px;
-    gap: 8px;
-  }
-  
-  .tool-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 9px;
-  }
-  
-  .param-display {
-    bottom: 70px;
-    right: 10px;
-    width: 100px;
-  }
-  
-  .mode-indicator {
-    top: 10px;
-    left: 10px;
-    font-size: 10px;
-    padding: 6px 12px;
-  }
-}
 </style>
 </head>
 <body>
-<canvas id="canvas"></canvas>
-<div class="scanline"></div>
 
-<div class="mode-indicator" id="mode-indicator">
-  <span id="mode-text">SCULPT</span> | <span id="blend-value">50%</span>
+<!-- START SCREEN -->
+<div id="start-overlay" class="overlay visible">
+    <div style="color:#555; font-size:10px; margin-bottom:12px; font-family:monospace; letter-spacing: 1px;">HYPERCLAY // SYSTEM_READY</div>
+    <div style="font-family:monospace; color:var(--text); font-size:32px; font-weight:800; letter-spacing: -1px;">MANIFOLD</div>
+    <div style="color:var(--accent); font-size:12px; letter-spacing: 4px; margin-top:5px;">HAPTIC_CORE_v3</div>
+    <button class="loader-btn" id="start-btn">INITIALIZE</button>
 </div>
 
-<div class="instrument-label" id="instrument-label">GRAIN</div>
-
-<div class="toolbar">
-  <div class="tool-btn active" data-tool="force" data-mode="sculpt">F</div>
-  <div class="tool-btn" data-tool="size" data-mode="sculpt">S</div>
-  <div class="tool-btn" data-tool="tempo" data-mode="sequence">T</div>
-  <div class="tool-btn" data-tool="density" data-mode="sequence">D</div>
-  <div class="tool-btn" data-mode="blend" id="blend-btn">B</div>
-</div>
-
-<div class="param-display" id="param-display">
-  <div class="param-label" id="param-label">FORCE</div>
-  <div class="param-value">
-    <div class="param-bar">
-      <div class="param-fill" id="param-fill"></div>
+<!-- HELP SCREEN -->
+<div id="help-overlay" class="overlay">
+    <div class="modal-card">
+        <div class="modal-title">ABOUT</div>
+        <p>HYPERCLAY MANIFOLD is a haptic mesh sequencer.</p>
+        <p><strong>SCULPT MODE:</strong> Drag across the grid to warp geometry. Each unit produces a unique texture when touched.</p>
+        <p><strong>SEQ MODE:</strong> Tap cells to sequence rhythmic patterns.</p>
+        <div class="close-btn" onclick="document.getElementById('help-overlay').classList.remove('visible')">CLOSE</div>
     </div>
-    <span id="param-value">50</span>
-  </div>
 </div>
 
-<div class="gate" id="gate">
-  <div class="gate-card">
-    <div class="gate-title">HYPERCLAY // GRAIN</div>
-    <div class="gate-subtitle">
-      Sculpt Mode shapes the sound canvas<br>
-      Sequence Mode carves rhythmic patterns<br>
-      Blend between modes for evolving textures<br>
-      <br>
-      <strong>DRAG:</strong> Deform canvas / Trigger notes<br>
-      <strong>CLICK TOOL:</strong> Adjust parameters<br>
-      <strong>BLEND:</strong> Mix sculpt & sequence
+<header>
+    <div class="header-grp">
+        <div class="brand">HYPERCLAY</div>
+        <div class="bpm-ctrl">
+            <button class="bpm-btn" id="bpm-dec">-</button>
+            <div class="bpm-val" id="bpm-display">110</div>
+            <button class="bpm-btn" id="bpm-inc">+</button>
+        </div>
     </div>
-    <button class="start-btn" id="start-btn">INITIALIZE SYSTEM</button>
-  </div>
+    <div class="header-grp">
+        <button class="btn-icon" id="btn-sync" title="Sync / Reset">↻</button>
+        <button class="btn-icon" id="btn-help" title="About">?</button>
+        <button class="btn-icon" id="btn-full" title="Fullscreen">⛶</button>
+        <button class="btn-icon" id="global-mute" title="Mute All">M</button>
+    </div>
+</header>
+
+<div id="rack-container"></div>
+
+<div id="fab">
+    <button class="fab-play" id="play-btn">▶</button>
 </div>
 
 <script>
-// === GRAIN MODULE CONFIGURATION ===
-const GRAIN_CONFIG = {
-  type: 'granular',
-  rootFreq: 110, // A2 - Bass foundation
-  sculptScale: [0, 2, 4, 7, 9, 12, 14, 16], // Pentatonic Major
-  seqScale: [0, 1, 3, 5, 6, 8, 10, 12], // Locrian/Diminished
-  blendSpeed: 0.02, // How quickly modes blend into each other
-  erosionRate: 0.001, // How much sequence erodes sculpt
-  accretionRate: 0.001, // How much sculpt rebuilds sequence
-  maxRacks: 3
+/**
+ * HYPERCLAY // MANIFOLD
+ * v6.0 - Vertical Faders & Haptic Enhancements
+ */
+
+const CONFIG = {
+    bpm: 110,
+    steps: 16,
+    rows: 6,
+    colors: {
+        kick: '#d4a418',
+        snare: '#b84a39',
+        hat: '#c2b280',
+        bass: '#635147',
+        lead: '#8a9a5b'
+    }
 };
 
-// === MODULE STATE ===
-class GrainModule {
-  constructor() {
-    this.canvas = document.getElementById('canvas');
-    this.ctx = this.canvas.getContext('2d');
-    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+const AudioEngine = {
+    ctx: null, master: null, limiter: null,
+    nextNoteTime: 0.0, currentStep: 0, timerID: null, isPlaying: false,
+
+    init() {
+        if (this.ctx) return;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AC({ latencyHint: 'interactive' });
+        this.limiter = this.ctx.createDynamicsCompressor();
+        this.limiter.threshold.value = -3.0;
+        this.master = this.ctx.createGain(); this.master.gain.value = 0.7;
+        this.master.connect(this.limiter); this.limiter.connect(this.ctx.destination);
+    },
+
+    resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+
+    play() {
+        if (this.isPlaying) return;
+        this.resume();
+        this.isPlaying = true;
+        this.currentStep = 0;
+        this.nextNoteTime = this.ctx.currentTime + 0.05;
+        this.scheduler();
+        document.getElementById('play-btn').innerText = '■';
+    },
+
+    stop() {
+        this.isPlaying = false;
+        window.clearTimeout(this.timerID);
+        document.getElementById('play-btn').innerText = '▶';
+    },
+
+    toggle() { this.isPlaying ? this.stop() : this.play(); },
     
-    // State
-    this.modeBlend = 0.5; // 0 = pure sculpt, 1 = pure sequence
-    this.activeTool = 'force';
-    this.transport = false;
-    this.dragging = false;
-    this.lastTime = 0;
-    
-    // Parameters that affect both modes
-    this.params = {
-      force: { value: 8, min: 1, max: 20, affects: ['sculpt', 'audio'] },
-      size: { value: 80, min: 20, max: 200, affects: ['sculpt', 'visual'] },
-      tempo: { value: 90, min: 40, max: 160, affects: ['sequence', 'audio'] },
-      density: { value: 0.5, min: 0.1, max: 0.9, affects: ['sequence', 'visual'] }
-    };
-    
-    // Racks with shared state
-    this.racks = [];
-    this.sequence = {
-      step: 0,
-      pattern: [],
-      erosionMap: [], // Tracks how much sequence has eroded sculpt
-      accentMap: []   // Tracks where sculpt has reinforced sequence
-    };
-    
-    // Initialize
-    this.init();
-  }
-  
-  init() {
-    this.resize();
-    this.setupAudio();
-    this.setupUI();
-    this.setupRacks();
-    this.bindEvents();
-    this.start();
-  }
-  
-  resize() {
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
-    this.canvas.width = this.width * this.dpr;
-    this.canvas.height = this.height * this.dpr;
-    this.canvas.style.width = `${this.width}px`;
-    this.canvas.style.height = `${this.height}px`;
-    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-  }
-  
-  setupAudio() {
-    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    this.master = this.audioCtx.createGain();
-    this.master.gain.value = 0.3;
-    
-    // Granular processor for grain-based sound
-    this.grainProcessor = this.createGrainProcessor();
-    
-    // Reverb for spatial depth
-    this.reverb = this.audioCtx.createConvolver();
-    this.createReverbBuffer();
-    
-    // Connect
-    this.grainProcessor.connect(this.reverb);
-    this.reverb.connect(this.master);
-    this.master.connect(this.audioCtx.destination);
-  }
-  
-  createGrainProcessor() {
-    const processor = this.audioCtx.createScriptProcessor(4096, 1, 1);
-    const grains = [];
-    const maxGrains = 50;
-    
-    processor.onaudioprocess = (e) => {
-      const output = e.outputBuffer.getChannelData(0);
-      output.fill(0);
-      
-      // Add grains based on mode blend
-      for (let i = 0; i < grains.length; i++) {
-        const grain = grains[i];
-        grain.age++;
-        
-        if (grain.age >= grain.duration) {
-          grains.splice(i, 1);
-          i--;
-          continue;
+    reset() {
+        this.currentStep = 0;
+        this.nextNoteTime = this.ctx.currentTime + 0.05;
+        App.racks.forEach(r => r.onStep(-1));
+    },
+
+    scheduler() {
+        while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
+            this.scheduleNote(this.currentStep, this.nextNoteTime);
+            this.nextStep();
         }
+        this.timerID = window.setTimeout(() => this.scheduler(), 25);
+    },
+
+    nextStep() {
+        this.nextNoteTime += 0.25 * (60.0 / CONFIG.bpm);
+        this.currentStep = (this.currentStep + 1) % CONFIG.steps;
+    },
+
+    scheduleNote(step, time) {
+        requestAnimationFrame(() => App.racks.forEach(r => r.onStep(step)));
+        App.racks.forEach(r => r.triggerColumn(step, time));
+    }
+};
+
+const Synths = {
+    // === SEQUENCER SOUNDS ===
+    kick(ctx, dest, time, warp, params) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.setValueAtTime(140 - (warp * 40), time);
+        osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
+        gain.gain.setValueAtTime(0.8, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
+        osc.connect(gain); gain.connect(dest);
+        osc.start(time); osc.stop(time + 0.5);
+    },
+    snare(ctx, dest, time, warp, params) {
+        const noise = ctx.createBufferSource();
+        const buf = ctx.createBuffer(1, ctx.sampleRate*0.2, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for(let i=0; i<buf.length; i++) data[i] = Math.random()*2-1;
+        noise.buffer = buf;
+        const nFlt = ctx.createBiquadFilter(); nFlt.type = 'highpass'; nFlt.frequency.value = params.filter;
+        const nGain = ctx.createGain();
+        nGain.gain.setValueAtTime(0.7, time); nGain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+        noise.connect(nFlt).connect(nGain).connect(dest); noise.start(time);
         
-        const pos = grain.age / grain.duration;
-        const window = Math.sin(pos * Math.PI); // Simple window
-        const sample = Math.sin(2 * Math.PI * grain.freq * grain.age / this.audioCtx.sampleRate);
+        const osc = ctx.createOscillator(); const oGain = ctx.createGain();
+        osc.frequency.setValueAtTime(200 + (warp*200), time);
+        oGain.gain.setValueAtTime(0.5, time); oGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+        osc.connect(oGain).connect(dest); osc.start(time); osc.stop(time + 0.15);
+    },
+    hat(ctx, dest, time, warp, params) {
+        const osc = ctx.createOscillator(); osc.type = 'square';
+        osc.frequency.setValueAtTime(800 + (warp*5000), time);
+        const flt = ctx.createBiquadFilter(); flt.type = 'highpass'; flt.frequency.value = 5000;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.2, time); gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+        osc.connect(flt).connect(gain).connect(dest); osc.start(time); osc.stop(time + 0.1);
+    },
+    bass(ctx, dest, time, warp, params) {
+        const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+        const notes = [55, 65, 73, 82, 98, 110, 130, 146];
+        osc.frequency.value = notes[Math.floor(warp * (notes.length - 1))];
+        const flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.setValueAtTime(params.filter/2, time);
+        flt.frequency.exponentialRampToValueAtTime(100, time+0.4);
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.5, time); gain.gain.linearRampToValueAtTime(0, time + 0.4);
+        osc.connect(flt).connect(gain).connect(dest); osc.start(time); osc.stop(time + 0.5);
+    },
+    lead(ctx, dest, time, warp, params) {
+        const osc = ctx.createOscillator(); osc.type = 'triangle';
+        const notes = [261, 311, 392, 523, 622, 784, 1046];
+        osc.frequency.value = notes[Math.floor(warp * (notes.length - 1))];
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(0.3, time + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
+        const dly = ctx.createDelay(); dly.delayTime.value=0.3;
+        const fb = ctx.createGain(); fb.gain.value=0.3;
+        osc.connect(gain); gain.connect(dest); gain.connect(dly);
+        dly.connect(fb); fb.connect(dly); dly.connect(dest);
+        osc.start(time); osc.stop(time + 1.0);
+    },
+
+    // === HAPTIC SCULPT SOUNDS (Unique per type) ===
+    
+    // Dispatcher
+    triggerStrum(type, ctx, dest, time, warp, params) {
+        if(this[type + 'Strum']) this[type + 'Strum'](ctx, dest, time, warp, params);
+    },
+
+    kickStrum(ctx, dest, time, warp, params) {
+        // Low Rubble
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.setValueAtTime(50 + (warp*30), time); // Deep pitch
+        gain.gain.setValueAtTime(0.3, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+        osc.connect(gain).connect(dest);
+        osc.start(time); osc.stop(time + 0.15);
+    },
+
+    snareStrum(ctx, dest, time, warp, params) {
+        // Sandpaper scratch
+        const bSize = ctx.sampleRate * 0.05; // 50ms
+        const b = ctx.createBuffer(1, bSize, ctx.sampleRate);
+        const d = b.getChannelData(0);
+        for(let i=0; i<bSize; i++) d[i] = Math.random()*2-1;
+        const n = ctx.createBufferSource(); n.buffer = b;
+        const f = ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value = 1000 + (warp*2000);
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.2, time); g.gain.linearRampToValueAtTime(0, time+0.05);
+        n.connect(f).connect(g).connect(dest);
+        n.start(time);
+    },
+
+    hatStrum(ctx, dest, time, warp, params) {
+        // Metallic tick
+        const osc = ctx.createOscillator(); osc.type='square';
+        osc.frequency.value = 3000 + (warp*3000);
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.08, time); g.gain.exponentialRampToValueAtTime(0.001, time+0.02);
+        osc.connect(g).connect(dest);
+        osc.start(time); osc.stop(time+0.03);
+    },
+
+    bassStrum(ctx, dest, time, warp, params) {
+        // Thick string pluck
+        const osc = ctx.createOscillator(); osc.type='sawtooth';
+        osc.frequency.value = 60 + (warp*100);
+        const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.setValueAtTime(400, time); f.frequency.exponentialRampToValueAtTime(50, time+0.15);
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.35, time); g.gain.exponentialRampToValueAtTime(0.001, time+0.2);
+        osc.connect(f).connect(g).connect(dest);
+        osc.start(time); osc.stop(time+0.25);
+    },
+
+    leadStrum(ctx, dest, time, warp, params) {
+        // Clear ping
+        const osc = ctx.createOscillator(); osc.type='sine';
+        osc.frequency.value = 440 + (warp*440);
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.15, time); g.gain.exponentialRampToValueAtTime(0.001, time+0.1);
+        osc.connect(g).connect(dest);
+        osc.start(time); osc.stop(time+0.15);
+    }
+};
+
+class Rack {
+    constructor(id, type, container) {
+        this.id = id; this.type = type; this.baseColor = CONFIG.colors[type];
+        this.params = { strength: 10, radius: 60, filter: 2000, decay: 400 };
+        this.mode = 'sculpt'; this.tool = 'push'; 
+        this.muted = false; this.active = true; 
         
-        const idx = grain.start + grain.age;
-        if (idx < output.length) {
-          output[idx] += sample * grain.amp * window * (this.modeBlend * 0.5 + 0.5);
+        // Strum state
+        this.lastStrum = 0;
+
+        // 16x6 Grid
+        this.grid = Array(16).fill().map(() => Array(6).fill().map(() => ({ active: false, warp: 0 })));
+
+        // Initial Dimensions
+        this.w = 0; this.h = 0;
+        
+        this.el = document.createElement('div');
+        this.el.className = 'rack';
+        this.el.innerHTML = `
+            <div class="controls-left">
+                ${this.fader('strength', 1, 20, 10, 'FORCE')}
+                ${this.fader('radius', 20, 150, 60, 'SIZE')}
+                ${this.fader('filter', 200, 8000, 2000, 'TONE')}
+            </div>
+            <div class="screen-area">
+                <canvas></canvas>
+                <div class="rack-label" style="color:${this.baseColor}">${this.id} // ${this.type.toUpperCase()}</div>
+                <div class="toolbar">
+                    <div class="tool-btn active" data-t="push">●</div>
+                    <div class="tool-btn" data-t="pull">○</div>
+                    <div class="tool-btn" data-t="noise">∿</div>
+                </div>
+            </div>
+            <div class="controls-right">
+                <div class="btn-rect active" data-a="play">PLAY</div>
+                <div class="btn-rect" data-a="mute">MUTE</div>
+                <div class="btn-rect" data-a="clear">CLR</div>
+                <div class="btn-rect" data-a="mode">SCULPT</div>
+            </div>`;
+        container.appendChild(this.el);
+
+        this.cv = this.el.querySelector('canvas');
+        this.ctx = this.cv.getContext('2d', { alpha: false });
+        this.pts = [];
+        
+        this.bindEvents();
+    }
+
+    fader(p, min, max, val, lbl) {
+        const pct = (val - min) / (max - min) * 100;
+        return `
+        <div class="fader-wrap" data-p="${p}" data-min="${min}" data-max="${max}">
+            <div class="fader-track">
+                <div class="fader-fill" style="height:${pct}%"></div>
+                <div class="fader-knob" style="bottom:${pct}%"></div>
+            </div>
+            <div class="fader-label">${lbl}</div>
+        </div>`;
+    }
+
+    resize() {
+        const rect = this.cv.parentElement.getBoundingClientRect();
+        if(rect.width === 0) return; 
+        
+        this.w = rect.width; this.h = rect.height;
+        const dpr = window.devicePixelRatio || 1;
+        this.cv.width = this.w * dpr; this.cv.height = this.h * dpr;
+        this.ctx.scale(dpr, dpr);
+        
+        if (this.pts.length === 0) this.initMesh();
+        else this.initMesh(); 
+    }
+
+    initMesh() {
+        this.pts = [];
+        const cols = 16, rows = 6;
+        for(let r=0; r<=rows; r++) {
+            for(let c=0; c<=cols; c++) {
+                const x = (c/cols) * this.w;
+                const y = (r/rows) * this.h;
+                this.pts.push({ x, y, ox: x, oy: y });
+            }
         }
-      }
-      
-      // Trigger new grains based on mode
-      const sculptRate = (1 - this.modeBlend) * 2;
-      const seqRate = this.modeBlend * 10;
-      const totalRate = sculptRate + seqRate;
-      
-      if (Math.random() < totalRate / this.audioCtx.sampleRate * 4096 && grains.length < maxGrains) {
-        const isSculpt = Math.random() < sculptRate / totalRate;
-        const grain = {
-          start: Math.floor(Math.random() * output.length),
-          age: 0,
-          duration: Math.floor(this.audioCtx.sampleRate * (0.01 + Math.random() * 0.1)),
-          freq: isSculpt ? 
-            this.getSculptFreq(Math.random()) : 
-            this.getSequenceFreq(Math.random()),
-          amp: 0.1 + Math.random() * 0.2
+        this.calcWarp();
+    }
+
+    calcWarp() {
+        if(!this.h) return;
+        const cols = 16, rows = 6;
+        for(let c=0; c<cols; c++) {
+            for(let r=0; r<rows; r++) {
+                const tl = this.pts[r*(cols+1)+c];
+                const bl = this.pts[(r+1)*(cols+1)+c];
+                if(tl && bl) {
+                    const avg = (tl.y + bl.y) / 2;
+                    this.grid[c][r].warp = Math.max(0, Math.min(1, 1 - (avg / this.h)));
+                }
+            }
+        }
+    }
+
+    updateControls() {
+        this.el.querySelectorAll('.fader-wrap').forEach(el => {
+            const p = el.dataset.p, min=parseFloat(el.dataset.min), max=parseFloat(el.dataset.max);
+            const val = this.params[p];
+            const pct = (val - min) / (max - min) * 100;
+            el.querySelector('.fader-fill').style.height = `${pct}%`;
+            el.querySelector('.fader-knob').style.bottom = `${pct}%`;
+        });
+    }
+
+    bindEvents() {
+        // Faders
+        this.el.querySelectorAll('.fader-wrap').forEach(el => {
+            el.addEventListener('pointerdown', e => {
+                el.setPointerCapture(e.pointerId);
+                const track = el.querySelector('.fader-track');
+                const p = el.dataset.p, min = parseFloat(el.dataset.min), max = parseFloat(el.dataset.max);
+                
+                const update = (ev) => {
+                    const rect = track.getBoundingClientRect();
+                    // Calculate relative Y position from bottom
+                    const y = Math.max(0, Math.min(rect.height, rect.bottom - ev.clientY));
+                    const pct = y / rect.height;
+                    this.params[p] = min + (pct * (max - min));
+                    this.updateControls();
+                };
+                
+                update(e); // Update immediately on click
+                
+                const up = () => { el.removeEventListener('pointermove', update); el.removeEventListener('pointerup', up); };
+                el.addEventListener('pointermove', update); el.addEventListener('pointerup', up);
+            });
+        });
+        this.updateControls();
+
+        // Right Buttons
+        const btns = this.el.querySelectorAll('.btn-rect');
+        // Play
+        btns[0].onclick = () => { 
+            this.active = !this.active; 
+            btns[0].classList.toggle('active', this.active);
+            btns[0].innerText = this.active ? "PLAY" : "PAUSED";
+            this.el.classList.toggle('paused', !this.active);
         };
-        grains.push(grain);
-      }
-    };
-    
-    return processor;
-  }
-  
-  createReverbBuffer() {
-    const length = this.audioCtx.sampleRate * 2;
-    const buffer = this.audioCtx.createBuffer(1, length, this.audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    
-    for (let i = 0; i < length; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
-    }
-    
-    this.reverb.buffer = buffer;
-  }
-  
-  getSculptFreq(intensity) {
-    const degree = Math.floor(intensity * (GRAIN_CONFIG.sculptScale.length - 1));
-    const note = GRAIN_CONFIG.sculptScale[degree];
-    return GRAIN_CONFIG.rootFreq * Math.pow(2, note / 12);
-  }
-  
-  getSequenceFreq(intensity) {
-    const degree = Math.floor(intensity * (GRAIN_CONFIG.seqScale.length - 1));
-    const note = GRAIN_CONFIG.seqScale[degree];
-    return GRAIN_CONFIG.rootFreq * Math.pow(2, note / 12);
-  }
-  
-  setupUI() {
-    // Update theme based on blend
-    this.updateTheme();
-    
-    // Setup tool buttons
-    document.querySelectorAll('.tool-btn').forEach(btn => {
-      if (btn.dataset.tool) {
-        btn.addEventListener('click', () => {
-          this.setActiveTool(btn.dataset.tool);
+        // Mute
+        btns[1].onclick = () => { 
+            this.muted = !this.muted; 
+            this.el.classList.toggle('muted', this.muted); 
+            btns[1].classList.toggle('active', this.muted); 
+        };
+        // Clear
+        btns[2].onclick = () => { this.initMesh(); this.grid.forEach(col => col.forEach(c => c.active=false)); };
+        // Mode
+        btns[3].onclick = () => { 
+            this.mode = this.mode==='sculpt'?'seq':'sculpt'; 
+            btns[3].innerText = this.mode.toUpperCase(); 
+            btns[3].classList.toggle('active', this.mode==='seq'); 
+        };
+
+        // Tools
+        this.el.querySelectorAll('.tool-btn').forEach(b => b.onclick = () => {
+            this.el.querySelectorAll('.tool-btn').forEach(btn=>btn.classList.remove('active'));
+            b.classList.add('active'); this.tool = b.dataset.t;
         });
-      }
-    });
-    
-    // Blend button
-    document.getElementById('blend-btn').addEventListener('click', () => {
-      this.cycleBlend();
-    });
-    
-    // Start button
-    document.getElementById('start-btn').addEventListener('click', () => {
-      this.startModule();
-    });
-  }
-  
-  setActiveTool(tool) {
-    this.activeTool = tool;
-    
-    // Update UI
-    document.querySelectorAll('.tool-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
-    
-    // Update param display
-    this.updateParamDisplay(tool);
-  }
-  
-  updateParamDisplay(tool) {
-    const param = this.params[tool];
-    if (!param) return;
-    
-    const percentage = Math.round(((param.value - param.min) / (param.max - param.min)) * 100);
-    
-    document.getElementById('param-label').textContent = tool.toUpperCase();
-    document.getElementById('param-value').textContent = Math.round(param.value);
-    document.getElementById('param-fill').style.width = `${percentage}%`;
-    
-    // Color based on which mode it affects
-    const affectsSculpt = param.affects.includes('sculpt');
-    const affectsSeq = param.affects.includes('sequence');
-    
-    if (affectsSculpt && affectsSeq) {
-      // Blend color based on current mode blend
-      const hue = 180 + (this.modeBlend * 180); // Aquamarine to Red
-      document.getElementById('param-fill').style.background = `hsl(${hue}, 100%, 50%)`;
-    } else if (affectsSculpt) {
-      document.getElementById('param-fill').style.background = 'var(--sculpt-primary)';
-    } else {
-      document.getElementById('param-fill').style.background = 'var(--seq-primary)';
+
+        // Canvas
+        const onPtr = e => {
+            const rect = this.cv.getBoundingClientRect();
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            if(e.type === 'pointerdown') {
+                this.cv.setPointerCapture(e.pointerId);
+                this.isDown = true;
+                if(this.mode === 'seq') this.handleTap(x, y);
+                else this.sculpt(x, y);
+            } else if(e.type === 'pointermove' && this.isDown) {
+                if(this.mode === 'sculpt') this.sculpt(x, y);
+            } else if(e.type === 'pointerup') {
+                this.isDown = false;
+            }
+        };
+        this.cv.addEventListener('pointerdown', onPtr);
+        this.cv.addEventListener('pointermove', onPtr);
+        this.cv.addEventListener('pointerup', onPtr);
     }
-  }
-  
-  cycleBlend() {
-    // Cycle through blend presets
-    const presets = [0, 0.25, 0.5, 0.75, 1];
-    const current = presets.findIndex(p => Math.abs(p - this.modeBlend) < 0.1);
-    const next = (current + 1) % presets.length;
-    this.modeBlend = presets[next];
-    
-    this.updateTheme();
-    this.updateModeDisplay();
-  }
-  
-  updateTheme() {
-    // Interpolate between sculpt and sequence themes
-    const bg0 = this.interpolateColor(
-      getComputedStyle(document.documentElement).getPropertyValue('--sculpt-bg-0').trim(),
-      getComputedStyle(document.documentElement).getPropertyValue('--seq-bg-0').trim(),
-      this.modeBlend
-    );
-    
-    const bg1 = this.interpolateColor(
-      getComputedStyle(document.documentElement).getPropertyValue('--sculpt-bg-1').trim(),
-      getComputedStyle(document.documentElement).getPropertyValue('--seq-bg-1').trim(),
-      this.modeBlend
-    );
-    
-    const primary = this.interpolateColor(
-      getComputedStyle(document.documentElement).getPropertyValue('--sculpt-primary').trim(),
-      getComputedStyle(document.documentElement).getPropertyValue('--seq-primary').trim(),
-      this.modeBlend
-    );
-    
-    document.documentElement.style.setProperty('--bg-0', bg0);
-    document.documentElement.style.setProperty('--bg-1', bg1);
-    document.documentElement.style.setProperty('--primary', primary);
-  }
-  
-  interpolateColor(color1, color2, t) {
-    // Simple RGB interpolation
-    const hex = (c) => parseInt(c.slice(1), 16);
-    const r1 = hex(color1) >> 16;
-    const g1 = (hex(color1) >> 8) & 0xff;
-    const b1 = hex(color1) & 0xff;
-    
-    const r2 = hex(color2) >> 16;
-    const g2 = (hex(color2) >> 8) & 0xff;
-    const b2 = hex(color2) & 0xff;
-    
-    const r = Math.round(r1 + (r2 - r1) * t);
-    const g = Math.round(g1 + (g2 - g1) * t);
-    const b = Math.round(b1 + (b2 - b1) * t);
-    
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-  
-  updateModeDisplay() {
-    const modeName = this.modeBlend < 0.33 ? 'SCULPT' : 
-                    this.modeBlend > 0.66 ? 'SEQUENCE' : 'BLEND';
-    
-    document.getElementById('mode-text').textContent = modeName;
-    document.getElementById('blend-value').textContent = `${Math.round(this.modeBlend * 100)}%`;
-    
-    // Update instrument label based on blend
-    const labels = ['SCULPT', 'GRAIN', 'SEQUENCE'];
-    const labelIdx = Math.floor(this.modeBlend * (labels.length - 1));
-    document.getElementById('instrument-label').textContent = labels[labelIdx];
-  }
-  
-  setupRacks() {
-    this.racks = [];
-    const margin = 60;
-    const rackHeight = (this.height - margin * 4) / GRAIN_CONFIG.maxRacks;
-    
-    for (let i = 0; i < GRAIN_CONFIG.maxRacks; i++) {
-      const y = margin + i * (rackHeight + margin);
-      
-      this.racks.push({
-        x: margin,
-        y: y,
-        width: this.width - margin * 2,
-        height: rackHeight,
-        points: [], // Sculpt points
-        cells: [],  // Sequence cells
-        erosion: 0, // How much sequence has eroded this rack
-        accent: 0   // How much sculpt has accented this rack
-      });
-      
-      this.initializeRackPoints(i);
-      this.initializeRackCells(i);
+
+    handleTap(x, y) {
+        const cols=16, rows=6;
+        for(let c=0; c<cols; c++) {
+            for(let r=0; r<rows; r++) {
+                const p1 = this.pts[r*(cols+1)+c];
+                const p3 = this.pts[(r+1)*(cols+1)+(c+1)];
+                const minX = Math.min(p1.x, p3.x) - 2; 
+                const maxX = Math.max(p1.x, p3.x) + 2;
+                const minY = Math.min(p1.y, p3.y) - 2;
+                const maxY = Math.max(p1.y, p3.y) + 2;
+
+                if(x >= minX && x <= maxX && y >= minY && y <= maxY) {
+                    this.grid[c][r].active = !this.grid[c][r].active;
+                    if(this.grid[c][r].active && AudioEngine.ctx) {
+                        const fn = Synths[this.type];
+                        if(fn) fn(AudioEngine.ctx, AudioEngine.master, AudioEngine.ctx.currentTime, this.grid[c][r].warp, this.params);
+                    }
+                    return;
+                }
+            }
+        }
     }
-    
-    // Initialize sequence pattern
-    this.initializeSequence();
-  }
-  
-  initializeRackPoints(rackIndex) {
-    const rack = this.racks[rackIndex];
-    const cols = 20;
-    const rows = 10;
-    
-    rack.points = [];
-    for (let r = 0; r <= rows; r++) {
-      for (let c = 0; c <= cols; c++) {
-        rack.points.push({
-          x: rack.x + (c / cols) * rack.width,
-          y: rack.y + (r / rows) * rack.height,
-          z: 0, // Depth for erosion/accretion
-          velocity: { x: 0, y: 0, z: 0 },
-          original: { x: 0, y: 0, z: 0 }
+
+    sculpt(mx, my) {
+        // 1. Physics
+        const rSq = this.params.radius ** 2;
+        this.pts.forEach(p => {
+            const dx = p.x - mx, dy = p.y - my;
+            const dSq = dx*dx + dy*dy;
+            if(dSq < rSq) {
+                const f = (1 - Math.sqrt(dSq)/this.params.radius) * (this.params.strength/10);
+                const dir = this.tool==='pull' ? -1 : 1;
+                const noise = this.tool==='noise' ? (Math.random()-0.5)*3 : 1;
+                p.x += (dx * 0.05 * f * dir * noise);
+                p.y += (dy * 0.2 * f * dir * noise);
+                p.y = Math.max(0, Math.min(this.h, p.y));
+            }
         });
-      }
-    }
-  }
-  
-  initializeRackCells(rackIndex) {
-    const rack = this.racks[rackIndex];
-    const cols = 16;
-    const rows = 8;
-    
-    rack.cells = [];
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        rack.cells.push({
-          x: rack.x + (c / cols) * rack.width,
-          y: rack.y + (r / rows) * rack.height,
-          width: rack.width / cols,
-          height: rack.height / rows,
-          active: Math.random() > 0.7,
-          erosion: 0, // How much this cell has eroded points
-          accent: 0   // How much points have accented this cell
-        });
-      }
-    }
-  }
-  
-  initializeSequence() {
-    // Create initial pattern based on sculpt points
-    this.sequence.pattern = [];
-    this.sequence.erosionMap = [];
-    this.sequence.accentMap = [];
-    
-    for (let i = 0; i < 16; i++) {
-      this.sequence.pattern.push({
-        active: Math.random() > 0.5,
-        intensity: Math.random(),
-        sculptInfluence: 0,
-        time: 0
-      });
-    }
-  }
-  
-  bindEvents() {
-    // Window resize
-    window.addEventListener('resize', () => this.resize());
-    
-    // Canvas interactions
-    this.canvas.addEventListener('pointerdown', (e) => {
-      this.handlePointerDown(e);
-    });
-    
-    this.canvas.addEventListener('pointermove', (e) => {
-      this.handlePointerMove(e);
-    });
-    
-    window.addEventListener('pointerup', () => {
-      this.dragging = false;
-    });
-    
-    // Prevent context menu
-    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-  }
-  
-  handlePointerDown(e) {
-    const x = e.clientX;
-    const y = e.clientY;
-    
-    // Check for transport toggle (left corner)
-    if (x < 60 && y > this.height - 60) {
-      this.transport = !this.transport;
-      return;
-    }
-    
-    this.dragging = true;
-    this.handleInteraction(x, y);
-  }
-  
-  handlePointerMove(e) {
-    if (!this.dragging) return;
-    
-    const x = e.clientX;
-    const y = e.clientY;
-    this.handleInteraction(x, y);
-  }
-  
-  handleInteraction(x, y) {
-    // Find which rack is being interacted with
-    const rackIndex = this.racks.findIndex(rack => 
-      x >= rack.x && x <= rack.x + rack.width &&
-      y >= rack.y && y <= rack.y + rack.height
-    );
-    
-    if (rackIndex === -1) return;
-    
-    // Apply based on mode blend
-    if (this.modeBlend < 0.5) {
-      // More sculpt than sequence - deform points
-      this.deformRack(rackIndex, x, y);
-    } else if (this.modeBlend > 0.5) {
-      // More sequence than sculpt - affect cells
-      this.affectSequenceCell(rackIndex, x, y);
-    } else {
-      // Equal blend - do both
-      this.deformRack(rackIndex, x, y);
-      this.affectSequenceCell(rackIndex, x, y);
-    }
-    
-    // Always play sound on interaction
-    this.playInteractionSound(rackIndex, x, y);
-  }
-  
-  deformRack(rackIndex, x, y) {
-    const rack = this.racks[rackIndex];
-    const force = this.params.force.value;
-    const size = this.params.size.value;
-    
-    // Deform points
-    rack.points.forEach(point => {
-      const dx = point.x - x;
-      const dy = point.y - y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < size) {
-        const influence = 1 - (distance / size);
-        
-        // Apply force to point
-        point.velocity.x += (dx / distance) * force * influence * 0.1;
-        point.velocity.y += (dy / distance) * force * influence * 0.1;
-        
-        // Erode/accrete based on mode blend
-        point.z += (this.modeBlend - 0.5) * influence * GRAIN_CONFIG.erosionRate;
-      }
-    });
-    
-    // Update rack's accent level (how much sculpt is affecting it)
-    rack.accent += 0.01;
-    rack.accent = Math.min(rack.accent, 1);
-  }
-  
-  affectSequenceCell(rackIndex, x, y) {
-    const rack = this.racks[rackIndex];
-    
-    // Find which cell is being interacted with
-    const cellIndex = rack.cells.findIndex(cell => 
-      x >= cell.x && x <= cell.x + cell.width &&
-      y >= cell.y && y <= cell.y + cell.height
-    );
-    
-    if (cellIndex === -1) return;
-    
-    // Toggle or adjust cell
-    rack.cells[cellIndex].active = !rack.cells[cellIndex].active;
-    
-    // Update erosion level (how much sequence is affecting sculpt)
-    rack.erosion += 0.02;
-    rack.erosion = Math.min(rack.erosion, 1);
-  }
-  
-  playInteractionSound(rackIndex, x, y) {
-    if (this.audioCtx.state === 'suspended') return;
-    
-    const rack = this.racks[rackIndex];
-    const normalizedX = (x - rack.x) / rack.width;
-    const normalizedY = (y - rack.y) / rack.height;
-    
-    // Blend between sculpt and sequence sounds based on mode
-    const sculptWeight = 1 - this.modeBlend;
-    const seqWeight = this.modeBlend;
-    
-    // Use both scales, weighted by mode
-    const sculptFreq = this.getSculptFreq(normalizedY);
-    const seqFreq = this.getSequenceFreq(normalizedX);
-    const freq = (sculptFreq * sculptWeight) + (seqFreq * seqWeight);
-    
-    // Create sound
-    const now = this.audioCtx.currentTime;
-    const osc = this.audioCtx.createOscillator();
-    const gain = this.audioCtx.createGain();
-    
-    osc.type = this.modeBlend < 0.5 ? 'sine' : 'square';
-    osc.frequency.value = freq;
-    
-    // Envelope based on interaction type
-    const attack = 0.01 + (sculptWeight * 0.05);
-    const release = 0.1 + (seqWeight * 0.2);
-    
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.2, now + attack);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + attack + release);
-    
-    osc.connect(gain);
-    gain.connect(this.master);
-    
-    osc.start(now);
-    osc.stop(now + attack + release + 0.1);
-  }
-  
-  startModule() {
-    document.getElementById('gate').style.display = 'none';
-    
-    if (this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
-    }
-    
-    this.transport = true;
-    this.start();
-  }
-  
-  start() {
-    const loop = (time) => {
-      requestAnimationFrame(loop);
-      
-      const deltaTime = (time - this.lastTime) / 1000;
-      this.lastTime = time;
-      
-      if (this.transport) {
-        this.updateSequence(time / 1000);
-      }
-      
-      this.updatePhysics(deltaTime);
-      this.render();
-    };
-    
-    requestAnimationFrame(loop);
-  }
-  
-  updateSequence(time) {
-    const bpm = this.params.tempo.value;
-    const secondsPerStep = 60 / bpm / 4;
-    
-    if (time - this.sequence.stepTime >= secondsPerStep) {
-      this.sequence.stepTime = time;
-      
-      // Advance step
-      this.sequence.step = (this.sequence.step + 1) % 16;
-      
-      // Trigger active cells for current step
-      this.racks.forEach((rack, rackIndex) => {
-        const cellsPerStep = Math.ceil(rack.cells.length / 16);
-        const start = this.sequence.step * cellsPerStep;
-        const end = Math.min(start + cellsPerStep, rack.cells.length);
-        
-        let triggered = false;
-        
-        for (let i = start; i < end; i++) {
-          const cell = rack.cells[i];
-          if (cell.active) {
-            triggered = true;
+        this.calcWarp();
+
+        // 2. Haptic Sound (Strumming)
+        const now = AudioEngine.ctx.currentTime;
+        if (now - this.lastStrum > 0.04 && !this.muted) {
+            // Calculate normalized height (high pitch = top = 1.0)
+            const warp = 1 - (my / this.h);
             
-            // Play sequence sound
-            this.playSequenceSound(rackIndex, i);
+            // Call the UNIQUE strum synth for this rack type
+            Synths.triggerStrum(this.type, AudioEngine.ctx, AudioEngine.master, now, warp, this.params);
             
-            // Erode sculpt points near this cell
-            this.erodeFromSequence(rackIndex, cell);
-          }
+            this.lastStrum = now;
+            
+            // 3. Physical Haptics
+            if (navigator.vibrate) navigator.vibrate(5);
         }
-        
-        if (triggered) {
-          rack.erosion += 0.005;
-        }
-      });
-      
-      // Update pattern based on sculpt influence
-      this.updatePatternFromSculpt();
     }
-  }
-  
-  playSequenceSound(rackIndex, cellIndex) {
-    const rack = this.racks[rackIndex];
-    const cell = rack.cells[cellIndex];
-    const normalizedX = (cell.x - rack.x) / rack.width;
-    
-    const freq = this.getSequenceFreq(normalizedX);
-    
-    const now = this.audioCtx.currentTime;
-    const osc = this.audioCtx.createOscillator();
-    const gain = this.audioCtx.createGain();
-    
-    osc.type = 'square';
-    osc.frequency.value = freq;
-    
-    // Filter based on erosion level
-    const filter = this.audioCtx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 1000 + (rack.erosion * 3000);
-    
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1 + (rack.accent * 0.2));
-    
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.master);
-    
-    osc.start(now);
-    osc.stop(now + 0.2);
-  }
-  
-  erodeFromSequence(rackIndex, cell) {
-    const rack = this.racks[rackIndex];
-    
-    // Find points near this sequence cell and erode them
-    rack.points.forEach(point => {
-      const dx = point.x - (cell.x + cell.width / 2);
-      const dy = point.y - (cell.y + cell.height / 2);
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < Math.max(cell.width, cell.height) * 2) {
-        // Erode point (push it away or change depth)
-        point.z -= GRAIN_CONFIG.erosionRate * (1 - (distance / (cell.width * 2)));
-      }
-    });
-  }
-  
-  updatePatternFromSculpt() {
-    // Update sequence pattern based on current sculpt state
-    this.racks.forEach(rack => {
-      if (rack.accent > 0.5) {
-        // Sculpt has accented this rack - reinforce sequence cells
-        rack.cells.forEach(cell => {
-          if (Math.random() < rack.accent * 0.1) {
-            cell.active = true;
-            cell.accent += 0.1;
-          }
+
+    triggerColumn(step, time) {
+        if(this.muted || !this.active) return;
+        this.grid[step].forEach(cell => {
+            if(cell.active) {
+                const fn = Synths[this.type];
+                if(fn) fn(AudioEngine.ctx, AudioEngine.master, time, cell.warp, this.params);
+            }
         });
-      }
-    });
-  }
-  
-  updatePhysics(deltaTime) {
-    const stiffness = 0.2;
-    const damping = 0.95;
-    
-    this.racks.forEach(rack => {
-      rack.points.forEach((point, index) => {
-        // Spring back to original position
-        const dx = (point.x - point.original.x);
-        const dy = (point.y - point.original.y);
-        
-        point.velocity.x -= dx * stiffness * deltaTime;
-        point.velocity.y -= dy * stiffness * deltaTime;
-        point.velocity.z -= point.z * stiffness * deltaTime;
-        
-        // Apply damping
-        point.velocity.x *= damping;
-        point.velocity.y *= damping;
-        point.velocity.z *= damping;
-        
-        // Update position
-        point.x += point.velocity.x;
-        point.y += point.velocity.y;
-        point.z += point.velocity.z;
-        
-        // Clamp depth
-        point.z = Math.max(-1, Math.min(1, point.z));
-      });
-      
-      // Gradually reduce erosion and accent
-      rack.erosion *= 0.999;
-      rack.accent *= 0.999;
-    });
-  }
-  
-  render() {
-    // Clear canvas with interpolated background
-    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-0').trim();
-    this.ctx.fillRect(0, 0, this.width, this.height);
-    
-    // Draw grid background (intensity based on blend)
-    this.drawGrid();
-    
-    // Draw racks
-    this.racks.forEach((rack, rackIndex) => {
-      this.drawRack(rack, rackIndex);
-    });
-    
-    // Draw current tool indicator
-    this.drawToolIndicator();
-    
-    // Draw transport indicator
-    this.drawTransportIndicator();
-    
-    // Update UI
-    this.updateModeDisplay();
-    this.updateParamDisplay(this.activeTool);
-  }
-  
-  drawGrid() {
-    const gridSize = 40;
-    const opacity = 0.05 + (this.modeBlend * 0.1);
-    
-    this.ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-    this.ctx.lineWidth = 1;
-    
-    // Vertical lines
-    for (let x = 0; x < this.width; x += gridSize) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(x, 0);
-      this.ctx.lineTo(x, this.height);
-      this.ctx.stroke();
     }
-    
-    // Horizontal lines
-    for (let y = 0; y < this.height; y += gridSize) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(0, y);
-      this.ctx.lineTo(this.width, y);
-      this.ctx.stroke();
-    }
-  }
-  
-  drawRack(rack, rackIndex) {
-    // Draw rack background
-    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-1').trim();
-    this.ctx.fillRect(rack.x - 10, rack.y - 10, rack.width + 20, rack.height + 20);
-    
-    // Draw sequence cells (if in sequence mode or blended)
-    if (this.modeBlend > 0.3) {
-      this.drawSequenceCells(rack);
-    }
-    
-    // Draw sculpt points (if in sculpt mode or blended)
-    if (this.modeBlend < 0.7) {
-      this.drawSculptPoints(rack);
-    }
-    
-    // Draw connections between points and cells
-    if (this.modeBlend > 0.3 && this.modeBlend < 0.7) {
-      this.drawConnections(rack);
-    }
-    
-    // Draw rack label with erosion/accent indicators
-    this.drawRackLabel(rack, rackIndex);
-  }
-  
-  drawSequenceCells(rack) {
-    rack.cells.forEach(cell => {
-      // Color based on activity and erosion
-      let hue = 0; // Red for sequence
-      let saturation = cell.active ? 100 : 30;
-      let lightness = cell.active ? 50 : 20;
-      
-      if (cell.accent > 0) {
-        // Blend toward aquamarine based on sculpt accent
-        hue = cell.accent * 180;
-      }
-      
-      this.ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${0.2 + (this.modeBlend * 0.3)})`;
-      this.ctx.fillRect(cell.x, cell.y, cell.width, cell.height);
-      
-      // Border
-      this.ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.5)`;
-      this.ctx.lineWidth = 1;
-      this.ctx.strokeRect(cell.x, cell.y, cell.width, cell.height);
-    });
-  }
-  
-  drawSculptPoints(rack) {
-    const pointSize = 2 + (4 * (1 - this.modeBlend));
-    
-    rack.points.forEach(point => {
-      // Color based on depth (erosion/accretion)
-      let hue = 180; // Aquamarine for sculpt
-      let lightness = 50;
-      
-      if (point.z < 0) {
-        // Eroded - shift toward red
-        hue = 180 + (Math.abs(point.z) * 180);
-        lightness = 40;
-      } else if (point.z > 0) {
-        // Accreted - brighter aquamarine
-        lightness = 50 + (point.z * 20);
-      }
-      
-      this.ctx.fillStyle = `hsla(${hue}, 100%, ${lightness}%, ${0.5 + ((1 - this.modeBlend) * 0.3)})`;
-      this.ctx.beginPath();
-      this.ctx.arc(point.x, point.y, pointSize, 0, Math.PI * 2);
-      this.ctx.fill();
-      
-      // Draw lines to neighbors (mesh)
-      this.drawPointConnections(rack, point);
-    });
-  }
-  
-  drawPointConnections(rack, point) {
-    const connectionRange = 60;
-    const opacity = 0.1 * (1 - this.modeBlend);
-    
-    rack.points.forEach(otherPoint => {
-      const dx = otherPoint.x - point.x;
-      const dy = otherPoint.y - point.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance > 0 && distance < connectionRange) {
-        this.ctx.strokeStyle = `hsla(180, 50%, 50%, ${opacity * (1 - distance / connectionRange)})`;
-        this.ctx.lineWidth = 1;
-        this.ctx.beginPath();
-        this.ctx.moveTo(point.x, point.y);
-        this.ctx.lineTo(otherPoint.x, otherPoint.y);
-        this.ctx.stroke();
-      }
-    });
-  }
-  
-  drawConnections(rack) {
-    // Draw connections between sculpt points and sequence cells
-    const connectionOpacity = 0.1 * this.modeBlend * (1 - this.modeBlend) * 4;
-    
-    rack.cells.forEach(cell => {
-      if (!cell.active) return;
-      
-      const cellCenterX = cell.x + cell.width / 2;
-      const cellCenterY = cell.y + cell.height / 2;
-      
-      rack.points.forEach(point => {
-        const dx = point.x - cellCenterX;
-        const dy = point.y - cellCenterY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < 100) {
-          // Line color blends between sculpt and sequence based on which is influencing which
-          const influence = cell.accent > 0 ? cell.accent : rack.erosion;
-          const hue = 180 + (influence * 180);
-          
-          this.ctx.strokeStyle = `hsla(${hue}, 50%, 50%, ${connectionOpacity * (1 - distance / 100)})`;
-          this.ctx.lineWidth = 1;
-          this.ctx.beginPath();
-          this.ctx.moveTo(cellCenterX, cellCenterY);
-          this.ctx.lineTo(point.x, point.y);
-          this.ctx.stroke();
+
+    onStep(s) { this.currStep = s; }
+
+    draw() {
+        if (!this.w || !this.h) return;
+
+        const ctx = this.ctx;
+        const grad = ctx.createLinearGradient(0, 0, 0, this.h);
+        grad.addColorStop(0, '#0a0a08'); grad.addColorStop(1, '#1a1815');
+        ctx.fillStyle = grad; ctx.fillRect(0, 0, this.w, this.h);
+
+        const cols=16, rows=6;
+        if(this.pts.length < 4) return;
+
+        // Draw Cells
+        for(let c=0; c<cols; c++) {
+            for(let r=0; r<rows; r++) {
+                const cell = this.grid[c][r];
+                const active = cell.active;
+                const playing = this.active && this.currStep === c;
+                
+                ctx.beginPath();
+                const p1 = this.pts[r*(cols+1)+c];
+                const p2 = this.pts[r*(cols+1)+(c+1)];
+                const p3 = this.pts[(r+1)*(cols+1)+(c+1)];
+                const p4 = this.pts[(r+1)*(cols+1)+c];
+                
+                ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+                ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+                
+                if(active) {
+                    ctx.fillStyle = this.baseColor;
+                    ctx.globalAlpha = 0.6 + (1 - r/rows)*0.3; 
+                    ctx.fill();
+                    ctx.globalAlpha = 1.0;
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+                } else {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.globalAlpha = 0.03;
+                    ctx.fill();
+                    ctx.globalAlpha = 1.0;
+                }
+
+                if(playing) {
+                    ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.2; ctx.fill(); ctx.globalAlpha=1;
+                }
+            }
         }
-      });
-    });
-  }
-  
-  drawRackLabel(rack, rackIndex) {
-    const label = `RACK ${rackIndex + 1}`;
-    const erosionBar = Math.round(rack.erosion * 100);
-    const accentBar = Math.round(rack.accent * 100);
-    
-    this.ctx.save();
-    this.ctx.translate(rack.x - 25, rack.y + rack.height / 2);
-    this.ctx.rotate(-Math.PI / 2);
-    
-    // Label text
-    this.ctx.font = 'bold 10px monospace';
-    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-    this.ctx.textAlign = 'center';
-    this.ctx.fillText(label, 0, 0);
-    
-    // Erosion/accent bars
-    this.ctx.translate(0, 15);
-    
-    // Erosion (sequence influence - red)
-    this.ctx.fillStyle = 'rgba(255, 50, 0, 0.5)';
-    this.ctx.fillRect(-50, 0, erosionBar, 4);
-    
-    this.ctx.translate(0, 8);
-    
-    // Accent (sculpt influence - aquamarine)
-    this.ctx.fillStyle = 'rgba(127, 255, 212, 0.5)';
-    this.ctx.fillRect(-50, 0, accentBar, 4);
-    
-    this.ctx.restore();
-  }
-  
-  drawToolIndicator() {
-    const x = this.width - 60;
-    const y = 60;
-    const radius = 20;
-    
-    // Tool circle
-    this.ctx.beginPath();
-    this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-    this.ctx.fill();
-    
-    this.ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-    this.ctx.lineWidth = 2;
-    this.ctx.stroke();
-    
-    // Tool icon
-    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
-    this.ctx.font = 'bold 14px monospace';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText(this.activeTool.charAt(0).toUpperCase(), x, y);
-    
-    // Mode blend indicator around circle
-    const startAngle = -Math.PI / 2;
-    const endAngle = startAngle + (Math.PI * 2 * this.modeBlend);
-    
-    this.ctx.beginPath();
-    this.ctx.arc(x, y, radius + 4, startAngle, endAngle);
-    this.ctx.strokeStyle = 'var(--seq-primary)';
-    this.ctx.lineWidth = 3;
-    this.ctx.stroke();
-    
-    // Reverse arc for sculpt portion
-    this.ctx.beginPath();
-    this.ctx.arc(x, y, radius + 4, endAngle, startAngle + Math.PI * 2);
-    this.ctx.strokeStyle = 'var(--sculpt-primary)';
-    this.ctx.lineWidth = 3;
-    this.ctx.stroke();
-  }
-  
-  drawTransportIndicator() {
-    const x = 40;
-    const y = this.height - 40;
-    const radius = 20;
-    
-    // Transport circle
-    this.ctx.beginPath();
-    this.ctx.arc(x, y, radius, 0, Math.PI * 2);
-    this.ctx.fillStyle = this.transport ? 'rgba(0, 255, 100, 0.2)' : 'rgba(0, 255, 255, 0.1)';
-    this.ctx.fill();
-    
-    this.ctx.strokeStyle = this.transport ? '#0f8' : '#0ff';
-    this.ctx.lineWidth = 2;
-    this.ctx.stroke();
-    
-    // Play/Stop symbol
-    this.ctx.fillStyle = '#fff';
-    this.ctx.font = 'bold 14px monospace';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText(this.transport ? '■' : '▶', x, y);
-  }
+
+        // Draw Mesh Lines
+        ctx.lineWidth = 0.5; ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.beginPath();
+        for(let c=0; c<=cols; c++) {
+            for(let r=0; r<=rows; r++) {
+                const p = this.pts[r*(cols+1)+c];
+                if(r===0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+            }
+        }
+        for(let r=0; r<=rows; r++) {
+            for(let c=0; c<=cols; c++) {
+                const p = this.pts[r*(cols+1)+c];
+                if(c===0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+            }
+        }
+        ctx.stroke();
+    }
 }
 
-// === INITIALIZE MODULE ===
-window.addEventListener('DOMContentLoaded', () => {
-  const module = new GrainModule();
-  window.grainModule = module; // Make accessible globally
-  
-  // Expose module controls for debugging
-  window.updateParam = (param, value) => {
-    if (module.params[param]) {
-      module.params[param].value = Math.max(
-        module.params[param].min,
-        Math.min(module.params[param].max, value)
-      );
-      module.updateParamDisplay(param);
+const App = {
+    racks: [],
+    init() {
+        const container = document.getElementById('rack-container');
+        const units = [
+            { id: 'ALPHA', type: 'kick' },
+            { id: 'BETA', type: 'snare' },
+            { id: 'GAMMA', type: 'hat' },
+            { id: 'DELTA', type: 'bass' },
+            { id: 'EPSILON', type: 'lead' }
+        ];
+
+        units.forEach(u => this.racks.push(new Rack(u.id, u.type, container)));
+
+        document.getElementById('start-btn').onclick = () => {
+            AudioEngine.init(); AudioEngine.resume();
+            document.getElementById('start-overlay').classList.remove('visible');
+            setTimeout(() => {
+                document.getElementById('start-overlay').style.display='none';
+                this.racks.forEach(r => r.resize());
+            }, 500);
+        };
+        
+        document.getElementById('play-btn').onclick = () => AudioEngine.toggle();
+        document.getElementById('global-mute').onclick = (e) => {
+            const anyMuted = this.racks.some(r => r.muted);
+            this.racks.forEach(r => {
+                r.muted = !anyMuted;
+                r.el.classList.toggle('muted', !anyMuted);
+            });
+            e.target.classList.toggle('active', !anyMuted);
+        };
+
+        // Header controls
+        document.getElementById('btn-help').onclick = () => document.getElementById('help-overlay').classList.add('visible');
+        document.getElementById('btn-full').onclick = () => {
+            if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        };
+        document.getElementById('bpm-inc').onclick = () => { CONFIG.bpm+=5; document.getElementById('bpm-display').innerText = CONFIG.bpm; };
+        document.getElementById('bpm-dec').onclick = () => { CONFIG.bpm-=5; document.getElementById('bpm-display').innerText = CONFIG.bpm; };
+        
+        // SYNC
+        document.getElementById('btn-sync').onclick = () => {
+            AudioEngine.reset();
+        };
+
+        window.addEventListener('resize', () => this.racks.forEach(r => r.resize()));
+        setTimeout(() => this.racks.forEach(r => r.resize()), 50);
+        this.loop();
+    },
+
+    loop() {
+        requestAnimationFrame(() => this.loop());
+        this.racks.forEach(r => r.draw());
     }
-  };
-  
-  window.setBlend = (value) => {
-    module.modeBlend = Math.max(0, Math.min(1, value));
-    module.updateTheme();
-  };
-});
+};
+
+window.onload = () => App.init();
+
 </script>
 </body>
 </html>
