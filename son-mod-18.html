@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HYPERCLAY // MANIFOLD v21</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='%23d4a418' stroke-width='8'/%3E%3C/svg%3E">
+    <style>
+        :root {
+            /* ORCHESTRATOR THEME */
+            --bg-void: #050504;
+            --bg-panel: #11100f;
+            --text-main: #c2b280; /* Sand */
+            --text-dim: #635147;  /* Umber */
+            --border: #3a3228;
+            --accent: #d4a418;    /* Ochre */
+            
+            --unit-h: 180px; /* Taller for full rack view */
+            --ease: cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        [data-theme="light"] {
+            /* LABORATORY THEME */
+            --bg-void: #e0e0e5;
+            --bg-panel: #ffffff;
+            --text-main: #111111;
+            --text-dim: #888888;
+            --border: #cccccc;
+            --accent: #0055ff;    /* Blueprint Blue */
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body, html {
+            margin: 0; padding: 0; height: 100%; width: 100%;
+            background: var(--bg-void); color: var(--text-main);
+            font-family: 'Inter', system-ui, sans-serif; overflow: hidden;
+            transition: background 0.3s;
+        }
+
+        #app { display: flex; flex-direction: column; height: 100%; }
+
+        /* HEADER */
+        #header {
+            height: 48px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; background: var(--bg-panel); z-index: 50; flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .brand { font-weight: 800; letter-spacing: 2px; font-size: 14px; color: var(--accent); }
+        
+        .ctrl-group { display: flex; gap: 12px; }
+        .icon-btn {
+            background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+            height: 32px; min-width: 32px; display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;
+            transition: all 0.2s; padding: 0 12px;
+        }
+        .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .icon-btn.active { background: var(--accent); color: var(--bg-void); border-color: var(--accent); }
+
+        /* SCROLL STAGE */
+        #stage { flex-grow: 1; overflow-y: scroll; padding: 16px; position: relative; }
+        #stage::-webkit-scrollbar { display: none; }
+
+        /* UNIT LIST */
+        #unit-list { display: grid; gap: 16px; padding-bottom: 120px; }
+        
+        /* List Mode (Stacked Racks) */
+        #unit-list:not(.grid-mode) {
+            grid-template-columns: 1fr;
+        }
+        
+        /* Grid Mode (Compact) */
+        #unit-list.grid-mode {
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        }
+
+        /* UNIT CONTAINER */
+        .unit-wrapper {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            height: var(--unit-h);
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+            display: flex; flex-direction: column;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .unit-wrapper:hover { border-color: var(--text-dim); }
+
+        /* HEADER WITHIN UNIT (When not loaded) */
+        .unit-placeholder {
+            flex-grow: 1; display: flex; align-items: center; justify-content: center;
+            flex-direction: column; cursor: pointer; gap: 10px;
+            background: repeating-linear-gradient(45deg, var(--bg-panel), var(--bg-panel) 10px, var(--bg-void) 10px, var(--bg-void) 20px);
+        }
+        .unit-placeholder .id { font-size: 18px; font-weight: bold; letter-spacing: 2px; color: var(--text-main); background: var(--bg-panel); padding: 5px 10px; border: 1px solid var(--border); }
+        .unit-placeholder .tap { font-size: 10px; color: var(--accent); margin-top: 5px; font-weight: bold; letter-spacing: 1px; background: var(--bg-panel); padding: 2px 6px; }
+
+        iframe { width: 100%; height: 100%; border: none; display: block; opacity: 0; transition: opacity 0.5s; }
+        iframe.visible { opacity: 1; }
+
+        /* HELP OVERLAY */
+        #help-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px);
+            z-index: 999; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        #help-overlay.visible { opacity: 1; pointer-events: auto; }
+        
+        .help-card {
+            background: var(--bg-panel); border: 1px solid var(--accent);
+            padding: 30px; max-width: 500px; width: 90%; color: var(--text-main);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+        .help-card h2 { margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 10px; font-size: 16px; letter-spacing: 2px; }
+        .help-section { margin-bottom: 20px; }
+        .help-title { font-size: 11px; color: var(--text-dim); font-weight: bold; letter-spacing: 1px; margin-bottom: 5px; }
+        .help-text { font-size: 13px; line-height: 1.6; color: var(--text-main); }
+        .close-help { width: 100%; padding: 12px; background: var(--accent); color: var(--bg-void); border: none; font-weight: bold; cursor: pointer; font-size: 12px; letter-spacing: 1px; }
+
+    </style>
+</head>
+<body data-theme="dark">
+
+<!-- HELP MODAL -->
+<div id="help-overlay" class="visible">
+    <div class="help-card">
+        <h2>MANIFOLD MANUAL v21</h2>
+        
+        <div class="help-section">
+            <div class="help-title">1. MOUNTING</div>
+            <div class="help-text">
+                Tap a rack slot to mount the module. Tap <strong>[INITIALIZE SYSTEM]</strong> inside to enable audio.
+            </div>
+        </div>
+
+        <div class="help-section">
+            <div class="help-title">2. SCULPT MODE</div>
+            <div class="help-text">
+                • <strong>Drag</strong> on screen to deform mesh.<br>
+                • <strong>Sound:</strong> Creates friction noise.<br>
+                • <strong>Use:</strong> Shape the terrain to define Pitch (High Terrain = High Pitch).
+            </div>
+        </div>
+
+        <div class="help-section">
+            <div class="help-title">3. SEQUENCE MODE</div>
+            <div class="help-text">
+                • Click <strong>[SCULPT]</strong> to switch to <strong>[SEQ]</strong>.<br>
+                • <strong>TAP</strong> grid columns to toggle them ACTIVE (Green).<br>
+                • <strong>PLAY</strong> starts the sequencer.<br>
+                • Notes only trigger on ACTIVE steps.
+            </div>
+        </div>
+
+        <button class="close-help" onclick="toggleHelp()">ACKNOWLEDGE</button>
+    </div>
+</div>
+
+<div id="app">
+    <header id="header">
+        <div class="brand">HYPERCLAY // ORCHESTRATOR</div>
+        <div class="ctrl-group">
+            <div class="icon-btn active" onclick="toggleHelp()">? INFO</div>
+            <div class="icon-btn" onclick="toggleMuteAll()">MUTE ALL</div>
+            <div class="icon-btn" onclick="toggleSync()">SYNC</div>
+            <div class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">◐</div>
+            <div class="icon-btn" onclick="toggleGrid()" id="view-btn">⊞</div>
+        </div>
+    </header>
+
+    <div id="stage">
+        <div id="unit-list">
+            <!-- Units injected here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- MANIFOLD MODULE SOURCE ---
+    // Note: Escaped backticks and dollar signs for injection
+    const MODULE_SOURCE = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<style>
+  /* INJECTED THEME VARS */
+  :root { 
+    --bg: #0a0a08; --panel: #1a1815; --border: #3a3228;
+    --accent: #d4a418; --text: #c2b280; --text-dim: #635147;
+  }
+  body.light {
+    --bg: #f0f0f2; --panel: #ffffff; --border: #cccccc;
+    --accent: #0055ff; --text: #111111; --text-dim: #888888;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  body { margin: 0; background: var(--bg); height: 100vh; display: flex; font-family: sans-serif; overflow: hidden; }
+
+  .rack { width: 100%; height: 100%; background: var(--panel); display: grid; grid-template-columns: 140px 1fr 90px; }
+
+  /* LEFT */
+  .controls-left { padding: 10px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 5px; border-right: 1px solid var(--border); }
+  .dial-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: ns-resize; }
+  .dial-svg { width: 40px; height: 40px; }
+  .dial-bg { fill: none; stroke: var(--border); stroke-width: 3; }
+  .dial-val { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+  .dial-label { font-size: 8px; color: var(--text-dim); margin-top: 4px; font-weight: bold; letter-spacing: 0.5px; }
+
+  /* CENTER */
+  .screen-area { position: relative; background: var(--bg); overflow: hidden; cursor: crosshair; }
+  canvas { display: block; width: 100%; height: 100%; }
+  .toolbar { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 10; }
+  .tool-btn { width: 30px; height: 30px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); display: grid; place-items: center; cursor: pointer; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+  .tool-btn.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+  /* RIGHT */
+  .controls-right { border-left: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 10px; }
+  .btn-rect { width: 60px; height: 26px; background: var(--panel); border: 1px solid var(--border); color: var(--text-dim); font-size: 9px; display: grid; place-items: center; cursor: pointer; border-radius: 2px; font-weight: bold; letter-spacing: 0.5px; }
+  .btn-rect:hover { color: var(--text); border-color: var(--text); }
+  .btn-rect.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  
+  .btn-circle { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center; color: var(--text); cursor: pointer; font-size: 16px; background: var(--panel); transition: all 0.1s; }
+  .btn-circle:active { transform: scale(0.95); }
+  .btn-circle.playing { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 15px var(--accent); background: var(--panel); }
+
+  /* GATE */
+  .gate { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 99; transition: opacity 0.3s; }
+  .gate h2 { color: var(--accent); font-size: 14px; letter-spacing: 2px; margin-bottom: 20px; }
+  .init-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 10px 20px; font-weight: bold; cursor: pointer; font-size: 10px; letter-spacing: 1px; }
+  .init-btn:hover { background: var(--accent); color: var(--bg); }
+
+  @media (max-width: 500px) { .rack { grid-template-columns: 100px 1fr 60px; } .dial-svg { width: 30px; height: 30px; } }
+</style>
+</head>
+<body>
+<div class="rack">
+  <div class="controls-left">
+    <div class="dial-wrapper" data-p="strength" data-min="1" data-max="30" data-val="12">
+      <svg class="dial-svg" viewBox="0 0 36 36"><path class="dial-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/><path class="dial-val" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" style="stroke-dasharray: 40, 100"/></svg><div class="dial-label">FORCE</div>
+    </div>
+    <div class="dial-wrapper" data-p="radius" data-min="20" data-max="150" data-val="50">
+      <svg class="dial-svg" viewBox="0 0 36 36"><path class="dial-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/><path class="dial-val" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" style="stroke-dasharray: 20, 100"/></svg><div class="dial-label">SIZE</div>
+    </div>
+    <div class="dial-wrapper" data-p="filter" data-min="200" data-max="5000" data-val="1200">
+      <svg class="dial-svg" viewBox="0 0 36 36"><path class="dial-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/><path class="dial-val" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" style="stroke-dasharray: 60, 100"/></svg><div class="dial-label">TONE</div>
+    </div>
+    <div class="dial-wrapper" data-p="release" data-min="100" data-max="1000" data-val="300">
+      <svg class="dial-svg" viewBox="0 0 36 36"><path class="dial-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/><path class="dial-val" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" style="stroke-dasharray: 30, 100"/></svg><div class="dial-label">FADE</div>
+    </div>
+  </div>
+  <div class="screen-area">
+    <canvas id="cv"></canvas>
+    <div class="toolbar">
+      <div class="tool-btn active" data-t="push">●</div><div class="tool-btn" data-t="pull">○</div>
+      <div class="tool-btn" data-t="noise">∿</div>
+    </div>
+    <div class="gate" id="gate"><h2 id="unit-id">UNIT</h2><button class="init-btn" id="btn-init">INITIALIZE SYSTEM</button></div>
+  </div>
+  <div class="controls-right">
+    <div class="btn-rect" id="btn-clr">CLEAR</div>
+    <div class="btn-circle" id="btn-play">▶</div>
+    <div class="btn-rect" id="btn-mode">SCULPT</div>
+  </div>
+</div>
+<script>
+const CFG = window.HC_CONFIG || { id:'UNIT', type:'bass', color:'#d4a418', theme:'dark' };
+if(CFG.theme === 'light') document.body.classList.add('light');
+document.documentElement.style.setProperty('--accent', CFG.color);
+document.getElementById('unit-id').innerText = CFG.id;
+
+const state = { playing:false, mode:'sculpt', tool:'push', down:false, mx:0, my:0, step:0, lastTime:0 };
+const params = { strength:12, radius:50, filter:1200, release:300, tempo:110 };
+
+const Audio = {
+  ctx: null, vol: 1.0,
+  init(){ if(!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)(); if(this.ctx.state==='suspended') this.ctx.resume(); },
+  playNote(yNorm){
+    if(!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const flt = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+    const scale = [0,2,4,7,9,12];
+    const idx = Math.floor((1-yNorm)*scale.length);
+    const note = scale[Math.max(0,Math.min(idx,scale.length-1))];
+    const root = CFG.type==='bass'?55 : (CFG.type==='lead'?220 : 110);
+    
+    osc.frequency.value = root * Math.pow(2, note/12);
+    osc.type = CFG.type==='perc'?'square':'sawtooth';
+    
+    flt.type = 'lowpass'; flt.frequency.value = params.filter; flt.Q.value = 4;
+    
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.3 * this.vol, t+0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t+(params.release/1000));
+    
+    osc.connect(flt).connect(gain).connect(this.ctx.destination);
+    osc.start(t); osc.stop(t+(params.release/1000)+0.1);
+  },
+  rub(amt){
+    if(!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.frequency.value = 100 + Math.random()*200;
+    gain.gain.setValueAtTime(0.05 * amt * this.vol, t);
+    gain.gain.linearRampToValueAtTime(0, t+0.1);
+    osc.connect(gain).connect(this.ctx.destination);
+    osc.start(t); osc.stop(t+0.1);
+  }
+};
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W,H, pts=[], cells=[];
+
+function resize(){
+  W=cv.width=cv.parentElement.clientWidth; H=cv.height=cv.parentElement.clientHeight;
+  initGrid();
+}
+function initGrid(){
+  pts=[]; const r=8, c=24;
+  for(let y=0; y<=r; y++) for(let x=0; x<=c; x++) pts.push({x:(x/c)*W, y:(y/r)*H, ox:(x/c)*W, oy:(y/r)*H});
+  cells=[]; const cw=W/16;
+  for(let i=0; i<16; i++) cells.push({x:i*cw, w:cw, active:false, triggerY:0});
+}
+
+function sculpt(x,y){
+  const r2 = params.radius*params.radius; let move=0;
+  pts.forEach(p=>{
+    const dx=p.x-x, dy=p.y-y;
+    if(dx*dx+dy*dy < r2){
+      const f = (1 - Math.sqrt(dx*dx+dy*dy)/params.radius) * params.strength * 0.5;
+      if(state.tool==='push') p.y += (y-p.y)*0.1*f;
+      if(state.tool==='pull') p.y -= (y-p.y)*0.1*f;
+      if(state.tool==='noise') p.y += (Math.random()-0.5)*f*4;
+      p.y = Math.max(0, Math.min(H, p.y));
+      move+=f;
+    }
+  });
+  if(move>1) Audio.rub(Math.min(move/50, 1));
+  checkCells(); // Update cell pitch based on new geometry
+}
+
+function checkCells(){
+  // Calc pitch per cell based on avg Y of points in that column
+  cells.forEach(c => {
+    const colPts = pts.filter(p => p.x >= c.x && p.x < c.x+c.w);
+    if(colPts.length>0) c.triggerY = colPts.reduce((s,p)=>s+p.y,0)/colPts.length;
+  });
+}
+
+function toggleCell(x,y){
+  const c = cells.find(cell => x >= cell.x && x < cell.x+cell.w);
+  if(c) {
+    c.active = !c.active;
+    if(c.active) Audio.playNote(c.triggerY/H);
+  }
+}
+
+cv.onpointerdown = e => {
+  Audio.init();
+  state.down=true; state.mx=e.offsetX; state.my=e.offsetY;
+  cv.setPointerCapture(e.pointerId);
+  if(state.mode==='sculpt') sculpt(state.mx, state.my);
+  else toggleCell(state.mx, state.my);
+};
+cv.onpointermove = e => {
+  state.mx=e.offsetX; state.my=e.offsetY;
+  if(state.down && state.mode==='sculpt') sculpt(state.mx, state.my);
+};
+window.onpointerup = () => state.down=false;
+
+document.querySelectorAll('.dial-wrapper').forEach(d => {
+  let startY;
+  d.onpointerdown = e => { startY=e.clientY; d.setPointerCapture(e.pointerId); };
+  d.onpointermove = e => {
+    if(startY===undefined) return;
+    const p = d.dataset.p;
+    const min=parseFloat(d.dataset.min), max=parseFloat(d.dataset.max);
+    const delta = startY - e.clientY;
+    params[p] = Math.max(min, Math.min(max, params[p] + (delta/100)*(max-min)));
+    // Visual update
+    const pct = (params[p]-min)/(max-min);
+    d.querySelector('.dial-val').style.strokeDasharray = \`\${pct*100} 100\`;
+  };
+  d.onpointerup = () => startY=undefined;
+});
+
+document.querySelectorAll('.tool-btn').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.tool-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    state.tool = b.dataset.t;
+  }
+});
+
+const btnMode = document.getElementById('btn-mode');
+btnMode.onclick = () => {
+  state.mode = state.mode==='sculpt' ? 'seq' : 'sculpt';
+  btnMode.innerText = state.mode.toUpperCase();
+  btnMode.classList.toggle('active', state.mode==='seq');
+}
+
+const btnPlay = document.getElementById('btn-play');
+function setPlay(p) {
+  state.playing = p;
+  btnPlay.classList.toggle('playing', p);
+  btnPlay.innerText = p ? '■' : '▶';
+  if(p) Audio.init();
+}
+btnPlay.onclick = () => setPlay(!state.playing);
+
+document.getElementById('btn-init').onclick = () => {
+  Audio.init();
+  document.getElementById('gate').style.opacity = 0;
+  setTimeout(()=>document.getElementById('gate').style.display='none', 300);
+}
+document.getElementById('btn-clr').onclick = initGrid;
+
+// --- LOOP ---
+function loop(){
+  requestAnimationFrame(loop);
+  
+  if(state.playing && Audio.ctx){
+    const now = Audio.ctx.currentTime;
+    const stepT = 60/params.tempo/4;
+    if(now - state.lastTime > stepT){
+      state.lastTime = now;
+      state.step = (state.step+1)%16;
+      if(cells[state.step].active) Audio.playNote(cells[state.step].triggerY/H);
+    }
+  }
+
+  // Draw
+  ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--bg');
+  ctx.fillRect(0,0,W,H);
+  
+  // Grid Lines
+  ctx.lineWidth=1;
+  ctx.strokeStyle = CFG.color + '20';
+  cells.forEach(c => { ctx.beginPath(); ctx.moveTo(c.x,0); ctx.lineTo(c.x,H); ctx.stroke(); });
+  
+  // Mesh
+  ctx.strokeStyle = CFG.color;
+  ctx.beginPath();
+  for(let i=0; i<pts.length; i++){
+    if(i+1<pts.length && Math.abs(pts[i+1].ox-pts[i].ox) < (W/20)) { ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[i+1].x, pts[i+1].y); }
+  }
+  ctx.stroke();
+  
+  // Active Cells
+  cells.forEach((c,i) => {
+    if(c.active) { ctx.fillStyle=CFG.color+'40'; ctx.fillRect(c.x, 0, c.w, H); }
+  });
+  
+  // Playhead
+  if(state.playing) {
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+    const x = (state.step/16)*W;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  
+  // Cursor
+  if(state.down && state.mode==='sculpt') {
+    ctx.strokeStyle='#fff'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(state.mx, state.my, params.radius, 0, 6.28); ctx.stroke();
+  }
+}
+
+// Msg
+window.addEventListener('message', e => {
+  if(e.data.type==='SYNC') { state.step=0; setPlay(true); }
+  if(e.data.type==='STOP') setPlay(false);
+  if(e.data.type==='MUTE') Audio.vol = e.data.val;
+});
+
+window.onresize = resize;
+resize();
+loop();
+<\/script>
+</body>
+</html>
+`;
+
+    // --- ORCHESTRA DEFINITION ---
+    const UNITS = [
+        { id:"KICK-01", type:"kick", color:"#ff4400" },
+        { id:"SNARE-01", type:"perc", color:"#ff8800" },
+        { id:"HIHAT-01", type:"perc", color:"#ffee00" },
+        { id:"BASS-ALPHA", type:"bass", color:"#0088ff" },
+        { id:"BASS-BETA", type:"bass", color:"#0044ff" },
+        { id:"LEAD-MAIN", type:"lead", color:"#00ffaa" },
+        { id:"PAD-ATMOS", type:"pad", color:"#cc00ff" },
+        { id:"FX-NOISE", type:"perc", color:"#ff00ff" }
+    ];
+
+    const list = document.getElementById('unit-list');
+    let gridMode = false;
+
+    function init() {
+        UNITS.forEach((u, i) => {
+            const div = document.createElement('div');
+            div.className = 'unit-wrapper';
+            div.innerHTML = `<!-- Iframe will be injected here -->`;
+            
+            // In list mode, we lazy load. In this robust version, we load all.
+            // Or stick to lazy load click.
+            // Let's load them all for instant orchestrator feel (performance permitting).
+            // Actually, best to lazy load on click for mobile perf.
+            
+            div.innerHTML = `
+                <div class="unit-placeholder" onclick="loadUnit(${i})">
+                    <div class="id" style="color:${u.color}">${u.id}</div>
+                    <div class="tap">TAP TO MOUNT RACK</div>
+                </div>
+            `;
+            div.id = `wrap-${i}`;
+            list.appendChild(div);
+        });
+    }
+
+    window.loadUnit = (i) => {
+        const wrap = document.getElementById(`wrap-${i}`);
+        if(wrap.querySelector('iframe')) return; 
+        
+        const u = UNITS[i];
+        const theme = document.body.getAttribute('data-theme') || 'dark';
+        const iframe = document.createElement('iframe');
+        // ESCAPED QUOTES FOR SAFETY
+        const inject = `<script>window.HC_CONFIG={id:"${u.id}", type:"${u.type}", color:"${u.color}", theme:"${theme}"}<\/script>`;
+        
+        iframe.srcdoc = inject + MODULE_SOURCE;
+        wrap.innerHTML = ''; 
+        wrap.appendChild(iframe);
+        wrap.style.border = `1px solid ${u.color}`;
+        
+        setTimeout(() => iframe.classList.add('visible'), 50);
+    };
+
+    window.toggleGrid = () => {
+        gridMode = !gridMode;
+        list.className = gridMode ? 'grid-mode' : '';
+    };
+
+    window.toggleTheme = () => {
+        const b = document.body;
+        const m = b.getAttribute('data-theme')==='light'?'dark':'light';
+        b.setAttribute('data-theme', m);
+    };
+
+    window.toggleHelp = () => document.getElementById('help-overlay').classList.toggle('visible');
+
+    window.broadcast = (t, v) => {
+        document.querySelectorAll('iframe').forEach(f => f.contentWindow.postMessage({type:t, val:v}, '*'));
+    };
+    
+    window.toggleSync = () => broadcast('SYNC');
+    window.toggleMuteAll = () => broadcast('MUTE', 0); // 0 vol
+
+    init();
+
+</script>
+</body>
+</html>
