@@ -1,0 +1,719 @@
+<!-- hyperclay-single-module.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>HYPERCLAY // MODULE</title>
+<style>
+  /* THEME SYSTEM - REFINED */
+  :root[data-theme="dark"] {
+    --bg0:#050505; --bg1:#0a0e14; --bg2:#1a1f2e;
+    --cy:#00ffff; --mg:#ff00ff; --yl:#ffff00;
+    --ink:#e6fff9; --ink-secondary:#a0b0c0;
+    --panel:rgba(10,14,20,0.95); --panel-border:rgba(0,255,255,0.3);
+    --glow:0 0 25px rgba(0,255,255,0.25);
+    --shadow:0 4px 20px rgba(0,0,0,0.5);
+    --grid-inactive:0.15; --grid-active:0.6;
+  }
+  
+  :root[data-theme="light"] {
+    --bg0:#f0f4f8; --bg1:#ffffff; --bg2:#e0e8f0;
+    --cy:#0080ff; --mg:#c000c0; --yl:#c0c000;
+    --ink:#002040; --ink-secondary:#405060;
+    --panel:rgba(255,255,255,0.98); --panel-border:rgba(0,128,255,0.4);
+    --glow:0 0 15px rgba(0,128,255,0.15);
+    --shadow:0 4px 20px rgba(0,0,0,0.1);
+    --grid-inactive:0.25; --grid-active:0.7;
+  }
+
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    margin:0; background:var(--bg0); color:var(--ink); 
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Courier New', monospace;
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+    transition: background-color 0.3s ease;
+  }
+
+  canvas {
+    position:fixed; inset:0; width:100vw; height:100vh; 
+    display:block; touch-action:none;
+  }
+
+  /* SUBTLE SCANLINE */
+  .scanline {
+    position:fixed; inset:0; pointer-events:none; z-index:50;
+    background: linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.05) 50%);
+    background-size:100% 3px; opacity:0.3;
+  }
+  :root[data-theme="light"] .scanline {
+    background: linear-gradient(rgba(255,255,255,0) 50%, rgba(200,220,240,0.1) 50%);
+  }
+
+  /* ENHANCED HUD */
+  .hud-mode {
+    position:fixed; top:15px; left:50%; transform:translateX(-50%);
+    background:var(--panel); border:1px solid var(--panel-border);
+    padding:8px 16px; border-radius:6px; font-size:12px; 
+    font-weight:600; letter-spacing:0.15em; color:var(--cy);
+    box-shadow:var(--glow), var(--shadow); backdrop-filter:blur(8px);
+    pointer-events:none; z-index:100; text-transform:uppercase;
+  }
+
+  /* REDESIGNED CONTROLS PANEL */
+  .controls-panel {
+    position:fixed; top:60px; right:15px; width:220px;
+    background:var(--panel); border:1px solid var(--panel-border);
+    border-radius:8px; padding:12px; box-shadow:var(--shadow);
+    backdrop-filter:blur(8px); z-index:100; max-height:calc(100vh - 80px);
+    overflow-y:auto;
+  }
+
+  .control-group {
+    margin-bottom:16px; border-bottom:1px solid var(--panel-border);
+    padding-bottom:12px;
+  }
+  .control-group:last-child { border-bottom:none; margin-bottom:0; }
+
+  .control-label {
+    font-size:10px; font-weight:600; letter-spacing:0.1em;
+    color:var(--ink-secondary); margin-bottom:6px;
+    text-transform:uppercase; display:flex; justify-content:space-between;
+  }
+
+  .control-value {
+    color:var(--cy); font-weight:700;
+  }
+
+  .slider {
+    width:100%; height:4px; -webkit-appearance:none;
+    background:var(--cy) + '20'; border-radius:2px;
+    outline:none; cursor:pointer;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance:none; width:14px; height:14px;
+    background:var(--cy); border-radius:50%; cursor:pointer;
+    box-shadow:var(--glow); transition:transform 0.1s;
+  }
+  .slider::-webkit-slider-thumb:hover { transform:scale(1.2); }
+
+  .tool-btn {
+    width:100%; height:32px; background:rgba(0,0,0,0.2);
+    border:1px solid var(--panel-border); color:var(--ink-secondary);
+    display:flex; align-items:center; justify-content:center; 
+    font-size:10px; font-weight:600; cursor:pointer;
+    transition:all 0.2s; border-radius:4px; margin-bottom:6px;
+  }
+  .tool-btn:hover { border-color:var(--cy); color:var(--cy); }
+  .tool-btn.active { 
+    background:var(--cy); color:var(--bg0); border-color:var(--cy);
+    font-weight:700; box-shadow:var(--glow);
+  }
+
+  /* THEME TOGGLE */
+  .theme-toggle {
+    position:fixed; top:15px; right:15px; z-index:200;
+    width:40px; height:40px; background:var(--panel);
+    border:1px solid var(--panel-border); border-radius:50%;
+    display:grid; place-items:center; cursor:pointer;
+    box-shadow:var(--shadow); backdrop-filter:blur(8px);
+    transition:all 0.2s;
+  }
+  .theme-toggle:hover { transform:rotate(15deg) scale(1.1); }
+  .theme-toggle svg { width:20px; height:20px; fill:var(--cy); }
+
+  /* RACK LABEL TOGGLE */
+  .rack-label-area {
+    position:absolute; left:0; top:0; width:30px; height:100%;
+    cursor:pointer; z-index:10;
+  }
+
+  /* CURSOR INDICATOR */
+  .cursor-ring {
+    position:fixed; pointer-events:none; z-index:150;
+    border:2px solid var(--cy); border-radius:50%;
+    transition:all 0.1s ease-out; display:none;
+  }
+
+  /* RESPONSE */
+  @media (max-width:768px) {
+    .controls-panel { width:180px; right:10px; padding:10px; }
+  }
+</style>
+</head>
+<body data-theme="dark">
+
+<canvas id="cv"></canvas>
+<div class="scanline"></div>
+<div class="hud-mode" id="mode-display">SCULPT</div>
+
+<!-- THEME TOGGLE -->
+<div class="theme-toggle" id="theme-toggle" title="Toggle Theme">
+  <svg id="theme-icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+</div>
+
+<!-- CONTROLS PANEL -->
+<div class="controls-panel" id="controls-panel"></div>
+
+<!-- GATE -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <h1 id="module-title">HYPERCLAY // MODULE</h1>
+    <div class="module-specs" id="module-specs"></div>
+    <p>Touch the mesh to sculpt. Tap transport to play. Toggle rack with label tap.</p>
+    <button class="start-btn" id="btn-enter">INITIALIZE</button>
+  </div>
+</div>
+
+<!-- CURSOR RING -->
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<script>
+// --- MODULE CONFIGURATION ---
+const CONFIG = new URLSearchParams(window.location.search);
+const MODULE_ID = CONFIG.get('id') || 'module-' + Math.random().toString(36).substr(2, 9);
+const MODULE_TYPE = CONFIG.get('type') || 'bass';
+const MODULE_LABEL = CONFIG.get('label') || MODULE_TYPE.toUpperCase();
+const MODULE_SPECS = {
+  bass: { root: 110, osc: 'sine', filter: 'lowpass', label: 'BASS', color: '#00ffff', desc: 'Subharmonic sculpting engine' },
+  lead: { root: 220, osc: 'triangle', filter: 'bandpass', label: 'LEAD', color: '#ff00ff', desc: 'Melodic synthesis matrix' },
+  texture: { root: 165, osc: 'sawtooth', filter: 'highpass', label: 'TEXTURE', color: '#ffff00', desc: 'Atmospheric grain processor' }
+}[MODULE_TYPE] || MODULE_SPECS.bass;
+
+// Theme management
+function initTheme() {
+  const savedTheme = localStorage.getItem(`theme-${MODULE_ID}`) || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeIcon(savedTheme);
+  
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    const newTheme = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem(`theme-${MODULE_ID}`, newTheme);
+    updateThemeIcon(newTheme);
+    if(window.hyperClay) window.hyperClay.render();
+  });
+}
+
+function updateThemeIcon(theme) {
+  const icon = document.getElementById('theme-icon');
+  icon.innerHTML = theme === 'dark' 
+    ? '<path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>'
+    : '<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>';
+}
+
+// Update UI
+document.getElementById('module-title').textContent = `HYPERCLAY // ${MODULE_SPECS.label}`;
+document.getElementById('module-specs').innerHTML = `
+  <strong>ID:</strong> ${MODULE_ID}<br>
+  <strong>TYPE:</strong> ${MODULE_TYPE} // ${MODULE_SPECS.osc} | ${MODULE_SPECS.filter}<br>
+  <strong>GRID:</strong> 18x18 // ${MODULE_SPECS.desc}
+`;
+
+// --- CORE ENGINE ---
+class HyperClayModule {
+  constructor() {
+    this.cv = document.getElementById('cv');
+    this.ctx = this.cv.getContext('2d');
+    this.DPR = Math.min(window.devicePixelRatio || 1, 2);
+    this.W = 0; this.H = 0;
+    
+    this.state = {
+      activeTool: 'strength',
+      mode: 'sculpt',
+      transport: false,
+      dragging: false,
+      pulling: false,
+      rackEnabled: true,
+      mx: 0, my: 0
+    };
+
+    this.params = {
+      strength: { val: 8, min: 1, max: 20, step: 1 },
+      radius: { val: 60, min: 20, max: 150, step: 5 },
+      tempo: { val: 95, min: 60, max: 180, step: 5 },
+      filter: { val: 2000, min: 200, max: 8000, step: 100 },
+      release: { val: 400, min: 50, max: 1000, step: 50 }
+    };
+
+    this.seqStep = 0;
+    this.lastStepTime = 0;
+    this.scale = [0, 2, 4, 7, 9, 12, 14, 16];
+    
+    this.initAudio();
+    this.initControls();
+    this.bindEvents();
+    this.resize();
+  }
+
+  initAudio() {
+    this.audio = new (window.AudioContext || window.webkitAudioContext)();
+    this.master = this.audio.createGain();
+    this.master.gain.value = 0.3;
+    this.master.connect(this.audio.destination);
+
+    this.delay = this.audio.createDelay();
+    this.delay.delayTime.value = 0.3;
+    this.feedback = this.audio.createGain();
+    this.feedback.gain.value = 0.3;
+    this.delay.connect(this.feedback);
+    this.feedback.connect(this.delay);
+    this.delay.connect(this.master);
+  }
+
+  initControls() {
+    this.updateControlsUI();
+  }
+
+  updateControlsUI() {
+    const panel = document.getElementById('controls-panel');
+    const currentTool = this.state.activeTool;
+    const tools = this.state.mode === 'sculpt' ? ['strength', 'radius'] : ['tempo', 'filter', 'release'];
+    
+    panel.innerHTML = `
+      <div class="control-group">
+        <div class="control-label">ACTIVE TOOL <span class="control-value">${currentTool.toUpperCase()}</span></div>
+        ${tools.map(t => `<div class="tool-btn ${t === currentTool ? 'active' : ''}" data-tool="${t}">${t.toUpperCase()}</div>`).join('')}
+      </div>
+      ${tools.map(t => this.createSlider(t, t === currentTool)).join('')}
+    `;
+    
+    panel.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.state.activeTool = btn.dataset.tool;
+        this.updateControlsUI();
+        this.postMessage('tool_changed', { tool: this.state.activeTool });
+      });
+    });
+    
+    panel.querySelectorAll('.slider').forEach(slider => {
+      slider.addEventListener('input', (e) => {
+        const tool = slider.dataset.tool;
+        this.params[tool].val = parseInt(e.target.value);
+        this.updateSliderValue(tool, this.params[tool].val);
+        this.postMessage('param_changed', { param: tool, value: this.params[tool].val });
+      });
+    });
+  }
+
+  createSlider(tool, isVisible) {
+    const param = this.params[tool];
+    return `
+      <div class="control-group" style="display:${isVisible ? 'block' : 'none'}">
+        <div class="control-label">${tool.toUpperCase()}<span class="control-value">${param.val}</span></div>
+        <input type="range" class="slider" data-tool="${tool}" min="${param.min}" max="${param.max}" step="${param.step}" value="${param.val}">
+      </div>
+    `;
+  }
+
+  updateSliderValue(tool, value) {
+    const panel = document.getElementById('controls-panel');
+    const slider = panel.querySelector(`.slider[data-tool="${tool}"]`);
+    const valueSpan = panel.querySelector(`.control-group .control-value`);
+    if(slider) slider.value = value;
+    if(valueSpan) valueSpan.textContent = value;
+  }
+
+  bindEvents() {
+    this.cv.addEventListener('pointerdown', this.onPointerDown.bind(this));
+    this.cv.addEventListener('pointermove', this.onPointerMove.bind(this));
+    this.cv.addEventListener('pointerup', this.onPointerUp.bind(this));
+    
+    document.getElementById('btn-enter').addEventListener('click', () => {
+      this.audio.resume();
+      document.getElementById('gate').style.display = 'none';
+      this.postMessage('initialized', { id: MODULE_ID });
+    });
+
+    window.addEventListener('resize', this.resize.bind(this));
+    
+    window.addEventListener('message', (e) => {
+      if(e.data.type === 'transport') this.state.transport = e.data.value;
+      if(e.data.type === 'mode') this.setMode(e.data.value);
+      if(e.data.type === 'rack_enabled') this.state.rackEnabled = e.data.value;
+      if(e.data.type === 'param') {
+        const param = this.params[e.data.param];
+        if(param) {
+          param.val = clamp(e.data.value, param.min, param.max);
+          this.updateSliderValue(e.data.param, param.val);
+        }
+      }
+    });
+  }
+
+  onPointerDown(e) {
+    const x = e.clientX, y = e.clientY;
+    this.state.mx = x; this.state.my = y;
+
+    // Transport orb
+    if(this.inOrb(x, y, this.orbs.transport)) {
+      this.state.transport = !this.state.transport;
+      this.postMessage('transport', { value: this.state.transport });
+      this.haptic(15);
+      return;
+    }
+    
+    // Mode orb
+    if(this.inOrb(x, y, this.orbs.mode)) {
+      this.toggleMode();
+      this.haptic(15);
+      return;
+    }
+
+    // Rack label toggle
+    if(this.pointInRect(x, y, 0, this.rack.y, 30, this.rack.h)) {
+      this.state.rackEnabled = !this.state.rackEnabled;
+      this.haptic(10);
+      this.postMessage('rack_enabled', { value: this.state.rackEnabled });
+      return;
+    }
+
+    // Rack body
+    if(this.rack.hitTest(x, y)) {
+      if(this.rack.seqLocked) {
+        const idx = this.rack.getCellAt(x, y);
+        if(idx !== -1) {
+          this.rack.seqCells[idx].active = !this.rack.seqCells[idx].active;
+          this.haptic(5);
+        }
+      } else {
+        this.state.dragging = true;
+        this.state.pulling = e.button === 2 || e.shiftKey || e.ctrlKey;
+        this.sculptAt(x, y, this.state.pulling);
+      }
+    }
+  }
+
+  onPointerMove(e) {
+    this.state.mx = e.clientX; this.state.my = e.clientY;
+    if(this.state.dragging && this.state.mode === 'sculpt') {
+      this.sculptAt(this.state.mx, this.state.my, this.state.pulling);
+    }
+    this.updateCursor();
+  }
+
+  onPointerUp() {
+    this.state.dragging = false;
+    document.getElementById('cursor-ring').style.display = 'none';
+  }
+
+  toggleMode() {
+    this.state.mode = this.state.mode === 'sculpt' ? 'sequence' : 'sculpt';
+    document.getElementById('mode-display').textContent = this.state.mode.toUpperCase();
+    this.state.mode === 'sculpt' ? this.rack.unlockSequencer() : this.rack.lockSequencer();
+    this.updateControlsUI();
+    this.postMessage('mode_changed', { mode: this.state.mode });
+  }
+
+  setMode(mode) {
+    this.state.mode = mode;
+    this.toggleMode();
+  }
+
+  sculptAt(x, y, isPull) {
+    if(!this.state.rackEnabled) return;
+    const hit = this.rack.sculpt(x, y, this.params.strength.val, this.params.radius.val, isPull);
+    if(hit && Math.random() > 0.9) this.playNote(0.3);
+  }
+
+  playNote(intensity = 0.5) {
+    if(this.audio.state === 'suspended' || !this.state.rackEnabled) return;
+    
+    const osc = this.audio.createOscillator();
+    const gain = this.audio.createGain();
+    const filter = this.audio.createBiquadFilter();
+
+    osc.type = MODULE_SPECS.osc;
+    filter.type = MODULE_SPECS.filter;
+    osc.frequency.value = this.getFreq(intensity);
+    filter.frequency.value = this.params.filter.val;
+    filter.Q.value = 1 + (intensity * 5);
+
+    const now = this.audio.currentTime;
+    const atk = 0.01, rel = this.params.release.val / 1000;
+    
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.3, now + atk);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + atk + rel);
+
+    osc.connect(filter).connect(gain).connect(this.master).connect(this.delay);
+    osc.start(now); osc.stop(now + atk + rel + 0.1);
+  }
+
+  getFreq(intensity) {
+    const degree = Math.floor(intensity * (this.scale.length - 1));
+    return MODULE_SPECS.root * Math.pow(2, this.scale[degree] / 12);
+  }
+
+  tick(time) {
+    if(!this.state.transport || this.state.mode !== 'sequence') return;
+    const secondsPerStep = 60 / this.params.tempo.val / 4;
+    
+    if(time - this.lastStepTime >= secondsPerStep) {
+      this.lastStepTime = time;
+      this.seqStep = (this.seqStep + 1) % 16;
+      
+      if(this.rack.seqLocked) {
+        this.rack.seqStepCounter = this.seqStep; // Sync even when disabled
+        if(this.state.rackEnabled) {
+          const cellsPerStep = Math.ceil(this.rack.seqCells.length / 16);
+          const start = this.seqStep * cellsPerStep;
+          for(let i=start; i<start + cellsPerStep && i<this.rack.seqCells.length; i++) {
+            if(this.rack.seqCells[i].active) {
+              const intensity = (this.rack.seqCells[i].corners[0].y - this.rack.y) / this.rack.h;
+              this.playNote(intensity); break;
+            }
+          }
+        }
+      }
+      this.postMessage('step', { step: this.seqStep });
+    }
+  }
+
+  resize() {
+    this.W = window.innerWidth; this.H = window.innerHeight;
+    this.cv.width = this.W * this.DPR; this.cv.height = this.H * this.DPR;
+    this.cv.style.width = this.W + 'px'; this.cv.style.height = this.H + 'px';
+    this.ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
+    
+    const marginTop = 80, marginBottom = 100;
+    this.rack = new RackUnit(0, marginTop, Math.max(this.H - marginTop - marginBottom, 200), MODULE_SPECS);
+    
+    const padding = 30;
+    this.orbs = {
+      transport: {x: padding, y: this.H - padding, r: 26},
+      mode: {x: this.W - padding, y: this.H - padding, r: 26}
+    };
+  }
+
+  updateCursor() {
+    const ring = document.getElementById('cursor-ring');
+    if(this.state.dragging && this.state.mode === 'sculpt') {
+      ring.style.display = 'block';
+      ring.style.left = (this.state.mx - this.params.radius.val) + 'px';
+      ring.style.top = (this.state.my - this.params.radius.val) + 'px';
+      ring.style.width = (this.params.radius.val * 2) + 'px';
+      ring.style.height = (this.params.radius.val * 2) + 'px';
+      ring.style.borderColor = this.state.pulling ? '#ff4080' : MODULE_SPECS.color;
+      ring.style.boxShadow = `0 0 10px ${this.state.pulling ? '#ff408080' : MODULE_SPECS.color + '80'}`;
+    } else {
+      ring.style.display = 'none';
+    }
+  }
+
+  inOrb(x, y, orb) { return Math.hypot(x - orb.x, y - orb.y) < orb.r; }
+  pointInRect(x, y, rx, ry, rw, rh) { return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh; }
+  haptic(ms) { if(navigator.vibrate) navigator.vibrate(ms); }
+  
+  postMessage(type, data) {
+    window.parent.postMessage({ type, moduleId: MODULE_ID, ...data }, '*');
+  }
+
+  render() {
+    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg0');
+    this.ctx.fillRect(0, 0, this.W, this.H);
+    
+    // Grid background
+    const gridOpacity = getComputedStyle(document.documentElement).getPropertyValue('--grid-inactive');
+    this.ctx.strokeStyle = MODULE_SPECS.color + Math.floor(gridOpacity * 255).toString(16).padStart(2, '0');
+    this.ctx.lineWidth = 1;
+    for(let i=0; i<this.W; i+=30) {
+      this.ctx.beginPath(); this.ctx.moveTo(i, 0); this.ctx.lineTo(i, this.H); this.ctx.stroke();
+    }
+    
+    this.rack.draw(this.ctx);
+    this.drawOrbs();
+  }
+
+  drawOrbs() {
+    const inkColor = getComputedStyle(document.documentElement).getPropertyValue('--ink');
+    const tOrb = this.orbs.transport, mOrb = this.orbs.mode;
+    
+    // Transport
+    this.ctx.beginPath(); this.ctx.arc(tOrb.x, tOrb.y, tOrb.r, 0, Math.PI*2);
+    this.ctx.fillStyle = this.state.transport ? MODULE_SPECS.color + '30' : MODULE_SPECS.color + '10';
+    this.ctx.strokeStyle = this.state.transport ? MODULE_SPECS.color : MODULE_SPECS.color + '50';
+    this.ctx.lineWidth = 2; this.ctx.fill(); this.ctx.stroke();
+    this.ctx.fillStyle = inkColor; this.ctx.font = 'bold 11px system-ui';
+    this.ctx.textAlign = 'center'; this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(this.state.transport ? '■' : '▶', tOrb.x, tOrb.y);
+
+    // Mode
+    this.ctx.beginPath(); this.ctx.arc(mOrb.x, mOrb.y, mOrb.r, 0, Math.PI*2);
+    this.ctx.fillStyle = MODULE_SPECS.color + '10';
+    this.ctx.strokeStyle = MODULE_SPECS.color + '50';
+    this.ctx.lineWidth = 2; this.ctx.fill(); this.ctx.stroke();
+    this.ctx.fillStyle = inkColor;
+    this.ctx.fillText(this.state.mode === 'sculpt' ? 'SEQ' : 'EDIT', mOrb.x, mOrb.y);
+  }
+
+  loop() {
+    requestAnimationFrame(() => this.loop());
+    this.tick(this.audio.currentTime);
+    this.render();
+  }
+
+  start() {
+    initTheme();
+    this.loop();
+  }
+}
+
+// --- RACK UNIT ---
+class RackUnit {
+  constructor(id, y, h, specs) {
+    this.id = id; this.y = y; this.h = h; 
+    this.label = specs.label; this.color = specs.color;
+    this.x = 40; this.w = window.innerWidth - 80;
+    this.cols = 18; this.rows = Math.floor(this.cols * (this.h / this.w));
+    this.pts = []; this.orig = []; this.seqCells = []; 
+    this.seqLocked = false; this.enabled = true; this.seqStepCounter = 0;
+    this.initMesh();
+  }
+
+  initMesh() {
+    this.pts = []; this.orig = [];
+    for(let r=0; r<=this.rows; r++) {
+      for(let c=0; c<=this.cols; c++) {
+        const px = this.x + (c / this.cols) * this.w;
+        const py = this.y + (r / this.rows) * this.h;
+        const p = {x: px, y: py};
+        this.pts.push(p); this.orig.push({x: px, y: py});
+      }
+    }
+  }
+
+  setEnabled(enabled) {
+    this.enabled = enabled;
+    if(window.hyperClay) window.hyperClay.render();
+  }
+
+  sculpt(tx, ty, str, rad, pull) {
+    if(!this.enabled) return false;
+    const r2 = rad * rad; let moved = false;
+    for(let i=0; i<this.pts.length; i++) {
+      const p = this.pts[i];
+      const dx = p.x - tx, dy = p.y - ty, d2 = dx*dx + dy*dy;
+      if(d2 < r2) {
+        const dist = Math.sqrt(d2);
+        const force = (1 - dist / rad) * str * (pull ? -1 : 1);
+        const ang = Math.atan2(dy, dx);
+        p.x += Math.cos(ang) * force;
+        p.y += Math.sin(ang) * force;
+        moved = true;
+      }
+    }
+    return moved;
+  }
+
+  lockSequencer() {
+    this.seqLocked = true; this.seqCells = [];
+    for(let r=0; r<this.rows; r++) {
+      for(let c=0; c<this.cols; c++) {
+        const i = r*(this.cols+1)+c;
+        this.seqCells.push({
+          corners: [this.pts[i], this.pts[i+1], this.pts[i+this.cols+2], this.pts[i+this.cols+1]],
+          active: false
+        });
+      }
+    }
+  }
+
+  unlockSequencer() { this.seqLocked = false; this.seqCells = []; }
+
+  drawChassis(ctx) {
+    ctx.fillStyle = this.enabled ? '#08080c' : '#040406';
+    ctx.fillRect(0, this.y - 8, window.innerWidth, this.h + 16);
+    ctx.fillStyle = this.enabled ? '#1a1a20' : '#101014';
+    ctx.fillRect(0, this.y - 10, window.innerWidth, 2);
+    ctx.fillRect(0, this.y + this.h + 8, window.innerWidth, 2);
+    ctx.fillStyle = this.enabled ? '#333' : '#222';
+    [[20, this.y + 20], [20, this.y + this.h - 20], [window.innerWidth-20, this.y + 20], [window.innerWidth-20, this.y + this.h - 20]]
+      .forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill(); });
+    ctx.save(); ctx.translate(15, this.y + this.h/2); ctx.rotate(-Math.PI/2);
+    ctx.font = "bold 10px system-ui"; ctx.fillStyle = this.enabled ? "rgba(0,255,255,0.4)" : "rgba(0,255,255,0.15)";
+    ctx.textAlign = "center"; ctx.fillText(this.label, 0, 0);
+    ctx.translate(12, 0); ctx.fillStyle = this.enabled ? this.color + '80' : this.color + '30';
+    ctx.fillRect(-6, -4, 12, 8); ctx.strokeStyle = this.enabled ? this.color : this.color + '40';
+    ctx.strokeRect(-6, -4, 12, 8); ctx.fillStyle = this.enabled ? "#fff" : this.color + '40';
+    ctx.fillRect(this.enabled ? 2 : -4, -2, 4, 4); ctx.restore();
+  }
+
+  drawMesh(ctx) {
+    const gridOpacity = getComputedStyle(document.documentElement).getPropertyValue('--grid-inactive');
+    ctx.strokeStyle = this.color + Math.floor(gridOpacity * 255).toString(16).padStart(2, '0');
+    ctx.lineWidth = 1;
+    for(let r=0; r<=this.rows; r++) {
+      ctx.beginPath();
+      for(let c=0; c<=this.cols; c++) {
+        const p = this.pts[r*(this.cols+1)+c];
+        c === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    }
+    for(let c=0; c<=this.cols; c++) {
+      ctx.beginPath();
+      for(let r=0; r<=this.rows; r++) {
+        const p = this.pts[r*(this.cols+1)+c];
+        r === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  drawSequencer(ctx) {
+    const cellsPerStep = Math.ceil(this.seqCells.length / 16);
+    const seqStep = this.seqStepCounter;
+    this.seqCells.forEach((cell, idx) => {
+      const stepIndex = Math.floor(idx / cellsPerStep);
+      const isCurrentStep = stepIndex === seqStep;
+      ctx.beginPath(); cell.corners.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      if(cell.active) {
+        const activeOpacity = getComputedStyle(document.documentElement).getPropertyValue('--grid-active');
+        ctx.fillStyle = isCurrentStep ? '#fff' : this.color + Math.floor(activeOpacity * 255).toString(16).padStart(2, '0');
+        ctx.fill();
+      } else if(isCurrentStep) {
+        ctx.fillStyle = this.enabled ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)';
+        ctx.fill();
+      }
+      const gridOpacity = getComputedStyle(document.documentElement).getPropertyValue('--grid-inactive');
+      ctx.strokeStyle = this.enabled ? this.color + Math.floor(gridOpacity * 255).toString(16).padStart(2, '0') : this.color + '40';
+      ctx.stroke();
+    });
+  }
+
+  draw(ctx) { this.drawChassis(ctx); this.seqLocked ? this.drawSequencer(ctx) : this.drawMesh(ctx); }
+
+  hitTest(x, y) {
+    return x > this.x && x < this.x + this.w && y > this.y && y < this.y + this.h;
+  }
+
+  getCellAt(x, y) {
+    if(!this.seqLocked) return -1;
+    for(let i=0; i<this.seqCells.length; i++) {
+      const poly = this.seqCells[i].corners;
+      let inside = false;
+      for(let j=0, k=3; j<4; j++) {
+        const xi = poly[j].x, yi = poly[j].y;
+        const xj = poly[k].x, yj = poly[k].y;
+        if(((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside;
+        k = j;
+      }
+      if(inside) return i;
+    }
+    return -1;
+  }
+}
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+// --- INITIALIZE ---
+const hyperClay = new HyperClayModule();
+window.hyperClay = hyperClay;
+hyperClay.start();
+</script>
+</body>
+</html>
