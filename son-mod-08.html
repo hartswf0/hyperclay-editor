@@ -1,0 +1,475 @@
+<!-- hyperclay-visual-seq.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>HYPERCLAY // VISUALIZER</title>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --panel: #141414;
+    --highlight: #00ffaa; /* Bright Spring Green */
+    --dim: #00442a;
+    --grid: #222;
+    --text: #555;
+    --h: 180px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  
+  body {
+    margin: 0; background: #000;
+    height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: 'Courier New', monospace; overflow: hidden;
+  }
+
+  .rack-unit {
+    width: 100%; max-width: 900px; height: var(--h);
+    background: var(--panel);
+    border: 1px solid #333;
+    display: grid;
+    grid-template-columns: 140px 1fr 80px;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+  }
+
+  /* --- LEFT CONTROLS (DIALS) --- */
+  .control-bay {
+    display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+    gap: 1px; background: #222; padding: 1px; /* border grid effect */
+  }
+  .dial-cell {
+    background: var(--panel);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative;
+    cursor: ns-resize;
+  }
+  .dial-ring {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 3px solid #222;
+    position: relative;
+  }
+  .dial-indicator {
+    position: absolute; inset: -3px; border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: var(--highlight);
+    border-right-color: var(--highlight);
+    transform: rotate(var(--rot, -135deg));
+    pointer-events: none;
+  }
+  .dial-label {
+    font-size: 9px; color: var(--text); margin-top: 5px; letter-spacing: 1px; font-weight: bold;
+  }
+  
+  /* --- CENTER SCREEN --- */
+  .screen {
+    position: relative; background: var(--bg);
+    overflow: hidden; cursor: crosshair; touch-action: none;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+  
+  /* Floating Tools */
+  .tools-overlay {
+    position: absolute; top: 10px; left: 10px;
+    display: flex; gap: 5px;
+  }
+  .tool-pill {
+    background: rgba(0,0,0,0.6); border: 1px solid #333;
+    color: #666; font-size: 10px; padding: 4px 8px;
+    cursor: pointer; border-radius: 2px;
+  }
+  .tool-pill.active { color: var(--highlight); border-color: var(--highlight); background: var(--dim); }
+
+  /* --- RIGHT TRANSPORT --- */
+  .transport-bay {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 15px; border-left: 1px solid #333;
+  }
+  .play-btn {
+    width: 44px; height: 44px;
+    background: #000; border: 2px solid #333;
+    border-radius: 50%;
+    color: #333; display: grid; place-items: center;
+    cursor: pointer; transition: 0.1s;
+  }
+  .play-btn svg { width: 16px; height: 16px; fill: currentColor; }
+  .play-btn.active { 
+    border-color: var(--highlight); color: var(--highlight); 
+    box-shadow: 0 0 15px var(--dim);
+  }
+  .play-btn:active { transform: scale(0.95); }
+
+  .clear-btn {
+    font-size: 9px; color: #555; cursor: pointer; text-decoration: underline;
+  }
+  .clear-btn:hover { color: #888; }
+
+  @media (max-width: 600px) {
+    .rack-unit { grid-template-columns: 100px 1fr 60px; }
+    .dial-ring { width: 28px; height: 28px; }
+    .tool-pill { padding: 3px 6px; font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="rack-unit">
+  
+  <!-- LEFT: SOUND & SHAPE -->
+  <div class="control-bay">
+    <!-- FORCE -->
+    <div class="dial-cell" id="d-force" data-min="5" data-max="40" data-val="15">
+      <div class="dial-ring"><div class="dial-indicator"></div></div>
+      <div class="dial-label">FORCE</div>
+    </div>
+    <!-- SIZE -->
+    <div class="dial-cell" id="d-size" data-min="20" data-max="120" data-val="50">
+      <div class="dial-ring"><div class="dial-indicator"></div></div>
+      <div class="dial-label">SIZE</div>
+    </div>
+    <!-- TONE -->
+    <div class="dial-cell" id="d-tone" data-min="100" data-max="3000" data-val="800">
+      <div class="dial-ring"><div class="dial-indicator"></div></div>
+      <div class="dial-label">TONE</div>
+    </div>
+    <!-- DECAY -->
+    <div class="dial-cell" id="d-decay" data-min="100" data-max="800" data-val="300">
+      <div class="dial-ring"><div class="dial-indicator"></div></div>
+      <div class="dial-label">DECAY</div>
+    </div>
+  </div>
+
+  <!-- CENTER: CANVAS -->
+  <div class="screen">
+    <canvas id="cv"></canvas>
+    <div class="tools-overlay">
+      <div class="tool-pill active" data-tool="push">PUSH</div>
+      <div class="tool-pill" data-tool="pull">PULL</div>
+      <div class="tool-pill" data-tool="scramble">NOISE</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: PLAY -->
+  <div class="transport-bay">
+    <div class="play-btn" id="btn-play">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </div>
+    <div class="clear-btn" id="btn-clear">CLEAR</div>
+  </div>
+
+</div>
+
+<script>
+class SonicMesh {
+  constructor() {
+    this.cv = document.getElementById('cv');
+    this.ctx = this.cv.getContext('2d');
+    
+    // Config
+    this.cols = 32; // Rhythmic grid (32 steps)
+    this.rows = 8;  // Pitch grid (8 notes in scale)
+    this.threshold = 4; // Pixel displacement needed to activate
+    
+    this.params = { force: 15, size: 50, tone: 800, decay: 300 };
+    this.state = {
+      tool: 'push',
+      playing: false,
+      pointerDown: false,
+      mx: 0, my: 0
+    };
+    
+    this.audio = null;
+    this.seqIndex = 0;
+    this.lastTime = 0;
+    this.tempo = 110;
+
+    this.initControls();
+    this.initAudio();
+    this.resize();
+    
+    // Events
+    window.addEventListener('resize', () => this.resize());
+    this.cv.addEventListener('pointerdown', e => {
+      this.state.pointerDown = true;
+      this.updatePointer(e);
+      this.sculpt(); // Instant interaction
+      if(this.audio && this.audio.state === 'suspended') this.audio.resume();
+    });
+    this.cv.addEventListener('pointermove', e => {
+      this.updatePointer(e);
+      if(this.state.pointerDown) this.sculpt();
+    });
+    window.addEventListener('pointerup', () => this.state.pointerDown = false);
+    
+    this.loop();
+  }
+
+  initAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.audio = new AC();
+    this.master = this.audio.createGain();
+    this.master.gain.value = 0.3;
+    
+    // Simple Reverb-ish Delay
+    this.delay = this.audio.createDelay();
+    this.delay.delayTime.value = 0.15;
+    this.fb = this.audio.createGain();
+    this.fb.gain.value = 0.3;
+    
+    this.master.connect(this.audio.destination);
+    this.master.connect(this.delay);
+    this.delay.connect(this.fb);
+    this.fb.connect(this.delay);
+    this.fb.connect(this.master);
+  }
+
+  initControls() {
+    // Dials
+    document.querySelectorAll('.dial-cell').forEach(d => {
+      const ring = d.querySelector('.dial-indicator');
+      let val = parseFloat(d.dataset.val);
+      const min = parseFloat(d.dataset.min);
+      const max = parseFloat(d.dataset.max);
+      const param = d.id.split('-')[1];
+
+      const update = (v) => {
+        val = Math.max(min, Math.min(max, v));
+        this.params[param] = val;
+        // Map min-max to -135deg -> 135deg
+        const pct = (val - min) / (max - min);
+        const rot = -135 + (pct * 270);
+        ring.style.transform = `rotate(${rot}deg)`;
+      };
+      
+      update(val); // Init
+
+      let startY, startVal;
+      d.addEventListener('pointerdown', e => {
+        startY = e.clientY;
+        startVal = val;
+        d.setPointerCapture(e.pointerId);
+        d.onpointermove = ev => {
+          const delta = startY - ev.clientY;
+          update(startVal + (delta * ((max-min)/200)));
+        };
+        d.onpointerup = () => d.onpointermove = null;
+      });
+    });
+
+    // Tools
+    const tools = document.querySelectorAll('.tool-pill');
+    tools.forEach(t => {
+      t.addEventListener('click', () => {
+        tools.forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        this.state.tool = t.dataset.tool;
+      });
+    });
+
+    // Transport
+    const playBtn = document.getElementById('btn-play');
+    playBtn.addEventListener('click', () => {
+      this.state.playing = !this.state.playing;
+      playBtn.classList.toggle('active');
+      playBtn.innerHTML = this.state.playing 
+        ? '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' // Pause
+        : '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'; // Play
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      this.pts.forEach(p => { p.x = p.ox; p.y = p.oy; p.active = false; });
+    });
+  }
+
+  resize() {
+    const rect = this.cv.parentElement.getBoundingClientRect();
+    this.W = rect.width;
+    this.H = rect.height;
+    this.cv.width = this.W;
+    this.cv.height = this.H;
+    
+    // Create Grid Pts
+    this.pts = [];
+    for(let r=0; r<=this.rows; r++) {
+      for(let c=0; c<=this.cols; c++) {
+        const x = (c/this.cols) * this.W;
+        const y = (r/this.rows) * this.H;
+        this.pts.push({
+          x, y, ox:x, oy:y, 
+          c, r, active: false 
+        });
+      }
+    }
+  }
+
+  updatePointer(e) {
+    const rect = this.cv.getBoundingClientRect();
+    this.state.mx = e.clientX - rect.left;
+    this.state.my = e.clientY - rect.top;
+  }
+
+  sculpt() {
+    const { mx, my, tool } = this.state;
+    const { size, force } = this.params;
+    const r2 = size * size;
+
+    this.pts.forEach(p => {
+      const dx = p.x - mx;
+      const dy = p.y - my;
+      const dist2 = dx*dx + dy*dy;
+
+      if(dist2 < r2) {
+        const dist = Math.sqrt(dist2);
+        const f = (1 - dist/size) * (force * 0.1);
+
+        if(tool === 'push') {
+          const ang = Math.atan2(dy, dx);
+          p.x += Math.cos(ang) * f;
+          p.y += Math.sin(ang) * f;
+        } else if(tool === 'pull') {
+          const ang = Math.atan2(dy, dx);
+          p.x -= Math.cos(ang) * f;
+          p.y -= Math.sin(ang) * f;
+        } else { // Scramble
+          p.x += (Math.random()-0.5) * f * 4;
+          p.y += (Math.random()-0.5) * f * 4;
+        }
+        
+        // Clamp to screen
+        p.x = Math.max(0, Math.min(this.W, p.x));
+        p.y = Math.max(0, Math.min(this.H, p.y));
+      }
+    });
+  }
+
+  triggerSound(yNorm) {
+    if(!this.audio) return;
+    const osc = this.audio.createOscillator();
+    const flt = this.audio.createBiquadFilter();
+    const gain = this.audio.createGain();
+
+    // Minor Scale Mapping
+    const notes = [0, 2, 3, 5, 7, 8, 10, 12];
+    // Invert Y so high on screen = high pitch
+    const noteIdx = Math.floor((1 - yNorm) * (notes.length));
+    const safeIdx = Math.max(0, Math.min(notes.length-1, noteIdx));
+    const freq = 110 * Math.pow(2, notes[safeIdx]/12);
+
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    
+    flt.type = 'lowpass';
+    flt.frequency.value = this.params.tone;
+    flt.Q.value = 5;
+
+    const now = this.audio.currentTime;
+    const dur = this.params.decay / 1000;
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.01); // Quick attack
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    osc.connect(flt).connect(gain).connect(this.master);
+    osc.start(now);
+    osc.stop(now + dur + 0.1);
+  }
+
+  loop() {
+    requestAnimationFrame(() => this.loop());
+    
+    // 1. UPDATE STATE & AUDIO
+    if(this.state.playing && this.audio) {
+      const now = this.audio.currentTime;
+      const stepDur = 60 / this.tempo / 4;
+      if(now - this.lastTime > stepDur) {
+        this.lastTime = now;
+        this.seqIndex = (this.seqIndex + 1) % this.cols;
+        
+        // Trigger Sounds in this column
+        const activePts = this.pts.filter(p => p.c === this.seqIndex && p.active);
+        // Play distinct notes (limit 3 per step to avoid blown ears)
+        activePts.slice(0, 3).forEach(p => {
+          this.triggerSound(p.y / this.H);
+        });
+      }
+    }
+
+    // 2. RENDER
+    this.ctx.fillStyle = '#0d0d0d';
+    this.ctx.fillRect(0, 0, this.W, this.H);
+
+    // Draw Background Pitch Lines
+    this.ctx.strokeStyle = '#1a1a1a';
+    this.ctx.lineWidth = 1;
+    for(let i=0; i<this.rows; i++) {
+      const y = (i/this.rows) * this.H;
+      this.ctx.beginPath(); this.ctx.moveTo(0, y); this.ctx.lineTo(this.W, y); this.ctx.stroke();
+    }
+
+    // Update Point Activity & Draw
+    this.ctx.lineWidth = 1;
+    
+    for(let i=0; i<this.pts.length; i++) {
+      const p = this.pts[i];
+      
+      // Calculate Displacement
+      const dx = p.x - p.ox;
+      const dy = p.y - p.oy;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      
+      // Determine if "Active" (Sequencer will read this)
+      p.active = dist > this.threshold;
+
+      // Draw Connection Lines (Horizontal)
+      if(p.c < this.cols) {
+        const next = this.pts[i+1];
+        if(next && next.r === p.r) {
+          this.ctx.strokeStyle = p.active ? '#00442a' : '#222';
+          this.ctx.beginPath(); this.ctx.moveTo(p.x, p.y); this.ctx.lineTo(next.x, next.y); this.ctx.stroke();
+        }
+      }
+
+      // Draw Nodes
+      if(p.active) {
+        this.ctx.fillStyle = '#00ffaa';
+        const sz = 2; // Small active dot
+        this.ctx.fillRect(p.x - sz, p.y - sz, sz*2, sz*2);
+      } else {
+        // Subtle dot for grid
+        this.ctx.fillStyle = '#333';
+        this.ctx.fillRect(p.x-1, p.y-1, 2, 2);
+      }
+    }
+
+    // Draw Playhead
+    if(this.state.playing) {
+      const px = (this.seqIndex / this.cols) * this.W;
+      this.ctx.strokeStyle = '#fff';
+      this.ctx.lineWidth = 1;
+      this.ctx.beginPath(); 
+      this.ctx.moveTo(px, 0); this.ctx.lineTo(px, this.H); 
+      this.ctx.stroke();
+      
+      // Impact flash
+      const activeInCol = this.pts.filter(p => p.c === this.seqIndex && p.active);
+      activeInCol.forEach(p => {
+        this.ctx.fillStyle = '#fff';
+        this.ctx.beginPath(); this.ctx.arc(p.x, p.y, 4, 0, Math.PI*2); this.ctx.fill();
+      });
+    }
+
+    // Cursor
+    if(this.state.pointerDown) {
+      this.ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      this.ctx.beginPath();
+      this.ctx.arc(this.state.mx, this.state.my, this.params.size, 0, Math.PI*2);
+      this.ctx.stroke();
+    }
+  }
+}
+
+window.mesh = new SonicMesh();
+</script>
+</body>
+</html>
