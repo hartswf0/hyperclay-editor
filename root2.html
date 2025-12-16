@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HYPERCLAY // SEQUENCER v6.0</title>
+    
+    <!-- FAVICON -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23ff9d5c' d='M50 0 L93.3 25 V75 L50 100 L6.7 75 V25 Z'/%3E%3C/svg%3E">
+
+    <style>
+        :root {
+            /* --- THEME: EXCAVATION (High Contrast Dark) --- */
+            --bg-void: #050505;
+            --bg-panel: #14100f;
+            --bg-hover: #261f1d;
+            
+            --text-primary: #ffcdb2;
+            --text-secondary: #b0988e;
+            --text-muted: #6b554e;
+            
+            --border: #4a3832;
+            --accent: #ff9d5c;
+            --accent-glow: rgba(255, 157, 92, 0.2);
+            
+            /* CATEGORY COLORS */
+            --class-core: #ffaa75;   
+            --class-media: #75b3ff;  
+            --class-tool: #75ffaa;   
+            --class-exp: #e075ff;    
+            
+            --header-height: 52px;
+            --row-height: 64px;
+            --sidebar-width: 48px;
+            
+            /* Animation Physics */
+            --ease-mech: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --ease-snap: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        [data-theme="light"] {
+            --bg-void: #ffffff;
+            --bg-panel: #f0f0f0;
+            --bg-hover: #e6e6e6;
+            
+            --text-primary: #000000;
+            --text-secondary: #4a4a4a;
+            --text-muted: #888888;
+            
+            --border: #cccccc;
+            --accent: #d13d00;
+            --accent-glow: rgba(209, 61, 0, 0.1);
+
+            --class-core: #d13d00;
+            --class-media: #0044cc;
+            --class-tool: #007733;
+            --class-exp: #770099;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body, html {
+            margin: 0; padding: 0;
+            background-color: var(--bg-void);
+            font-family: 'Courier New', monospace;
+            height: 100%; width: 100%;
+            overflow: hidden;
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- LAYOUT --- */
+        #sequencer-ui { display: flex; flex-direction: column; height: 100%; width: 100%; }
+
+        /* --- HEADER --- */
+        #global-hud {
+            height: var(--header-height);
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; z-index: 100; flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .hud-left { display: flex; align-items: center; gap: 15px; }
+
+        .hud-logo {
+            width: 26px; height: 26px;
+            color: var(--accent);
+            cursor: pointer;
+            transition: transform 0.3s var(--ease-snap);
+        }
+        .hud-logo:hover { transform: rotate(90deg); filter: drop-shadow(0 0 4px var(--accent)); }
+
+        .sys-clock {
+            font-size: 0.7rem; color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 1px;
+        }
+
+        .hud-controls { display: flex; gap: 12px; }
+
+        .btn-icon {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-secondary);
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; cursor: pointer; border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .btn-icon:hover {
+            border-color: var(--text-primary); color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+        .btn-icon.active { background: var(--text-secondary); color: var(--bg-void); }
+
+        /* --- WORKSPACE --- */
+        #workspace { display: flex; flex-grow: 1; overflow: hidden; position: relative; }
+
+        /* NEURAL CANVAS (The Invisible Surface) */
+        #neural-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5; opacity: 0.5;
+        }
+
+        /* --- LEFT RAIL (PROGRESS) --- */
+        .dna-rail {
+            width: var(--sidebar-width);
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; align-items: center;
+            padding-top: 10px; z-index: 10;
+            position: relative;
+        }
+        
+        .rail-track {
+            position: absolute; top: 0; bottom: 0; width: 2px; background: var(--border);
+            z-index: 0;
+        }
+        .rail-progress {
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 4px; background: var(--accent);
+            height: 0%; 
+            z-index: 1; transition: height 0.1s linear;
+        }
+        .rail-mark { 
+            width: 12px; height: 1px; background: var(--text-muted); 
+            margin: 0; position: absolute; left: 50%; transform: translateX(-50%);
+        }
+
+        /* --- SCROLL AREA --- */
+        #genome-scroll {
+            flex-grow: 1; overflow-y: scroll; scroll-behavior: auto;
+            scrollbar-width: none; -ms-overflow-style: none;
+            position: relative;
+            z-index: 6; /* Above Canvas */
+        }
+        #genome-scroll::-webkit-scrollbar { display: none; }
+
+        /* --- GENE LIST (LIST vs GRID) --- */
+        #gene-list {
+            display: flex; flex-direction: column;
+            width: 100%;
+        }
+
+        /* GRID MODE: THE MOSAIC DASHBOARD */
+        #gene-list.grid-mode {
+            display: grid;
+            /* Auto-fitting columns, minimum 160px wide */
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            /* Dense packing fills holes left by large items */
+            grid-auto-flow: dense; 
+            gap: 12px;
+            padding: 16px;
+            align-items: start;
+        }
+
+        /* --- GENE ROW (Base) --- */
+        .gene-row {
+            background: var(--bg-void);
+            border-bottom: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            transition: background 0.3s, transform 0.3s, border-color 0.3s;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* GRID ITEM overrides */
+        #gene-list.grid-mode .gene-row {
+            border: 1px solid var(--border);
+            height: 160px; /* Base Square Cell */
+            border-radius: 4px;
+            grid-column: span 1;
+            grid-row: span 1;
+        }
+
+        /* EXPANDED MOSAIC TILES */
+        #gene-list.grid-mode .gene-row.active {
+            grid-column: span 2; /* Takes up 2 columns */
+            grid-row: span 2;    /* Takes up 2 rows */
+            height: 100%;        /* Fill the span */
+            border-color: var(--accent);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        /* Make really important ones even bigger? Optional enhancement */
+        #gene-list.grid-mode .gene-row.active.core-module {
+            grid-column: span 2; 
+        }
+
+        /* --- GENE HEADER --- */
+        .gene-header {
+            height: var(--row-height);
+            display: flex; align-items: center;
+            padding: 0 16px; cursor: pointer;
+            position: relative; flex-shrink: 0;
+            overflow: hidden;
+            user-select: none;
+            background: var(--bg-void);
+            z-index: 2;
+        }
+        .gene-header:hover { background: var(--bg-hover); }
+
+        /* Grid Mode Header Tweaks */
+        #gene-list.grid-mode .gene-row .gene-header {
+            height: 100%; flex-direction: column; 
+            align-items: flex-start; justify-content: space-between;
+            padding: 12px;
+        }
+        #gene-list.grid-mode .gene-row.active .gene-header {
+            height: 40px; /* Shrink header when expanded in grid */
+            flex-direction: row; align-items: center;
+        }
+
+        #gene-list.grid-mode .gene-row:not(.active) .id-cluster {
+            width: 100%; border-right: none; height: auto; margin-bottom: 10px;
+        }
+        #gene-list.grid-mode .gene-row:not(.active) .gene-controls { display: none; }
+        #gene-list.grid-mode .gene-row:not(.active) .gene-info { width: 100%; }
+        #gene-list.grid-mode .gene-row:not(.active) .gene-barcode { height: 8px; }
+
+        /* ID Cluster */
+        .id-cluster {
+            display: flex; align-items: center; height: 100%;
+            width: 70px; flex-shrink: 0;
+            border-right: 1px solid var(--border);
+            margin-right: 16px;
+        }
+        .class-indicator { width: 4px; height: 100%; margin-right: 8px; background: var(--text-muted); transition: box-shadow 0.3s; }
+        .gene-barcode { flex-grow: 1; height: 24px; opacity: 0.7; }
+
+        /* Info Block */
+        .gene-info {
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: flex-start; 
+            flex-grow: 1; overflow: hidden;
+        }
+        .gene-title {
+            font-size: 0.95rem; font-weight: 800; letter-spacing: 0.5px;
+            text-transform: uppercase; color: var(--text-primary);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            width: 100%;
+        }
+        .gene-desc {
+            font-size: 0.7rem; color: var(--text-secondary);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            width: 100%; margin-top: 4px;
+        }
+
+        /* Controls */
+        .gene-controls { margin-left: 10px; display: flex; align-items: center; gap: 12px; }
+        
+        .ext-link {
+            text-decoration: none; color: var(--text-secondary);
+            padding: 8px; border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .ext-link:hover { color: var(--text-primary); background: var(--bg-hover); }
+
+        .arrow-indicator {
+            font-size: 0.8rem; color: var(--text-secondary);
+            transition: transform 0.4s var(--ease-snap);
+        }
+
+        /* --- ACTIVE STATE --- */
+        .gene-row.active { background: var(--bg-hover); border-bottom-color: var(--accent); }
+        .gene-row.active .class-indicator { box-shadow: 0 0 10px currentColor, 0 0 20px currentColor; }
+        .gene-row.active .gene-barcode { opacity: 1; filter: contrast(1.2); }
+        .gene-row.active .arrow-indicator { transform: rotate(90deg); color: var(--accent); }
+
+        /* --- EXPRESSION WINDOW --- */
+        .expression-window {
+            height: 0; overflow: hidden;
+            transition: height 0.6s var(--ease-mech);
+            background: #000; position: relative;
+            transform-origin: top;
+            will-change: height;
+        }
+        /* List Mode Height */
+        #gene-list:not(.grid-mode) .gene-row.active .expression-window { height: 65vh; }
+        /* Grid Mode Height (Fill the tile) */
+        #gene-list.grid-mode .gene-row.active .expression-window { height: calc(100% - 40px); }
+
+        .signal-loader {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: var(--text-muted); font-size: 0.8rem; letter-spacing: 2px;
+            animation: pulse 1.5s infinite; pointer-events: none; z-index: 0;
+        }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+
+        iframe {
+            width: 100%; height: 100%; border: none;
+            position: relative; z-index: 1;
+            opacity: 0; transition: opacity 0.5s ease-in 0.2s;
+        }
+        .gene-row.active iframe.loaded { opacity: 1; }
+
+        /* --- RIGHT RAIL (MINIMAP) --- */
+        #minimap-rail {
+            width: 24px; background: var(--bg-panel);
+            border-left: 1px solid var(--border); position: relative;
+            cursor: pointer; touch-action: none;
+        }
+        
+        .map-indicator {
+            width: 100%; position: absolute; left: 0; opacity: 0.4;
+            height: 2px; transition: all 0.2s; pointer-events: none;
+        }
+        .map-indicator.active {
+            opacity: 1; height: 4px; width: 100%; 
+            box-shadow: -2px 0 5px currentColor; z-index: 2;
+        }
+
+        #minimap-lens {
+            position: absolute; left: 0; right: 0;
+            height: 0; top: 0;
+            border: 2px solid var(--accent);
+            background: var(--accent-glow);
+            z-index: 10; border-radius: 2px;
+            cursor: grab;
+            transition: top 0.1s linear, height 0.1s linear;
+        }
+        #minimap-lens:active { cursor: grabbing; background: var(--accent); opacity: 0.5; }
+
+        /* --- MODAL --- */
+        #about-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            z-index: 999; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        #about-modal.visible { opacity: 1; pointer-events: all; }
+        
+        .modal-box {
+            background: var(--bg-void); border: 1px solid var(--text-primary);
+            padding: 30px; max-width: 400px; width: 85%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        .btn-text {
+            background: var(--bg-panel); border: 1px solid var(--border);
+            color: var(--text-primary); padding: 12px; width: 100%;
+            cursor: pointer; font-family: inherit; font-weight: bold; margin-top: 24px;
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- ABOUT MODAL -->
+<div id="about-modal">
+    <div class="modal-box">
+        <div style="border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:20px; font-weight:bold; letter-spacing:2px;">
+            SYSTEM_MANIFEST // v6.0
+        </div>
+        <p style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6;">
+            <strong>HYPERCLAY WORKBENCH</strong><br>
+            A non-linear workspace for procedural artifacts.<br><br>
+            <strong>VIEW MODES:</strong><br>
+            • LIST: Standard sequence traversal.<br>
+            • GRID (MOSAIC): Multi-active dashboard. Expand multiple tools to build a custom hypercube layout.<br><br>
+            <strong>VISUALIZER:</strong><br>
+            Background neural lines indicate active connections between module classes.
+        </p>
+        <button class="btn-text" onclick="toggleAbout()">INITIALIZE</button>
+    </div>
+</div>
+
+<div id="sequencer-ui">
+    
+    <!-- HEADER -->
+    <header id="global-hud">
+        <div class="hud-left">
+            <svg class="hud-logo" onclick="toggleAbout()" viewBox="0 0 100 100">
+                <path d="M50 10 L90 30 V70 L50 90 L10 70 V30 Z" fill="none" stroke="currentColor" stroke-width="4"/>
+                <circle cx="50" cy="50" r="12" fill="currentColor"/>
+                <path d="M50 10 V38 M50 90 V62 M10 30 L38 44 M90 30 L62 44 M10 70 L38 56 M90 70 L62 56" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <div class="sys-clock" id="sys-clock">00:00:00</div>
+        </div>
+
+        <div class="hud-controls">
+            <button class="btn-icon" onclick="toggleGrid()" id="view-toggle" title="Toggle Grid/List View">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                </svg>
+            </button>
+            <button class="btn-icon" onclick="toggleTheme()" title="Toggle Theme">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+            </button>
+            <button class="btn-icon" onclick="toggleAll()" id="expand-btn" title="Expand All">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8"/><path d="M12 8v8" id="expand-icon-path"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div id="workspace">
+        
+        <!-- NEURAL CANVAS OVERLAY -->
+        <canvas id="neural-canvas"></canvas>
+
+        <!-- LEFT RAIL -->
+        <div class="dna-rail">
+            <div class="rail-track"></div>
+            <div class="rail-progress" id="rail-progress"></div>
+            <!-- Marks by JS -->
+        </div>
+
+        <!-- MAIN SCROLL -->
+        <main id="genome-scroll">
+            <div id="gene-list"></div>
+            <div style="height: 100px;"></div>
+        </main>
+
+        <!-- RIGHT RAIL -->
+        <div id="minimap-rail">
+            <div id="minimap-lens"></div>
+            <!-- Map by JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const BASE_URL = "https://hartswf0.github.io/hyperclay-editor/CAN/";
+    
+    // DATA
+    const DATA = [
+        { file: "hyperclay-sonifier.html", desc: "Mesh topology synthesizer", class: "media" },
+        { file: "hyperclay-deck.html", desc: "Radial media blending", class: "media" },
+        { file: "hyperclay-crispr.html", desc: "Genetic manipulation toolkit", class: "tool" },
+        { file: "hyperclay-drex.html", desc: "Procedural narrative generator", class: "exp" },
+        { file: "hyperclay-rex.html", desc: "Real-time nucleotide evolution", class: "exp" },
+        { file: "hyperclay-trex-refined.html", desc: "High-fidelity Helix", class: "core" },
+        { file: "hyperclay-trex.html", desc: "Double Helix strand control", class: "core" },
+        { file: "hyperclay-trex-color.html", desc: "Chromatic variant", class: "media" },
+        { file: "hyperclay-trex-minimal.html", desc: "Low-latency core function", class: "core" },
+        { file: "hyperclay-blend.html", desc: "Layer composition matrix", class: "media" },
+        { file: "hyperclay-cinema.html", desc: "Cinematic compositor", class: "media" },
+        { file: "hyperclay-studio.html", desc: "Primary workspace hub", class: "core" },
+        { file: "hyperclay-edit.html", desc: "Nonlinear editor experiments", class: "tool" },
+        { file: "hyperclay-quad.html", desc: "4-Way split screen", class: "tool" },
+        { file: "hyperclay.html", desc: "Root prototype", class: "exp" }
+    ];
+
+    const listContainer = document.getElementById('gene-list');
+    const mapRail = document.getElementById('minimap-rail');
+    const leftRail = document.querySelector('.dna-rail');
+    const scrollContainer = document.getElementById('genome-scroll');
+    const lens = document.getElementById('minimap-lens');
+    const progressBar = document.getElementById('rail-progress');
+    const neuralCanvas = document.getElementById('neural-canvas');
+    const ctx = neuralCanvas.getContext('2d');
+    
+    let allExpanded = false;
+    let isDragging = false;
+    let gridMode = false;
+
+    function generateBarcode(str) {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+        let gradient = "linear-gradient(90deg, ";
+        for (let i = 0; i <= 100; i+=10) {
+            const val = Math.abs((hash * (i+1)) % 100);
+            gradient += `currentColor ${i}%, transparent ${i}%, transparent ${i+5}%, currentColor ${i+5}%, `; 
+        }
+        return gradient.slice(0, -2) + ")"; 
+    }
+
+    function init() {
+        const markCount = DATA.length;
+        for(let i=0; i<markCount; i++) {
+            const mark = document.createElement('div');
+            mark.className = 'rail-mark';
+            mark.style.top = `${(i / markCount) * 100}%`;
+            leftRail.appendChild(mark);
+        }
+
+        DATA.forEach((item, index) => {
+            createGene(item, index);
+        });
+        
+        // Clock
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('sys-clock').innerText = now.toLocaleTimeString('en-GB', { hour12: false });
+        }, 1000);
+
+        // Canvas loop
+        window.requestAnimationFrame(drawConnections);
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        setTimeout(updateLens, 100);
+    }
+
+    function createGene(item, index) {
+        const title = item.file.replace('hyperclay-', '').replace('.html', '').toUpperCase();
+        const url = BASE_URL + item.file;
+        const barcodeStyle = generateBarcode(item.file);
+        const colorVar = `var(--class-${item.class})`;
+
+        const row = document.createElement('div');
+        row.className = `gene-row ${item.class}-module`; // Add class for selection
+        row.id = `gene-${index}`;
+        row.dataset.class = item.class; // For canvas linking
+
+        row.innerHTML = `
+            <div class="gene-header" onclick="toggleGene(${index})" role="button">
+                <div class="id-cluster">
+                    <div class="class-indicator" id="ind-${index}" style="background:${colorVar}; box-shadow:0 0 5px ${colorVar};"></div>
+                    <div class="gene-barcode" style="background-image:${barcodeStyle}; color:${colorVar}"></div>
+                </div>
+                <div class="gene-info">
+                    <span class="gene-title">${title}</span>
+                    <span class="gene-desc">${item.desc}</span>
+                </div>
+                <div class="gene-controls">
+                    <a href="${url}" target="_blank" class="ext-link" onclick="stopProp(event)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                    </a>
+                    <div class="arrow-indicator">▶</div>
+                </div>
+            </div>
+            <div class="expression-window">
+                <div class="signal-loader">ACQUIRING SIGNAL...</div>
+                <iframe id="iframe-${index}" data-src="${url}" onload="this.classList.add('loaded')" title="${title}"></iframe>
+            </div>
+        `;
+        listContainer.appendChild(row);
+
+        const dot = document.createElement('div');
+        dot.className = 'map-indicator';
+        dot.style.top = `${(index / DATA.length) * 100}%`;
+        dot.style.height = `${100 / DATA.length}%`;
+        dot.style.backgroundColor = colorVar; 
+        dot.id = `map-${index}`;
+        mapRail.appendChild(dot);
+    }
+
+    window.toggleGene = (index) => {
+        const row = document.getElementById(`gene-${index}`);
+        const isActive = row.classList.contains('active');
+        
+        // In Grid mode, allow multiple actives. In List mode, maybe not? 
+        // For "Workbench" feel, let's allow multiple actives in both modes.
+        isActive ? closeGene(index) : openGene(index);
+        checkAllState();
+        setTimeout(updateLens, 450);
+    };
+
+    function openGene(index) {
+        const row = document.getElementById(`gene-${index}`);
+        const iframe = document.getElementById(`iframe-${index}`);
+        const mapDot = document.getElementById(`map-${index}`);
+
+        row.classList.add('active');
+        mapDot.classList.add('active');
+        
+        if (!iframe.getAttribute('src')) {
+            iframe.src = iframe.dataset.src;
+        }
+    }
+
+    function closeGene(index) {
+        const row = document.getElementById(`gene-${index}`);
+        const iframe = document.getElementById(`iframe-${index}`);
+        const mapDot = document.getElementById(`map-${index}`);
+
+        row.classList.remove('active');
+        mapDot.classList.remove('active');
+
+        setTimeout(() => {
+            if(!row.classList.contains('active')) {
+                iframe.removeAttribute('src'); 
+                iframe.classList.remove('loaded');
+            }
+        }, 600);
+    }
+
+    window.toggleAll = () => {
+        allExpanded = !allExpanded;
+        const iconPath = document.getElementById('expand-icon-path');
+        iconPath.setAttribute('d', allExpanded ? "M6 12h12" : "M12 8v8"); 
+        
+        const btn = document.getElementById('expand-btn');
+        btn.classList.toggle('active', allExpanded);
+
+        DATA.forEach((_, index) => {
+            if(allExpanded) setTimeout(() => openGene(index), index * 30);
+            else closeGene(index);
+        });
+        setTimeout(updateLens, (DATA.length * 30) + 600);
+    };
+
+    function checkAllState() {
+        const activeCount = document.querySelectorAll('.gene-row.active').length;
+        if (activeCount === 0) {
+            allExpanded = false;
+            document.getElementById('expand-btn').classList.remove('active');
+            document.getElementById('expand-icon-path').setAttribute('d', "M12 8v8");
+        }
+    }
+
+    window.toggleGrid = () => {
+        gridMode = !gridMode;
+        listContainer.classList.toggle('grid-mode', gridMode);
+        document.getElementById('view-toggle').classList.toggle('active', gridMode);
+        setTimeout(updateLens, 300);
+    };
+
+    window.stopProp = (e) => e.stopPropagation();
+
+    window.toggleTheme = () => {
+        const body = document.body;
+        const current = body.getAttribute('data-theme');
+        body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
+    };
+
+    window.toggleAbout = () => {
+        document.getElementById('about-modal').classList.toggle('visible');
+    };
+
+    // --- LENS & SCROLL ---
+    function updateLens() {
+        if (!scrollContainer) return;
+        const scrollTop = scrollContainer.scrollTop;
+        const scrollHeight = scrollContainer.scrollHeight;
+        const clientHeight = scrollContainer.clientHeight;
+        if (scrollHeight === 0) return;
+
+        const lensHeightPerc = (clientHeight / scrollHeight) * 100;
+        const lensTopPerc = (scrollTop / scrollHeight) * 100;
+        lens.style.height = `${lensHeightPerc}%`;
+        lens.style.top = `${lensTopPerc}%`;
+
+        const progressPerc = (scrollTop / (scrollHeight - clientHeight)) * 100;
+        progressBar.style.height = `${Math.min(100, Math.max(0, progressPerc))}%`;
+    }
+
+    scrollContainer.addEventListener('scroll', () => {
+        if (!isDragging) requestAnimationFrame(updateLens);
+    });
+
+    // --- RAIL INTERACTIONS ---
+    mapRail.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        mapRail.setPointerCapture(e.pointerId);
+        handleRailInput(e, 'smooth');
+    });
+    mapRail.addEventListener('pointermove', (e) => { if (isDragging) handleRailInput(e, 'auto'); });
+    mapRail.addEventListener('pointerup', (e) => { isDragging = false; mapRail.releasePointerCapture(e.pointerId); });
+
+    function handleRailInput(e, behavior) {
+        const rect = mapRail.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const perc = Math.max(0, Math.min(1, y / rect.height));
+        const targetScroll = perc * (scrollContainer.scrollHeight - scrollContainer.clientHeight);
+        scrollContainer.scrollTo({ top: targetScroll, behavior: behavior });
+    }
+
+    // --- NEURAL CANVAS VISUALIZER ---
+    function resizeCanvas() {
+        neuralCanvas.width = window.innerWidth;
+        neuralCanvas.height = window.innerHeight;
+    }
+
+    function drawConnections() {
+        ctx.clearRect(0, 0, neuralCanvas.width, neuralCanvas.height);
+        
+        // Find all active indicators
+        const activeRows = document.querySelectorAll('.gene-row.active');
+        if (activeRows.length < 2) {
+            window.requestAnimationFrame(drawConnections);
+            return;
+        }
+
+        const groups = {};
+        
+        // Group active rows by class
+        activeRows.forEach(row => {
+            const cls = row.dataset.class;
+            if(!groups[cls]) groups[cls] = [];
+            
+            const rect = row.getBoundingClientRect();
+            // Get center of the ID indicator
+            const ind = row.querySelector('.class-indicator').getBoundingClientRect();
+            
+            groups[cls].push({
+                x: ind.left + ind.width/2,
+                y: ind.top + ind.height/2
+            });
+        });
+
+        // Draw lines
+        ctx.lineWidth = 1;
+        
+        for (const cls in groups) {
+            const points = groups[cls];
+            if (points.length < 2) continue;
+            
+            ctx.beginPath();
+            // Get color from variable? Hard to read computed style in loop, assume knowns or grab one
+            // Simple hack: check class name and assign color
+            if(cls === 'core') ctx.strokeStyle = '#ffaa75';
+            else if(cls === 'media') ctx.strokeStyle = '#75b3ff';
+            else if(cls === 'tool') ctx.strokeStyle = '#75ffaa';
+            else ctx.strokeStyle = '#e075ff';
+            
+            ctx.moveTo(points[0].x, points[0].y);
+            
+            for (let i = 1; i < points.length; i++) {
+                // Curved connection
+                const p1 = points[i-1];
+                const p2 = points[i];
+                
+                // Draw to sidebar rail then back? Or direct?
+                // Direct line for now
+                ctx.lineTo(p2.x, p2.y);
+            }
+            ctx.stroke();
+        }
+
+        window.requestAnimationFrame(drawConnections);
+    }
+
+    init();
+
+</script>
+</body>
+</html>
