@@ -1,0 +1,497 @@
+<!-- hyperclay-instrument.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>INSTRUMENT // RACK</title>
+<style>
+  :root {
+    --bg: #111;
+    --panel: #1a1a1a;
+    --accent: #0f0; /* Green terminal look */
+    --accent-dim: #005500;
+    --text: #666;
+    --h: 180px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  
+  body {
+    margin: 0; background: #000;
+    height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: monospace; overflow: hidden;
+  }
+
+  /* MAIN RACK CONTAINER */
+  .rack {
+    width: 100%; max-width: 1000px; height: var(--h);
+    background: var(--panel);
+    border-top: 2px solid #333; border-bottom: 2px solid #333;
+    display: grid;
+    grid-template-columns: 160px 1fr 90px; /* Controls | Screen | Transport */
+    box-shadow: 0 20px 50px #000;
+  }
+
+  /* LEFT: PARAMETER DIALS */
+  .controls-left {
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    border-right: 1px solid #333;
+  }
+
+  /* CUSTOM DIAL COMPONENT */
+  .dial-wrapper {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .dial-svg {
+    width: 48px; height: 48px;
+    cursor: ns-resize;
+    touch-action: none; /* Prevents scroll */
+  }
+  .dial-bg { fill: none; stroke: #2a2a2a; stroke-width: 4; }
+  .dial-val { 
+    fill: none; stroke: var(--accent); stroke-width: 4; 
+    stroke-linecap: round; 
+    stroke-dasharray: 100 100; /* Calculated in JS */
+    transform: rotate(-90deg); transform-origin: 50% 50%;
+  }
+  .dial-label {
+    font-size: 9px; color: var(--text); margin-top: 4px; letter-spacing: 1px;
+  }
+
+  /* CENTER: SCREEN & TOOLS */
+  .screen-area {
+    position: relative; background: #050505; overflow: hidden;
+    cursor: crosshair; touch-action: none;
+  }
+  canvas { display: block; width: 100%; height: 100%; }
+
+  /* TOOLBAR OVERLAY */
+  .toolbar {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 10;
+  }
+  .tool-btn {
+    width: 36px; height: 36px;
+    background: rgba(20,20,20,0.8);
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 18px; display: grid; place-items: center;
+    cursor: pointer; backdrop-filter: blur(2px);
+  }
+  .tool-btn.active {
+    border-color: var(--accent); color: var(--accent);
+    box-shadow: 0 0 10px var(--accent-dim);
+  }
+  
+  /* RIGHT: TRANSPORT */
+  .controls-right {
+    border-left: 1px solid #333;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-evenly;
+    padding: 10px;
+  }
+  
+  .btn-rect {
+    width: 60px; height: 30px;
+    background: #222; border: 1px solid #444;
+    color: #888; font-size: 10px;
+    display: grid; place-items: center;
+    cursor: pointer;
+  }
+  .btn-rect.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); }
+  
+  .btn-circle {
+    width: 44px; height: 44px;
+    border-radius: 50%; border: 2px solid #444;
+    display: grid; place-items: center;
+    color: #444; cursor: pointer; transition: 0.1s;
+  }
+  .btn-circle.playing { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* MEDIA QUERY FOR SMALL SCREENS */
+  @media (max-width: 600px) {
+    .rack { grid-template-columns: 120px 1fr 70px; }
+    .dial-svg { width: 40px; height: 40px; }
+    .toolbar { left: 5px; gap: 4px; }
+    .tool-btn { width: 32px; height: 32px; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="rack">
+  
+  <!-- LEFT: DIALS -->
+  <div class="controls-left">
+    <!-- DIAL 1: STRENGTH -->
+    <div class="dial-wrapper">
+      <svg class="dial-svg" data-param="strength" data-min="1" data-max="30" data-val="10" viewBox="0 0 36 36">
+        <path class="dial-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        <path class="dial-val" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+      </svg>
+      <div class="dial-label">FORCE</div>
+    </div>
+    <!-- DIAL 2: RADIUS -->
+    <div class="dial-wrapper">
+      <svg class="dial-svg" data-param="radius" data-min="20" data-max="150" data-val="60" viewBox="0 0 36 36">
+        <path class="dial-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        <path class="dial-val" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+      </svg>
+      <div class="dial-label">SIZE</div>
+    </div>
+    <!-- DIAL 3: CUTOFF -->
+    <div class="dial-wrapper">
+      <svg class="dial-svg" data-param="cutoff" data-min="100" data-max="4000" data-val="1200" viewBox="0 0 36 36">
+        <path class="dial-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        <path class="dial-val" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+      </svg>
+      <div class="dial-label">TONE</div>
+    </div>
+    <!-- DIAL 4: DECAY -->
+    <div class="dial-wrapper">
+      <svg class="dial-svg" data-param="decay" data-min="100" data-max="1000" data-val="400" viewBox="0 0 36 36">
+        <path class="dial-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        <path class="dial-val" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+      </svg>
+      <div class="dial-label">FADE</div>
+    </div>
+  </div>
+
+  <!-- CENTER: CANVAS -->
+  <div class="screen-area" id="screen">
+    <canvas id="cv"></canvas>
+    
+    <!-- FLOATING TOOLBAR -->
+    <div class="toolbar">
+      <div class="tool-btn active" data-tool="push" title="Push">●</div>
+      <div class="tool-btn" data-tool="pull" title="Pull">○</div>
+      <div class="tool-btn" data-tool="noise" title="Noise">∿</div>
+      <div class="tool-btn" data-tool="smooth" title="Smooth">≈</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: ACTIONS -->
+  <div class="controls-right">
+    <div class="btn-rect" id="btn-clear">RESET</div>
+    <div class="btn-circle" id="btn-play">▶</div>
+    <div class="btn-rect" id="btn-mode">SEQ</div>
+  </div>
+
+</div>
+
+<script>
+class InstrumentModule {
+  constructor() {
+    this.cv = document.getElementById('cv');
+    this.ctx = this.cv.getContext('2d');
+    
+    this.params = { strength: 10, radius: 60, cutoff: 1200, decay: 400 };
+    this.state = {
+      tool: 'push',
+      mode: 'seq', // 'seq' means play mesh
+      playing: false,
+      pointerDown: false,
+      mx: 0, my: 0
+    };
+    
+    this.audio = null;
+    this.seqStep = 0;
+    this.tempo = 100;
+    this.lastTime = 0;
+    
+    this.initDials();
+    this.initToolbar();
+    this.initTransport();
+    this.resize();
+    
+    // Core Loops
+    window.addEventListener('resize', () => this.resize());
+    this.cv.addEventListener('pointerdown', e => { this.state.pointerDown = true; this.trackPointer(e); this.sculpt(); });
+    this.cv.addEventListener('pointermove', e => { this.trackPointer(e); if(this.state.pointerDown) this.sculpt(); });
+    window.addEventListener('pointerup', () => this.state.pointerDown = false);
+    
+    this.loop();
+  }
+
+  trackPointer(e) {
+    const rect = this.cv.getBoundingClientRect();
+    this.state.mx = e.clientX - rect.left;
+    this.state.my = e.clientY - rect.top;
+  }
+
+  initDials() {
+    document.querySelectorAll('.dial-svg').forEach(el => {
+      // Set Initial Visuals
+      const updateVisual = (val, min, max) => {
+        const pct = (val - min) / (max - min);
+        const dash = pct * 100;
+        el.querySelector('.dial-val').style.strokeDasharray = `${dash}, 100`;
+      };
+      
+      const param = el.dataset.param;
+      const min = parseFloat(el.dataset.min);
+      const max = parseFloat(el.dataset.max);
+      let val = parseFloat(el.dataset.val);
+      
+      updateVisual(val, min, max);
+
+      // Touch Logic
+      let startY, startVal;
+      el.addEventListener('pointerdown', e => {
+        startY = e.clientY;
+        startVal = val;
+        el.setPointerCapture(e.pointerId);
+        
+        const move = (ev) => {
+          const delta = startY - ev.clientY; // Up is positive
+          const range = max - min;
+          // Sensitivity: 200px drag = full range
+          val = Math.max(min, Math.min(max, startVal + (delta / 200) * range));
+          
+          this.params[param] = val;
+          updateVisual(val, min, max);
+        };
+        
+        el.addEventListener('pointermove', move);
+        el.addEventListener('pointerup', () => el.removeEventListener('pointermove', move), {once:true});
+      });
+    });
+  }
+
+  initToolbar() {
+    const btns = document.querySelectorAll('.tool-btn');
+    btns.forEach(b => {
+      b.addEventListener('click', () => {
+        btns.forEach(btn => btn.classList.remove('active'));
+        b.classList.add('active');
+        this.state.tool = b.dataset.tool;
+      });
+    });
+  }
+
+  initTransport() {
+    // Play Button
+    const playBtn = document.getElementById('btn-play');
+    playBtn.addEventListener('click', () => {
+      if(!this.audio) this.initAudio();
+      this.state.playing = !this.state.playing;
+      playBtn.classList.toggle('playing', this.state.playing);
+      playBtn.innerText = this.state.playing ? '■' : '▶';
+    });
+
+    // Reset Mesh
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      this.pts.forEach(p => { p.x = p.ox; p.y = p.oy; });
+    });
+    
+    // Toggle Mode (Display only logic mainly, mesh always active)
+    const modeBtn = document.getElementById('btn-mode');
+    modeBtn.addEventListener('click', () => {
+      modeBtn.classList.toggle('active');
+      // Visual feedback only for this demo
+    });
+  }
+
+  initAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.audio = new AC();
+    this.master = this.audio.createGain();
+    this.master.gain.value = 0.3;
+    
+    // Delay Effect
+    this.delay = this.audio.createDelay();
+    this.delay.delayTime.value = 0.20;
+    this.fb = this.audio.createGain();
+    this.fb.gain.value = 0.4;
+    
+    this.master.connect(this.audio.destination);
+    this.master.connect(this.delay);
+    this.delay.connect(this.fb);
+    this.fb.connect(this.delay);
+    this.fb.connect(this.audio.destination); // Simple stereo widener hack
+  }
+
+  resize() {
+    const rect = document.getElementById('screen').getBoundingClientRect();
+    this.W = rect.width;
+    this.H = rect.height;
+    this.cv.width = this.W;
+    this.cv.height = this.H;
+
+    // Create Mesh
+    this.cols = Math.ceil(this.W / 20);
+    this.rows = Math.ceil(this.H / 20);
+    this.pts = [];
+    
+    for(let r=0; r<=this.rows; r++) {
+      for(let c=0; c<=this.cols; c++) {
+        const x = (c / this.cols) * this.W;
+        const y = (r / this.rows) * this.H;
+        this.pts.push({ x, y, ox: x, oy: y });
+      }
+    }
+  }
+
+  sculpt() {
+    // NO SOUND TRIGGERED HERE - Silent Sculpting
+    const { mx, my, tool } = this.state;
+    const { radius, strength } = this.params;
+    const r2 = radius * radius;
+
+    this.pts.forEach(p => {
+      const dx = p.x - mx;
+      const dy = p.y - my;
+      const d2 = dx*dx + dy*dy;
+
+      if(d2 < r2) {
+        const dist = Math.sqrt(d2);
+        const force = (1 - dist/radius) * (strength * 0.2); // dampen strength
+
+        if(tool === 'push') {
+          const ang = Math.atan2(dy, dx);
+          p.x += Math.cos(ang) * force;
+          p.y += Math.sin(ang) * force;
+        } else if(tool === 'pull') {
+          const ang = Math.atan2(dy, dx);
+          p.x -= Math.cos(ang) * force;
+          p.y -= Math.sin(ang) * force;
+        } else if(tool === 'noise') {
+          p.x += (Math.random()-0.5) * force * 2;
+          p.y += (Math.random()-0.5) * force * 2;
+        } else if(tool === 'smooth') {
+          // Move towards original grid
+          p.x += (p.ox - p.x) * 0.1;
+          p.y += (p.oy - p.y) * 0.1;
+        }
+      }
+    });
+  }
+
+  playNote(pitchNorm) {
+    if(!this.audio) return;
+    const osc = this.audio.createOscillator();
+    const filter = this.audio.createBiquadFilter();
+    const amp = this.audio.createGain();
+
+    // Scale Logic (Minor Pentatonic)
+    const scale = [0, 3, 5, 7, 10, 12, 15, 17];
+    const root = 110;
+    const idx = Math.floor(pitchNorm * (scale.length-1));
+    const freq = root * Math.pow(2, scale[idx]/12);
+
+    osc.frequency.value = freq;
+    osc.type = 'sawtooth';
+
+    filter.type = 'lowpass';
+    filter.frequency.value = this.params.cutoff;
+    filter.Q.value = 4;
+
+    const now = this.audio.currentTime;
+    const dur = this.params.decay / 1000;
+
+    amp.gain.setValueAtTime(0, now);
+    amp.gain.linearRampToValueAtTime(0.2, now + 0.01);
+    amp.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    osc.connect(filter).connect(amp).connect(this.master);
+    osc.start(now);
+    osc.stop(now + dur + 0.1);
+  }
+
+  loop() {
+    requestAnimationFrame(() => this.loop());
+    
+    // 1. Logic
+    if(this.state.playing && this.audio) {
+      const now = this.audio.currentTime;
+      const stepTime = 60 / this.tempo / 4; // 16th notes
+      
+      if(now - this.lastTime > stepTime) {
+        this.lastTime = now;
+        this.seqStep = (this.seqStep + 1) % this.cols;
+        
+        // Scan current column for active deformations
+        // We look for vertical displacement > threshold
+        let triggered = false;
+        let avgPitch = 0;
+        let count = 0;
+
+        for(let r=0; r<=this.rows; r++) {
+          const idx = r * (this.cols+1) + this.seqStep;
+          if(this.pts[idx]) {
+            const disp = Math.abs(this.pts[idx].y - this.pts[idx].oy);
+            if(disp > 5) { // Threshold
+              const yNorm = 1 - (this.pts[idx].y / this.H);
+              avgPitch += Math.max(0, Math.min(1, yNorm));
+              count++;
+            }
+          }
+        }
+        
+        if(count > 0) {
+          this.playNote(avgPitch/count);
+        }
+      }
+    }
+
+    // 2. Render
+    this.ctx.fillStyle = '#050505';
+    this.ctx.fillRect(0, 0, this.W, this.H);
+
+    // Draw Grid (Safe Color)
+    this.ctx.strokeStyle = '#1a1a1a';
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    // Vertical Lines
+    for(let c=0; c<=this.cols; c++) {
+      const x = (c/this.cols) * this.W;
+      this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.H);
+    }
+    this.ctx.stroke();
+
+    // Draw Mesh (Active)
+    this.ctx.strokeStyle = '#0f0';
+    this.ctx.lineWidth = 1;
+    this.ctx.beginPath();
+    // Horizontal Lines only for "Synthwave" look
+    for(let r=0; r<=this.rows; r++) {
+      for(let c=0; c<=this.cols; c++) {
+        const p = this.pts[r*(this.cols+1)+c];
+        if(c===0) this.ctx.moveTo(p.x, p.y);
+        else this.ctx.lineTo(p.x, p.y);
+      }
+    }
+    this.ctx.stroke();
+
+    // Draw Playhead
+    if(this.state.playing) {
+      const x = (this.seqStep / this.cols) * this.W;
+      this.ctx.strokeStyle = '#fff';
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.H);
+      this.ctx.stroke();
+    }
+    
+    // Draw Brush Cursor
+    if(this.state.pointerDown) {
+       this.ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+       this.ctx.beginPath();
+       this.ctx.arc(this.state.mx, this.state.my, this.params.radius, 0, Math.PI*2);
+       this.ctx.stroke();
+    }
+  }
+}
+
+// Start
+window.rack = new InstrumentModule();
+</script>
+</body>
+</html>
