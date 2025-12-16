@@ -13,7 +13,7 @@
         --accent: #d4a418;
         --text: #c2b280;
         --text-dim: #635147;
-        --rack-height: 260px; /* Increased for better touch targets */
+        --rack-height: 240px; 
         --font-mono: 'Courier New', monospace;
         --font-ui: 'Inter', system-ui, sans-serif;
     }
@@ -29,50 +29,72 @@
         display: flex; flex-direction: column;
     }
 
+    /* --- HEADER --- */
     header {
-        height: 48px; background: var(--panel); border-bottom: 1px solid var(--border);
+        height: 50px; background: #0f0f0f; border-bottom: 1px solid var(--border);
         display: flex; align-items: center; justify-content: space-between;
-        padding: 0 16px; z-index: 20; flex-shrink: 0;
+        padding: 0 12px; z-index: 20; flex-shrink: 0;
     }
-    .brand { font-family: var(--font-mono); font-weight: 800; color: var(--accent); letter-spacing: 2px; font-size: 14px; }
-    .status { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+    .header-grp { display: flex; gap: 8px; align-items: center; }
+    
+    .brand { font-family: var(--font-mono); font-weight: 800; color: var(--accent); letter-spacing: 2px; font-size: 14px; margin-right: 10px; }
+    
+    .bpm-ctrl {
+        display: flex; align-items: center; background: #1a1a1a; 
+        border: 1px solid var(--border); border-radius: 4px; padding: 2px;
+    }
+    .bpm-val { font-family: var(--font-mono); font-size: 12px; color: var(--text); width: 30px; text-align: center; }
+    .bpm-btn {
+        width: 24px; height: 24px; background: transparent; border: none; 
+        color: var(--text-dim); cursor: pointer; display: grid; place-items: center;
+        font-weight: bold; font-size: 14px;
+    }
+    .bpm-btn:active { color: var(--accent); background: rgba(255,255,255,0.05); }
+
     .btn-icon {
-        background: none; border: 1px solid var(--border); color: var(--text);
+        background: none; border: 1px solid var(--border); color: var(--text-dim);
         width: 32px; height: 32px; border-radius: 4px;
-        display: grid; place-items: center; cursor: pointer; font-size: 11px;
+        display: grid; place-items: center; cursor: pointer; font-size: 12px;
+        transition: all 0.2s;
     }
+    .btn-icon:hover { border-color: var(--text); color: var(--text); }
     .btn-icon.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
+    /* --- RACK LIST --- */
     #rack-container {
         flex-grow: 1; overflow-y: auto; overflow-x: hidden;
-        padding: 12px; padding-bottom: 120px;
-        display: flex; flex-direction: column; gap: 16px;
+        padding: 0; /* Removed padding */
+        display: flex; flex-direction: column; 
+        gap: 0; /* Removed gap */
     }
 
     .rack {
-        background: var(--panel); border: 1px solid var(--border);
+        background: var(--panel); 
+        border-bottom: 1px solid var(--border); /* Only bottom border */
         height: var(--rack-height);
-        display: grid; grid-template-columns: 80px 1fr 50px;
-        overflow: hidden; border-radius: 4px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        transition: border-color 0.2s;
+        display: grid; grid-template-columns: 70px 1fr 60px;
+        overflow: hidden; 
+        position: relative;
     }
-    .rack.muted { opacity: 0.5; filter: grayscale(1); }
+    .rack.muted .screen-area { opacity: 0.3; filter: grayscale(1); }
+    .rack.paused .screen-area canvas { opacity: 0.5; }
 
+    /* --- CONTROLS LEFT (Dials) --- */
     .controls-left {
-        padding: 10px 0; border-right: 1px solid var(--border);
+        padding: 12px 0; border-right: 1px solid var(--border);
         display: flex; flex-direction: column; justify-content: space-between;
-        align-items: center; background: #0f0f0f;
+        align-items: center; background: #0d0d0d;
     }
-    .dial-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; }
-    .dial-svg { width: 40px; height: 40px; cursor: ns-resize; touch-action: none; }
+    .dial-wrapper { display: flex; flex-direction: column; align-items: center; width: 100%; height: 33%; justify-content: center; }
+    .dial-svg { width: 38px; height: 38px; cursor: ns-resize; touch-action: none; }
     .dial-bg { fill: none; stroke: #222; stroke-width: 3; }
     .dial-val { 
         fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; 
         stroke-dasharray: 0 100; transform: rotate(-90deg); transform-origin: 50% 50%;
     }
-    .dial-label { font-size: 8px; color: var(--text-dim); margin-top: 4px; font-weight: 700; }
+    .dial-label { font-size: 8px; color: var(--text-dim); margin-top: 4px; font-weight: 700; letter-spacing: 0.5px; }
 
+    /* --- SCREEN AREA --- */
     .screen-area { position: relative; background: #000; cursor: crosshair; overflow: hidden; }
     canvas { display: block; width: 100%; height: 100%; }
     
@@ -81,7 +103,7 @@
         display: flex; flex-direction: column; gap: 8px; pointer-events: none;
     }
     .tool-btn {
-        width: 32px; height: 32px; background: rgba(20,20,20,0.9);
+        width: 28px; height: 28px; background: rgba(20,20,20,0.9);
         border: 1px solid var(--border); border-radius: 4px; pointer-events: auto;
         color: var(--text-dim); font-size: 14px; display: grid; place-items: center;
         cursor: pointer; transition: all 0.2s;
@@ -95,59 +117,95 @@
         pointer-events: none; letter-spacing: 1px;
     }
 
+    /* --- CONTROLS RIGHT (Buttons) --- */
     .controls-right {
-        border-left: 1px solid var(--border); background: #111;
+        border-left: 1px solid var(--border); background: #0d0d0d;
         display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
-        padding: 6px;
+        padding: 8px 6px;
     }
     .btn-rect {
-        width: 100%; height: 36px; background: #181818; border: 1px solid var(--border);
+        width: 100%; height: 22%; /* Proportional height */
+        background: #181818; border: 1px solid var(--border);
         color: var(--text-dim); font-size: 9px; display: grid; place-items: center;
         cursor: pointer; border-radius: 2px; font-weight: 700; letter-spacing: 0.5px;
+        transition: all 0.1s;
     }
     .btn-rect.active { background: var(--accent); color: #000; border-color: var(--accent); }
+    .btn-rect:active { transform: scale(0.95); }
 
+    /* --- FAB --- */
     #fab {
-        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
         background: rgba(10,10,10,0.95); backdrop-filter: blur(8px);
         border: 1px solid var(--border); border-radius: 50px;
         padding: 8px 16px; display: flex; gap: 16px; align-items: center;
         box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 100;
     }
     .fab-play {
-        width: 60px; height: 60px; background: var(--accent); color: #000;
+        width: 64px; height: 64px; background: var(--accent); color: #000;
         border-radius: 50%; display: grid; place-items: center;
-        font-size: 26px; margin: -25px 0; border: 3px solid #000;
+        font-size: 28px; margin: -25px 0; border: 4px solid #000;
         cursor: pointer;
     }
 
-    #curtain {
-        position: fixed; inset: 0; background: #050505; z-index: 999;
+    /* --- MODALS --- */
+    .overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 999;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        transition: opacity 0.5s;
+        transition: opacity 0.3s; pointer-events: none; opacity: 0;
     }
+    .overlay.visible { opacity: 1; pointer-events: auto; }
+    
+    .modal-card { 
+        max-width: 300px; text-align: center; color: var(--text); line-height: 1.6; font-size: 12px; 
+    }
+    .modal-title { font-size: 18px; color: var(--accent); margin-bottom: 15px; font-weight: 800; letter-spacing: 2px; }
+    
     .loader-btn {
         background: transparent; border: 1px solid var(--accent); color: var(--accent);
         padding: 15px 40px; font-size: 12px; letter-spacing: 3px; font-weight: 800;
         margin-top: 30px; cursor: pointer; transition: all 0.2s;
     }
     .loader-btn:hover { background: var(--accent); color: #000; }
+    .close-btn { margin-top: 20px; text-decoration: underline; cursor: pointer; color: var(--text-dim); }
 
 </style>
 </head>
 <body>
 
-<div id="curtain">
+<!-- START SCREEN -->
+<div id="start-overlay" class="overlay visible">
     <div style="color:#555; font-size:10px; margin-bottom:12px; font-family:monospace; letter-spacing: 1px;">HYPERCLAY // SYSTEM_READY</div>
     <div style="font-family:monospace; color:var(--text); font-size:32px; font-weight:800; letter-spacing: -1px;">MANIFOLD</div>
     <div style="color:var(--accent); font-size:12px; letter-spacing: 4px; margin-top:5px;">MATRIX_GRID</div>
     <button class="loader-btn" id="start-btn">INITIALIZE</button>
 </div>
 
+<!-- HELP SCREEN -->
+<div id="help-overlay" class="overlay">
+    <div class="modal-card">
+        <div class="modal-title">ABOUT</div>
+        <p>HYPERCLAY MANIFOLD is a polyphonic mesh sequencer.</p>
+        <p><strong>SCULPT MODE:</strong> Drag on the canvas to warp the grid geometry. Higher terrain = Higher pitch.</p>
+        <p><strong>SEQ MODE:</strong> Tap cells to activate notes. Active notes trigger based on their mesh height.</p>
+        <div class="close-btn" onclick="document.getElementById('help-overlay').classList.remove('visible')">CLOSE</div>
+    </div>
+</div>
+
 <header>
-    <div class="brand">HYPERCLAY</div>
-    <div class="status">BPM <span id="bpm-display">110</span></div>
-    <button class="btn-icon" id="global-mute" title="Mute All">M</button>
+    <div class="header-grp">
+        <div class="brand">HYPERCLAY</div>
+        <div class="bpm-ctrl">
+            <button class="bpm-btn" id="bpm-dec">-</button>
+            <div class="bpm-val" id="bpm-display">110</div>
+            <button class="bpm-btn" id="bpm-inc">+</button>
+        </div>
+    </div>
+    <div class="header-grp">
+        <button class="btn-icon" id="btn-help" title="About">?</button>
+        <button class="btn-icon" id="btn-full" title="Fullscreen">⛶</button>
+        <button class="btn-icon" id="global-mute" title="Mute All">M</button>
+    </div>
 </header>
 
 <div id="rack-container"></div>
@@ -159,7 +217,7 @@
 <script>
 /**
  * HYPERCLAY // MANIFOLD
- * Stabilized Matrix Core
+ * v3.0 - Optimized UI
  */
 
 const CONFIG = {
@@ -309,7 +367,8 @@ class Rack {
     constructor(id, type, container) {
         this.id = id; this.type = type; this.baseColor = CONFIG.colors[type];
         this.params = { strength: 10, radius: 60, filter: 2000, decay: 400 };
-        this.mode = 'sculpt'; this.tool = 'push'; this.muted = false;
+        this.mode = 'sculpt'; this.tool = 'push'; 
+        this.muted = false; this.active = true; // Playing state
         
         // 16x6 Grid
         this.grid = Array(16).fill().map(() => Array(6).fill().map(() => ({ active: false, warp: 0 })));
@@ -335,8 +394,9 @@ class Rack {
                 </div>
             </div>
             <div class="controls-right">
-                <div class="btn-rect" data-a="clear">CLEAR</div>
+                <div class="btn-rect active" data-a="play">PLAY</div>
                 <div class="btn-rect" data-a="mute">MUTE</div>
+                <div class="btn-rect" data-a="clear">CLR</div>
                 <div class="btn-rect" data-a="mode">SCULPT</div>
             </div>`;
         container.appendChild(this.el);
@@ -360,7 +420,7 @@ class Rack {
 
     resize() {
         const rect = this.cv.parentElement.getBoundingClientRect();
-        if(rect.width === 0) return; // Guard against hidden/unmounted
+        if(rect.width === 0) return; 
         
         this.w = rect.width; this.h = rect.height;
         const dpr = window.devicePixelRatio || 1;
@@ -368,7 +428,7 @@ class Rack {
         this.ctx.scale(dpr, dpr);
         
         if (this.pts.length === 0) this.initMesh();
-        else this.initMesh(); // Force re-layout of points to new width
+        else this.initMesh(); 
     }
 
     initMesh() {
@@ -389,12 +449,10 @@ class Rack {
         const cols = 16, rows = 6;
         for(let c=0; c<cols; c++) {
             for(let r=0; r<rows; r++) {
-                // Avg height of the 2 left vertices of this cell
                 const tl = this.pts[r*(cols+1)+c];
                 const bl = this.pts[(r+1)*(cols+1)+c];
                 if(tl && bl) {
                     const avg = (tl.y + bl.y) / 2;
-                    // Warp 1.0 = Top, 0.0 = Bottom
                     this.grid[c][r].warp = Math.max(0, Math.min(1, 1 - (avg / this.h)));
                 }
             }
@@ -427,12 +485,31 @@ class Rack {
         });
         this.updateDials();
 
-        // Buttons
+        // Right Buttons
         const btns = this.el.querySelectorAll('.btn-rect');
-        btns[0].onclick = () => { this.initMesh(); this.grid.forEach(col => col.forEach(c => c.active=false)); };
-        btns[1].onclick = () => { this.muted = !this.muted; this.el.classList.toggle('muted'); btns[1].classList.toggle('active'); };
-        btns[2].onclick = () => { this.mode = this.mode==='sculpt'?'seq':'sculpt'; btns[2].innerText = this.mode.toUpperCase(); btns[2].classList.toggle('active'); };
+        // Play
+        btns[0].onclick = () => { 
+            this.active = !this.active; 
+            btns[0].classList.toggle('active', this.active);
+            btns[0].innerText = this.active ? "PLAY" : "PAUSED";
+            this.el.classList.toggle('paused', !this.active);
+        };
+        // Mute
+        btns[1].onclick = () => { 
+            this.muted = !this.muted; 
+            this.el.classList.toggle('muted', this.muted); 
+            btns[1].classList.toggle('active', this.muted); 
+        };
+        // Clear
+        btns[2].onclick = () => { this.initMesh(); this.grid.forEach(col => col.forEach(c => c.active=false)); };
+        // Mode
+        btns[3].onclick = () => { 
+            this.mode = this.mode==='sculpt'?'seq':'sculpt'; 
+            btns[3].innerText = this.mode.toUpperCase(); 
+            btns[3].classList.toggle('active', this.mode==='seq'); 
+        };
 
+        // Tools
         this.el.querySelectorAll('.tool-btn').forEach(b => b.onclick = () => {
             this.el.querySelectorAll('.tool-btn').forEach(btn=>btn.classList.remove('active'));
             b.classList.add('active'); this.tool = b.dataset.t;
@@ -459,14 +536,11 @@ class Rack {
     }
 
     handleTap(x, y) {
-        // Robust Quad Hit Test
         const cols=16, rows=6;
         for(let c=0; c<cols; c++) {
             for(let r=0; r<rows; r++) {
                 const p1 = this.pts[r*(cols+1)+c];
                 const p3 = this.pts[(r+1)*(cols+1)+(c+1)];
-                // Rough AABB check is sufficient and fast for this interaction
-                // Add padding for fat fingers
                 const minX = Math.min(p1.x, p3.x) - 2; 
                 const maxX = Math.max(p1.x, p3.x) + 2;
                 const minY = Math.min(p1.y, p3.y) - 2;
@@ -502,7 +576,7 @@ class Rack {
     }
 
     triggerColumn(step, time) {
-        if(this.muted) return;
+        if(this.muted || !this.active) return;
         this.grid[step].forEach(cell => {
             if(cell.active) {
                 const fn = Synths[this.type];
@@ -529,9 +603,8 @@ class Rack {
             for(let r=0; r<rows; r++) {
                 const cell = this.grid[c][r];
                 const active = cell.active;
-                const playing = this.currStep === c;
+                const playing = this.active && this.currStep === c;
                 
-                // Always draw faint grid for visibility
                 ctx.beginPath();
                 const p1 = this.pts[r*(cols+1)+c];
                 const p2 = this.pts[r*(cols+1)+(c+1)];
@@ -543,19 +616,15 @@ class Rack {
                 
                 if(active) {
                     ctx.fillStyle = this.baseColor;
-                    ctx.globalAlpha = 0.6 + (1 - r/rows)*0.3; // Gradient per row
+                    ctx.globalAlpha = 0.6 + (1 - r/rows)*0.3; 
                     ctx.fill();
                     ctx.globalAlpha = 1.0;
+                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
                 } else {
-                    // Empty cell marker
                     ctx.fillStyle = '#ffffff';
                     ctx.globalAlpha = 0.03;
                     ctx.fill();
                     ctx.globalAlpha = 1.0;
-                }
-                
-                if(active) {
-                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
                 }
 
                 if(playing) {
@@ -564,7 +633,7 @@ class Rack {
             }
         }
 
-        // Draw Mesh Lines (High Visibility)
+        // Draw Mesh Lines
         ctx.lineWidth = 0.5; ctx.strokeStyle = 'rgba(255,255,255,0.2)';
         ctx.beginPath();
         for(let c=0; c<=cols; c++) {
@@ -580,11 +649,6 @@ class Rack {
             }
         }
         ctx.stroke();
-        
-        // Sculpt Cursor
-        if(this.mode === 'sculpt' && this.isDown) {
-            // Visual feedback handled by point movement
-        }
     }
 }
 
@@ -604,10 +668,11 @@ const App = {
 
         document.getElementById('start-btn').onclick = () => {
             AudioEngine.init(); AudioEngine.resume();
-            document.getElementById('curtain').style.opacity = 0;
-            setTimeout(() => document.getElementById('curtain').remove(), 500);
-            // Force resize after layout settles
-            setTimeout(() => this.racks.forEach(r => r.resize()), 100);
+            document.getElementById('start-overlay').classList.remove('visible');
+            setTimeout(() => {
+                document.getElementById('start-overlay').style.display='none';
+                this.racks.forEach(r => r.resize());
+            }, 500);
         };
         
         document.getElementById('play-btn').onclick = () => AudioEngine.toggle();
@@ -620,9 +685,16 @@ const App = {
             e.target.classList.toggle('active', !anyMuted);
         };
 
+        // Header controls
+        document.getElementById('btn-help').onclick = () => document.getElementById('help-overlay').classList.add('visible');
+        document.getElementById('btn-full').onclick = () => {
+            if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+            else document.exitFullscreen();
+        };
+        document.getElementById('bpm-inc').onclick = () => { CONFIG.bpm+=5; document.getElementById('bpm-display').innerText = CONFIG.bpm; };
+        document.getElementById('bpm-dec').onclick = () => { CONFIG.bpm-=5; document.getElementById('bpm-display').innerText = CONFIG.bpm; };
+
         window.addEventListener('resize', () => this.racks.forEach(r => r.resize()));
-        
-        // Initial resize for immediate visual
         setTimeout(() => this.racks.forEach(r => r.resize()), 50);
         this.loop();
     },
