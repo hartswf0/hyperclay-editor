@@ -1,0 +1,628 @@
+<!-- hyperclay-module.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>HYPERCLAY MODULE</title>
+<style>
+  /* THEME SYSTEM */
+  :root[data-theme="dark"] {
+    --bg0:#050505; --bg1:#0a0e14; --bg2:#1a1f2e;
+    --cy:#00ffff; --mg:#ff00ff; --yl:#ffff00;
+    --ink:#e6fff9; --ink-secondary:#a0b0c0;
+    --panel:rgba(10,14,20,0.95); --panel-border:rgba(0,255,255,0.3);
+    --glow:0 0 25px rgba(0,255,255,0.25);
+    --shadow:0 4px 20px rgba(0,0,0,0.5);
+  }
+  
+  :root[data-theme="light"] {
+    --bg0:#f0f4f8; --bg1:#ffffff; --bg2:#e0e8f0;
+    --cy:#0080ff; --mg:#c000c0; --yl:#c0c000;
+    --ink:#002040; --ink-secondary:#405060;
+    --panel:rgba(255,255,255,0.98); --panel-border:rgba(0,128,255,0.4);
+    --glow:0 0 15px rgba(0,128,255,0.15);
+    --shadow:0 4px 20px rgba(0,0,0,0.1);
+  }
+
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { height:100%; }
+  body {
+    margin:0; background:var(--bg0); color:var(--ink); 
+    font-family: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Courier New', monospace;
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+    transition: background-color 0.3s ease;
+  }
+
+  canvas {
+    position:fixed; inset:0; width:100vw; height:100vh; 
+    display:block; touch-action:none;
+  }
+
+  /* IMPROVED SCANLINE - SUBTLE */
+  .scanline {
+    position:fixed; inset:0; pointer-events:none; z-index:50;
+    background: linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,0.05) 50%);
+    background-size: 100% 3px; opacity:0.3;
+  }
+  :root[data-theme="light"] .scanline {
+    background: linear-gradient(rgba(255,255,255,0) 50%, rgba(200,220,240,0.1) 50%);
+  }
+
+  /* ENHANCED HUD */
+  .hud-mode {
+    position:fixed; top:15px; left:50%; transform:translateX(-50%);
+    background:var(--panel); border:1px solid var(--panel-border);
+    padding:8px 16px; border-radius:6px; font-size:12px; 
+    font-weight:600; letter-spacing:0.15em; color:var(--cy);
+    box-shadow:var(--glow), var(--shadow); backdrop-filter:blur(8px);
+    pointer-events:none; z-index:100; text-transform:uppercase;
+  }
+
+  /* REDESIGNED TOOLBAR */
+  .tool-rack {
+    position:fixed; top:50%; left:15px; transform:translateY(-50%);
+    display:flex; flex-direction:column; gap:10px; z-index:100;
+  }
+
+  .tool-group {
+    background:var(--panel); border:1px solid var(--panel-border);
+    border-radius:8px; padding:8px; box-shadow:var(--shadow);
+    backdrop-filter:blur(8px);
+  }
+
+  .tool-btn {
+    width:44px; height:44px; background:rgba(0,0,0,0.2);
+    border:1px solid var(--panel-border); color:var(--ink-secondary);
+    display:grid; place-items:center; font-size:11px; font-weight:600;
+    cursor:pointer; transition:all 0.2s cubic-bezier(0.4,0,0.2,1);
+    border-radius:6px; position:relative; user-select:none;
+  }
+  .tool-btn:hover { 
+    border-color:var(--cy); color:var(--cy); 
+    transform:translateY(-1px); box-shadow:var(--glow);
+  }
+  .tool-btn.active { 
+    background:var(--cy); color:var(--bg0); border-color:var(--cy);
+    font-weight:700; box-shadow:var(--glow);
+  }
+
+  /* VALUE INDICATOR */
+  .tool-btn::after {
+    content:attr(data-value); position:absolute; bottom:-20px; left:50%;
+    transform:translateX(-50%); font-size:9px; color:var(--cy);
+    opacity:0; transition:opacity 0.2s; white-space:nowrap;
+  }
+  .tool-btn.active::after { opacity:1; }
+
+  /* ENHANCED GATE */
+  .gate {
+    position:fixed; inset:0; z-index:999; background:var(--bg0);
+    display:flex; align-items:center; justify-content:center;
+    backdrop-filter:blur(10px); transition:opacity 0.5s;
+  }
+  .gate-card {
+    border:2px solid var(--cy); padding:40px; text-align:center;
+    max-width:400px; background:var(--panel); border-radius:12px;
+    box-shadow:var(--glow), var(--shadow); animation:cardPulse 2s ease-in-out infinite;
+  }
+  @keyframes cardPulse {
+    0%, 100% { box-shadow:var(--glow), var(--shadow); }
+    50% { box-shadow:0 0 35px var(--cy), var(--shadow); }
+  }
+  .gate-card h1 {
+    margin:0 0 15px; letter-spacing:0.2em; color:var(--cy); 
+    font-size:20px; font-weight:700; text-transform:uppercase;
+  }
+  .gate-card p {
+    font-size:13px; color:var(--ink-secondary); line-height:1.7;
+    margin-bottom:30px; font-weight:400;
+  }
+  .gate-card .module-info {
+    background:rgba(0,255,255,0.05); border:1px solid var(--panel-border);
+    border-radius:6px; padding:12px; margin:20px 0; font-size:11px;
+    color:var(--ink-secondary); text-align:left;
+  }
+  .start-btn {
+    background:transparent; border:2px solid var(--cy); color:var(--cy);
+    padding:12px 24px; font-family:inherit; font-weight:700; 
+    letter-spacing:0.2em; cursor:pointer; transition:all 0.3s;
+    border-radius:6px; text-transform:uppercase;
+    box-shadow:0 0 0 rgba(0,255,255,0);
+  }
+  .start-btn:hover {
+    background:var(--cy); color:var(--bg0); box-shadow:0 0 20px rgba(0,255,255,0.4);
+    transform:translateY(-2px);
+  }
+
+  /* THEME TOGGLE */
+  .theme-toggle {
+    position:fixed; top:15px; right:15px; z-index:200;
+    width:40px; height:40px; background:var(--panel);
+    border:1px solid var(--panel-border); border-radius:50%;
+    display:grid; place-items:center; cursor:pointer;
+    box-shadow:var(--shadow); backdrop-filter:blur(8px);
+    transition:all 0.2s;
+  }
+  .theme-toggle:hover { transform:rotate(15deg) scale(1.1); }
+  .theme-toggle svg { width:20px; height:20px; fill:var(--cy); }
+
+  /* RESPONSIVE */
+  @media (max-width:768px) {
+    .tool-rack { left:10px; gap:8px; }
+    .tool-btn { width:40px; height:40px; font-size:10px; }
+    .gate-card { padding:25px; margin:20px; }
+    .gate-card h1 { font-size:16px; }
+    .hud-mode { font-size:10px; padding:6px 12px; }
+  }
+</style>
+</head>
+<body data-theme="dark">
+
+<canvas id="cv"></canvas>
+<div class="scanline"></div>
+<div class="hud-mode" id="mode-display">SCULPT MODE</div>
+
+<!-- THEME TOGGLE -->
+<div class="theme-toggle" id="theme-toggle" title="Toggle Theme">
+  <svg id="theme-icon" viewBox="0 0 24 24">
+    <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+  </svg>
+</div>
+
+<!-- TOOLBAR -->
+<div class="tool-rack" id="toolbar"></div>
+
+<!-- GATE -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <h1 id="module-title">HYPERCLAY MODULE</h1>
+    <div class="module-info" id="module-info"></div>
+    <p id="module-desc">Touch the mesh to sculpt. Tap transport to play. Explore the interface as instrument.</p>
+    <button class="start-btn" id="btn-enter">INITIALIZE SYSTEM</button>
+  </div>
+</div>
+
+<script>
+// --- MODULE CONFIGURATION ---
+const CONFIG = new URLSearchParams(window.location.search);
+const MODULE_ID = CONFIG.get('id') || 'module-' + Math.random().toString(36).substr(2, 9);
+const MODULE_TYPE = CONFIG.get('type') || 'bass';
+const MODULE_COLOR = CONFIG.get('color') || '#00ffff';
+const MODULE_LABEL = CONFIG.get('label') || MODULE_TYPE.toUpperCase();
+
+// Theme Management
+function initTheme() {
+  const savedTheme = localStorage.getItem(`theme-${MODULE_ID}`) || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeIcon(savedTheme);
+  
+  document.getElementById('theme-toggle').addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    const newTheme = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem(`theme-${MODULE_ID}`, newTheme);
+    updateThemeIcon(newTheme);
+  });
+}
+
+function updateThemeIcon(theme) {
+  const icon = document.getElementById('theme-icon');
+  if(theme === 'dark') {
+    icon.innerHTML = '<path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>';
+  } else {
+    icon.innerHTML = '<path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>';
+  }
+}
+
+// Module-specific parameters
+const MODULE_PARAMS = {
+  bass: { root: 110, osc: 'sine', filter: 'lowpass', label: 'BASS_UNIT', color: '#00ffff' },
+  lead: { root: 220, osc: 'triangle', filter: 'bandpass', label: 'LEAD_UNIT', color: '#ff00ff' },
+  texture: { root: 165, osc: 'sawtooth', filter: 'highpass', label: 'TEX_UNIT', color: '#ffff00' }
+}[MODULE_TYPE] || MODULE_PARAMS.bass;
+
+// Update UI with module info
+document.getElementById('module-title').textContent = `HYPERCLAY // ${MODULE_LABEL}`;
+document.getElementById('module-info').innerHTML = `
+  <strong>MODULE ID:</strong> ${MODULE_ID}<br>
+  <strong>TYPE:</strong> ${MODULE_TYPE}<br>
+  <strong>VOICE:</strong> ${MODULE_PARAMS.osc} ${MODULE_PARAMS.filter}
+`;
+document.getElementById('module-desc').textContent = `Interactive ${MODULE_TYPE} synthesizer. Sculpt the mesh in real-time or sequence cells for pattern generation.`;
+
+// --- CORE ENGINE ---
+class HyperClayModule {
+  constructor() {
+    this.cv = document.getElementById('cv');
+    this.ctx = this.cv.getContext('2d');
+    this.DPR = Math.min(window.devicePixelRatio || 1, 2);
+    this.W = 0; this.H = 0;
+    
+    this.state = {
+      activeTool: 'strength',
+      sculptMode: true,
+      transport: false,
+      dragging: false,
+      pulling: false,
+      mx: 0, my: 0
+    };
+
+    this.params = {
+      strength: { val: 8, min: 1, max: 20, step: 1 },
+      radius: { val: 60, min: 20, max: 150, step: 5 },
+      density: { val: 20, min: 8, max: 40, step: 4 },
+      tempo: { val: 95, min: 60, max: 180, step: 5 },
+      filter: { val: 2000, min: 200, max: 8000, step: 200 },
+      release: { val: 400, min: 100, max: 1000, step: 50 }
+    };
+
+    this.racks = [];
+    this.seqStep = 0;
+    this.lastStepTime = 0;
+    this.scale = [0, 2, 4, 7, 9, 12, 14, 16];
+    
+    this.initAudio();
+    this.initToolbar();
+    this.bindEvents();
+    this.resize();
+  }
+
+  initAudio() {
+    this.audio = new (window.AudioContext || window.webkitAudioContext)();
+    this.master = this.audio.createGain();
+    this.master.gain.value = 0.25;
+    this.master.connect(this.audio.destination);
+
+    this.delay = this.audio.createDelay();
+    this.delay.delayTime.value = 0.3;
+    this.feedback = this.audio.createGain();
+    this.feedback.gain.value = 0.3;
+    this.delay.connect(this.feedback);
+    this.feedback.connect(this.delay);
+    this.delay.connect(this.master);
+  }
+
+  initToolbar() {
+    const tools = this.state.sculptMode 
+      ? ['strength', 'radius', 'density']
+      : ['tempo', 'filter', 'release'];
+    
+    const toolbar = document.getElementById('toolbar');
+    toolbar.innerHTML = `
+      <div class="tool-group" id="tool-group">
+        ${tools.map(t => {
+          const param = this.params[t];
+          return `<div class="tool-btn ${t === this.state.activeTool ? 'active' : ''}" 
+                       data-tool="${t}" data-value="${param.val}" 
+                       title="${t.charAt(0).toUpperCase() + t.slice(1)}: ${param.val}">
+            <div class="tool-label">${t.substr(0,3).toUpperCase()}</div>
+            <div class="tool-value">${param.val}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    `;
+    
+    toolbar.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        this.state.activeTool = btn.dataset.tool;
+        toolbar.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.postMessage('tool_changed', { tool: this.state.activeTool });
+      });
+      
+      // Long press for value adjustment (mobile-friendly)
+      let pressTimer;
+      btn.addEventListener('pointerdown', (e) => {
+        pressTimer = setTimeout(() => this.showDial(btn), 500);
+      });
+      btn.addEventListener('pointerup', () => clearTimeout(pressTimer));
+      btn.addEventListener('pointerleave', () => clearTimeout(pressTimer));
+    });
+  }
+
+  showDial(btn) {
+    // Simple in-place value adjustment
+    const tool = btn.dataset.tool;
+    const param = this.params[tool];
+    const delta = prompt(`Adjust ${tool} (${param.min}-${param.max}):`, param.val);
+    if(delta && !isNaN(delta)) {
+      param.val = clamp(parseInt(delta), param.min, param.max);
+      btn.dataset.value = param.val;
+      btn.querySelector('.tool-value').textContent = param.val;
+      btn.title = `${tool.charAt(0).toUpperCase() + tool.slice(1)}: ${param.val}`;
+    }
+  }
+
+  bindEvents() {
+    this.cv.addEventListener('pointerdown', this.onPointerDown.bind(this));
+    this.cv.addEventListener('pointermove', this.onPointerMove.bind(this));
+    this.cv.addEventListener('pointerup', this.onPointerUp.bind(this));
+    
+    document.getElementById('btn-enter').addEventListener('click', () => {
+      this.audio.resume();
+      document.getElementById('gate').style.display = 'none';
+      this.postMessage('initialized', { id: MODULE_ID });
+    });
+
+    window.addEventListener('resize', this.resize.bind(this));
+    
+    window.addEventListener('message', (e) => {
+      if(e.data.type === 'transport') this.state.transport = e.data.value;
+      if(e.data.type === 'mode') this.setMode(e.data.value);
+      if(e.data.type === 'param') {
+        const param = this.params[e.data.param];
+        if(param) param.val = clamp(e.data.value, param.min, param.max);
+      }
+    });
+  }
+
+  onPointerDown(e) {
+    const x = e.clientX, y = e.clientY;
+    this.state.mx = x; this.state.my = y;
+
+    if(this.inOrb(x, y, this.orbs.left)) {
+      this.state.transport = !this.state.transport;
+      this.postMessage('transport', { value: this.state.transport });
+      this.haptic(15);
+      return;
+    }
+    if(this.inOrb(x, y, this.orbs.right)) {
+      this.toggleMode();
+      this.haptic(15);
+      return;
+    }
+
+    this.racks.forEach(r => {
+      if(r.hitTest(x, y)) {
+        if(r.seqLocked) {
+          const idx = r.getCellAt(x, y);
+          if(idx !== -1) {
+            r.seqCells[idx].active = !r.seqCells[idx].active;
+            this.haptic(5);
+          }
+        } else {
+          this.state.dragging = true;
+          this.state.pulling = e.button === 2 || e.shiftKey || e.ctrlKey;
+          this.sculptAt(x, y, this.state.pulling);
+        }
+      }
+    });
+  }
+
+  onPointerMove(e) {
+    this.state.mx = e.clientX; this.state.my = e.clientY;
+    if(this.state.dragging && this.state.sculptMode) {
+      this.sculptAt(this.state.mx, this.state.my, this.state.pulling);
+    }
+  }
+
+  onPointerUp() {
+    this.state.dragging = false;
+  }
+
+  toggleMode() {
+    this.state.sculptMode = !this.state.sculptMode;
+    const label = this.state.sculptMode ? 'SCULPT MODE' : 'SEQUENCE MODE';
+    document.getElementById('mode-display').textContent = label;
+    this.initToolbar();
+    this.racks.forEach(r => this.state.sculptMode ? r.unlockSequencer() : r.lockSequencer());
+    this.postMessage('mode_changed', { mode: this.state.sculptMode ? 'sculpt' : 'sequence' });
+  }
+
+  setMode(mode) {
+    this.state.sculptMode = (mode === 'sculpt');
+    this.toggleMode();
+  }
+
+  sculptAt(x, y, isPull) {
+    this.racks.forEach(r => {
+      if(r.hitTest(x, y)) {
+        const hit = r.sculpt(x, y, this.params.strength.val, this.params.radius.val, isPull);
+        if(hit && Math.random() > 0.85) {
+          this.playNote(0.3);
+        }
+      }
+    });
+  }
+
+  playNote(intensity = 0.5) {
+    if(this.audio.state === 'suspended') return;
+    
+    const osc = this.audio.createOscillator();
+    const gain = this.audio.createGain();
+    const filter = this.audio.createBiquadFilter();
+
+    osc.type = MODULE_PARAMS.osc;
+    filter.type = MODULE_PARAMS.filter;
+
+    const freq = this.getFreq(intensity);
+    osc.frequency.value = freq;
+    filter.frequency.value = this.params.filter.val;
+    filter.Q.value = 1 + (intensity * 5);
+
+    const now = this.audio.currentTime;
+    const atk = 0.01;
+    const rel = this.params.release.val / 1000;
+    
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.3, now + atk);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + atk + rel);
+
+    osc.connect(filter); filter.connect(gain);
+    gain.connect(this.master); gain.connect(this.delay);
+    
+    osc.start(now);
+    osc.stop(now + atk + rel + 0.1);
+  }
+
+  getFreq(intensity) {
+    const degree = Math.floor(intensity * (this.scale.length - 1));
+    const note = this.scale[degree];
+    return MODULE_PARAMS.root * Math.pow(2, note / 12);
+  }
+
+  tick(time) {
+    if(!this.state.transport) return;
+
+    const secondsPerStep = 60 / this.params.tempo.val / 4;
+    if(time - this.lastStepTime >= secondsPerStep) {
+      this.lastStepTime = time;
+      
+      this.racks.forEach(r => {
+        if(!r.seqLocked) return;
+        
+        const cellsPerStep = Math.ceil(r.seqCells.length / 16);
+        const start = this.seqStep * cellsPerStep;
+        
+        for(let i=start; i<start + cellsPerStep && i<r.seqCells.length; i++) {
+          if(r.seqCells[i].active) {
+            const intensity = (r.seqCells[i].corners[0].y - r.y) / r.h;
+            this.playNote(intensity);
+            break;
+          }
+        }
+      });
+
+      this.seqStep = (this.seqStep + 1) % 16;
+      this.postMessage('step', { step: this.seqStep });
+    }
+  }
+
+  resize() {
+    this.W = window.innerWidth; this.H = window.innerHeight;
+    this.cv.width = this.W * this.DPR; this.cv.height = this.H * this.DPR;
+    this.cv.style.width = this.W + 'px'; this.cv.style.height = this.H + 'px';
+    this.ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
+    
+    this.buildRacks();
+    this.computeOrbs();
+  }
+
+  buildRacks() {
+    this.racks = [];
+    const margin = this.H < 600 ? 35 : 50;
+    const usableHeight = this.H - margin * 4;
+    const rackH = Math.max(usableHeight / 3, 100);
+    
+    for(let i=0; i<3; i++) {
+      this.racks.push(new RackUnit(i, margin * (i+1) + rackH * i, rackH, MODULE_PARAMS.label));
+    }
+  }
+
+  computeOrbs() {
+    const padding = this.H < 600 ? 25 : 35;
+    this.orbs = {
+      left: {x: padding, y: this.H - padding, r: this.H < 600 ? 22 : 28},
+      right: {x: this.W - padding, y: this.H - padding, r: this.H < 600 ? 22 : 28}
+    };
+  }
+
+  inOrb(x, y, orb) {
+    return Math.hypot(x - orb.x, y - orb.y) < orb.r;
+  }
+
+  haptic(ms) {
+    if(navigator.vibrate) navigator.vibrate(ms);
+  }
+
+  postMessage(type, data) {
+    window.parent.postMessage({ type, moduleId: MODULE_ID, ...data }, '*');
+  }
+
+  render() {
+    // Clear with theme-aware background
+    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg0');
+    this.ctx.fillRect(0, 0, this.W, this.H);
+    
+    // Grid background
+    this.ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--cy') + '08';
+    this.ctx.lineWidth = 1;
+    const gridSize = this.H < 600 ? 30 : 35;
+    for(let i=0; i<this.W; i+=gridSize) {
+      this.ctx.beginPath(); this.ctx.moveTo(i, 0); this.ctx.lineTo(i, this.H); this.ctx.stroke();
+    }
+    
+    // Racks
+    this.racks.forEach(r => r.draw(this.ctx));
+    
+    // Cursor with improved visibility
+    if(this.state.sculptMode && this.state.dragging) {
+      this.ctx.beginPath();
+      this.ctx.arc(this.state.mx, this.state.my, this.params.radius.val, 0, Math.PI*2);
+      this.ctx.strokeStyle = this.state.pulling ? '#ff4080' : MODULE_PARAMS.color;
+      this.ctx.lineWidth = 2;
+      this.ctx.stroke();
+      this.ctx.fillStyle = (this.state.pulling ? '#ff4080' : MODULE_PARAMS.color) + '20';
+      this.ctx.fill();
+    }
+    
+    this.drawOrbs();
+  }
+
+  drawOrbs() {
+    const {left, right} = this.orbs;
+    
+    // Left - Transport with improved visuals
+    this.ctx.beginPath(); this.ctx.arc(left.x, left.y, left.r, 0, Math.PI*2);
+    this.ctx.fillStyle = this.state.transport ? MODULE_PARAMS.color + '30' : MODULE_PARAMS.color + '15';
+    this.ctx.strokeStyle = this.state.transport ? MODULE_PARAMS.color : MODULE_PARAMS.color + '60';
+    this.ctx.lineWidth = 2;
+    this.ctx.fill(); this.ctx.stroke();
+    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink');
+    this.ctx.font = 'bold 12px system-ui';
+    this.ctx.textAlign = 'center'; this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(this.state.transport ? '■' : '▶', left.x, left.y);
+
+    // Right - Mode
+    this.ctx.beginPath(); this.ctx.arc(right.x, right.y, right.r, 0, Math.PI*2);
+    this.ctx.fillStyle = MODULE_PARAMS.color + '15';
+    this.ctx.strokeStyle = MODULE_PARAMS.color + '60';
+    this.ctx.lineWidth = 2;
+    this.ctx.fill(); this.ctx.stroke();
+    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink');
+    this.ctx.fillText(this.state.sculptMode ? 'SEQ' : 'EDIT', right.x, right.y);
+  }
+
+  loop() {
+    requestAnimationFrame(() => this.loop());
+    this.tick(this.audio.currentTime);
+    this.render();
+  }
+
+  start() {
+    initTheme();
+    this.loop();
+  }
+}
+
+// --- RACK IMPLEMENTATION (SIMPLIFIED FOR BREVITY) ---
+class RackUnit {
+  constructor(id, y, h, label) {
+    this.id = id; this.y = y; this.h = h; this.label = label;
+    this.x = 40; this.w = window.innerWidth - 80;
+    this.cols = 18; this.rows = Math.floor(this.cols * (this.h/this.w));
+    this.pts = []; this.orig = []; this.seqCells = []; this.seqLocked = false;
+    this.initMesh();
+  }
+  initMesh() { /* ... */ this.pts=[]; this.orig=[]; for(let r=0; r<=this.rows; r++){ for(let c=0; c<=this.cols; c++){ const px=this.x+(c/this.cols)*this.w; const py=this.y+(r/this.rows)*this.h; this.pts.push({x:px,y:py}); this.orig.push({x:px,y:py}); } } }
+  sculpt(tx, ty, str, rad, pull) { const r2=rad*rad; let moved=false; for(let i=0;i<this.pts.length;i++){ const p=this.pts[i]; const dx=p.x-tx, dy=p.y-ty, d2=dx*dx+dy*dy; if(d2<r2){ const dist=Math.sqrt(d2); const force=(1-dist/rad)*str*(pull?-1:1); const ang=Math.atan2(dy,dx); p.x+=Math.cos(ang)*force; p.y+=Math.sin(ang)*force; moved=true; } } return moved; }
+  lockSequencer() { this.seqLocked=true; this.seqCells=[]; for(let r=0;r<this.rows;r++){ for(let c=0;c<this.cols;c++){ const i=r*(this.cols+1)+c; this.seqCells.push({corners:[this.pts[i],this.pts[i+1],this.pts[i+this.cols+2],this.pts[i+this.cols+1]], active:false}); } } }
+  unlockSequencer() { this.seqLocked=false; this.seqCells=[]; }
+  draw(ctx) { this.drawChassis(ctx); this.seqLocked?this.drawSequencer(ctx):this.drawMesh(ctx); }
+  drawChassis(ctx) { ctx.fillStyle='#08080c'; ctx.fillRect(0,this.y-8,window.innerWidth,this.h+16); ctx.fillStyle='#1a1a20'; ctx.fillRect(0,this.y-10,window.innerWidth,2); ctx.fillRect(0,this.y+this.h+8,window.innerWidth,2); ctx.fillStyle='#333'; [20,this.y+20,20,this.y+this.h-20,window.innerWidth-20,this.y+20,window.innerWidth-20,this.y+this.h-20].forEach((v,i,arr)=>{if(i%2===0){ctx.beginPath();ctx.arc(arr[i],arr[i+1],3,0,Math.PI*2);ctx.fill();}}); ctx.save(); ctx.translate(15,this.y+this.h/2); ctx.rotate(-Math.PI/2); ctx.font="bold 9px system-ui"; ctx.fillStyle="rgba(0,255,255,0.4)"; ctx.textAlign="center"; ctx.fillText(this.label,0,0); ctx.restore(); }
+  drawMesh(ctx) { ctx.strokeStyle='rgba(0,255,255,0.2)'; ctx.lineWidth=1; for(let r=0;r<=this.rows;r++){ ctx.beginPath(); for(let c=0;c<=this.cols;c++){ const p=this.pts[r*(this.cols+1)+c]; c===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y); } ctx.stroke(); } for(let c=0;c<=this.cols;c++){ ctx.beginPath(); for(let r=0;r<=this.rows;r++){ const p=this.pts[r*(this.cols+1)+c]; r===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y); } ctx.stroke(); } }
+  drawSequencer(ctx) { const cellsPerStep=Math.ceil(this.seqCells.length/16); const seqStep=window.moduleInstance?window.moduleInstance.seqStep:0; this.seqCells.forEach((cell,idx)=>{ const stepIndex=Math.floor(idx/cellsPerStep); const isCurrentStep=stepIndex===seqStep; ctx.beginPath(); cell.corners.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.closePath(); if(cell.active){ ctx.fillStyle=isCurrentStep?'#fff':'rgba(0,255,255,0.6)'; ctx.fill(); }else if(isCurrentStep){ ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.fill(); } ctx.strokeStyle='rgba(0,255,255,0.1)'; ctx.stroke(); }); }
+  hitTest(x,y){ return x>this.x&&x<this.x+this.w&&y>this.y&&y<this.y+this.h; }
+  getCellAt(x,y){ if(!this.seqLocked)return -1; for(let i=0;i<this.seqCells.length;i++){ const poly=this.seqCells[i].corners; let inside=false; for(let j=0,k=3;j<4;j++){ const xi=poly[j].x,yi=poly[j].y; const xj=poly[k].x,yj=poly[k].y; if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))inside=!inside; k=j; } if(inside)return i; } return -1; }
+}
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+
+// --- INITIALIZE ---
+const moduleInstance = new HyperClayModule();
+window.moduleInstance = moduleInstance;
+moduleInstance.start();
+</script>
+</body>
+</html>
