@@ -1,0 +1,492 @@
+<!-- hyperclay-terminal-module.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>MODULE // HYPERCLAY</title>
+<style>
+  :root {
+    --bg: #000;
+    --panel: #0a0a0a;
+    --accent: #00ffff;
+    --accent-dim: #0ff3;
+    --text: #666;
+    --h: 140px; /* Slimmer than reference */
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+  
+  body {
+    margin: 0; background: var(--bg);
+    height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: 'Courier New', monospace; overflow: hidden;
+  }
+
+  /* MAIN RACK - 3 COLUMN LAYOUT */
+  .rack {
+    width: 100%; max-width: 1200px; height: var(--h);
+    background: var(--panel);
+    border-top: 1px solid #222; border-bottom: 1px solid #222;
+    display: grid;
+    grid-template-columns: 160px 1fr 80px; /* Controls | Canvas | Transport */
+    box-shadow: 0 10px 30px #000;
+  }
+
+  /* LEFT: PARAMETER DIALS */
+  .controls-left {
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 8px;
+    border-right: 1px solid #222;
+  }
+
+  .dial-wrapper {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  
+  .dial-svg {
+    width: 44px; height: 44px; cursor: ns-resize; touch-action: none;
+  }
+  
+  .dial-bg {
+    fill: none; stroke: #1a1a1a; stroke-width: 3;
+  }
+  
+  .dial-val {
+    fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round;
+    stroke-dasharray: 0 100; transform: rotate(-90deg); transform-origin: 50% 50%;
+    transition: stroke-dasharray 0.1s;
+  }
+  
+  .dial-label {
+    font-size: 8px; color: var(--text); margin-top: 2px; letter-spacing: 1px;
+  }
+
+  /* CENTER: CANVAS */
+  .screen-area {
+    position: relative; background: #000; overflow: hidden; cursor: crosshair;
+  }
+  
+  canvas { display: block; width: 100%; height: 100%; }
+  
+  .toolbar {
+    position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 6px; z-index: 10;
+  }
+  
+  .tool-btn {
+    width: 32px; height: 32px; background: rgba(20,20,20,0.8);
+    border: 1px solid #222; border-radius: 4px;
+    color: var(--text); font-size: 16px; display: grid; place-items: center;
+    cursor: pointer; backdrop-filter: blur(2px); transition: all 0.2s;
+  }
+  
+  .tool-btn.active {
+    border-color: var(--accent); color: var(--accent);
+    box-shadow: 0 0 8px var(--accent-dim);
+  }
+
+  /* RIGHT: TRANSPORT */
+  .controls-right {
+    border-left: 1px solid #222;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-evenly;
+    padding: 10px;
+  }
+  
+  .btn-rect {
+    width: 56px; height: 28px;
+    background: #111; border: 1px solid #222;
+    color: var(--text); font-size: 9px; letter-spacing: 1px;
+    display: grid; place-items: center; cursor: pointer;
+    border-radius: 2px; transition: all 0.2s;
+  }
+  
+  .btn-rect:hover {
+    border-color: var(--accent-dim); color: var(--accent);
+  }
+  
+  .btn-circle {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid #222; display: grid; place-items: center;
+    color: var(--text); cursor: pointer; transition: all 0.2s;
+  }
+  
+  .btn-circle.playing {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  /* MOBILE */
+  @media (max-width: 600px) {
+    .rack { grid-template-columns: 140px 1fr 70px; }
+    .dial-svg { width: 36px; height: 36px; }
+    .toolbar { left: 5px; gap: 4px; }
+    .tool-btn { width: 28px; height: 28px; font-size: 14px; }
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<div class="rack">
+  
+  <!-- LEFT: DIALS -->
+  <div class="controls-left">
+    <div class="dial-wrapper">
+      <svg class="dial-svg" data-param="strength" data-min="1" data-max="20" data-val="8" viewBox="0 0 36 36">
+        <path class="dial-bg" d="M18 2.0845 A 15.9155 15.9155 0 0 1 18 33.9155" />
+        <path class="dial-val" d="M18 2.0845 A 15.9155 15.9155 0 0 1 18 33.9155" />
+      </svg>
+      <div class="dial-label">STRENGTH</div>
+    </div>
+    
+    <div class="dial-wrapper">
+      <svg class="dial-svg" data-param="radius" data-min="20" data-max="150" data-val="60" viewBox="0 0 36 36">
+        <path class="dial-bg" d="M18 2.0845 A 15.9155 15.9155 0 0 1 18 33.9155" />
+        <path class="dial-val" d="M18 2.0845 A 15.9155 15.9155 0 0 1 18 33.9155" />
+      </svg>
+      <div class="dial-label">RADIUS</div>
+    </div>
+    
+    <div class="dial-wrapper">
+      <svg class="dial-svg" data-param="filter" data-min="200" data-max="8000" data-val="2000" viewBox="0 0 36 36">
+        <path class="dial-bg" d="M18 2.0845 A 15.9155 15.9155 0 0 1 18 33.9155" />
+        <path class="dial-val" d="M18 2.0845 A 15.9155 15.9155 0 0 1 18 33.9155" />
+      </svg>
+      <div class="dial-label">FILTER</div>
+    </div>
+    
+    <div class="dial-wrapper">
+      <svg class="dial-svg" data-param="release" data-min="100" data-max="1000" data-val="400" viewBox="0 0 36 36">
+        <path class="dial-bg" d="M18 2.0845 A 15.9155 15.9155 0 0 1 18 33.9155" />
+        <path class="dial-val" d="M18 2.0845 A 15.9155 15.9155 0 0 1 18 33.9155" />
+      </svg>
+      <div class="dial-label">RELEASE</div>
+    </div>
+  </div>
+
+  <!-- CENTER: CANVAS -->
+  <div class="screen-area" id="screen">
+    <canvas id="cv"></canvas>
+    
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="tool-btn active" data-tool="push" title="Push">●</div>
+      <div class="tool-btn" data-tool="pull" title="Pull">○</div>
+      <div class="tool-btn" data-tool="noise" title="Noise">∿</div>
+      <div class="tool-btn" data-tool="smooth" title="Smooth">≈</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: TRANSPORT -->
+  <div class="controls-right">
+    <div class="btn-rect" id="btn-clear">CLEAR</div>
+    <div class="btn-circle" id="btn-play">▶</div>
+    <div class="btn-rect" id="btn-mode">SCULPT</div>
+  </div>
+
+</div>
+
+<script>
+// === CONFIGURATION ===
+const CONFIG = new URLSearchParams(window.location.search);
+const MODULE_ID = CONFIG.get('id') || 'module-' + Math.random().toString(36).substr(2, 9);
+const MODULE_TYPE = CONFIG.get('type') || 'bass';
+const MODULE_SPECS = {
+  bass: { root: 110, osc: 'sine', filter: 'lowpass', label: 'BASS', color: '#00ffff' },
+  lead: { root: 220, osc: 'triangle', filter: 'bandpass', label: 'LEAD', color: '#ff00ff' },
+  texture: { root: 165, osc: 'sawtooth', filter: 'highpass', label: 'TEXTURE', color: '#ffff00' }
+}[MODULE_TYPE] || MODULE_SPECS.bass;
+
+// === MODULE STATE ===
+const state = {
+  tool: 'push',
+  mode: 'sculpt', // sculpt or sequence
+  transport: false,
+  seqStep: 0,
+  lastStepTime: 0,
+  dragging: false,
+  pulling: false,
+  mx: 0, my: 0
+};
+
+const params = {
+  strength: 8,
+  radius: 60,
+  filter: 2000,
+  release: 400
+};
+
+// === AUDIO ===
+let audio = null, master = null, delay = null, fb = null;
+
+function initAudio() {
+  if(audio) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  audio = new AC();
+  master = audio.createGain();
+  master.gain.value = 0.3;
+  master.connect(audio.destination);
+  
+  delay = audio.createDelay();
+  delay.delayTime.value = 0.3;
+  fb = audio.createGain();
+  fb.gain.value = 0.3;
+  delay.connect(fb);
+  fb.connect(delay);
+  delay.connect(master);
+}
+
+// === CANVAS & RACK ===
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, cols = 0, rows = 0, pts = [];
+
+function resize() {
+  const rect = document.getElementById('screen').getBoundingClientRect();
+  W = rect.width; H = rect.height;
+  cv.width = W; cv.height = H;
+  
+  cols = Math.floor(W / 25);
+  rows = 8; // Fixed rows for horizontal flow
+  initMesh();
+}
+window.addEventListener('resize', resize);
+
+function initMesh() {
+  pts = [];
+  for(let r=0; r<=rows; r++) {
+    for(let c=0; c<=cols; c++) {
+      const x = (c / cols) * W;
+      const y = (r / rows) * H;
+      pts.push({ x, y, ox: x, oy: y });
+    }
+  }
+}
+
+// === RENDER ===
+function render() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  
+  // Base grid (subtle)
+  ctx.strokeStyle = MODULE_SPECS.color + '20';
+  ctx.lineWidth = 1;
+  for(let c=0; c<=cols; c++) {
+    const x = (c / cols) * W;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for(let r=0; r<=rows; r++) {
+    const y = (r / rows) * H;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  
+  // Active mesh (highlighted)
+  ctx.strokeStyle = MODULE_SPECS.color;
+  ctx.lineWidth = 2;
+  for(let r=0; r<=rows; r++) {
+    ctx.beginPath();
+    for(let c=0; c<=cols; c++) {
+      const p = pts[r*(cols+1)+c];
+      c === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
+  }
+  
+  // Playhead (when playing)
+  if(state.transport) {
+    const x = (state.seqStep / cols) * W;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  
+  // Cursor brush
+  if(state.dragging) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath(); ctx.arc(state.mx, state.my, params.radius, 0, Math.PI*2); ctx.stroke();
+  }
+}
+
+// === INTERACTION ===
+function trackPointer(e) {
+  const rect = cv.getBoundingClientRect();
+  state.mx = e.clientX - rect.left;
+  state.my = e.clientY - rect.top;
+}
+
+cv.addEventListener('pointerdown', (e) => {
+  initAudio();
+  audio.resume();
+  state.dragging = true;
+  trackPointer(e);
+  state.pulling = e.button === 2 || e.shiftKey || e.ctrlKey;
+  sculpt();
+});
+
+cv.addEventListener('pointermove', (e) => {
+  trackPointer(e);
+  if(state.dragging) sculpt();
+});
+
+window.addEventListener('pointerup', () => { state.dragging = false; });
+
+function sculpt() {
+  const { mx, my, pulling } = state;
+  const r2 = params.radius * params.radius;
+  
+  pts.forEach(p => {
+    const dx = p.x - mx, dy = p.y - my, d2 = dx*dx + dy*dy;
+    if(d2 < r2) {
+      const dist = Math.sqrt(d2);
+      const force = (1 - dist/params.radius) * params.strength * (pulling ? -0.5 : 1);
+      const ang = Math.atan2(dy, dx);
+      p.x += Math.cos(ang) * force;
+      p.y += Math.sin(ang) * force;
+    }
+  });
+}
+
+// === SEQUENCER ===
+function tick() {
+  if(!state.transport || !audio) return;
+  
+  const now = audio.currentTime;
+  const stepTime = 60 / (params.tempo || 100) / 4;
+  
+  if(now - state.lastStepTime > stepTime) {
+    state.lastStepTime = now;
+    state.seqStep = (state.seqStep + 1) % cols;
+    
+    // Check current column for active deformations
+    let total = 0, count = 0;
+    for(let r=0; r<=rows; r++) {
+      const idx = r*(cols+1) + state.seqStep;
+      if(pts[idx]) {
+        const disp = Math.abs(pts[idx].y - pts[idx].oy);
+        if(disp > 3) {
+          const yNorm = 1 - (pts[idx].y / H);
+          total += Math.max(0, Math.min(1, yNorm));
+          count++;
+        }
+      }
+    }
+    
+    if(count > 0) {
+      playNote(total / count);
+    }
+  }
+}
+
+function playNote(pitchNorm) {
+  const osc = audio.createOscillator();
+  const filter = audio.createBiquadFilter();
+  const amp = audio.createGain();
+  
+  const scale = [0, 2, 4, 7, 9, 12, 14, 16];
+  const degree = Math.floor(pitchNorm * (scale.length - 1));
+  osc.frequency.value = MODULE_SPECS.root * Math.pow(2, scale[degree] / 12);
+  
+  osc.type = MODULE_SPECS.osc;
+  filter.type = MODULE_SPECS.filter;
+  filter.frequency.value = params.filter;
+  filter.Q.value = 4;
+  
+  const now = audio.currentTime;
+  const atk = 0.01, rel = params.release / 1000;
+  
+  amp.gain.setValueAtTime(0, now);
+  amp.gain.linearRampToValueAtTime(0.25, now + atk);
+  amp.gain.exponentialRampToValueAtTime(0.001, now + atk + rel);
+  
+  osc.connect(filter).connect(amp).connect(master);
+  osc.start(now); osc.stop(now + atk + rel + 0.1);
+}
+
+// === DIALS ===
+function updateDial(param, value) {
+  const el = document.querySelector(`[data-param="${param}"]`);
+  const min = parseFloat(el.dataset.min);
+  const max = parseFloat(el.dataset.max);
+  const pct = (value - min) / (max - min);
+  const dash = pct * 100;
+  el.querySelector('.dial-val').style.strokeDasharray = `${dash}, 100`;
+}
+
+document.querySelectorAll('.dial-svg').forEach(el => {
+  el.addEventListener('pointerdown', (e) => {
+    const param = el.dataset.param;
+    const min = parseFloat(el.dataset.min);
+    const max = parseFloat(el.dataset.max);
+    let startY = e.clientY;
+    let startVal = params[param];
+    
+    const move = (ev) => {
+      const delta = startY - ev.clientY;
+      const range = max - min;
+      params[param] = clamp(startVal + (delta / 200) * range, min, max);
+      updateDial(param, params[param]);
+    };
+    
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+});
+
+// === TOOLBAR ===
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.tool = btn.dataset.tool;
+    
+    // Update pull state based on tool
+    state.pulling = state.tool === 'pull';
+  });
+});
+
+// === TRANSPORT ===
+document.getElementById('btn-play').addEventListener('click', () => {
+  initAudio();
+  state.transport = !state.transport;
+  document.getElementById('btn-play').classList.toggle('playing', state.transport);
+  document.getElementById('btn-play').innerText = state.transport ? '■' : '▶';
+});
+
+document.getElementById('btn-clear').addEventListener('click', initMesh);
+
+document.getElementById('btn-mode').addEventListener('click', () => {
+  state.mode = state.mode === 'sculpt' ? 'sequence' : 'sculpt';
+  document.getElementById('btn-mode').innerText = state.mode.toUpperCase();
+});
+
+// === UTILS ===
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+// === LOOP ===
+function loop() {
+  requestAnimationFrame(loop);
+  tick();
+  render();
+}
+
+// === MESSAGING ===
+function postMessage(type, data) {
+  window.parent.postMessage({ type, moduleId: MODULE_ID, ...data }, '*');
+}
+
+// === INIT ===
+resize();
+loop();
+</script>
+</body>
+</html>
