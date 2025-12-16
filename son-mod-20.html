@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HYPERCLAY // RACK</title>
+<style>
+    :root {
+        --bg: #080808;
+        --panel: #111111;
+        --cyan: #00ffff;
+        --amber: #ffaa00;
+        --pink: #ff0055;
+        --grid-line: rgba(0, 255, 255, 0.15);
+        --text: #556677;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+    body {
+        margin: 0; background: var(--bg); color: var(--cyan);
+        font-family: 'Courier New', monospace; overflow: hidden;
+        height: 100vh; width: 100vw;
+    }
+
+    canvas { display: block; width: 100%; height: 100%; }
+
+    /* UI OVERLAYS */
+    .hud {
+        position: absolute; top: 20px; left: 20px; 
+        display: flex; flex-direction: column; gap: 10px;
+        pointer-events: none;
+    }
+
+    .status-block {
+        background: rgba(0,0,0,0.8); border-left: 2px solid var(--cyan);
+        padding: 8px 12px; font-size: 11px; letter-spacing: 1px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .status-val { color: #fff; font-weight: bold; }
+
+    /* CONTROLS (Bottom Right) */
+    .controls {
+        position: absolute; bottom: 20px; right: 20px;
+        display: flex; gap: 8px;
+    }
+
+    .btn {
+        background: #000; border: 1px solid var(--text); color: var(--text);
+        width: 60px; height: 60px; border-radius: 50%;
+        display: grid; place-items: center; cursor: pointer;
+        font-size: 10px; font-weight: bold; letter-spacing: 1px;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    .btn:active { transform: scale(0.95); }
+    .btn.active { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 15px var(--cyan); }
+    .btn.warn { border-color: var(--pink); color: var(--pink); }
+    .btn.warn.active { background: var(--pink); color: #000; }
+
+    /* START GATE */
+    #gate {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        z-index: 100; transition: opacity 0.4s;
+    }
+    .gate-btn {
+        background: transparent; border: 2px solid var(--cyan); color: var(--cyan);
+        padding: 15px 40px; font-family: inherit; font-size: 14px; font-weight: bold;
+        cursor: pointer; letter-spacing: 4px;
+    }
+    .gate-btn:hover { background: var(--cyan); color: #000; }
+
+</style>
+</head>
+<body>
+
+<div id="gate">
+    <div style="margin-bottom:20px; color:#555; font-size:10px;">HYPERCLAY // RACK_SYSTEM_v1</div>
+    <button class="gate-btn" id="start-btn">INITIALIZE</button>
+</div>
+
+<div class="hud">
+    <div class="status-block">MODE: <span class="status-val" id="mode-disp">SEQ</span></div>
+    <div class="status-block">BPM: <span class="status-val" id="bpm-disp">120</span></div>
+</div>
+
+<canvas id="cv"></canvas>
+
+<div class="controls">
+    <div class="btn warn" id="btn-clr">CLEAR</div>
+    <div class="btn" id="btn-mode">WARP</div>
+    <div class="btn active" id="btn-play">PLAY</div>
+</div>
+
+<script>
+// --- CONFIGURATION ---
+const RACKS = [
+    { type: 'high', color: '#ff0055', y: 0.1, h: 0.25, label: 'PERC_UNIT' },
+    { type: 'mid',  color: '#ffaa00', y: 0.4, h: 0.25, label: 'SYNTH_UNIT' },
+    { type: 'low',  color: '#00ffff', y: 0.7, h: 0.25, label: 'BASS_UNIT' }
+];
+
+const GRID_COLS = 16;
+const GRID_ROWS = 6; // Per rack
+
+// --- STATE ---
+const state = {
+    playing: false,
+    mode: 'seq', // 'seq' or 'warp'
+    step: 0,
+    tempo: 120,
+    mx: 0, my: 0,
+    down: false
+};
+
+// --- AUDIO ENGINE ---
+const Audio = {
+    ctx: null,
+    master: null,
+    
+    init() {
+        if (this.ctx) return;
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.master = this.ctx.createGain();
+        this.master.gain.value = 0.4;
+        
+        // Master Compressor/Limiter
+        const comp = this.ctx.createDynamicsCompressor();
+        comp.threshold.value = -10;
+        comp.ratio.value = 12;
+        
+        this.master.connect(comp);
+        comp.connect(this.ctx.destination);
+    },
+
+    playTone(rackType, yNorm, intensity) {
+        if (!this.ctx) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const flt = this.ctx.createBiquadFilter();
+        const amp = this.ctx.createGain();
+
+        // 1. PITCH LOGIC based on Grid Distortion (yNorm)
+        // Flat grid = Base note. Warped grid = Higher pitch.
+        const scales = {
+            low: [55, 110], 
+            mid: [220, 261, 293, 329, 392], 
+            high: [200, 800] // Noise filter freq
+        };
+        
+        // 2. TIMBRE LOGIC based on Rack Type
+        if (rackType === 'low') {
+            // Bass: Square wave + Lowpass
+            const notes = [55, 65, 73, 82, 98]; // Pentatonic A
+            const note = notes[Math.floor(yNorm * notes.length)] || 55;
+            osc.frequency.value = note;
+            osc.type = 'sawtooth';
+            flt.type = 'lowpass';
+            flt.frequency.value = 400 + (intensity * 1000);
+            flt.Q.value = 2;
+        } 
+        else if (rackType === 'mid') {
+            // Synth: Triangle + Bandpass
+            const notes = [220, 261, 329, 392, 440, 523]; // Am scale
+            const note = notes[Math.floor(yNorm * notes.length)] || 220;
+            osc.frequency.value = note;
+            osc.type = 'triangle';
+            flt.type = 'lowpass';
+            flt.frequency.value = 1000 + (yNorm * 2000);
+        } 
+        else {
+            // Perc: Noise-ish (FM)
+            osc.type = 'square';
+            osc.frequency.value = 100 + (yNorm * 800);
+            flt.type = 'highpass';
+            flt.frequency.value = 8000 - (yNorm * 6000);
+            // Quick decay for hats/clicks
+            amp.gain.value = 0.2;
+        }
+
+        // 3. ENVELOPE
+        const atk = 0.005;
+        const rel = rackType === 'high' ? 0.05 : 0.2;
+        
+        amp.gain.setValueAtTime(0, t);
+        amp.gain.linearRampToValueAtTime(0.3, t + atk);
+        amp.gain.exponentialRampToValueAtTime(0.001, t + atk + rel);
+
+        osc.connect(flt);
+        flt.connect(amp);
+        amp.connect(this.master);
+        
+        osc.start(t);
+        osc.stop(t + atk + rel + 0.1);
+    }
+};
+
+// --- RACK LOGIC ---
+class Rack {
+    constructor(config) {
+        this.config = config;
+        this.pts = []; // Geometry points
+        this.cells = []; // Sequencer data
+        this.resize();
+    }
+
+    resize() {
+        this.x = 20;
+        this.w = window.innerWidth - 40;
+        this.y = window.innerHeight * this.config.y;
+        this.h = window.innerHeight * this.config.h;
+        
+        // Rebuild Mesh
+        this.pts = [];
+        this.cells = [];
+        
+        const cellW = this.w / GRID_COLS;
+        const cellH = this.h / GRID_ROWS;
+
+        // Create Grid Points
+        for(let r=0; r<=GRID_ROWS; r++) {
+            for(let c=0; c<=GRID_COLS; c++) {
+                this.pts.push({
+                    x: this.x + c * cellW,
+                    y: this.y + r * cellH,
+                    ox: this.x + c * cellW,
+                    oy: this.y + r * cellH
+                });
+            }
+        }
+
+        // Create Cells (Logic Units)
+        for(let c=0; c<GRID_COLS; c++) {
+            this.cells[c] = { active: false, warp: 0 };
+        }
+    }
+
+    // Interaction
+    interact(x, y, isClick, isDrag) {
+        // Hit Test
+        if (x < this.x || x > this.x + this.w || y < this.y || y > this.y + this.h) return;
+
+        const col = Math.floor((x - this.x) / (this.w / GRID_COLS));
+        if (col < 0 || col >= GRID_COLS) return;
+
+        if (state.mode === 'seq') {
+            // TOGGLE CELL
+            if (isClick) {
+                this.cells[col].active = !this.cells[col].active;
+            }
+        } 
+        else if (state.mode === 'warp' && isDrag) {
+            // WARP MESH
+            // 1. Deform geometry
+            const radius = 60;
+            let totalDisp = 0;
+            
+            this.pts.forEach(p => {
+                const dx = p.x - x;
+                const dy = p.y - y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist < radius) {
+                    const force = (1 - dist/radius) * 10;
+                    p.y += (y - p.y) * 0.1 * force; // Pull Y towards mouse
+                    // Clamp visual
+                    p.y = Math.max(this.y, Math.min(this.y + this.h, p.y));
+                }
+                
+                // Track distortion for this column
+                if (Math.abs(p.x - (this.x + col*(this.w/GRID_COLS))) < radius) {
+                    totalDisp += Math.abs(p.y - p.oy);
+                }
+            });
+
+            // 2. Update Cell Logic based on geometry
+            this.cells[col].warp = Math.min(totalDisp / 100, 1.0);
+        }
+    }
+
+    trigger(step) {
+        if (this.cells[step].active) {
+            Audio.playTone(this.config.type, this.cells[step].warp, 1.0);
+            return true; // Hit
+        }
+        return false;
+    }
+
+    draw(ctx) {
+        // Draw Chassis
+        ctx.fillStyle = '#111';
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+        
+        // Draw Label
+        ctx.fillStyle = this.config.color;
+        ctx.font = "10px Courier New";
+        ctx.fillText(this.config.label, this.x, this.y - 6);
+
+        const cellW = this.w / GRID_COLS;
+
+        // Draw Active Cell Backgrounds
+        this.cells.forEach((cell, i) => {
+            if (cell.active) {
+                ctx.fillStyle = this.config.color + '22'; // Low opacity hex
+                ctx.fillRect(this.x + i*cellW, this.y, cellW, this.h);
+                // Active Marker
+                ctx.fillStyle = this.config.color;
+                ctx.fillRect(this.x + i*cellW, this.y + this.h - 4, cellW - 2, 4);
+            }
+        });
+
+        // Draw Playhead
+        if (state.playing && state.step >= 0) {
+            const px = this.x + state.step * cellW;
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.fillRect(px, this.y, cellW, this.h);
+        }
+
+        // Draw Mesh Lines
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#333';
+        
+        // Draw Rows
+        for(let r=0; r<=GRID_ROWS; r++) {
+            ctx.beginPath();
+            for(let c=0; c<=GRID_COLS; c++) {
+                const p = this.pts[r*(GRID_COLS+1) + c];
+                if (c===0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            }
+            // Highlight distorted lines
+            ctx.stroke();
+        }
+
+        // Draw Cols (Warp Visualization)
+        ctx.strokeStyle = this.config.color;
+        for(let c=0; c<=GRID_COLS; c++) {
+            ctx.beginPath();
+            for(let r=0; r<=GRID_ROWS; r++) {
+                const p = this.pts[r*(GRID_COLS+1) + c];
+                if (r===0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+        }
+    }
+}
+
+// --- MAIN LOOP ---
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const units = RACKS.map(cfg => new Rack(cfg));
+let lastTime = 0;
+
+function resize() {
+    cv.width = window.innerWidth;
+    cv.height = window.innerHeight;
+    units.forEach(u => u.resize());
+}
+
+function loop(time) {
+    requestAnimationFrame(loop);
+    
+    // Clear
+    ctx.fillStyle = '#080808';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+
+    // Sequencer Logic
+    if (state.playing) {
+        const stepTime = 60 / state.tempo / 4; // 16th notes (seconds)
+        if (time/1000 - lastTime > stepTime) {
+            lastTime = time/1000;
+            state.step = (state.step + 1) % GRID_COLS;
+            
+            // Trigger Racks
+            units.forEach(u => u.trigger(state.step));
+        }
+    }
+
+    // Draw Racks
+    units.forEach(u => u.draw(ctx));
+
+    // Draw Cursor
+    if (state.down) {
+        ctx.strokeStyle = '#fff';
+        ctx.beginPath(); 
+        ctx.arc(state.mx, state.my, 20, 0, Math.PI*2);
+        ctx.stroke();
+    }
+}
+
+// --- INPUT HANDLING ---
+window.addEventListener('resize', resize);
+window.addEventListener('pointerdown', e => {
+    state.down = true;
+    state.mx = e.clientX; state.my = e.clientY;
+    
+    // Pass click to racks
+    units.forEach(u => u.interact(state.mx, state.my, true, false));
+});
+
+window.addEventListener('pointermove', e => {
+    state.mx = e.clientX; state.my = e.clientY;
+    if (state.down) {
+        units.forEach(u => u.interact(state.mx, state.my, false, true));
+    }
+});
+
+window.addEventListener('pointerup', () => state.down = false);
+
+// --- UI CONTROLS ---
+document.getElementById('start-btn').addEventListener('click', () => {
+    Audio.init();
+    document.getElementById('gate').style.opacity = 0;
+    setTimeout(() => document.getElementById('gate').style.display = 'none', 400);
+    state.playing = true;
+    resize();
+    loop(0);
+});
+
+document.getElementById('btn-play').addEventListener('click', (e) => {
+    state.playing = !state.playing;
+    e.target.classList.toggle('active', state.playing);
+    e.target.innerText = state.playing ? "PLAY" : "PAUSE";
+});
+
+document.getElementById('btn-mode').addEventListener('click', (e) => {
+    state.mode = state.mode === 'seq' ? 'warp' : 'seq';
+    e.target.innerText = state.mode === 'seq' ? "WARP" : "SEQ";
+    e.target.classList.toggle('active', state.mode === 'warp');
+    document.getElementById('mode-disp').innerText = state.mode.toUpperCase();
+});
+
+document.getElementById('btn-clr').addEventListener('click', () => {
+    units.forEach(u => {
+        u.cells.forEach(c => c.active = false);
+        u.resize(); // Resets mesh geometry
+    });
+});
+
+</script>
+</body>
+</html>
