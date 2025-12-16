@@ -54,7 +54,7 @@
     .btn-icon {
         background: none; border: 1px solid var(--border); color: var(--text-dim);
         width: 32px; height: 32px; border-radius: 4px;
-        display: grid; place-items: center; cursor: pointer; font-size: 12px;
+        display: grid; place-items: center; cursor: pointer; font-size: 14px;
         transition: all 0.2s;
     }
     .btn-icon:hover { border-color: var(--text); color: var(--text); }
@@ -63,14 +63,14 @@
     /* --- RACK LIST --- */
     #rack-container {
         flex-grow: 1; overflow-y: auto; overflow-x: hidden;
-        padding: 0; /* Removed padding */
+        padding: 0; /* Seamless stack */
         display: flex; flex-direction: column; 
-        gap: 0; /* Removed gap */
+        gap: 0; 
     }
 
     .rack {
         background: var(--panel); 
-        border-bottom: 1px solid var(--border); /* Only bottom border */
+        border-bottom: 1px solid var(--border);
         height: var(--rack-height);
         display: grid; grid-template-columns: 70px 1fr 60px;
         overflow: hidden; 
@@ -177,7 +177,7 @@
 <div id="start-overlay" class="overlay visible">
     <div style="color:#555; font-size:10px; margin-bottom:12px; font-family:monospace; letter-spacing: 1px;">HYPERCLAY // SYSTEM_READY</div>
     <div style="font-family:monospace; color:var(--text); font-size:32px; font-weight:800; letter-spacing: -1px;">MANIFOLD</div>
-    <div style="color:var(--accent); font-size:12px; letter-spacing: 4px; margin-top:5px;">MATRIX_GRID</div>
+    <div style="color:var(--accent); font-size:12px; letter-spacing: 4px; margin-top:5px;">HAPTIC_CORE_v2</div>
     <button class="loader-btn" id="start-btn">INITIALIZE</button>
 </div>
 
@@ -185,9 +185,9 @@
 <div id="help-overlay" class="overlay">
     <div class="modal-card">
         <div class="modal-title">ABOUT</div>
-        <p>HYPERCLAY MANIFOLD is a polyphonic mesh sequencer.</p>
-        <p><strong>SCULPT MODE:</strong> Drag on the canvas to warp the grid geometry. Higher terrain = Higher pitch.</p>
-        <p><strong>SEQ MODE:</strong> Tap cells to activate notes. Active notes trigger based on their mesh height.</p>
+        <p>HYPERCLAY MANIFOLD is a haptic mesh sequencer.</p>
+        <p><strong>SCULPT MODE:</strong> Drag across the grid to warp geometry. <strong>Makes sound like strumming strings.</strong></p>
+        <p><strong>SEQ MODE:</strong> Tap cells to sequence rhythmic patterns.</p>
         <div class="close-btn" onclick="document.getElementById('help-overlay').classList.remove('visible')">CLOSE</div>
     </div>
 </div>
@@ -202,6 +202,7 @@
         </div>
     </div>
     <div class="header-grp">
+        <button class="btn-icon" id="btn-sync" title="Sync / Reset">↻</button>
         <button class="btn-icon" id="btn-help" title="About">?</button>
         <button class="btn-icon" id="btn-full" title="Fullscreen">⛶</button>
         <button class="btn-icon" id="global-mute" title="Mute All">M</button>
@@ -217,7 +218,7 @@
 <script>
 /**
  * HYPERCLAY // MANIFOLD
- * v3.0 - Optimized UI
+ * v4.0 - Haptic String Physics
  */
 
 const CONFIG = {
@@ -266,6 +267,13 @@ const AudioEngine = {
     },
 
     toggle() { this.isPlaying ? this.stop() : this.play(); },
+    
+    reset() {
+        this.currentStep = 0;
+        this.nextNoteTime = this.ctx.currentTime + 0.05;
+        // Broadcast reset to visualizers
+        App.racks.forEach(r => r.onStep(-1));
+    },
 
     scheduler() {
         while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
@@ -287,11 +295,11 @@ const AudioEngine = {
 };
 
 const Synths = {
+    // Standard Sequencer Sounds
     kick(ctx, dest, time, warp, params) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        const freq = 140 - (warp * 40);
-        osc.frequency.setValueAtTime(freq, time);
+        osc.frequency.setValueAtTime(140 - (warp * 40), time);
         osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
         gain.gain.setValueAtTime(0.8, time);
         gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
@@ -304,62 +312,73 @@ const Synths = {
         const data = buf.getChannelData(0);
         for(let i=0; i<buf.length; i++) data[i] = Math.random()*2-1;
         noise.buffer = buf;
-        const nFlt = ctx.createBiquadFilter();
-        nFlt.type = 'highpass'; nFlt.frequency.value = params.filter;
+        const nFlt = ctx.createBiquadFilter(); nFlt.type = 'highpass'; nFlt.frequency.value = params.filter;
         const nGain = ctx.createGain();
-        nGain.gain.setValueAtTime(0.7, time);
-        nGain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
-        noise.connect(nFlt).connect(nGain).connect(dest);
-        noise.start(time);
+        nGain.gain.setValueAtTime(0.7, time); nGain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+        noise.connect(nFlt).connect(nGain).connect(dest); noise.start(time);
         
-        const osc = ctx.createOscillator();
-        const oGain = ctx.createGain();
+        const osc = ctx.createOscillator(); const oGain = ctx.createGain();
         osc.frequency.setValueAtTime(200 + (warp*200), time);
-        oGain.gain.setValueAtTime(0.5, time);
-        oGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-        osc.connect(oGain).connect(dest);
-        osc.start(time); osc.stop(time + 0.15);
+        oGain.gain.setValueAtTime(0.5, time); oGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+        osc.connect(oGain).connect(dest); osc.start(time); osc.stop(time + 0.15);
     },
     hat(ctx, dest, time, warp, params) {
-        const osc = ctx.createOscillator();
-        osc.type = 'square';
+        const osc = ctx.createOscillator(); osc.type = 'square';
         osc.frequency.setValueAtTime(800 + (warp*5000), time);
-        const flt = ctx.createBiquadFilter();
-        flt.type = 'highpass'; flt.frequency.value = 5000;
+        const flt = ctx.createBiquadFilter(); flt.type = 'highpass'; flt.frequency.value = 5000;
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.2, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-        osc.connect(flt).connect(gain).connect(dest);
-        osc.start(time); osc.stop(time + 0.1);
+        gain.gain.setValueAtTime(0.2, time); gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+        osc.connect(flt).connect(gain).connect(dest); osc.start(time); osc.stop(time + 0.1);
     },
     bass(ctx, dest, time, warp, params) {
-        const osc = ctx.createOscillator();
-        osc.type = 'sawtooth';
+        const osc = ctx.createOscillator(); osc.type = 'sawtooth';
         const notes = [55, 65, 73, 82, 98, 110, 130, 146];
         osc.frequency.value = notes[Math.floor(warp * (notes.length - 1))];
-        const flt = ctx.createBiquadFilter();
-        flt.type = 'lowpass'; flt.frequency.setValueAtTime(params.filter/2, time);
+        const flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.setValueAtTime(params.filter/2, time);
         flt.frequency.exponentialRampToValueAtTime(100, time+0.4);
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.5, time);
-        gain.gain.linearRampToValueAtTime(0, time + 0.4);
-        osc.connect(flt).connect(gain).connect(dest);
-        osc.start(time); osc.stop(time + 0.5);
+        gain.gain.setValueAtTime(0.5, time); gain.gain.linearRampToValueAtTime(0, time + 0.4);
+        osc.connect(flt).connect(gain).connect(dest); osc.start(time); osc.stop(time + 0.5);
     },
     lead(ctx, dest, time, warp, params) {
-        const osc = ctx.createOscillator();
-        osc.type = 'triangle';
+        const osc = ctx.createOscillator(); osc.type = 'triangle';
         const notes = [261, 311, 392, 523, 622, 784, 1046];
         osc.frequency.value = notes[Math.floor(warp * (notes.length - 1))];
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(0.3, time + 0.05);
+        gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(0.3, time + 0.05);
         gain.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
         const dly = ctx.createDelay(); dly.delayTime.value=0.3;
         const fb = ctx.createGain(); fb.gain.value=0.3;
         osc.connect(gain); gain.connect(dest); gain.connect(dly);
         dly.connect(fb); fb.connect(dly); dly.connect(dest);
         osc.start(time); osc.stop(time + 1.0);
+    },
+
+    // NEW: Haptic Strum Sound
+    strum(ctx, dest, time, warp, params) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        // Karplus-Strong-ish pluck (short decay saw)
+        osc.type = 'sawtooth';
+        // Pitch based on height (warp)
+        const freq = 110 + (warp * 880); 
+        osc.frequency.value = freq;
+        
+        // Filter sweep
+        const flt = ctx.createBiquadFilter();
+        flt.type = 'lowpass';
+        flt.frequency.setValueAtTime(freq * 4, time);
+        flt.frequency.exponentialRampToValueAtTime(freq, time + 0.1);
+        flt.Q.value = 5;
+
+        // Envelope
+        gain.gain.setValueAtTime(0.15, time); // Lower volume for strums
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+        osc.connect(flt).connect(gain).connect(dest);
+        osc.start(time);
+        osc.stop(time + 0.2);
     }
 };
 
@@ -368,8 +387,11 @@ class Rack {
         this.id = id; this.type = type; this.baseColor = CONFIG.colors[type];
         this.params = { strength: 10, radius: 60, filter: 2000, decay: 400 };
         this.mode = 'sculpt'; this.tool = 'push'; 
-        this.muted = false; this.active = true; // Playing state
+        this.muted = false; this.active = true; 
         
+        // Strum state
+        this.lastStrum = 0;
+
         // 16x6 Grid
         this.grid = Array(16).fill().map(() => Array(6).fill().map(() => ({ active: false, warp: 0 })));
 
@@ -559,6 +581,7 @@ class Rack {
     }
 
     sculpt(mx, my) {
+        // 1. Physics
         const rSq = this.params.radius ** 2;
         this.pts.forEach(p => {
             const dx = p.x - mx, dy = p.y - my;
@@ -573,6 +596,19 @@ class Rack {
             }
         });
         this.calcWarp();
+
+        // 2. Haptic Sound (Strumming)
+        // Rate limit: trigger every ~60ms while dragging
+        const now = AudioEngine.ctx.currentTime;
+        if (now - this.lastStrum > 0.06 && !this.muted) {
+            // Calculate normalized height (high pitch = top = 1.0)
+            const warp = 1 - (my / this.h);
+            Synths.strum(AudioEngine.ctx, AudioEngine.master, now, warp, this.params);
+            this.lastStrum = now;
+            
+            // 3. Physical Haptics (Vibrate phone)
+            if (navigator.vibrate) navigator.vibrate(5);
+        }
     }
 
     triggerColumn(step, time) {
@@ -693,6 +729,11 @@ const App = {
         };
         document.getElementById('bpm-inc').onclick = () => { CONFIG.bpm+=5; document.getElementById('bpm-display').innerText = CONFIG.bpm; };
         document.getElementById('bpm-dec').onclick = () => { CONFIG.bpm-=5; document.getElementById('bpm-display').innerText = CONFIG.bpm; };
+        
+        // SYNC
+        document.getElementById('btn-sync').onclick = () => {
+            AudioEngine.reset();
+        };
 
         window.addEventListener('resize', () => this.racks.forEach(r => r.resize()));
         setTimeout(() => this.racks.forEach(r => r.resize()), 50);
