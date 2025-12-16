@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<!-- HYPERCLAY MODULE v2.0 - Sculpt/Sequence Integration -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>HYPERCLAY // GRAIN</title>
+<style>
+/* === DYNAMIC THEME SYSTEM === */
+:root {
+  /* Sculpt Mode Theme */
+  --sculpt-bg-0: #05080a;
+  --sculpt-bg-1: #0f151a;
+  --sculpt-primary: #7fffd4;  /* Aquamarine */
+  --sculpt-secondary: #e6e6fa; /* Lavender */
+  --sculpt-ink: #f0f8ff;
+  
+  /* Sequence Mode Theme */
+  --seq-bg-0: #110505;
+  --seq-bg-1: #1a0a0a;
+  --seq-primary: #ff3300;  /* Red */
+  --seq-secondary: #ff9900; /* Orange */
+  --seq-ink: #ffffff;
+  
+  /* Current Theme (will be interpolated) */
+  --bg-0: var(--sculpt-bg-0);
+  --bg-1: var(--sculpt-bg-1);
+  --primary: var(--sculpt-primary);
+  --secondary: var(--sculpt-secondary);
+  --ink: var(--sculpt-ink);
+  
+  /* Visual Properties */
+  --glow: 0 0 20px var(--primary);
+  --panel: rgba(15, 25, 35, 0.9);
+  --transition-speed: 0.5s;
+}
+
+/* === TRANSITION ANIMATIONS === */
+@keyframes sculptPulse {
+  0% { box-shadow: 0 0 10px var(--sculpt-primary); }
+  50% { box-shadow: 0 0 25px var(--sculpt-primary); }
+  100% { box-shadow: 0 0 10px var(--sculpt-primary); }
+}
+
+@keyframes seqPulse {
+  0% { box-shadow: 0 0 10px var(--seq-primary); }
+  50% { box-shadow: 0 0 25px var(--seq-primary); }
+  100% { box-shadow: 0 0 10px var(--seq-primary); }
+}
+
+/* === BASE STYLES === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-0);
+  color: var(--ink);
+  font-family: 'Courier New', 'Monaco', monospace;
+  transition: background-color var(--transition-speed);
+}
+
+#canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  image-rendering: crisp-edges;
+}
+
+/* === MODE INDICATOR === */
+.mode-indicator {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  padding: 8px 16px;
+  background: var(--panel);
+  border: 1px solid var(--primary);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+  z-index: 100;
+  transition: all var(--transition-speed);
+  backdrop-filter: blur(10px);
+}
+
+.mode-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+}
+
+/* === INTEGRATED TOOLBAR === */
+.toolbar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--panel);
+  border: 1px solid var(--primary);
+  border-radius: 30px;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  transition: all var(--transition-speed);
+}
+
+.tool-btn {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tool-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+}
+
+.tool-btn.active {
+  background: var(--primary);
+  color: var(--bg-0);
+  border-color: var(--primary);
+  box-shadow: var(--glow);
+}
+
+.tool-btn[data-mode="sculpt"] {
+  animation: sculptPulse 2s infinite;
+}
+
+.tool-btn[data-mode="sequence"] {
+  animation: seqPulse 2s infinite;
+}
+
+/* === PARAMETER DISPLAY === */
+.param-display {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  width: 120px;
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  font-size: 10px;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.param-label {
+  color: var(--primary);
+  font-weight: 700;
+  margin-bottom: 5px;
+  letter-spacing: 0.1em;
+}
+
+.param-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.param-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.param-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+/* === START GATE === */
+.gate {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(20px);
+}
+
+.gate-card {
+  border: 2px solid var(--primary);
+  padding: 40px;
+  background: var(--panel);
+  border-radius: 8px;
+  text-align: center;
+  max-width: 400px;
+  box-shadow: var(--glow);
+}
+
+.gate-title {
+  font-size: 24px;
+  color: var(--primary);
+  margin-bottom: 10px;
+  letter-spacing: 0.3em;
+}
+
+.gate-subtitle {
+  font-size: 12px;
+  color: var(--ink);
+  opacity: 0.8;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.start-btn {
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  padding: 12px 24px;
+  font-family: inherit;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.start-btn:hover {
+  background: var(--primary);
+  color: var(--bg-0);
+  box-shadow: var(--glow);
+}
+
+/* === INSTRUMENT LABEL === */
+.instrument-label {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  padding: 6px 12px;
+  background: var(--panel);
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+  z-index: 100;
+}
+
+/* === SCANLINE === */
+.scanline {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(255, 255, 255, 0.02) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.3;
+}
+
+/* === MOBILE OPTIMIZATIONS === */
+@media (max-width: 768px) {
+  .toolbar {
+    bottom: 10px;
+    padding: 10px 16px;
+    gap: 8px;
+  }
+  
+  .tool-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 9px;
+  }
+  
+  .param-display {
+    bottom: 70px;
+    right: 10px;
+    width: 100px;
+  }
+  
+  .mode-indicator {
+    top: 10px;
+    left: 10px;
+    font-size: 10px;
+    padding: 6px 12px;
+  }
+}
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<div class="scanline"></div>
+
+<div class="mode-indicator" id="mode-indicator">
+  <span id="mode-text">SCULPT</span> | <span id="blend-value">50%</span>
+</div>
+
+<div class="instrument-label" id="instrument-label">GRAIN</div>
+
+<div class="toolbar">
+  <div class="tool-btn active" data-tool="force" data-mode="sculpt">F</div>
+  <div class="tool-btn" data-tool="size" data-mode="sculpt">S</div>
+  <div class="tool-btn" data-tool="tempo" data-mode="sequence">T</div>
+  <div class="tool-btn" data-tool="density" data-mode="sequence">D</div>
+  <div class="tool-btn" data-mode="blend" id="blend-btn">B</div>
+</div>
+
+<div class="param-display" id="param-display">
+  <div class="param-label" id="param-label">FORCE</div>
+  <div class="param-value">
+    <div class="param-bar">
+      <div class="param-fill" id="param-fill"></div>
+    </div>
+    <span id="param-value">50</span>
+  </div>
+</div>
+
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-title">HYPERCLAY // GRAIN</div>
+    <div class="gate-subtitle">
+      Sculpt Mode shapes the sound canvas<br>
+      Sequence Mode carves rhythmic patterns<br>
+      Blend between modes for evolving textures<br>
+      <br>
+      <strong>DRAG:</strong> Deform canvas / Trigger notes<br>
+      <strong>CLICK TOOL:</strong> Adjust parameters<br>
+      <strong>BLEND:</strong> Mix sculpt & sequence
+    </div>
+    <button class="start-btn" id="start-btn">INITIALIZE SYSTEM</button>
+  </div>
+</div>
+
+<script>
+// === GRAIN MODULE CONFIGURATION ===
+const GRAIN_CONFIG = {
+  type: 'granular',
+  rootFreq: 110, // A2 - Bass foundation
+  sculptScale: [0, 2, 4, 7, 9, 12, 14, 16], // Pentatonic Major
+  seqScale: [0, 1, 3, 5, 6, 8, 10, 12], // Locrian/Diminished
+  blendSpeed: 0.02, // How quickly modes blend into each other
+  erosionRate: 0.001, // How much sequence erodes sculpt
+  accretionRate: 0.001, // How much sculpt rebuilds sequence
+  maxRacks: 3
+};
+
+// === MODULE STATE ===
+class GrainModule {
+  constructor() {
+    this.canvas = document.getElementById('canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    
+    // State
+    this.modeBlend = 0.5; // 0 = pure sculpt, 1 = pure sequence
+    this.activeTool = 'force';
+    this.transport = false;
+    this.dragging = false;
+    this.lastTime = 0;
+    
+    // Parameters that affect both modes
+    this.params = {
+      force: { value: 8, min: 1, max: 20, affects: ['sculpt', 'audio'] },
+      size: { value: 80, min: 20, max: 200, affects: ['sculpt', 'visual'] },
+      tempo: { value: 90, min: 40, max: 160, affects: ['sequence', 'audio'] },
+      density: { value: 0.5, min: 0.1, max: 0.9, affects: ['sequence', 'visual'] }
+    };
+    
+    // Racks with shared state
+    this.racks = [];
+    this.sequence = {
+      step: 0,
+      pattern: [],
+      erosionMap: [], // Tracks how much sequence has eroded sculpt
+      accentMap: []   // Tracks where sculpt has reinforced sequence
+    };
+    
+    // Initialize
+    this.init();
+  }
+  
+  init() {
+    this.resize();
+    this.setupAudio();
+    this.setupUI();
+    this.setupRacks();
+    this.bindEvents();
+    this.start();
+  }
+  
+  resize() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.canvas.width = this.width * this.dpr;
+    this.canvas.height = this.height * this.dpr;
+    this.canvas.style.width = `${this.width}px`;
+    this.canvas.style.height = `${this.height}px`;
+    this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+  }
+  
+  setupAudio() {
+    this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    this.master = this.audioCtx.createGain();
+    this.master.gain.value = 0.3;
+    
+    // Granular processor for grain-based sound
+    this.grainProcessor = this.createGrainProcessor();
+    
+    // Reverb for spatial depth
+    this.reverb = this.audioCtx.createConvolver();
+    this.createReverbBuffer();
+    
+    // Connect
+    this.grainProcessor.connect(this.reverb);
+    this.reverb.connect(this.master);
+    this.master.connect(this.audioCtx.destination);
+  }
+  
+  createGrainProcessor() {
+    const processor = this.audioCtx.createScriptProcessor(4096, 1, 1);
+    const grains = [];
+    const maxGrains = 50;
+    
+    processor.onaudioprocess = (e) => {
+      const output = e.outputBuffer.getChannelData(0);
+      output.fill(0);
+      
+      // Add grains based on mode blend
+      for (let i = 0; i < grains.length; i++) {
+        const grain = grains[i];
+        grain.age++;
+        
+        if (grain.age >= grain.duration) {
+          grains.splice(i, 1);
+          i--;
+          continue;
+        }
+        
+        const pos = grain.age / grain.duration;
+        const window = Math.sin(pos * Math.PI); // Simple window
+        const sample = Math.sin(2 * Math.PI * grain.freq * grain.age / this.audioCtx.sampleRate);
+        
+        const idx = grain.start + grain.age;
+        if (idx < output.length) {
+          output[idx] += sample * grain.amp * window * (this.modeBlend * 0.5 + 0.5);
+        }
+      }
+      
+      // Trigger new grains based on mode
+      const sculptRate = (1 - this.modeBlend) * 2;
+      const seqRate = this.modeBlend * 10;
+      const totalRate = sculptRate + seqRate;
+      
+      if (Math.random() < totalRate / this.audioCtx.sampleRate * 4096 && grains.length < maxGrains) {
+        const isSculpt = Math.random() < sculptRate / totalRate;
+        const grain = {
+          start: Math.floor(Math.random() * output.length),
+          age: 0,
+          duration: Math.floor(this.audioCtx.sampleRate * (0.01 + Math.random() * 0.1)),
+          freq: isSculpt ? 
+            this.getSculptFreq(Math.random()) : 
+            this.getSequenceFreq(Math.random()),
+          amp: 0.1 + Math.random() * 0.2
+        };
+        grains.push(grain);
+      }
+    };
+    
+    return processor;
+  }
+  
+  createReverbBuffer() {
+    const length = this.audioCtx.sampleRate * 2;
+    const buffer = this.audioCtx.createBuffer(1, length, this.audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    
+    for (let i = 0; i < length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+    }
+    
+    this.reverb.buffer = buffer;
+  }
+  
+  getSculptFreq(intensity) {
+    const degree = Math.floor(intensity * (GRAIN_CONFIG.sculptScale.length - 1));
+    const note = GRAIN_CONFIG.sculptScale[degree];
+    return GRAIN_CONFIG.rootFreq * Math.pow(2, note / 12);
+  }
+  
+  getSequenceFreq(intensity) {
+    const degree = Math.floor(intensity * (GRAIN_CONFIG.seqScale.length - 1));
+    const note = GRAIN_CONFIG.seqScale[degree];
+    return GRAIN_CONFIG.rootFreq * Math.pow(2, note / 12);
+  }
+  
+  setupUI() {
+    // Update theme based on blend
+    this.updateTheme();
+    
+    // Setup tool buttons
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      if (btn.dataset.tool) {
+        btn.addEventListener('click', () => {
+          this.setActiveTool(btn.dataset.tool);
+        });
+      }
+    });
+    
+    // Blend button
+    document.getElementById('blend-btn').addEventListener('click', () => {
+      this.cycleBlend();
+    });
+    
+    // Start button
+    document.getElementById('start-btn').addEventListener('click', () => {
+      this.startModule();
+    });
+  }
+  
+  setActiveTool(tool) {
+    this.activeTool = tool;
+    
+    // Update UI
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
+    
+    // Update param display
+    this.updateParamDisplay(tool);
+  }
+  
+  updateParamDisplay(tool) {
+    const param = this.params[tool];
+    if (!param) return;
+    
+    const percentage = Math.round(((param.value - param.min) / (param.max - param.min)) * 100);
+    
+    document.getElementById('param-label').textContent = tool.toUpperCase();
+    document.getElementById('param-value').textContent = Math.round(param.value);
+    document.getElementById('param-fill').style.width = `${percentage}%`;
+    
+    // Color based on which mode it affects
+    const affectsSculpt = param.affects.includes('sculpt');
+    const affectsSeq = param.affects.includes('sequence');
+    
+    if (affectsSculpt && affectsSeq) {
+      // Blend color based on current mode blend
+      const hue = 180 + (this.modeBlend * 180); // Aquamarine to Red
+      document.getElementById('param-fill').style.background = `hsl(${hue}, 100%, 50%)`;
+    } else if (affectsSculpt) {
+      document.getElementById('param-fill').style.background = 'var(--sculpt-primary)';
+    } else {
+      document.getElementById('param-fill').style.background = 'var(--seq-primary)';
+    }
+  }
+  
+  cycleBlend() {
+    // Cycle through blend presets
+    const presets = [0, 0.25, 0.5, 0.75, 1];
+    const current = presets.findIndex(p => Math.abs(p - this.modeBlend) < 0.1);
+    const next = (current + 1) % presets.length;
+    this.modeBlend = presets[next];
+    
+    this.updateTheme();
+    this.updateModeDisplay();
+  }
+  
+  updateTheme() {
+    // Interpolate between sculpt and sequence themes
+    const bg0 = this.interpolateColor(
+      getComputedStyle(document.documentElement).getPropertyValue('--sculpt-bg-0').trim(),
+      getComputedStyle(document.documentElement).getPropertyValue('--seq-bg-0').trim(),
+      this.modeBlend
+    );
+    
+    const bg1 = this.interpolateColor(
+      getComputedStyle(document.documentElement).getPropertyValue('--sculpt-bg-1').trim(),
+      getComputedStyle(document.documentElement).getPropertyValue('--seq-bg-1').trim(),
+      this.modeBlend
+    );
+    
+    const primary = this.interpolateColor(
+      getComputedStyle(document.documentElement).getPropertyValue('--sculpt-primary').trim(),
+      getComputedStyle(document.documentElement).getPropertyValue('--seq-primary').trim(),
+      this.modeBlend
+    );
+    
+    document.documentElement.style.setProperty('--bg-0', bg0);
+    document.documentElement.style.setProperty('--bg-1', bg1);
+    document.documentElement.style.setProperty('--primary', primary);
+  }
+  
+  interpolateColor(color1, color2, t) {
+    // Simple RGB interpolation
+    const hex = (c) => parseInt(c.slice(1), 16);
+    const r1 = hex(color1) >> 16;
+    const g1 = (hex(color1) >> 8) & 0xff;
+    const b1 = hex(color1) & 0xff;
+    
+    const r2 = hex(color2) >> 16;
+    const g2 = (hex(color2) >> 8) & 0xff;
+    const b2 = hex(color2) & 0xff;
+    
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+  
+  updateModeDisplay() {
+    const modeName = this.modeBlend < 0.33 ? 'SCULPT' : 
+                    this.modeBlend > 0.66 ? 'SEQUENCE' : 'BLEND';
+    
+    document.getElementById('mode-text').textContent = modeName;
+    document.getElementById('blend-value').textContent = `${Math.round(this.modeBlend * 100)}%`;
+    
+    // Update instrument label based on blend
+    const labels = ['SCULPT', 'GRAIN', 'SEQUENCE'];
+    const labelIdx = Math.floor(this.modeBlend * (labels.length - 1));
+    document.getElementById('instrument-label').textContent = labels[labelIdx];
+  }
+  
+  setupRacks() {
+    this.racks = [];
+    const margin = 60;
+    const rackHeight = (this.height - margin * 4) / GRAIN_CONFIG.maxRacks;
+    
+    for (let i = 0; i < GRAIN_CONFIG.maxRacks; i++) {
+      const y = margin + i * (rackHeight + margin);
+      
+      this.racks.push({
+        x: margin,
+        y: y,
+        width: this.width - margin * 2,
+        height: rackHeight,
+        points: [], // Sculpt points
+        cells: [],  // Sequence cells
+        erosion: 0, // How much sequence has eroded this rack
+        accent: 0   // How much sculpt has accented this rack
+      });
+      
+      this.initializeRackPoints(i);
+      this.initializeRackCells(i);
+    }
+    
+    // Initialize sequence pattern
+    this.initializeSequence();
+  }
+  
+  initializeRackPoints(rackIndex) {
+    const rack = this.racks[rackIndex];
+    const cols = 20;
+    const rows = 10;
+    
+    rack.points = [];
+    for (let r = 0; r <= rows; r++) {
+      for (let c = 0; c <= cols; c++) {
+        rack.points.push({
+          x: rack.x + (c / cols) * rack.width,
+          y: rack.y + (r / rows) * rack.height,
+          z: 0, // Depth for erosion/accretion
+          velocity: { x: 0, y: 0, z: 0 },
+          original: { x: 0, y: 0, z: 0 }
+        });
+      }
+    }
+  }
+  
+  initializeRackCells(rackIndex) {
+    const rack = this.racks[rackIndex];
+    const cols = 16;
+    const rows = 8;
+    
+    rack.cells = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        rack.cells.push({
+          x: rack.x + (c / cols) * rack.width,
+          y: rack.y + (r / rows) * rack.height,
+          width: rack.width / cols,
+          height: rack.height / rows,
+          active: Math.random() > 0.7,
+          erosion: 0, // How much this cell has eroded points
+          accent: 0   // How much points have accented this cell
+        });
+      }
+    }
+  }
+  
+  initializeSequence() {
+    // Create initial pattern based on sculpt points
+    this.sequence.pattern = [];
+    this.sequence.erosionMap = [];
+    this.sequence.accentMap = [];
+    
+    for (let i = 0; i < 16; i++) {
+      this.sequence.pattern.push({
+        active: Math.random() > 0.5,
+        intensity: Math.random(),
+        sculptInfluence: 0,
+        time: 0
+      });
+    }
+  }
+  
+  bindEvents() {
+    // Window resize
+    window.addEventListener('resize', () => this.resize());
+    
+    // Canvas interactions
+    this.canvas.addEventListener('pointerdown', (e) => {
+      this.handlePointerDown(e);
+    });
+    
+    this.canvas.addEventListener('pointermove', (e) => {
+      this.handlePointerMove(e);
+    });
+    
+    window.addEventListener('pointerup', () => {
+      this.dragging = false;
+    });
+    
+    // Prevent context menu
+    this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+  
+  handlePointerDown(e) {
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    // Check for transport toggle (left corner)
+    if (x < 60 && y > this.height - 60) {
+      this.transport = !this.transport;
+      return;
+    }
+    
+    this.dragging = true;
+    this.handleInteraction(x, y);
+  }
+  
+  handlePointerMove(e) {
+    if (!this.dragging) return;
+    
+    const x = e.clientX;
+    const y = e.clientY;
+    this.handleInteraction(x, y);
+  }
+  
+  handleInteraction(x, y) {
+    // Find which rack is being interacted with
+    const rackIndex = this.racks.findIndex(rack => 
+      x >= rack.x && x <= rack.x + rack.width &&
+      y >= rack.y && y <= rack.y + rack.height
+    );
+    
+    if (rackIndex === -1) return;
+    
+    // Apply based on mode blend
+    if (this.modeBlend < 0.5) {
+      // More sculpt than sequence - deform points
+      this.deformRack(rackIndex, x, y);
+    } else if (this.modeBlend > 0.5) {
+      // More sequence than sculpt - affect cells
+      this.affectSequenceCell(rackIndex, x, y);
+    } else {
+      // Equal blend - do both
+      this.deformRack(rackIndex, x, y);
+      this.affectSequenceCell(rackIndex, x, y);
+    }
+    
+    // Always play sound on interaction
+    this.playInteractionSound(rackIndex, x, y);
+  }
+  
+  deformRack(rackIndex, x, y) {
+    const rack = this.racks[rackIndex];
+    const force = this.params.force.value;
+    const size = this.params.size.value;
+    
+    // Deform points
+    rack.points.forEach(point => {
+      const dx = point.x - x;
+      const dy = point.y - y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < size) {
+        const influence = 1 - (distance / size);
+        
+        // Apply force to point
+        point.velocity.x += (dx / distance) * force * influence * 0.1;
+        point.velocity.y += (dy / distance) * force * influence * 0.1;
+        
+        // Erode/accrete based on mode blend
+        point.z += (this.modeBlend - 0.5) * influence * GRAIN_CONFIG.erosionRate;
+      }
+    });
+    
+    // Update rack's accent level (how much sculpt is affecting it)
+    rack.accent += 0.01;
+    rack.accent = Math.min(rack.accent, 1);
+  }
+  
+  affectSequenceCell(rackIndex, x, y) {
+    const rack = this.racks[rackIndex];
+    
+    // Find which cell is being interacted with
+    const cellIndex = rack.cells.findIndex(cell => 
+      x >= cell.x && x <= cell.x + cell.width &&
+      y >= cell.y && y <= cell.y + cell.height
+    );
+    
+    if (cellIndex === -1) return;
+    
+    // Toggle or adjust cell
+    rack.cells[cellIndex].active = !rack.cells[cellIndex].active;
+    
+    // Update erosion level (how much sequence is affecting sculpt)
+    rack.erosion += 0.02;
+    rack.erosion = Math.min(rack.erosion, 1);
+  }
+  
+  playInteractionSound(rackIndex, x, y) {
+    if (this.audioCtx.state === 'suspended') return;
+    
+    const rack = this.racks[rackIndex];
+    const normalizedX = (x - rack.x) / rack.width;
+    const normalizedY = (y - rack.y) / rack.height;
+    
+    // Blend between sculpt and sequence sounds based on mode
+    const sculptWeight = 1 - this.modeBlend;
+    const seqWeight = this.modeBlend;
+    
+    // Use both scales, weighted by mode
+    const sculptFreq = this.getSculptFreq(normalizedY);
+    const seqFreq = this.getSequenceFreq(normalizedX);
+    const freq = (sculptFreq * sculptWeight) + (seqFreq * seqWeight);
+    
+    // Create sound
+    const now = this.audioCtx.currentTime;
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+    
+    osc.type = this.modeBlend < 0.5 ? 'sine' : 'square';
+    osc.frequency.value = freq;
+    
+    // Envelope based on interaction type
+    const attack = 0.01 + (sculptWeight * 0.05);
+    const release = 0.1 + (seqWeight * 0.2);
+    
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.2, now + attack);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + attack + release);
+    
+    osc.connect(gain);
+    gain.connect(this.master);
+    
+    osc.start(now);
+    osc.stop(now + attack + release + 0.1);
+  }
+  
+  startModule() {
+    document.getElementById('gate').style.display = 'none';
+    
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+    
+    this.transport = true;
+    this.start();
+  }
+  
+  start() {
+    const loop = (time) => {
+      requestAnimationFrame(loop);
+      
+      const deltaTime = (time - this.lastTime) / 1000;
+      this.lastTime = time;
+      
+      if (this.transport) {
+        this.updateSequence(time / 1000);
+      }
+      
+      this.updatePhysics(deltaTime);
+      this.render();
+    };
+    
+    requestAnimationFrame(loop);
+  }
+  
+  updateSequence(time) {
+    const bpm = this.params.tempo.value;
+    const secondsPerStep = 60 / bpm / 4;
+    
+    if (time - this.sequence.stepTime >= secondsPerStep) {
+      this.sequence.stepTime = time;
+      
+      // Advance step
+      this.sequence.step = (this.sequence.step + 1) % 16;
+      
+      // Trigger active cells for current step
+      this.racks.forEach((rack, rackIndex) => {
+        const cellsPerStep = Math.ceil(rack.cells.length / 16);
+        const start = this.sequence.step * cellsPerStep;
+        const end = Math.min(start + cellsPerStep, rack.cells.length);
+        
+        let triggered = false;
+        
+        for (let i = start; i < end; i++) {
+          const cell = rack.cells[i];
+          if (cell.active) {
+            triggered = true;
+            
+            // Play sequence sound
+            this.playSequenceSound(rackIndex, i);
+            
+            // Erode sculpt points near this cell
+            this.erodeFromSequence(rackIndex, cell);
+          }
+        }
+        
+        if (triggered) {
+          rack.erosion += 0.005;
+        }
+      });
+      
+      // Update pattern based on sculpt influence
+      this.updatePatternFromSculpt();
+    }
+  }
+  
+  playSequenceSound(rackIndex, cellIndex) {
+    const rack = this.racks[rackIndex];
+    const cell = rack.cells[cellIndex];
+    const normalizedX = (cell.x - rack.x) / rack.width;
+    
+    const freq = this.getSequenceFreq(normalizedX);
+    
+    const now = this.audioCtx.currentTime;
+    const osc = this.audioCtx.createOscillator();
+    const gain = this.audioCtx.createGain();
+    
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    
+    // Filter based on erosion level
+    const filter = this.audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 1000 + (rack.erosion * 3000);
+    
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1 + (rack.accent * 0.2));
+    
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.master);
+    
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
+  
+  erodeFromSequence(rackIndex, cell) {
+    const rack = this.racks[rackIndex];
+    
+    // Find points near this sequence cell and erode them
+    rack.points.forEach(point => {
+      const dx = point.x - (cell.x + cell.width / 2);
+      const dy = point.y - (cell.y + cell.height / 2);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < Math.max(cell.width, cell.height) * 2) {
+        // Erode point (push it away or change depth)
+        point.z -= GRAIN_CONFIG.erosionRate * (1 - (distance / (cell.width * 2)));
+      }
+    });
+  }
+  
+  updatePatternFromSculpt() {
+    // Update sequence pattern based on current sculpt state
+    this.racks.forEach(rack => {
+      if (rack.accent > 0.5) {
+        // Sculpt has accented this rack - reinforce sequence cells
+        rack.cells.forEach(cell => {
+          if (Math.random() < rack.accent * 0.1) {
+            cell.active = true;
+            cell.accent += 0.1;
+          }
+        });
+      }
+    });
+  }
+  
+  updatePhysics(deltaTime) {
+    const stiffness = 0.2;
+    const damping = 0.95;
+    
+    this.racks.forEach(rack => {
+      rack.points.forEach((point, index) => {
+        // Spring back to original position
+        const dx = (point.x - point.original.x);
+        const dy = (point.y - point.original.y);
+        
+        point.velocity.x -= dx * stiffness * deltaTime;
+        point.velocity.y -= dy * stiffness * deltaTime;
+        point.velocity.z -= point.z * stiffness * deltaTime;
+        
+        // Apply damping
+        point.velocity.x *= damping;
+        point.velocity.y *= damping;
+        point.velocity.z *= damping;
+        
+        // Update position
+        point.x += point.velocity.x;
+        point.y += point.velocity.y;
+        point.z += point.velocity.z;
+        
+        // Clamp depth
+        point.z = Math.max(-1, Math.min(1, point.z));
+      });
+      
+      // Gradually reduce erosion and accent
+      rack.erosion *= 0.999;
+      rack.accent *= 0.999;
+    });
+  }
+  
+  render() {
+    // Clear canvas with interpolated background
+    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-0').trim();
+    this.ctx.fillRect(0, 0, this.width, this.height);
+    
+    // Draw grid background (intensity based on blend)
+    this.drawGrid();
+    
+    // Draw racks
+    this.racks.forEach((rack, rackIndex) => {
+      this.drawRack(rack, rackIndex);
+    });
+    
+    // Draw current tool indicator
+    this.drawToolIndicator();
+    
+    // Draw transport indicator
+    this.drawTransportIndicator();
+    
+    // Update UI
+    this.updateModeDisplay();
+    this.updateParamDisplay(this.activeTool);
+  }
+  
+  drawGrid() {
+    const gridSize = 40;
+    const opacity = 0.05 + (this.modeBlend * 0.1);
+    
+    this.ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+    this.ctx.lineWidth = 1;
+    
+    // Vertical lines
+    for (let x = 0; x < this.width; x += gridSize) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(x, 0);
+      this.ctx.lineTo(x, this.height);
+      this.ctx.stroke();
+    }
+    
+    // Horizontal lines
+    for (let y = 0; y < this.height; y += gridSize) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(0, y);
+      this.ctx.lineTo(this.width, y);
+      this.ctx.stroke();
+    }
+  }
+  
+  drawRack(rack, rackIndex) {
+    // Draw rack background
+    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-1').trim();
+    this.ctx.fillRect(rack.x - 10, rack.y - 10, rack.width + 20, rack.height + 20);
+    
+    // Draw sequence cells (if in sequence mode or blended)
+    if (this.modeBlend > 0.3) {
+      this.drawSequenceCells(rack);
+    }
+    
+    // Draw sculpt points (if in sculpt mode or blended)
+    if (this.modeBlend < 0.7) {
+      this.drawSculptPoints(rack);
+    }
+    
+    // Draw connections between points and cells
+    if (this.modeBlend > 0.3 && this.modeBlend < 0.7) {
+      this.drawConnections(rack);
+    }
+    
+    // Draw rack label with erosion/accent indicators
+    this.drawRackLabel(rack, rackIndex);
+  }
+  
+  drawSequenceCells(rack) {
+    rack.cells.forEach(cell => {
+      // Color based on activity and erosion
+      let hue = 0; // Red for sequence
+      let saturation = cell.active ? 100 : 30;
+      let lightness = cell.active ? 50 : 20;
+      
+      if (cell.accent > 0) {
+        // Blend toward aquamarine based on sculpt accent
+        hue = cell.accent * 180;
+      }
+      
+      this.ctx.fillStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, ${0.2 + (this.modeBlend * 0.3)})`;
+      this.ctx.fillRect(cell.x, cell.y, cell.width, cell.height);
+      
+      // Border
+      this.ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.5)`;
+      this.ctx.lineWidth = 1;
+      this.ctx.strokeRect(cell.x, cell.y, cell.width, cell.height);
+    });
+  }
+  
+  drawSculptPoints(rack) {
+    const pointSize = 2 + (4 * (1 - this.modeBlend));
+    
+    rack.points.forEach(point => {
+      // Color based on depth (erosion/accretion)
+      let hue = 180; // Aquamarine for sculpt
+      let lightness = 50;
+      
+      if (point.z < 0) {
+        // Eroded - shift toward red
+        hue = 180 + (Math.abs(point.z) * 180);
+        lightness = 40;
+      } else if (point.z > 0) {
+        // Accreted - brighter aquamarine
+        lightness = 50 + (point.z * 20);
+      }
+      
+      this.ctx.fillStyle = `hsla(${hue}, 100%, ${lightness}%, ${0.5 + ((1 - this.modeBlend) * 0.3)})`;
+      this.ctx.beginPath();
+      this.ctx.arc(point.x, point.y, pointSize, 0, Math.PI * 2);
+      this.ctx.fill();
+      
+      // Draw lines to neighbors (mesh)
+      this.drawPointConnections(rack, point);
+    });
+  }
+  
+  drawPointConnections(rack, point) {
+    const connectionRange = 60;
+    const opacity = 0.1 * (1 - this.modeBlend);
+    
+    rack.points.forEach(otherPoint => {
+      const dx = otherPoint.x - point.x;
+      const dy = otherPoint.y - point.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance > 0 && distance < connectionRange) {
+        this.ctx.strokeStyle = `hsla(180, 50%, 50%, ${opacity * (1 - distance / connectionRange)})`;
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(point.x, point.y);
+        this.ctx.lineTo(otherPoint.x, otherPoint.y);
+        this.ctx.stroke();
+      }
+    });
+  }
+  
+  drawConnections(rack) {
+    // Draw connections between sculpt points and sequence cells
+    const connectionOpacity = 0.1 * this.modeBlend * (1 - this.modeBlend) * 4;
+    
+    rack.cells.forEach(cell => {
+      if (!cell.active) return;
+      
+      const cellCenterX = cell.x + cell.width / 2;
+      const cellCenterY = cell.y + cell.height / 2;
+      
+      rack.points.forEach(point => {
+        const dx = point.x - cellCenterX;
+        const dy = point.y - cellCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < 100) {
+          // Line color blends between sculpt and sequence based on which is influencing which
+          const influence = cell.accent > 0 ? cell.accent : rack.erosion;
+          const hue = 180 + (influence * 180);
+          
+          this.ctx.strokeStyle = `hsla(${hue}, 50%, 50%, ${connectionOpacity * (1 - distance / 100)})`;
+          this.ctx.lineWidth = 1;
+          this.ctx.beginPath();
+          this.ctx.moveTo(cellCenterX, cellCenterY);
+          this.ctx.lineTo(point.x, point.y);
+          this.ctx.stroke();
+        }
+      });
+    });
+  }
+  
+  drawRackLabel(rack, rackIndex) {
+    const label = `RACK ${rackIndex + 1}`;
+    const erosionBar = Math.round(rack.erosion * 100);
+    const accentBar = Math.round(rack.accent * 100);
+    
+    this.ctx.save();
+    this.ctx.translate(rack.x - 25, rack.y + rack.height / 2);
+    this.ctx.rotate(-Math.PI / 2);
+    
+    // Label text
+    this.ctx.font = 'bold 10px monospace';
+    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+    this.ctx.textAlign = 'center';
+    this.ctx.fillText(label, 0, 0);
+    
+    // Erosion/accent bars
+    this.ctx.translate(0, 15);
+    
+    // Erosion (sequence influence - red)
+    this.ctx.fillStyle = 'rgba(255, 50, 0, 0.5)';
+    this.ctx.fillRect(-50, 0, erosionBar, 4);
+    
+    this.ctx.translate(0, 8);
+    
+    // Accent (sculpt influence - aquamarine)
+    this.ctx.fillStyle = 'rgba(127, 255, 212, 0.5)';
+    this.ctx.fillRect(-50, 0, accentBar, 4);
+    
+    this.ctx.restore();
+  }
+  
+  drawToolIndicator() {
+    const x = this.width - 60;
+    const y = 60;
+    const radius = 20;
+    
+    // Tool circle
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    this.ctx.fill();
+    
+    this.ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+    this.ctx.lineWidth = 2;
+    this.ctx.stroke();
+    
+    // Tool icon
+    this.ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
+    this.ctx.font = 'bold 14px monospace';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(this.activeTool.charAt(0).toUpperCase(), x, y);
+    
+    // Mode blend indicator around circle
+    const startAngle = -Math.PI / 2;
+    const endAngle = startAngle + (Math.PI * 2 * this.modeBlend);
+    
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, radius + 4, startAngle, endAngle);
+    this.ctx.strokeStyle = 'var(--seq-primary)';
+    this.ctx.lineWidth = 3;
+    this.ctx.stroke();
+    
+    // Reverse arc for sculpt portion
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, radius + 4, endAngle, startAngle + Math.PI * 2);
+    this.ctx.strokeStyle = 'var(--sculpt-primary)';
+    this.ctx.lineWidth = 3;
+    this.ctx.stroke();
+  }
+  
+  drawTransportIndicator() {
+    const x = 40;
+    const y = this.height - 40;
+    const radius = 20;
+    
+    // Transport circle
+    this.ctx.beginPath();
+    this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+    this.ctx.fillStyle = this.transport ? 'rgba(0, 255, 100, 0.2)' : 'rgba(0, 255, 255, 0.1)';
+    this.ctx.fill();
+    
+    this.ctx.strokeStyle = this.transport ? '#0f8' : '#0ff';
+    this.ctx.lineWidth = 2;
+    this.ctx.stroke();
+    
+    // Play/Stop symbol
+    this.ctx.fillStyle = '#fff';
+    this.ctx.font = 'bold 14px monospace';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(this.transport ? '■' : '▶', x, y);
+  }
+}
+
+// === INITIALIZE MODULE ===
+window.addEventListener('DOMContentLoaded', () => {
+  const module = new GrainModule();
+  window.grainModule = module; // Make accessible globally
+  
+  // Expose module controls for debugging
+  window.updateParam = (param, value) => {
+    if (module.params[param]) {
+      module.params[param].value = Math.max(
+        module.params[param].min,
+        Math.min(module.params[param].max, value)
+      );
+      module.updateParamDisplay(param);
+    }
+  };
+  
+  window.setBlend = (value) => {
+    module.modeBlend = Math.max(0, Math.min(1, value));
+    module.updateTheme();
+  };
+});
+</script>
+</body>
+</html>
